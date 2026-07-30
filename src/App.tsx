@@ -14,6 +14,7 @@ import Brands from './pages/Brands'
 import BrandDetail from './pages/BrandDetail'
 import CreatePost from './pages/CreatePost'
 import CalendarPage from './pages/CalendarPage'
+import Library from './pages/Library'
 import Discover from './pages/Discover'
 import Settings from './pages/Settings'
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/app/feed" element={<Feed />} />
               <Route path="/app/brands" element={<Brands />} />
               <Route path="/app/brands/:id" element={<BrandDetail />} />
+              <Route path="/app/library" element={<Library />} />
               <Route path="/app/content/new" element={<CreatePost />} />
               <Route path="/app/calendar" element={<CalendarPage />} />
               <Route path="/app/discover" element={<Discover />} />

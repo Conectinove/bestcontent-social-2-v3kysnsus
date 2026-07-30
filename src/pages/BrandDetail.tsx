@@ -10,6 +10,7 @@ import {
   Users,
   TrendingUp,
   MessageCircle,
+  Loader2,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { updateBrand } from '@/services/brands'
@@ -64,7 +65,27 @@ export default function BrandDetail() {
   const [logo, setLogo] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
 
-  if (!brand) return null
+  if (!brand) {
+    return (
+      <div className="space-y-6 animate-fade-in py-12">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/app/brands')}
+          className="text-xs text-muted-foreground gap-1"
+        >
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </Button>
+        <Card className="p-12 text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold">Carregando dados da marca...</h3>
+            <p className="text-xs text-muted-foreground">Buscando informações no banco de dados.</p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   const set = (k: string, v: string) => setEdit((p) => ({ ...p, [k]: v }))
 
