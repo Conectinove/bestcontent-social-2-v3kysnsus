@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T13:38:04.382Z",
+  "generatedAt": "2026-07-30T13:57:04.740Z",
   "collections": [
     {
       "name": "users",
@@ -264,13 +264,6 @@
           "system": false
         },
         {
-          "name": "status",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": ["draft", "scheduled", "published"]
-        },
-        {
           "name": "created",
           "type": "autodate",
           "required": false,
@@ -308,6 +301,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["draft", "scheduled", "published", "approved"]
         }
       ],
       "indexes": [
@@ -1033,6 +1033,155 @@
         "CREATE INDEX idx_post_templates_user ON post_templates (user)",
         "CREATE INDEX idx_post_templates_brand ON post_templates (brand)",
         "CREATE INDEX idx_post_templates_type ON post_templates (type)"
+      ]
+    },
+    {
+      "name": "premium_elements",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["icon", "texture", "shape"]
+        },
+        {
+          "name": "data",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_premium_elements_type ON premium_elements (type)",
+        "CREATE INDEX idx_premium_elements_category ON premium_elements (category)"
+      ]
+    },
+    {
+      "name": "ab_tests",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id = user",
+        "view": "@request.auth.id = user",
+        "create": "@request.auth.id = user",
+        "update": "@request.auth.id = user",
+        "delete": "@request.auth.id = user"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "post_a",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "post_b",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["running", "completed", "draft"]
+        },
+        {
+          "name": "goal",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["clicks", "conversions"]
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "winner",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_ab_tests_user ON ab_tests (user)",
+        "CREATE INDEX idx_ab_tests_brand ON ab_tests (brand)",
+        "CREATE INDEX idx_ab_tests_status ON ab_tests (status)"
       ]
     }
   ]

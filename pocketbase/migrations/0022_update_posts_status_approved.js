@@ -1,6 +1,6 @@
 migrate(
   (app) => {
-    var rows = app.db().newQuery('SELECT id, status FROM posts').all()
+    var existingPosts = app.findRecordsByFilter('posts', 'id != ""', '-created', 0, 0)
 
     var col = app.findCollectionByNameOrId('posts')
     var oldField = col.fields.getByName('status')
@@ -15,11 +15,11 @@ migrate(
     )
     app.save(col)
 
-    for (var i = 0; i < rows.length; i++) {
+    for (var i = 0; i < existingPosts.length; i++) {
       try {
-        var record = app.findRecordById('posts', rows[i]['id'])
-        record.set('status', rows[i]['status'] || 'draft')
-        app.saveNoValidate(record)
+        var currentStatus = existingPosts[i].getString('status') || 'draft'
+        existingPosts[i].set('status', currentStatus)
+        app.saveNoValidate(existingPosts[i])
       } catch (_) {}
     }
   },
