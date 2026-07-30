@@ -20,3 +20,15 @@ export const improveText = (content: string) =>
     body: JSON.stringify({ content }),
     headers: { 'Content-Type': 'application/json' },
   })
+
+export const generateVideoScript = (data: {
+  prompt: string
+  duration: number
+  brandName?: string
+  objective?: string
+}) =>
+  pb.send('/backend/v1/ai/script', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
+  })

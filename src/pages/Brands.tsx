@@ -69,12 +69,21 @@ export default function Brands() {
             Gerencie perfis sociais e estratégias de conteúdo.
           </p>
         </div>
-        <Button
-          onClick={() => setOpen(true)}
-          className="bg-primary hover:bg-primary/90 text-white gap-2 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" /> Adicionar Marca
-        </Button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/app/onboarding')}
+            className="gap-2 text-xs"
+          >
+            <Sparkles className="w-4 h-4 text-primary" /> Onboarding IA
+          </Button>
+          <Button
+            onClick={() => setOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-white gap-2 text-xs"
+          >
+            <Plus className="w-4 h-4" /> Adicionar Marca
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

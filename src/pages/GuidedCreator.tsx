@@ -1,76 +1,86 @@
-import { useState, useEffect, ChangeEvent } from 'react'
+import { useState, ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Sparkles,
-  Smartphone,
+  MessageSquare,
+  Paperclip,
+  Wand2,
+  Lock,
+  Play,
+  Film,
+  CheckCircle2,
+  ChevronLeft,
+  Loader2,
+  Clock,
   Layers,
   Video,
   FileText,
-  Target,
-  CheckCircle2,
-  Wand2,
-  ArrowRight,
-  Compass,
-  Link2,
-  ChevronLeft,
-  Loader2,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
-import { InspirationLibraryModal, InspirationItem } from '@/components/InspirationLibraryModal'
-import { CanvasWorkspace, ThemePreset } from '@/components/guided/CanvasWorkspace'
-import { SocialStudioSidebar, ChatMessage } from '@/components/guided/SocialStudioSidebar'
-import { PostSuccessView } from '@/components/guided/PostSuccessView'
-import {
-  sendSocialStudioChat,
-  generateStructuredPost,
-  StructuredPostData,
-} from '@/services/social_studio'
-import { createScheduledPost } from '@/services/scheduled_posts'
+import { generateVideoScript } from '@/services/ai'
+import { createPost } from '@/services/posts'
 
-const PLATFORMS = [
-  { name: 'Instagram', icon: '📷' },
-  { name: 'TikTok', icon: '🎵' },
-  { name: 'YouTube', icon: '▶️' },
-  { name: 'Facebook', icon: '📘' },
-  { name: 'LinkedIn', icon: '💼' },
-  { name: 'Twitter/X', icon: '🐦' },
-]
+const DURATIONS = [7, 15, 30, 60, 90]
 
-const FORMATS = [
+interface VideoTake {
+  take_number: number
+  duration_sec: number
+  visual_description: string
+  voiceover: string
+  text_overlay: string
+}
+
+interface VideoScriptResult {
+  title: string
+  caption: string
+  hashtags: string[]
+  takes: VideoTake[]
+}
+
+const TEMPLATES = [
   {
-    id: 'story',
-    name: 'Stories Único',
-    ratio: '9:16',
-    dimensions: '1080 × 1920px',
-    icon: Smartphone,
+    id: 'ai_images',
+    title: 'Imagens IA',
+    badge: 'Imagens IA',
+    subtext: 'SEUS DIAS',
+    authorLogo: 'outstone',
+    image: 'https://img.usecurling.com/p/400/700?q=cinematic%20man%20jacket%20portrait&color=blue',
+    locked: false,
   },
   {
-    id: 'carousel',
-    name: 'Carrossel',
-    ratio: '4:5 / 1:1',
-    dimensions: '1080 × 1350px',
-    icon: Layers,
+    id: 'creator_speaking',
+    title: 'Criador Falando',
+    badge: 'Alta Conversão',
+    subtext: 'ADAPTADO PARA ESSE',
+    authorLogo: 'cbf',
+    image: 'https://img.usecurling.com/p/400/700?q=man%20yellow%20jersey%20talking&color=yellow',
+    locked: false,
   },
-  { id: 'video', name: 'Vídeo / Reel', ratio: '9:16', dimensions: '1080 × 1920px', icon: Video },
-  { id: 'flyer', name: 'Post / Flyer', ratio: '1:1', dimensions: '1080 × 1080px', icon: FileText },
-]
-
-const OBJECTIVES = [
-  { id: 'sell', title: 'Vender', description: 'Converter seguidores em clientes do MudarCurso' },
-  { id: 'engage', title: 'Engajar', description: 'Aumentar interação e comunidade' },
-]
-
-const APPROACHES = [
-  { id: 'storytelling', name: 'Storytelling', icon: '📖' },
-  { id: 'oferta', name: 'Oferta', icon: '🏷️' },
-  { id: 'prova_social', name: 'Prova social', icon: '✅' },
+  {
+    id: 'product_broll',
+    title: 'Bastidores Produto',
+    badge: 'Em breve',
+    subtext: 'FLUXO LIMPO',
+    authorLogo: '',
+    image: 'https://img.usecurling.com/p/400/700?q=thermos%20bottle%20water%20glass&color=gray',
+    locked: true,
+  },
+  {
+    id: 'lifestyle_room',
+    title: 'Estilo de Vida',
+    badge: 'Em breve',
+    subtext: 'VLOG PESSOAL',
+    authorLogo: '',
+    image: 'https://img.usecurling.com/p/400/700?q=guy%20room%20bookshelf%20bw&color=black',
+    locked: true,
+  },
 ]
 
 export default function GuidedCreator() {
@@ -78,227 +88,86 @@ export default function GuidedCreator() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  // Wizard state: 1 (Format), 2 (Strategy), 3 (Source), 4 (Editor), 5 (Success View)
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  // Creation Steps: 1 (Prompt/Template), 2 (Script & Takes), 3 (Success)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
 
-  // Step 1
-  const [selectedPlatform, setSelectedPlatform] = useState('Instagram')
-  const [selectedFormat, setSelectedFormat] = useState('story')
+  const [promptText, setPromptText] = useState('')
+  const [selectedDuration, setSelectedDuration] = useState<number>(15)
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
+  const [attachedMedia, setAttachedMedia] = useState<File | null>(null)
 
-  // Step 2
-  const [selectedObjective, setSelectedObjective] = useState('sell')
-  const [selectedApproach, setSelectedApproach] = useState('storytelling')
-
-  // Step 3
-  const [inspirationModalOpen, setInspirationModalOpen] = useState(false)
-  const [selectedInspiration, setSelectedInspiration] = useState<InspirationItem | null>(null)
-  const [customLink, setCustomLink] = useState('')
-
-  // Step 4 Canvas & AI Editor Data
-  const [selectedBrandId, setSelectedBrandId] = useState(brands[0]?.id || '')
-  const [postData, setPostData] = useState<StructuredPostData>({
-    goal: 'Vender o "Plano de Bordo Realizador" como ferramenta de transformação definitiva do MudarCurso.com.br',
-    layout: 'Vertical (9:16), aspecto mapa de viagem/bússola, pessoa olhando horizonte fascinado',
-    headline: 'Cansado de apenas existir?',
-    body: 'A jornada para a sua "Vida Boa" começa com um mapa real.\nChega de se sentir estagnado ou sem direção em 2026.\nCom o Plano de Bordo Realizador, você domina sua rotina e encontra propósito.',
-    offer: 'Acesso imediato: Oportunidade especial de R$ 1.299,99 por R$ 0,00',
-    cta: 'TOQUE AQUI E MUDE TUDO 🚀',
-    footer: '@ronaldo.barreto1',
-  })
-
-  const [bgTheme, setBgTheme] = useState<ThemePreset>('purple')
-  const [customBgImage, setCustomBgImage] = useState<string>(
-    'https://img.usecurling.com/p/600/900?q=wanderer%20mountain%20compass&color=purple',
-  )
-
-  // Social Studio Agent Chat
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      sender: 'agent',
-      text: '🚀 Olá! Sou o Social Studio IA do MudarCurso.com.br. Criei esta arte baseada no modelo de alta conversão para o Plano de Bordo Realizador! O que gostaria de modificar?',
-      time: '05:34',
-    },
-  ])
-  const [chatInput, setChatInput] = useState('')
-  const [chatLoading, setChatLoading] = useState(false)
-  const [conversationId, setConversationId] = useState<string | null>(null)
-
-  // Submission state
-  const [savingStatus, setSavingStatus] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [scriptResult, setScriptResult] = useState<VideoScriptResult | null>(null)
+  const [savingPost, setSavingPost] = useState(false)
 
-  useEffect(() => {
-    if (brands.length > 0 && !selectedBrandId) {
-      setSelectedBrandId(brands[0].id)
-    }
-  }, [brands, selectedBrandId])
-
-  const handleSelectInspiration = (inspiration: InspirationItem) => {
-    setSelectedInspiration(inspiration)
-    const newData: StructuredPostData = {
-      goal: 'Vender o "Plano de Bordo Realizador" como ferramenta de transformação para MudarCurso.com.br',
-      layout: 'Vertical (9:16), bússola luminosa, aspecto mapa de jornada',
-      headline: 'Cansado de apenas existir?',
-      body: 'A jornada para a sua "Vida Boa" começa com um mapa real.\nChega de se sentir estagnado ou sem direção em 2026.\nCom o Plano de Bordo Realizador, você domina sua rotina e encontra propósito.',
-      offer: 'Acesso imediato: Oportunidade especial de R$ 1.299,99 por R$ 0,00',
-      cta: 'TOQUE AQUI E MUDE TUDO 🚀',
-      footer: '@ronaldo.barreto1',
-    }
-    setPostData(newData)
-    toast({ title: 'Template Selecionado!', description: 'Contexto do MudarCurso carregado.' })
-  }
-
-  const handleBgUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!['image/png', 'image/jpeg'].includes(file.type)) {
-      toast({ title: 'Formato inválido', description: 'Use PNG ou JPG.', variant: 'destructive' })
+  const handleGenerateScript = async (customPrompt?: string) => {
+    const finalPrompt = customPrompt || promptText
+    if (!finalPrompt.trim()) {
+      toast({
+        title: 'Atenção',
+        description: 'Digite uma descrição para o vídeo ou selecione um template.',
+      })
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'Arquivo muito grande', description: 'Máximo 5MB.', variant: 'destructive' })
-      return
-    }
-    setCustomBgImage(URL.createObjectURL(file))
-    toast({ title: 'Imagem carregada', description: 'Fundo do canvas atualizado.' })
-  }
 
-  const handleStartGeneration = async (topicName?: string) => {
     setGenerating(true)
     try {
-      const topic = topicName || selectedInspiration?.title || 'Plano de Bordo Realizador'
-      const res = await generateStructuredPost(topic, selectedApproach)
-      setPostData(res)
-      toast({ title: 'Arte Gerada com IA!', description: 'Estrutura otimizada para Stories.' })
-      setStep(4)
-    } catch {
-      toast({ title: 'Arte pronta!', description: 'Ajustando modelo de alta conversão.' })
-      setStep(4)
+      const activeBrand = brands[0]?.name || 'MudarCurso'
+      const res = await generateVideoScript({
+        prompt: finalPrompt,
+        duration: selectedDuration,
+        brandName: activeBrand,
+      })
+      setScriptResult(res as VideoScriptResult)
+      setStep(2)
+      toast({
+        title: 'Roteiro Gerado com Sucesso! 🚀',
+        description: 'Edite os takes e finalize seu post.',
+      })
+    } catch (err) {
+      toast({
+        title: 'Erro ao gerar roteiro',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
     } finally {
       setGenerating(false)
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() || chatLoading) return
-    const userMsg = chatInput.trim()
-    setChatInput('')
-    setChatMessages((prev) => [...prev, { sender: 'user', text: userMsg }])
-    setChatLoading(true)
-
-    try {
-      const res = await sendSocialStudioChat(
-        `Ajuste para o post do MudarCurso. Headline: "${postData.headline}", CTA: "${postData.cta}". Pedido: ${userMsg}`,
-        conversationId,
-      )
-      setConversationId(res.conversation_id)
-      setChatMessages((prev) => [
-        ...prev,
-        { sender: 'agent', text: res.content, time: new Date().toLocaleTimeString().slice(0, 5) },
-      ])
-
-      const lower = userMsg.toLowerCase()
-      if (lower.includes('cor') || lower.includes('mudar cores') || lower.includes('fundo')) {
-        setBgTheme((prev) =>
-          prev === 'purple'
-            ? 'dark'
-            : prev === 'dark'
-              ? 'orange'
-              : prev === 'orange'
-                ? 'blue'
-                : prev === 'blue'
-                  ? 'green'
-                  : 'purple',
-        )
-      } else if (lower.includes('headline') || lower.includes('título')) {
-        setPostData((prev) => ({
-          ...prev,
-          headline: 'Cansado de adiar seus sonhos?',
-        }))
-      }
-    } catch (err) {
-      toast({ title: 'Erro na IA', description: getErrorMessage(err), variant: 'destructive' })
-    } finally {
-      setChatLoading(false)
-    }
-  }
-
-  const handleQuickAction = (action: string) => {
-    if (action === 'mudar_cores') {
-      setBgTheme((prev) =>
-        prev === 'purple'
-          ? 'dark'
-          : prev === 'dark'
-            ? 'orange'
-            : prev === 'orange'
-              ? 'blue'
-              : prev === 'blue'
-                ? 'green'
-                : 'purple',
-      )
-      toast({
-        title: 'Cores atualizadas!',
-        description: 'Novo preset de paleta aplicado ao canvas.',
-      })
-    } else if (action === 'corrigir') {
-      setPostData((prev) => ({
-        ...prev,
-        headline: 'Cansado de apenas existir?',
-        cta: 'TOQUE AQUI E MUDE TUDO 🚀',
-      }))
-      toast({ title: 'Arte Corrigida', description: 'Textos e alinhamento restaurados.' })
-    }
-  }
-
-  const handleFinalize = async (status: 'published' | 'scheduled' | 'draft') => {
-    if (!selectedBrandId) {
-      toast({ title: 'Atenção', description: 'Selecione uma marca primeiro.' })
+  const handleSaveVideoDraft = async () => {
+    if (!scriptResult || !brands[0]?.id || !user?.id) {
+      toast({ title: 'Erro', description: 'Selecione uma marca primeiro.' })
       return
     }
-    setSavingStatus(status)
+
+    setSavingPost(true)
     try {
-      const captionText = `${postData.headline}\n\n${postData.body}\n\n${postData.offer}\n\n👉 ${postData.cta}\n\n#MudarCurso #PlanoDeBordo #PropósitoDeVida`
-      const record = await addPost({
-        brandId: selectedBrandId,
-        platform: selectedPlatform,
-        content: `${postData.headline} | ${postData.body}`,
-        caption: captionText,
-        status,
-        scheduledDate: new Date(Date.now() + 86400000).toISOString(),
+      const fullCaption = `${scriptResult.title}\n\n${scriptResult.caption}\n\n${scriptResult.hashtags.join(' ')}`
+      await addPost({
+        brandId: brands[0].id,
+        platform: 'Instagram',
+        content: promptText || scriptResult.title,
+        caption: fullCaption,
+        status: 'draft',
       })
-
-      if (status === 'scheduled' && record?.id) {
-        await createScheduledPost({
-          user: user?.id,
-          post: record.id,
-          scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-          status: 'pending',
-        })
-      }
-
       toast({
-        title:
-          status === 'published'
-            ? 'Post Publicado!'
-            : status === 'scheduled'
-              ? 'Post Agendado!'
-              : 'Rascunho Salvo!',
-        description: 'Sua arte e legenda foram salvas no sistema.',
+        title: 'Vídeo Salvo como Rascunho!',
+        description: 'Você pode visualizá-lo no seu feed.',
       })
-      if (step === 4) setStep(5)
-      else navigate('/app/feed')
+      setStep(3)
     } catch (err) {
       toast({ title: 'Erro ao salvar', description: getErrorMessage(err), variant: 'destructive' })
     } finally {
-      setSavingStatus(null)
+      setSavingPost(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background pb-12 animate-fade-in">
-      {/* Top Header Step Indicator */}
-      <div className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-20 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12 animate-fade-in flex flex-col">
+      {/* Top Header Stepper */}
+      <div className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-20 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -310,376 +179,313 @@ export default function GuidedCreator() {
             </Button>
             <div className="h-4 w-px bg-border hidden sm:block" />
             <h1 className="text-sm font-bold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary animate-pulse" /> Criador de Conteúdo Guiado
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" /> Criador Guiado de Vídeo IA
             </h1>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 text-xs">
-            <span className={step >= 1 ? 'font-semibold text-primary' : 'text-muted-foreground'}>
-              1. Formato
-            </span>
-            <span className="text-muted-foreground">→</span>
-            <span className={step >= 2 ? 'font-semibold text-primary' : 'text-muted-foreground'}>
-              2. Estratégia
-            </span>
-            <span className="text-muted-foreground">→</span>
-            <span className={step >= 3 ? 'font-semibold text-primary' : 'text-muted-foreground'}>
-              3. Fonte
-            </span>
-            <span className="text-muted-foreground">→</span>
-            <span className={step >= 4 ? 'font-semibold text-primary' : 'text-muted-foreground'}>
-              4. Studio IA Canvas
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="text-[10px] bg-primary/10 text-primary border-primary/20"
-            >
-              ⚡ 12 edições grátis
-            </Badge>
-            {step === 4 && (
-              <Button
-                onClick={() => setStep(5)}
-                size="sm"
-                className="bg-primary text-white text-xs font-semibold gap-1"
-              >
-                Finalizar
-              </Button>
-            )}
+          {/* Stepper Breadcrumb */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <span className={step === 1 ? 'text-primary' : ''}>• Formato</span>
+            <span>—</span>
+            <span className={step === 1 ? 'text-primary' : ''}>• Template</span>
+            <span>—</span>
+            <span>• Mídia</span>
+            <span>—</span>
+            <span>• Prompts</span>
+            <span>—</span>
+            <span className={step === 2 ? 'text-primary' : ''}>• Roteiro</span>
+            <span>—</span>
+            <span className={step === 2 ? 'text-primary' : ''}>• Takes</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 pt-6">
-        {/* STEP 1: Format & Platform */}
+      <div className="max-w-4xl mx-auto px-4 pt-8 w-full flex-1 space-y-10">
+        {/* STEP 1: PROMPT INPUT & TEMPLATES */}
         {step === 1 && (
-          <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
+          <div className="space-y-10 animate-fade-in">
+            {/* Header Text */}
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold">1. Selecione a Plataforma e Formato</h2>
-              <p className="text-xs text-muted-foreground">
-                A IA ajustará a proporção visual e os limites de zona segura para cada canal.
+              <h2 className="text-3xl font-extrabold tracking-tight flex items-center justify-center gap-2">
+                Como você quer criar? <MessageSquare className="w-6 h-6 text-primary" />
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
+                Descreva o vídeo com suas palavras — a IA gera título, legendas e sugestões de
+                mídia. Prefere começar de um jeito pronto? Escolha um template logo abaixo.
               </p>
             </div>
 
-            {/* Platforms */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-muted-foreground block">Plataforma</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {PLATFORMS.map((p) => (
-                  <button
-                    key={p.name}
-                    onClick={() => setSelectedPlatform(p.name)}
-                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 ${
-                      selectedPlatform === p.name
-                        ? 'border-primary bg-primary/10 text-primary shadow-sm font-semibold scale-105'
-                        : 'border-border bg-card hover:border-primary/50 text-muted-foreground'
-                    }`}
-                  >
-                    <span className="text-2xl">{p.icon}</span>
-                    <span className="text-xs">{p.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Formats Grid */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-muted-foreground block">
-                Formato e Dimensão Exacta
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {FORMATS.map((f) => {
-                  const Icon = f.icon
-                  const isSelected = selectedFormat === f.id
-                  return (
-                    <div
-                      key={f.id}
-                      onClick={() => setSelectedFormat(f.id)}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-3 relative ${
-                        isSelected
-                          ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20'
-                          : 'border-border bg-card hover:border-border/80'
-                      }`}
-                    >
-                      {isSelected && (
-                        <CheckCircle2 className="w-5 h-5 text-primary absolute top-3 right-3" />
-                      )}
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-sm">{f.name}</h3>
-                        <p className="text-xs text-primary font-semibold mt-0.5">{f.ratio}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{f.dimensions}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <Button
-                onClick={() => setStep(2)}
-                className="bg-primary text-white text-xs font-semibold px-6 gap-2"
-              >
-                Próximo Passo <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: Objective & Approach */}
-        {step === 2 && (
-          <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold">2. Defina o Objetivo e Estratégia</h2>
-              <p className="text-xs text-muted-foreground">
-                Determine a intenção que guiará a IA no tom, copy e estrutura do conteúdo.
-              </p>
-            </div>
-
-            {/* Objective Cards */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-muted-foreground block">
-                Objetivo Principal
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {OBJECTIVES.map((obj) => (
-                  <div
-                    key={obj.id}
-                    onClick={() => setSelectedObjective(obj.id)}
-                    className={`p-5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 relative ${
-                      selectedObjective === obj.id
-                        ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20'
-                        : 'border-border bg-card hover:border-border/80'
-                    }`}
-                  >
-                    <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                      <Target className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm">{obj.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{obj.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Approaches Selection */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-muted-foreground block">
-                Abordagem de Copy
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {APPROACHES.map((app) => {
-                  const isSelected = selectedApproach === app.id
-                  return (
-                    <button
-                      key={app.id}
-                      onClick={() => setSelectedApproach(app.id)}
-                      className={`p-3.5 rounded-xl border text-center transition-all flex items-center justify-center gap-2 relative ${
-                        isSelected
-                          ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
-                          : 'border-border bg-card text-muted-foreground hover:border-primary/40'
-                      }`}
-                    >
-                      <span>{app.icon}</span>
-                      <span className="text-xs">{app.name}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" size="sm" onClick={() => setStep(1)} className="text-xs">
-                Voltar
-              </Button>
-              <Button
-                onClick={() => setStep(3)}
-                className="bg-primary text-white text-xs font-semibold px-6 gap-2"
-              >
-                Próximo Passo <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: Source Selection & Inspiration */}
-        {step === 3 && (
-          <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold">3. Escolha o Ponto de Partida</h2>
-              <p className="text-xs text-muted-foreground">
-                Selecione o modelo "Plano de Bordo Realizador" para carregar a estratégia do
-                MudarCurso.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* Option 1: Criar do Zero */}
-              <div
-                onClick={() => handleStartGeneration('Criar do Zero')}
-                className="p-6 rounded-2xl border border-border bg-card hover:border-primary/60 hover:shadow-xl transition-all cursor-pointer space-y-4 group"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6" />
+            {/* AI Prompt Card Input */}
+            <Card className="p-5 border-border shadow-lg rounded-3xl bg-card relative space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-2xl bg-primary/10 text-primary mt-1">
+                  <Sparkles className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-base">Criar do Zero</h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Descreva sua ideia e deixe a IA gerar layout e copy.
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" className="w-full text-xs gap-1">
-                  Iniciar do zero <Wand2 className="w-3.5 h-3.5" />
-                </Button>
+                <Textarea
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                  placeholder="Ex: um vídeo mostrando os bastidores da produção do meu produto, com um tom leve e próximo..."
+                  className="border-none shadow-none focus-visible:ring-0 text-sm sm:text-base resize-none min-h-[100px] bg-transparent p-0"
+                />
               </div>
 
-              {/* Option 2: Link */}
-              <div className="p-6 rounded-2xl border border-border bg-card hover:border-primary/60 hover:shadow-xl transition-all space-y-4 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                    <Link2 className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base">A partir de Link</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Cole a URL de um artigo ou produto.
-                    </p>
-                  </div>
-                  <Input
-                    placeholder="Cole o link..."
-                    value={customLink}
-                    onChange={(e) => setCustomLink(e.target.value)}
-                    className="text-xs h-9"
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!customLink.trim()}
-                  onClick={() => handleStartGeneration(`Link: ${customLink}`)}
-                  className="w-full text-xs gap-1"
-                >
-                  Extrair Link <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-
-              {/* Option 3: Inspirações MudarCurso */}
-              <div
-                onClick={() => setInspirationModalOpen(true)}
-                className="p-6 rounded-2xl border-2 border-orange-500/50 bg-gradient-to-br from-orange-500/10 to-amber-500/10 hover:border-orange-500 hover:shadow-xl transition-all cursor-pointer space-y-4 group relative"
-              >
-                <Badge className="bg-orange-500 text-white text-[10px] absolute top-3 right-3">
-                  Recomendado ⭐
-                </Badge>
-                <div className="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Compass className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-foreground">Plano de Bordo Realizador</h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Template com a missão e tom de voz exatos do MudarCurso.com.br.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs gap-1"
-                >
-                  Abrir Inspirações <Compass className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-
-            {selectedInspiration && (
-              <Card className="p-5 border-primary/30 bg-primary/5 animate-fade-in space-y-3">
+              {/* Bottom Toolbar inside Card */}
+              <div className="pt-3 border-t border-border/60 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm">{selectedInspiration.title}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedInspiration.description}
-                    </p>
+                  {/* Attach Media */}
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full bg-muted/60">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    {attachedMedia ? attachedMedia.name : 'Anexar mídia'}
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={(e) => setAttachedMedia(e.target.files?.[0] || null)}
+                    />
+                  </label>
+
+                  {/* Duration Selector */}
+                  <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-full text-xs">
+                    <span className="text-muted-foreground px-2 text-[11px] font-semibold">
+                      Duração
+                    </span>
+                    {DURATIONS.map((dur) => (
+                      <button
+                        key={dur}
+                        onClick={() => setSelectedDuration(dur)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                          selectedDuration === dur
+                            ? 'bg-background text-primary shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {dur}s
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <Button
-                  onClick={() => setStep(4)}
-                  size="sm"
-                  className="w-full bg-primary text-white text-xs gap-1.5 mt-2"
-                >
-                  Abrir Editor Canvas <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </Card>
-            )}
 
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" size="sm" onClick={() => setStep(2)} className="text-xs">
-                Voltar
+                {/* Primary Action Button */}
+                <Button
+                  onClick={() => handleGenerateScript()}
+                  disabled={generating}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold px-6 py-2.5 rounded-full text-xs sm:text-sm gap-2 shadow-md hover:shadow-lg transition-all"
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Gerando Roteiro...
+                    </>
+                  ) : (
+                    <>
+                      Gerar roteiro com IA <Wand2 className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Divider */}
+            <div className="relative text-center my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <span className="relative bg-slate-50 dark:bg-slate-950 px-4 text-xs font-bold text-muted-foreground tracking-wider uppercase">
+                OU COMECE COM UM TEMPLATE
+              </span>
+            </div>
+
+            <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+              <span>ⓘ</span> Clique em um template para ver os detalhes antes de escolher.
+            </p>
+
+            {/* Template Gallery Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {TEMPLATES.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  onClick={() => {
+                    if (tpl.locked) {
+                      toast({
+                        title: 'Recurso em breve!',
+                        description: 'Este template estará disponível em breve.',
+                      })
+                      return
+                    }
+                    setSelectedTemplate(tpl.id)
+                    handleGenerateScript(`Vídeo no estilo ${tpl.title}: ${tpl.subtext}`)
+                  }}
+                  className={`group relative rounded-2xl overflow-hidden border border-border aspect-[9/16] cursor-pointer transition-all duration-300 ${
+                    tpl.locked
+                      ? 'opacity-60 grayscale hover:opacity-80'
+                      : 'hover:scale-[1.03] hover:shadow-xl ring-2 ring-transparent hover:ring-primary'
+                  }`}
+                >
+                  <img src={tpl.image} alt={tpl.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                  {/* Top Badges */}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                    <Badge className="bg-black/60 backdrop-blur text-white text-[10px] font-semibold border-none">
+                      {tpl.badge}
+                    </Badge>
+                    {tpl.authorLogo && (
+                      <span className="w-6 h-6 rounded-full bg-white/80 text-black text-[9px] font-black flex items-center justify-center shadow">
+                        {tpl.authorLogo}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Locked Icon */}
+                  {tpl.locked && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center shadow-lg">
+                        <Lock className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bottom Captions Overlay */}
+                  <div className="absolute bottom-4 left-3 right-3">
+                    <span className="inline-block bg-primary text-white font-extrabold text-[10px] px-2 py-0.5 rounded tracking-wide uppercase shadow">
+                      {tpl.subtext}
+                    </span>
+                    <p className="text-white font-bold text-xs mt-1.5 drop-shadow">{tpl.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: SCRIPT & TAKES REVIEW */}
+        {step === 2 && scriptResult && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-card border border-border p-6 rounded-3xl space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 text-primary border-primary/30 text-xs"
+                >
+                  ✨ Roteiro Gerado com IA
+                </Badge>
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> Duração total: {selectedDuration}s
+                </span>
+              </div>
+
+              <h2 className="text-xl font-extrabold">{scriptResult.title}</h2>
+              <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
+                {scriptResult.caption}
+              </p>
+
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {scriptResult.hashtags.map((tag, idx) => (
+                  <Badge key={idx} variant="secondary" className="text-[11px]">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Takes Breakdown List */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-base flex items-center gap-2">
+                <Film className="w-4 h-4 text-primary" /> Estrutura de Takes do Vídeo
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4">
+                {scriptResult.takes.map((take) => (
+                  <Card key={take.take_number} className="p-4 border-border space-y-3 bg-card">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center">
+                          {take.take_number}
+                        </span>
+                        <span className="font-bold text-sm">Take {take.take_number}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {take.duration_sec}s
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                      <div className="p-3 rounded-xl bg-muted/50 space-y-1">
+                        <span className="font-bold text-muted-foreground block uppercase text-[10px]">
+                          Visual / Câmera
+                        </span>
+                        <p>{take.visual_description}</p>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-muted/50 space-y-1">
+                        <span className="font-bold text-muted-foreground block uppercase text-[10px]">
+                          Voz em Off
+                        </span>
+                        <p className="italic">"{take.voiceover}"</p>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-muted/50 space-y-1">
+                        <span className="font-bold text-muted-foreground block uppercase text-[10px]">
+                          Texto na Tela
+                        </span>
+                        <p className="font-semibold text-primary">{take.text_overlay}</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex items-center justify-between pt-4">
+              <Button variant="outline" onClick={() => setStep(1)} className="rounded-full text-xs">
+                Refazer Roteiro
+              </Button>
+              <Button
+                onClick={handleSaveVideoDraft}
+                disabled={savingPost}
+                className="bg-primary hover:bg-primary/90 text-white font-bold px-8 rounded-full text-sm gap-2"
+              >
+                {savingPost ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" /> Salvar como Rascunho
+                  </>
+                )}
               </Button>
             </div>
           </div>
         )}
 
-        {/* STEP 4: AI Visual Canvas Editor */}
-        {step === 4 && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in items-start">
-            {/* Center Canvas Workspace */}
-            <div className="lg:col-span-8 flex flex-col items-center">
-              <CanvasWorkspace
-                postData={postData}
-                bgTheme={bgTheme}
-                customBgImage={customBgImage}
-                onBgUpload={handleBgUpload}
-                onSelectTheme={setBgTheme}
-                onToolClick={(tool) =>
-                  toast({
-                    title: `Ferramenta ${tool}`,
-                    description: 'Clique e arraste para posicionar no canvas.',
-                  })
-                }
-              />
+        {/* STEP 3: SUCCESS */}
+        {step === 3 && (
+          <div className="text-center space-y-6 animate-fade-in py-12">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-10 h-10" />
             </div>
-
-            {/* Right Sidebar: Social Studio Assistant Chat */}
-            <div className="lg:col-span-4 space-y-4">
-              <SocialStudioSidebar
-                messages={chatMessages}
-                input={chatInput}
-                loading={chatLoading}
-                onInputChange={setChatInput}
-                onSendMessage={handleSendMessage}
-                onQuickAction={handleQuickAction}
-                onBgUpload={handleBgUpload}
-              />
+            <div className="space-y-2">
+              <h2 className="text-2xl font-extrabold">Vídeo Salvo com Sucesso!</h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Seu roteiro e estrutura de takes foram armazenados. Acesse seu Feed de Conteúdo para
+                agendar a publicação.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <Button onClick={() => setStep(1)} variant="outline" className="rounded-full text-xs">
+                Criar Outro Vídeo
+              </Button>
+              <Button
+                onClick={() => navigate('/app/feed')}
+                className="bg-primary text-white rounded-full text-xs px-6"
+              >
+                Ir para o Feed
+              </Button>
             </div>
           </div>
-        )}
-
-        {/* STEP 5: Post Success View */}
-        {step === 5 && (
-          <PostSuccessView
-            postData={postData}
-            selectedPlatform={selectedPlatform}
-            bgTheme={bgTheme}
-            customBgImage={customBgImage}
-            onSaveStatus={handleFinalize}
-            saving={!!savingStatus}
-          />
         )}
       </div>
-
-      <InspirationLibraryModal
-        open={inspirationModalOpen}
-        onOpenChange={setInspirationModalOpen}
-        onSelectInspiration={handleSelectInspiration}
-      />
     </div>
   )
 }

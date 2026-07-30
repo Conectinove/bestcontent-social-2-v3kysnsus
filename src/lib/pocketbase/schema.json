@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T10:51:38.799Z",
+  "generatedAt": "2026-07-30T11:18:11.001Z",
   "collections": [
     {
       "name": "users",
@@ -172,6 +172,37 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "objective",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["sales", "authority", "engagement", "leads"]
+        },
+        {
+          "name": "target_audience",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visual_style",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "brand_voice",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "website_url",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_brands_user ON brands (user)"]
@@ -259,6 +290,24 @@
           "required": false,
           "system": false,
           "collectionRef": "trends"
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "script_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "template_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
