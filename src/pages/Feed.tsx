@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Sparkles, Heart, Bookmark, Share2, PenTool, ExternalLink, Filter } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
