@@ -10,6 +10,8 @@ import {
   Share2,
   Hash,
   FileText,
+  Layout,
+  X,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -20,6 +22,8 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { AIAssistantModal } from '@/components/AIAssistantModal'
+import { TemplateSelector } from '@/components/TemplateSelector'
+import type { PostTemplate } from '@/services/post-templates'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 
@@ -44,8 +48,26 @@ export default function CreatePost() {
   const [submitting, setSubmitting] = useState(false)
   const [aiModalOpen, setAiModalOpen] = useState(false)
   const [publishedText, setPublishedText] = useState('')
+  const [templateOpen, setTemplateOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(null)
 
   const selectedBrand = brands.find((b: any) => b.id === brandId)
+
+  const handleTemplateSelect = (template: PostTemplate) => {
+    setSelectedTemplate(template)
+    if (template.type === 'story' && platform !== 'Instagram') {
+      setPlatform('Instagram')
+    }
+    toast({
+      title: 'Template Aplicado!',
+      description: `Estrutura "${template.name}" carregada. Edite o conteúdo livremente.`,
+    })
+  }
+
+  const clearTemplate = () => {
+    setSelectedTemplate(null)
+    toast({ title: 'Template Removido', description: 'Voltando ao editor livre.' })
+  }
 
   const aiAction = async (type: string) => {
     const sourceText = content || caption
@@ -101,6 +123,24 @@ export default function CreatePost() {
           status: 'pending',
         })
       }
+      const postRecord = await addPost({
+        brandId,
+        platform,
+        content: content || caption,
+        caption,
+        status,
+        scheduledDate: status === 'scheduled' ? new Date(scheduledDate).toISOString() : undefined,
+        media,
+        templateId: selectedTemplate?.id,
+      })
+      if (status === 'scheduled' && postRecord?.id) {
+        await createScheduledPost({
+          user: user?.id,
+          post: postRecord.id,
+          scheduled_at: new Date(scheduledDate).toISOString(),
+          status: 'pending',
+        })
+      }
       if (status === 'published') setPublishedText(`${caption || content}`)
       toast({
         title:
@@ -126,14 +166,49 @@ export default function CreatePost() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-      <div className="border-b border-border pb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          Criar Novo Post <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Agende ou publique conteúdos para suas redes.
-        </p>
+      <div className="border-b border-border pb-4 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-black flex items-center gap-2 uppercase tracking-tight">
+            Criar Novo Post <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+            Agende ou publique conteúdos para suas redes.
+          </p>
+        </div>
+        {!selectedTemplate && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTemplateOpen(true)}
+            className="aggressive-button border-2 border-primary text-primary hover:bg-primary/5"
+          >
+            <Layout className="w-4 h-4" /> Escolher Template
+          </Button>
+        )}
       </div>
+
+      {selectedTemplate && (
+        <Card className="p-4 border-2 border-primary/30 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <Layout className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-black uppercase tracking-tight">
+                  {selectedTemplate.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase">
+                  Template {selectedTemplate.type} aplicado
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={clearTemplate} className="text-xs gap-1">
+              <X className="w-3.5 h-3.5" /> Remover
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {publishedText && (
         <Card className="p-4 bg-primary/5 border-primary/30 flex items-center justify-between">
@@ -355,6 +430,12 @@ export default function CreatePost() {
           if (hashtags) setCaption((prev) => `${prev}\n\n${hashtags.join(' ')}`.trim())
         }}
         platform={platform}
+      />
+
+      <TemplateSelector
+        open={templateOpen}
+        onOpenChange={setTemplateOpen}
+        onSelect={handleTemplateSelect}
       />
     </div>
   )

@@ -36,7 +36,7 @@
     --input: 214 32% 91%;
     --ring: 317 64% 46%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 13% 18%;
@@ -46,7 +46,6 @@
     --sidebar-accent-foreground: 317 64% 46%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 317 64% 46%;
-
     --chart-1: 317 64% 46%;
     --chart-2: 191 100% 61%;
     --chart-3: 317 84% 69%;
@@ -111,11 +110,56 @@
   h5,
   h6 {
     font-family: 'Poppins', sans-serif;
+    @apply font-black tracking-tight;
+  }
+}
+
+@layer components {
+  .aggressive-card {
+    @apply rounded-lg border border-border bg-card transition-all duration-200;
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.08),
+      0 8px 24px -8px rgba(0, 0, 0, 0.06);
+  }
+  .aggressive-card:hover {
+    box-shadow:
+      0 4px 12px -2px rgba(0, 0, 0, 0.1),
+      0 16px 48px -12px rgba(191, 42, 149, 0.12);
+  }
+  .aggressive-button {
+    @apply font-bold uppercase tracking-wide transition-all duration-200;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  .aggressive-button:hover {
+    box-shadow: 0 4px 16px rgba(191, 42, 149, 0.25);
+    transform: translateY(-1px);
+  }
+  .aggressive-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  .headline-mega {
+    @apply font-black tracking-tighter leading-none;
+  }
+  .cta-text {
+    @apply font-black uppercase tracking-wide text-sm;
   }
 }
 
 @layer utilities {
   .font-serif-heading {
     font-family: 'Playfair Display', Georgia, serif;
+  }
+  .shadow-dynamic {
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.06),
+      0 8px 24px -6px rgba(0, 0, 0, 0.08),
+      0 16px 48px -12px rgba(191, 42, 149, 0.1);
+  }
+  .shadow-dynamic-hover {
+    box-shadow:
+      0 2px 8px -1px rgba(0, 0, 0, 0.08),
+      0 12px 36px -8px rgba(0, 0, 0, 0.1),
+      0 24px 64px -16px rgba(191, 42, 149, 0.16);
   }
 }

@@ -121,25 +121,24 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
           size="sm"
           onClick={handlePublish}
           disabled={publishLoading}
-          className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs gap-1.5 h-9 rounded-lg shadow-sm"
+          className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs gap-1.5 h-9 rounded-lg aggressive-button"
         >
           {publishLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Rocket className="w-4 h-4" />
           )}
-          <span>{publishLoading ? 'Publicando...' : 'Publicar'}</span>
+          <span>{publishLoading ? 'Publicando...' : 'PUBLICAR'}</span>
         </Button>
 
         <Button
           size="sm"
           onClick={() => navigate('/app/content/new')}
-          className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-medium text-xs gap-1 h-9 rounded-lg shadow-sm"
+          className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black text-xs gap-1 h-9 rounded-lg aggressive-button"
         >
           <Plus className="w-4 h-4" />
-          <span>Novo Post</span>
+          <span>NOVO POST</span>
         </Button>
-
         {/* Theme Toggle */}
         <Button
           variant="ghost"

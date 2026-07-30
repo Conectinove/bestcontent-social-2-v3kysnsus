@@ -141,12 +141,14 @@ export default function BrandDetail() {
               <p className="text-xs text-muted-foreground">{brand.description}</p>
             </div>
           </div>
-          <Button
-            onClick={() => navigate('/app/content/new', { state: { brandId: brand.id } })}
-            className="bg-primary text-white text-xs gap-1"
-          >
-            <PenTool className="w-4 h-4" /> Novo Post
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => navigate('/app/content/new', { state: { brandId: brand.id } })}
+              className="bg-primary text-white text-xs gap-1 aggressive-button"
+            >
+              <PenTool className="w-4 h-4" /> Novo Post
+            </Button>
+          </div>
         </div>
       </div>
 

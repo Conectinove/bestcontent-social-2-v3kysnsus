@@ -48,6 +48,7 @@ export interface Post {
   }
   hashtags: string[]
   trendId?: string
+  templateId?: string
   _raw?: any
 }
 
@@ -138,6 +139,20 @@ export interface SocialMetricRecord {
   followers_count: number
   engagement_rate: number
   posts_count: number
+  created: string
+  updated: string
+}
+
+export interface PostTemplateRecord {
+  id: string
+  user: string
+  brand?: string
+  name: string
+  type: 'feed' | 'story'
+  layout_data: Record<string, unknown>
+  style_settings: Record<string, unknown>
+  is_favorite: boolean
+  is_shared: boolean
   created: string
   updated: string
 }
