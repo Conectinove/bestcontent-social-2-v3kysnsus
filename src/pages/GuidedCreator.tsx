@@ -11,6 +11,9 @@ import {
   ChevronLeft,
   Loader2,
   Clock,
+  Download,
+  FileText,
+  ArrowRight,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -84,7 +87,7 @@ export default function GuidedCreator() {
   const navigate = useNavigate()
 
   // Creation Steps: 1 (Prompt/Template), 2 (Script & Takes), 3 (Success)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
 
   const [promptText, setPromptText] = useState('')
   const [selectedDuration, setSelectedDuration] = useState<number>(15)
@@ -130,6 +133,56 @@ export default function GuidedCreator() {
     }
   }
 
+  const downloadFile = (content: string, filename: string, type = 'text/plain') => {
+    const blob = new Blob([content], { type })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadScript = () => {
+    if (!scriptResult) return
+    const text = `${scriptResult.title}\n\n${scriptResult.caption}\n\n${scriptResult.hashtags.join(' ')}\n\n--- TAKES ---\n${scriptResult.takes.map((t) => `Take ${t.take_number} (${t.duration_sec}s)\nVisual: ${t.visual_description}\nVoz: ${t.voiceover}\nTexto: ${t.text_overlay}\n`).join('\n')}`
+    downloadFile(text, 'roteiro-video.txt')
+  }
+
+  const handleDownloadJson = () => {
+    if (!scriptResult) return
+    const metadata = {
+      title: scriptResult.title,
+      caption: scriptResult.caption,
+      hashtags: scriptResult.hashtags,
+      duration: selectedDuration,
+      platform: 'Instagram',
+      takes: scriptResult.takes,
+    }
+    downloadFile(JSON.stringify(metadata, null, 2), 'metadata.json', 'application/json')
+  }
+
+  const handleDownloadMedia = () => {
+    if (!attachedMedia) {
+      toast({ title: 'Atenção', description: 'Nenhuma mídia anexada.' })
+      return
+    }
+    const url = URL.createObjectURL(attachedMedia)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = attachedMedia.name
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleRenderVideo = () => {
+    toast({
+      title: 'Renderização não disponível',
+      description:
+        'Renderização de vídeo não disponível no momento. Baixe os arquivos e roteiro para editar manualmente.',
+    })
+  }
+
   const handleSaveVideoDraft = async () => {
     if (!scriptResult || !brands[0]?.id || !user?.id) {
       toast({ title: 'Erro', description: 'Selecione uma marca primeiro.' })
@@ -150,7 +203,7 @@ export default function GuidedCreator() {
         title: 'Vídeo Salvo como Rascunho!',
         description: 'Você pode visualizá-lo no seu feed.',
       })
-      setStep(3)
+      setStep(4)
     } catch (err) {
       toast({ title: 'Erro ao salvar', description: getErrorMessage(err), variant: 'destructive' })
     } finally {
@@ -191,6 +244,8 @@ export default function GuidedCreator() {
             <span className={step === 2 ? 'text-primary' : ''}>• Roteiro</span>
             <span>—</span>
             <span className={step === 2 ? 'text-primary' : ''}>• Takes</span>
+            <span>—</span>
+            <span className={step === 3 ? 'text-primary' : ''}>• Renderizar</span>
           </div>
         </div>
       </div>
@@ -436,26 +491,117 @@ export default function GuidedCreator() {
                 Refazer Roteiro
               </Button>
               <Button
-                onClick={handleSaveVideoDraft}
-                disabled={savingPost}
+                onClick={() => setStep(3)}
                 className="bg-primary hover:bg-primary/90 text-white font-bold px-8 rounded-full text-sm gap-2"
               >
-                {savingPost ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" /> Salvar como Rascunho
-                  </>
-                )}
+                Próximo <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* STEP 3: SUCCESS */}
-        {step === 3 && (
+        {/* STEP 3: RENDERIZAR */}
+        {step === 3 && scriptResult && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-extrabold tracking-tight">Renderizar Vídeo</h2>
+              <p className="text-sm text-muted-foreground">
+                Revise o preview e baixe os arquivos para edição manual.
+              </p>
+            </div>
+
+            <Card className="p-5 border-border space-y-4">
+              <div className="flex items-center justify-between">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 text-primary border-primary/30 text-xs"
+                >
+                  ✨ Preview do Vídeo
+                </Badge>
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> {selectedDuration}s
+                </span>
+              </div>
+              <h3 className="font-bold text-lg">{scriptResult.title}</h3>
+              <p className="text-xs text-muted-foreground whitespace-pre-line">
+                {scriptResult.caption}
+              </p>
+              {attachedMedia && (
+                <div className="p-3 rounded-xl bg-muted/50 text-xs">
+                  <span className="font-bold text-muted-foreground">Mídia anexada:</span>{' '}
+                  {attachedMedia.name}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {scriptResult.hashtags.map((tag, i) => (
+                  <Badge key={i} variant="secondary" className="text-[11px]">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </Card>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                onClick={handleDownloadScript}
+                className="rounded-xl text-xs gap-2"
+              >
+                <FileText className="w-4 h-4" /> Roteiro (.txt)
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownloadMedia}
+                className="rounded-xl text-xs gap-2"
+              >
+                <Download className="w-4 h-4" /> Mídia
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownloadJson}
+                className="rounded-xl text-xs gap-2"
+              >
+                <Download className="w-4 h-4" /> Metadata (.json)
+              </Button>
+            </div>
+
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+              <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                ⚠️ A renderização de vídeo estará disponível em breve. Baixe os arquivos para editar
+                manualmente.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-4">
+              <Button variant="outline" onClick={() => setStep(2)} className="rounded-full text-xs">
+                <ChevronLeft className="w-4 h-4" /> Voltar
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRenderVideo}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-6 rounded-full text-sm gap-2"
+                >
+                  <Film className="w-4 h-4" /> Renderizar Vídeo
+                </Button>
+                <Button
+                  onClick={handleSaveVideoDraft}
+                  disabled={savingPost}
+                  className="bg-primary hover:bg-primary/90 text-white font-bold px-6 rounded-full text-sm gap-2"
+                >
+                  {savingPost ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  Salvar Rascunho
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: SUCCESS */}
+        {step === 4 && (
           <div className="text-center space-y-6 animate-fade-in py-12">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-10 h-10" />

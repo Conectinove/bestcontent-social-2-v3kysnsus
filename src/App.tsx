@@ -15,6 +15,9 @@ import BrandDetail from './pages/BrandDetail'
 import CreatePost from './pages/CreatePost'
 import PostEditor from './pages/PostEditor'
 import GuidedCreator from './pages/GuidedCreator'
+import CreateHub from './pages/CreateHub'
+import ImageCreator from './pages/ImageCreator'
+import FlyerCreator from './pages/FlyerCreator'
 import CalendarPage from './pages/CalendarPage'
 import Library from './pages/Library'
 import Discover from './pages/Discover'
@@ -40,7 +43,10 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/app/feed" element={<Feed />} />
               <Route path="/app/onboarding" element={<Onboarding />} />
-              <Route path="/app/criar" element={<GuidedCreator />} />
+              <Route path="/app/criar" element={<CreateHub />} />
+              <Route path="/app/criar/imagens" element={<ImageCreator />} />
+              <Route path="/app/criar/flyers" element={<FlyerCreator />} />
+              <Route path="/app/criar/videos" element={<GuidedCreator />} />
               <Route path="/app/brands" element={<Brands />} />
               <Route path="/app/brands/:id" element={<BrandDetail />} />
               <Route path="/app/library" element={<Library />} />

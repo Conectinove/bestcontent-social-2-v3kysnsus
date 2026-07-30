@@ -15,6 +15,9 @@ import {
   X,
   ArrowRight,
   Loader2,
+  Image as ImageIcon,
+  FileText,
+  Video,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -68,12 +71,36 @@ const OBJECTIVES = [
   },
 ]
 
+const CONTENT_TYPES = [
+  {
+    id: 'imagens' as const,
+    title: 'Imagens para Redes Sociais',
+    description: 'Posts estáticos para Instagram, Facebook, LinkedIn',
+    icon: ImageIcon,
+  },
+  {
+    id: 'flyers' as const,
+    title: 'Panfletos / Flyers',
+    description: 'Flyers promocionais, cardápios, eventos',
+    icon: FileText,
+  },
+  {
+    id: 'videos' as const,
+    title: 'Vídeos',
+    description: 'Vídeos curtos para TikTok, Reels, YouTube Shorts',
+    icon: Video,
+  },
+]
+
 export default function Onboarding() {
   const { user } = useAuth()
   const { fetchBrands } = useSocial()
   const navigate = useNavigate()
 
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1)
+  const [selectedContentType, setSelectedContentType] = useState<'imagens' | 'flyers' | 'videos'>(
+    'videos',
+  )
 
   // Step 1: Objective
   const [selectedObjective, setSelectedObjective] = useState('sales')
@@ -133,9 +160,14 @@ export default function Onboarding() {
       await fetchBrands()
       toast({
         title: 'Conta Configurada!',
-        description: 'Sua marca foi criada. Vamos começar a criar vídeos!',
+        description: 'Sua marca foi criada. Vamos começar a criar!',
       })
-      navigate('/app/criar')
+      const contentRoutes: Record<string, string> = {
+        imagens: '/app/criar/imagens',
+        flyers: '/app/criar/flyers',
+        videos: '/app/criar/videos',
+      }
+      navigate(contentRoutes[selectedContentType] || '/app/criar/videos')
     } catch (err) {
       toast({
         title: 'Erro ao salvar marca',
@@ -161,13 +193,13 @@ export default function Onboarding() {
             </div>
             <div className="h-4 w-px bg-border hidden sm:block" />
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              Configure sua conta em 5 passos simples
+              Configure sua conta em 6 passos simples
             </span>
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-xs font-semibold text-muted-foreground">
-              Passo {currentStep} de 5
+              Passo {currentStep} de 6
             </span>
             <Button
               variant="ghost"
@@ -185,7 +217,7 @@ export default function Onboarding() {
           <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div
               className="bg-primary h-full transition-all duration-500 ease-out"
-              style={{ width: `${(currentStep / 5) * 100}%` }}
+              style={{ width: `${(currentStep / 6) * 100}%` }}
             />
           </div>
 
@@ -197,6 +229,7 @@ export default function Onboarding() {
               { step: 3, label: 'Público', icon: Users },
               { step: 4, label: 'Identidade', icon: Fingerprint },
               { step: 5, label: 'Estilo', icon: Palette },
+              { step: 6, label: 'Conteúdo', icon: FileText },
             ].map((item) => {
               const Icon = item.icon
               const isActive = currentStep === item.step
@@ -537,17 +570,72 @@ export default function Onboarding() {
             {/* Bottom Action Button */}
             <div className="pt-4 flex justify-center">
               <Button
+                onClick={() => setCurrentStep(6)}
+                className="w-full sm:w-auto min-w-[320px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-full text-base gap-2 shadow-lg hover:shadow-xl transition-all"
+              >
+                <CheckCircle2 className="w-5 h-5" /> Tudo certo! Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 6: CONTENT TYPE SELECTION */}
+        {currentStep === 6 && (
+          <div className="space-y-8 animate-fade-in text-center">
+            <div className="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 mb-2">
+              <FileText className="w-7 h-7" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                O que você deseja criar?
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Escolha o tipo de conteúdo para personalizar seu fluxo de criação.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+              {CONTENT_TYPES.map((ct) => {
+                const Icon = ct.icon
+                const isSelected = selectedContentType === ct.id
+                return (
+                  <div
+                    key={ct.id}
+                    onClick={() => setSelectedContentType(ct.id)}
+                    className={`p-5 rounded-2xl border cursor-pointer transition-all bg-card hover:shadow-md flex flex-col gap-3 ${
+                      isSelected
+                        ? 'border-primary ring-2 ring-primary/30 shadow-md scale-[1.02]'
+                        : 'border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="font-bold text-sm text-foreground">{ct.title}</h3>
+                    <p className="text-xs text-muted-foreground">{ct.description}</p>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="pt-4 flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(5)}
+                className="rounded-full text-xs"
+              >
+                Voltar
+              </Button>
+              <Button
                 onClick={handleFinishOnboarding}
                 disabled={submitting}
-                className="w-full sm:w-auto min-w-[320px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-full text-base gap-2 shadow-lg hover:shadow-xl transition-all"
+                className="bg-primary hover:bg-primary/90 text-white font-semibold px-8 py-2.5 rounded-full text-sm gap-2 shadow-md"
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Salvando Marca...
+                    <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-5 h-5" /> Tudo certo! Continuar
+                    <CheckCircle2 className="w-4 h-4" /> Finalizar e Começar
                   </>
                 )}
               </Button>
