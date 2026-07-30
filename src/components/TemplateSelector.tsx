@@ -11,9 +11,10 @@ interface TemplateSelectorProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelect: (template: PostTemplate) => void
+  onSkip?: () => void
 }
 
-export function TemplateSelector({ open, onOpenChange, onSelect }: TemplateSelectorProps) {
+export function TemplateSelector({ open, onOpenChange, onSelect, onSkip }: TemplateSelectorProps) {
   const { user } = useAuth()
   const [templates, setTemplates] = useState<PostTemplate[]>([])
   const [loading, setLoading] = useState(false)
@@ -64,6 +65,11 @@ export function TemplateSelector({ open, onOpenChange, onSelect }: TemplateSelec
           <DialogTitle className="text-xl font-black uppercase tracking-tight">
             Templates de Alta Conversão
           </DialogTitle>
+          {onSkip && (
+            <Button variant="ghost" size="sm" onClick={onSkip} className="text-xs">
+              Criar sem template
+            </Button>
+          )}
         </DialogHeader>
 
         <div className="flex items-center gap-2 pb-3 border-b border-border">

@@ -36,6 +36,8 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { toast } from '@/hooks/use-toast'
 import { sharePost } from '@/lib/share'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { TemplateSelector } from '@/components/TemplateSelector'
+import type { PostTemplate } from '@/services/post-templates'
 
 const followerData = [
   { month: 'Jan', followers: 32000 },
@@ -64,6 +66,7 @@ export default function BrandDetail() {
   })
   const [logo, setLogo] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  const [templateOpen, setTemplateOpen] = useState(false)
 
   if (!brand) {
     return (
@@ -143,10 +146,10 @@ export default function BrandDetail() {
           </div>
           <div className="flex gap-2">
             <Button
-              onClick={() => navigate('/app/content/new', { state: { brandId: brand.id } })}
+              onClick={() => setTemplateOpen(true)}
               className="bg-primary text-white text-xs gap-1 aggressive-button"
             >
-              <PenTool className="w-4 h-4" /> Novo Post
+              <PenTool className="w-4 h-4" /> Criar Post
             </Button>
           </div>
         </div>
@@ -398,6 +401,19 @@ export default function BrandDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <TemplateSelector
+        open={templateOpen}
+        onOpenChange={setTemplateOpen}
+        onSelect={(template: PostTemplate) => {
+          setTemplateOpen(false)
+          navigate('/app/content/new', { state: { brandId: brand.id, template } })
+        }}
+        onSkip={() => {
+          setTemplateOpen(false)
+          navigate('/app/content/new', { state: { brandId: brand.id } })
+        }}
+      />
     </div>
   )
 }

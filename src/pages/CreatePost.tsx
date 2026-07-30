@@ -16,6 +16,7 @@ import {
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { createScheduledPost } from '@/services/scheduled_posts'
+import { updatePost } from '@/services/posts'
 import { generateCaption, generateHashtags, improveText } from '@/services/ai'
 import { sharePost } from '@/lib/share'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,7 @@ export default function CreatePost() {
   const location = useLocation()
   const initialCaption = location.state?.caption || ''
   const initialBrandId = location.state?.brandId || brands[0]?.id || ''
+  const initialTemplate = (location.state?.template as PostTemplate) || null
   const [brandId, setBrandId] = useState(initialBrandId)
   const [platform, setPlatform] = useState('Instagram')
   const [content, setContent] = useState('')
@@ -49,7 +51,7 @@ export default function CreatePost() {
   const [aiModalOpen, setAiModalOpen] = useState(false)
   const [publishedText, setPublishedText] = useState('')
   const [templateOpen, setTemplateOpen] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(initialTemplate)
 
   const selectedBrand = brands.find((b: any) => b.id === brandId)
 
@@ -114,29 +116,15 @@ export default function CreatePost() {
         status,
         scheduledDate: status === 'scheduled' ? new Date(scheduledDate).toISOString() : undefined,
         media,
+        templateId: selectedTemplate?.id,
       })
+      if (selectedTemplate?.id && record?.id) {
+        await updatePost(record.id, { template_id: selectedTemplate.id })
+      }
       if (status === 'scheduled' && record?.id) {
         await createScheduledPost({
           user: user?.id,
           post: record.id,
-          scheduled_at: new Date(scheduledDate).toISOString(),
-          status: 'pending',
-        })
-      }
-      const postRecord = await addPost({
-        brandId,
-        platform,
-        content: content || caption,
-        caption,
-        status,
-        scheduledDate: status === 'scheduled' ? new Date(scheduledDate).toISOString() : undefined,
-        media,
-        templateId: selectedTemplate?.id,
-      })
-      if (status === 'scheduled' && postRecord?.id) {
-        await createScheduledPost({
-          user: user?.id,
-          post: postRecord.id,
           scheduled_at: new Date(scheduledDate).toISOString(),
           status: 'pending',
         })
@@ -163,6 +151,11 @@ export default function CreatePost() {
   const mediaUrl = media
     ? URL.createObjectURL(media)
     : 'https://img.usecurling.com/p/500/500?q=social%20media%20post'
+
+  const tplStyles = selectedTemplate?.style_settings as Record<string, string> | undefined
+  const tplBg = tplStyles?.bgColor
+  const tplAccent = tplStyles?.accentColor
+  const tplText = tplStyles?.textColor
 
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
@@ -394,23 +387,47 @@ export default function CreatePost() {
 
         <div className="lg:col-span-5 space-y-2">
           <label className="text-xs font-semibold text-muted-foreground block text-center">
-            Pré-visualização ({platform})
+            Pré-visualização ({platform}){selectedTemplate && ' · Template aplicado'}
           </label>
-          <Card className="max-w-sm mx-auto overflow-hidden shadow-lg">
-            <div className="p-3 border-b border-border flex items-center gap-2">
+          <Card
+            className="max-w-sm mx-auto overflow-hidden shadow-lg transition-colors duration-300"
+            style={tplBg ? { backgroundColor: tplBg } : undefined}
+          >
+            <div
+              className="p-3 border-b border-border flex items-center gap-2"
+              style={
+                tplBg ? { borderColor: tplAccent || '#BF2A95', backgroundColor: tplBg } : undefined
+              }
+            >
               <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
                 <img src={selectedBrand?.logo} alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div>
-                <span className="font-semibold text-xs block">{selectedBrand?.name}</span>
+                <span
+                  className="font-semibold text-xs block"
+                  style={tplText ? { color: tplText } : undefined}
+                >
+                  {selectedBrand?.name}
+                </span>
                 <span className="text-[10px] text-muted-foreground">{platform}</span>
               </div>
             </div>
-            <div className="h-64 bg-muted overflow-hidden">
+            <div className="h-64 bg-muted overflow-hidden relative">
               <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+              {selectedTemplate && (
+                <div
+                  className="absolute bottom-2 right-2 px-3 py-1 rounded-full text-[10px] font-black uppercase text-white"
+                  style={{ backgroundColor: tplAccent || '#BF2A95' }}
+                >
+                  CTA
+                </div>
+              )}
             </div>
-            <CardContent className="p-3">
-              <p className="text-xs line-clamp-4 leading-relaxed whitespace-pre-line">
+            <CardContent className="p-3" style={tplBg ? { backgroundColor: tplBg } : undefined}>
+              <p
+                className="text-xs line-clamp-4 leading-relaxed whitespace-pre-line"
+                style={tplText ? { color: tplText } : undefined}
+              >
                 <span className="font-semibold mr-1">{selectedBrand?.name}</span>
                 {caption || 'Sua legenda aparecerá aqui...'}
               </p>

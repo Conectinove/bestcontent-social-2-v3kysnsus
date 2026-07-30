@@ -66,6 +66,7 @@ export function mapPost(record: any): Post {
     engagement: { likes: 0, comments: 0, shares: 0 },
     hashtags: [],
     trendId: record.trend || undefined,
+    templateId: record.template_id || undefined,
     _raw: record,
   }
 }
