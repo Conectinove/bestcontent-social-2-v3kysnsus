@@ -1,17 +1,29 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ArrowRight, CheckCircle2, Tag, Loader2, FileText } from 'lucide-react'
+import {
+  ChevronLeft,
+  ArrowRight,
+  CheckCircle2,
+  Tag,
+  Loader2,
+  FileText,
+  Layout as LayoutIcon,
+} from 'lucide-react'
+import { useSocial } from '@/context/SocialContext'
+import { useAuth } from '@/context/AuthContext'
+import { createPost } from '@/services/posts'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
-const FLYER_TYPES = [
-  { id: 'promocao', title: 'Promocao', desc: 'Descontos e ofertas especiais' },
-  { id: 'evento', title: 'Evento', desc: 'Divulgacao de eventos e encontros' },
-  { id: 'cardapio', title: 'Cardapio', desc: 'Lista de produtos e precos' },
+const LAYOUTS = [
+  { id: 'promocao', title: 'Promoção', desc: 'Descontos e ofertas especiais' },
+  { id: 'evento', title: 'Evento', desc: 'Divulgação de eventos e encontros' },
+  { id: 'cardapio', title: 'Cardápio', desc: 'Lista de produtos e preços' },
   { id: 'outro', title: 'Outro', desc: 'Formato personalizado' },
 ]
 
@@ -22,12 +34,15 @@ const FORMATS = [
   { id: 'story', title: 'Story', desc: '1080 x 1920px', ratio: 'aspect-[9/16]' },
 ]
 
-const TAG_OPTIONS = ['Preco', 'Data', 'Contato', 'Endereco', 'WhatsApp', 'Site']
+const TAG_OPTIONS = ['Preço', 'Data', 'Contato', 'Endereço', 'WhatsApp', 'Site']
 
 export default function FlyerCreator() {
   const navigate = useNavigate()
+  const { brands, refreshAll } = useSocial()
+  const { user } = useAuth()
+
   const [step, setStep] = useState(1)
-  const [flyerType, setFlyerType] = useState('promocao')
+  const [layout, setLayout] = useState('promocao')
   const [format, setFormat] = useState('a4')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -39,21 +54,43 @@ export default function FlyerCreator() {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
-      toast({ title: 'Atencao', description: 'Digite um titulo.' })
+      toast({ title: 'Atenção', description: 'Digite um título.' })
+      return
+    }
+    if (!user?.id || !brands[0]?.id) {
+      toast({ title: 'Atenção', description: 'Crie uma marca primeiro.' })
+      navigate('/app/brands')
       return
     }
     setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
+    try {
+      const tagsText = selectedTags
+        .map((t) => `${t}: ${tagValues[t] || ''}`)
+        .filter((v) => v.trim())
+        .join(' | ')
+      await createPost({
+        user: user.id,
+        brand: brands[0].id,
+        content: title,
+        caption: `${title}\n\n${description}${tagsText ? `\n\n${tagsText}` : ''}`,
+        platform: 'Instagram',
+        status: 'draft',
+        template_id: `flyer_${layout}_${format}`,
+      })
+      refreshAll()
       toast({ title: 'Flyer salvo!', description: 'Seu flyer foi salvo como rascunho.' })
       navigate('/app/feed')
-    }, 800)
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const selectedFormat = FORMATS.find((f) => f.id === format)
-  const selectedType = FLYER_TYPES.find((t) => t.id === flyerType)
+  const selectedLayout = LAYOUTS.find((l) => l.id === layout)
 
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
@@ -69,24 +106,26 @@ export default function FlyerCreator() {
         <h1 className="text-lg font-bold flex items-center gap-2">
           <FileText className="w-5 h-5 text-primary" /> Criar Flyer
         </h1>
-        <span className="text-xs text-muted-foreground ml-auto">Passo {step} de 4</span>
+        <span className="text-xs text-muted-foreground ml-auto">Etapa {step} de 4</span>
       </div>
 
       {step === 1 && (
         <div className="space-y-4 animate-fade-in">
-          <h2 className="text-base font-bold">Tipo de Flyer</h2>
+          <h2 className="text-base font-bold flex items-center gap-2">
+            <LayoutIcon className="w-4 h-4" /> Escolha um Layout
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {FLYER_TYPES.map((t) => (
+            {LAYOUTS.map((l) => (
               <div
-                key={t.id}
+                key={l.id}
                 onClick={() => {
-                  setFlyerType(t.id)
+                  setLayout(l.id)
                   setStep(2)
                 }}
-                className={`p-5 rounded-2xl border cursor-pointer transition-all ${flyerType === t.id ? 'border-primary ring-2 ring-primary/30 bg-primary/5' : 'border-border hover:border-primary/40'}`}
+                className={`p-5 rounded-2xl border cursor-pointer transition-all ${layout === l.id ? 'border-primary ring-2 ring-primary/30 bg-primary/5' : 'border-border hover:border-primary/40'}`}
               >
-                <h3 className="font-bold text-sm">{t.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{t.desc}</p>
+                <h3 className="font-bold text-sm">{l.title}</h3>
+                <p className="text-xs text-muted-foreground mt-1">{l.desc}</p>
               </div>
             ))}
           </div>
@@ -121,25 +160,25 @@ export default function FlyerCreator() {
           <Card className="p-4 space-y-4">
             <div>
               <label className="text-xs font-semibold block mb-1">
-                Titulo <span className="text-red-500">*</span>
+                Título <span className="text-red-500">*</span>
               </label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value.slice(0, 60))}
-                placeholder="Ex: Promocao de Inverno"
+                placeholder="Ex: Promoção de Inverno"
                 className="text-xs h-9"
               />
               <span className="text-[10px] text-muted-foreground">{title.length}/60</span>
             </div>
             <div>
-              <label className="text-xs font-semibold block mb-1">Descricao</label>
+              <label className="text-xs font-semibold block mb-1">Descrição</label>
               <Textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value.slice(0, 300))}
-                placeholder="Descreva o conteudo do flyer..."
+                onChange={(e) => setDescription(e.target.value.slice(0, 200))}
+                placeholder="Descreva o conteúdo do flyer..."
                 className="text-xs h-24"
               />
-              <span className="text-[10px] text-muted-foreground">{description.length}/300</span>
+              <span className="text-[10px] text-muted-foreground">{description.length}/200</span>
             </div>
             <div>
               <label className="text-xs font-semibold block mb-2">Tags opcionais</label>
@@ -179,11 +218,11 @@ export default function FlyerCreator() {
 
       {step === 4 && (
         <div className="space-y-4 animate-fade-in">
-          <h2 className="text-base font-bold">Revisao</h2>
+          <h2 className="text-base font-bold">Revisão</h2>
           <Card className="p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
-                {selectedType?.title}
+                {selectedLayout?.title}
               </Badge>
               <Badge variant="secondary" className="text-xs">
                 {selectedFormat?.title}
@@ -193,18 +232,17 @@ export default function FlyerCreator() {
               className={`${selectedFormat?.ratio} bg-gradient-to-br from-primary/20 to-pink-500/20 rounded-xl flex items-center justify-center max-w-xs mx-auto`}
             >
               <div className="text-center p-4">
-                <h3 className="font-bold text-sm">{title || 'Titulo do Flyer'}</h3>
+                <h3 className="font-bold text-sm">{title || 'Título do Flyer'}</h3>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {description || 'Descricao aparecera aqui...'}
+                  {description || 'Descrição aparecerá aqui...'}
                 </p>
                 <div className="flex flex-wrap gap-1 justify-center mt-3">
-                  {selectedTags.map(
-                    (tag) =>
-                      tagValues[tag] && (
-                        <Badge key={tag} variant="secondary" className="text-[10px]">
-                          {tag}: {tagValues[tag]}
-                        </Badge>
-                      ),
+                  {selectedTags.map((tag) =>
+                    tagValues[tag] ? (
+                      <Badge key={tag} variant="secondary" className="text-[10px]">
+                        {tag}: {tagValues[tag]}
+                      </Badge>
+                    ) : null,
                   )}
                 </div>
               </div>

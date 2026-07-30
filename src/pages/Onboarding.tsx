@@ -26,12 +26,6 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from '@/components/ui/accordion'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { createBrand } from '@/services/brands'
@@ -40,34 +34,30 @@ const OBJECTIVES = [
   {
     id: 'sales',
     title: 'Vender mais produtos/serviços',
-    description: 'Aumentar vendas e conversões',
+    desc: 'Aumentar vendas e conversões',
     icon: TrendingUp,
-    bgColor: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400',
-    ringColor: 'peer-checked:ring-emerald-500',
+    color: 'bg-emerald-500/10 text-emerald-600',
   },
   {
     id: 'authority',
     title: 'Construir autoridade',
-    description: 'Se tornar referência no seu nicho',
+    desc: 'Se tornar referência no seu nicho',
     icon: Sparkles,
-    bgColor: 'bg-pink-500/10 text-pink-600 dark:bg-pink-500/20 dark:text-pink-400',
-    ringColor: 'peer-checked:ring-pink-500',
+    color: 'bg-pink-500/10 text-pink-600',
   },
   {
     id: 'engagement',
     title: 'Aumentar engajamento',
-    description: 'Criar comunidade ativa',
+    desc: 'Criar comunidade ativa',
     icon: Heart,
-    bgColor: 'bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400',
-    ringColor: 'peer-checked:ring-red-500',
+    color: 'bg-red-500/10 text-red-600',
   },
   {
     id: 'leads',
     title: 'Gerar leads qualificados',
-    description: 'Captar potenciais clientes',
+    desc: 'Captar potenciais clientes',
     icon: UserPlus,
-    bgColor: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400',
-    ringColor: 'peer-checked:ring-blue-500',
+    color: 'bg-blue-500/10 text-blue-600',
   },
 ]
 
@@ -75,21 +65,29 @@ const CONTENT_TYPES = [
   {
     id: 'imagens' as const,
     title: 'Imagens para Redes Sociais',
-    description: 'Posts estáticos para Instagram, Facebook, LinkedIn',
+    desc: 'Posts estáticos para Instagram, Facebook, LinkedIn',
     icon: ImageIcon,
   },
   {
     id: 'flyers' as const,
     title: 'Panfletos / Flyers',
-    description: 'Flyers promocionais, cardápios, eventos',
+    desc: 'Flyers promocionais, cardápios, eventos',
     icon: FileText,
   },
   {
     id: 'videos' as const,
     title: 'Vídeos',
-    description: 'Vídeos curtos para TikTok, Reels, YouTube Shorts',
+    desc: 'Vídeos curtos para TikTok, Reels, YouTube Shorts',
     icon: Video,
   },
+]
+
+const STEPPER = [
+  { step: 1, label: 'Objetivo', icon: Target },
+  { step: 2, label: 'Marca', icon: Building2 },
+  { step: 3, label: 'Público', icon: Users },
+  { step: 4, label: 'Identidade', icon: Fingerprint },
+  { step: 5, label: 'Estilo', icon: Palette },
 ]
 
 export default function Onboarding() {
@@ -97,22 +95,14 @@ export default function Onboarding() {
   const { fetchBrands } = useSocial()
   const navigate = useNavigate()
 
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1)
-  const [selectedContentType, setSelectedContentType] = useState<'imagens' | 'flyers' | 'videos'>(
-    'videos',
-  )
-
-  // Step 1: Objective
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [showContentType, setShowContentType] = useState(false)
   const [selectedObjective, setSelectedObjective] = useState('sales')
-
-  // Step 2: Website Analysis
   const [websiteUrl, setWebsiteUrl] = useState('https://www.mudarcurso.com.br')
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzed, setAnalyzed] = useState(false)
-
-  // Brand details extracted / editable
   const [brandName, setBrandName] = useState('MudarCurso')
-  const [colorPalette, setColorPalette] = useState(['#7C3AED', '#E9D5FF', '#FFFFFF'])
+  const [colorPalette] = useState(['#7C3AED', '#E9D5FF', '#FFFFFF'])
   const [targetAudience, setTargetAudience] = useState(
     'Pessoas de 22 a 45 anos buscando transição de carreira e propósito profissional.',
   )
@@ -122,23 +112,22 @@ export default function Onboarding() {
   const [brandVoice, setBrandVoice] = useState(
     'Inspirador, empático, direto e focado em transformação pessoal e resultados.',
   )
-
+  const [selectedContentType, setSelectedContentType] = useState<'imagens' | 'flyers' | 'videos'>(
+    'videos',
+  )
   const [submitting, setSubmitting] = useState(false)
 
-  const handleAnalyzeBrand = async () => {
+  const handleAnalyze = () => {
     if (!websiteUrl.trim()) return
     setAnalyzing(true)
     setTimeout(() => {
       setAnalyzing(false)
       setAnalyzed(true)
-      toast({
-        title: 'Marca Analisada!',
-        description: 'Logo e identidade extraídos com sucesso.',
-      })
+      toast({ title: 'Marca Analisada!', description: 'Logo e identidade extraídos com sucesso.' })
     }, 1200)
   }
 
-  const handleFinishOnboarding = async () => {
+  const handleFinish = async () => {
     if (!user?.id) {
       toast({ title: 'Atenção', description: 'Você precisa estar autenticado.' })
       return
@@ -158,16 +147,13 @@ export default function Onboarding() {
         color_theme: colorPalette[0] || '#7C3AED',
       })
       await fetchBrands()
-      toast({
-        title: 'Conta Configurada!',
-        description: 'Sua marca foi criada. Vamos começar a criar!',
-      })
-      const contentRoutes: Record<string, string> = {
+      toast({ title: 'Conta Configurada!', description: 'Sua marca foi criada. Vamos começar!' })
+      const routes: Record<string, string> = {
         imagens: '/app/criar/imagens',
         flyers: '/app/criar/flyers',
         videos: '/app/criar/videos',
       }
-      navigate(contentRoutes[selectedContentType] || '/app/criar/videos')
+      navigate(routes[selectedContentType] || '/app/criar/videos')
     } catch (err) {
       toast({
         title: 'Erro ao salvar marca',
@@ -179,27 +165,21 @@ export default function Onboarding() {
     }
   }
 
+  const progress = showContentType ? 100 : (currentStep / 5) * 100
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      {/* Top Bar */}
       <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-30 px-6 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 font-bold text-lg tracking-tight">
-              <span className="w-6 h-6 rounded-md bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-xs font-black">
-                b
-              </span>
-              bestcontent <span className="text-[10px] text-primary font-bold uppercase">AI</span>
-            </div>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              Configure sua conta em 6 passos simples
+          <div className="flex items-center gap-1.5 font-bold text-lg tracking-tight">
+            <span className="w-6 h-6 rounded-md bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-xs font-black">
+              b
             </span>
+            bestcontent <span className="text-[10px] text-primary font-bold uppercase">AI</span>
           </div>
-
           <div className="flex items-center gap-4">
             <span className="text-xs font-semibold text-muted-foreground">
-              Passo {currentStep} de 6
+              {showContentType ? 'Concluído!' : `Passo ${currentStep} de 5`}
             </span>
             <Button
               variant="ghost"
@@ -211,49 +191,30 @@ export default function Onboarding() {
             </Button>
           </div>
         </div>
-
-        {/* Stepper Progress Bar */}
         <div className="max-w-5xl mx-auto mt-3">
           <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-primary h-full transition-all duration-500 ease-out"
-              style={{ width: `${(currentStep / 6) * 100}%` }}
+              className="bg-primary h-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
             />
           </div>
-
-          {/* Stepper Icons Row */}
           <div className="flex justify-between items-center mt-4 px-2">
-            {[
-              { step: 1, label: 'Objetivo', icon: Target },
-              { step: 2, label: 'Marca', icon: Building2 },
-              { step: 3, label: 'Público', icon: Users },
-              { step: 4, label: 'Identidade', icon: Fingerprint },
-              { step: 5, label: 'Estilo', icon: Palette },
-              { step: 6, label: 'Conteúdo', icon: FileText },
-            ].map((item) => {
+            {STEPPER.map((item) => {
               const Icon = item.icon
-              const isActive = currentStep === item.step
-              const isDone = currentStep > item.step
+              const isActive = !showContentType && currentStep === item.step
+              const isDone = showContentType || currentStep > item.step
               return (
                 <button
                   key={item.step}
-                  onClick={() => item.step <= currentStep && setCurrentStep(item.step as any)}
-                  className={`flex flex-col items-center gap-1 transition-all ${
-                    isActive
-                      ? 'text-primary font-bold'
-                      : isDone
-                        ? 'text-foreground hover:text-primary'
-                        : 'text-muted-foreground opacity-60'
-                  }`}
+                  onClick={() =>
+                    !showContentType &&
+                    item.step <= currentStep &&
+                    setCurrentStep(item.step as 1 | 2 | 3 | 4 | 5)
+                  }
+                  className={`flex flex-col items-center gap-1 transition-all ${isActive ? 'text-primary font-bold' : isDone ? 'text-foreground' : 'text-muted-foreground opacity-60'}`}
                 >
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                      isActive
-                        ? 'bg-primary text-white ring-4 ring-primary/20 shadow-md'
-                        : isDone
-                          ? 'bg-primary/20 text-primary'
-                          : 'bg-muted text-muted-foreground'
-                    }`}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-primary text-white ring-4 ring-primary/20 shadow-md' : isDone ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}
                   >
                     {isDone ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                   </div>
@@ -265,24 +226,20 @@ export default function Onboarding() {
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 flex flex-col justify-center">
-        {/* STEP 1: OBJETIVO */}
-        {currentStep === 1 && (
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8">
+        {currentStep === 1 && !showContentType && (
           <div className="space-y-8 animate-fade-in text-center">
-            <div className="inline-flex p-3 rounded-full bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 mb-2">
+            <div className="inline-flex p-3 rounded-full bg-blue-500/10 text-blue-600">
               <Target className="w-7 h-7" />
             </div>
-
             <div className="space-y-2">
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Qual seu principal objetivo?
               </h1>
               <p className="text-sm text-muted-foreground">
-                Vamos começar entendendo sua meta principal para adaptar roteiros e copys.
+                Vamos adaptar roteiros e copys para sua meta.
               </p>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
               {OBJECTIVES.map((obj) => {
                 const Icon = obj.icon
@@ -291,28 +248,23 @@ export default function Onboarding() {
                   <div
                     key={obj.id}
                     onClick={() => setSelectedObjective(obj.id)}
-                    className={`p-5 rounded-2xl border cursor-pointer transition-all bg-card hover:shadow-md flex items-start gap-4 relative ${
-                      isSelected
-                        ? 'border-primary ring-2 ring-primary/30 shadow-md scale-[1.02]'
-                        : 'border-border hover:border-primary/40'
-                    }`}
+                    className={`p-5 rounded-2xl border cursor-pointer transition-all bg-card hover:shadow-md flex items-start gap-4 ${isSelected ? 'border-primary ring-2 ring-primary/30 shadow-md scale-[1.02]' : 'border-border hover:border-primary/40'}`}
                   >
-                    <div className={`p-3 rounded-xl ${obj.bgColor}`}>
+                    <div className={`p-3 rounded-xl ${obj.color}`}>
                       <Icon className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm text-foreground">{obj.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{obj.description}</p>
+                      <h3 className="font-bold text-sm">{obj.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{obj.desc}</p>
                     </div>
                   </div>
                 )
               })}
             </div>
-
             <div className="pt-4 flex justify-end">
               <Button
                 onClick={() => setCurrentStep(2)}
-                className="bg-primary hover:bg-primary/90 text-white font-semibold px-8 py-2.5 rounded-full gap-2 text-sm shadow-md"
+                className="bg-primary text-white font-semibold px-8 rounded-full gap-2 text-sm shadow-md"
               >
                 Próximo Passo <ArrowRight className="w-4 h-4" />
               </Button>
@@ -320,24 +272,22 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* STEP 2: MARCA & ANÁLISE */}
-        {currentStep === 2 && (
+        {currentStep === 2 && !showContentType && (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center space-y-2">
-              <div className="inline-flex p-3 rounded-full bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+              <div className="inline-flex p-3 rounded-full bg-emerald-500/10 text-emerald-600">
                 <Sparkles className="w-7 h-7" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Análise Automática de Marca
               </h1>
               <p className="text-sm text-muted-foreground">
-                Insira o link do seu site para extrairmos dados e cores da sua marca em segundos.
+                Insira o link do seu site para extrairmos dados e cores.
               </p>
             </div>
-
-            <Card className="p-6 border-border shadow-sm space-y-4">
+            <Card className="p-6 space-y-4">
               <label className="text-xs font-bold text-muted-foreground block uppercase tracking-wider">
-                URL do seu site ou redes
+                URL do seu site
               </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -350,7 +300,7 @@ export default function Onboarding() {
                   />
                 </div>
                 <Button
-                  onClick={handleAnalyzeBrand}
+                  onClick={handleAnalyze}
                   disabled={analyzing}
                   className="bg-primary text-white font-semibold px-5 h-10 gap-2"
                 >
@@ -360,12 +310,11 @@ export default function Onboarding() {
                     </>
                   ) : (
                     <>
-                      Analisar Marca <Sparkles className="w-4 h-4" />
+                      Analisar <Sparkles className="w-4 h-4" />
                     </>
                   )}
                 </Button>
               </div>
-
               {analyzed && (
                 <div className="space-y-4 pt-3 border-t border-border animate-fade-in">
                   <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
@@ -378,7 +327,7 @@ export default function Onboarding() {
                           Logo detectada!
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          As cores da marca foram extraídas automaticamente da sua logo.
+                          Cores extraídas automaticamente.
                         </p>
                       </div>
                     </div>
@@ -393,7 +342,6 @@ export default function Onboarding() {
                       ))}
                     </div>
                   </div>
-
                   <Badge
                     variant="outline"
                     className="text-xs py-1 px-3 bg-muted text-muted-foreground"
@@ -411,7 +359,6 @@ export default function Onboarding() {
                 </div>
               )}
             </Card>
-
             <div className="flex justify-between pt-4">
               <Button
                 variant="outline"
@@ -430,147 +377,153 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* STEP 3, 4, 5: CONFIGURAÇÃO REVISÃO E AJUSTES */}
-        {currentStep >= 3 && (
+        {currentStep === 3 && !showContentType && (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center space-y-2">
-              <div className="inline-flex p-3 rounded-full bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
-                <CheckCircle2 className="w-7 h-7" />
+              <div className="inline-flex p-3 rounded-full bg-purple-500/10 text-purple-600">
+                <Users className="w-7 h-7" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Analisamos sua marca!
-              </h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Público-Alvo</h1>
               <p className="text-sm text-muted-foreground">
-                Revise os detalhes abaixo para garantir que os conteúdos gerados pela IA sejam
-                perfeitos.
+                Descreva o perfil do seu cliente ideal.
               </p>
             </div>
-
-            {/* Accordion Review List */}
-            <Accordion type="single" collapsible defaultValue="basic" className="w-full space-y-3">
-              {/* Item 1: Dados Básicos */}
-              <AccordionItem
-                value="basic"
-                className="border border-border rounded-2xl px-5 py-1 bg-card shadow-sm"
+            <Card className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Descrição do Perfil do Cliente Ideal
+                </label>
+                <Textarea
+                  value={targetAudience}
+                  onChange={(e) => setTargetAudience(e.target.value)}
+                  className="text-sm h-32"
+                />
+              </div>
+            </Card>
+            <div className="flex justify-between pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(2)}
+                className="rounded-full text-xs"
               >
-                <AccordionTrigger className="hover:no-underline py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
-                      <Target className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-sm">Dados Básicos</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-2" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-4 space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                      Nome da Marca
-                    </label>
-                    <Input
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      className="text-xs h-9"
+                Voltar
+              </Button>
+              <Button
+                onClick={() => setCurrentStep(4)}
+                className="bg-primary text-white font-semibold px-8 rounded-full text-sm gap-2"
+              >
+                Continuar <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 4 && !showContentType && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-600">
+                <Fingerprint className="w-7 h-7" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                Identidade da Marca
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Confirme os dados básicos da sua marca.
+              </p>
+            </div>
+            <Card className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Nome da Marca
+                </label>
+                <Input
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                  className="text-sm h-10"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Website
+                </label>
+                <Input
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  className="text-sm h-10"
+                />
+              </div>
+            </Card>
+            <div className="flex justify-between pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(3)}
+                className="rounded-full text-xs"
+              >
+                Voltar
+              </Button>
+              <Button
+                onClick={() => setCurrentStep(5)}
+                className="bg-primary text-white font-semibold px-8 rounded-full text-sm gap-2"
+              >
+                Continuar <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 5 && !showContentType && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3 rounded-full bg-pink-500/10 text-pink-600">
+                <Palette className="w-7 h-7" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                Estilo Visual e Tom de Voz
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Defina a estética e a linguagem dos conteúdos.
+              </p>
+            </div>
+            <Card className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Estética & Cores
+                </label>
+                <Input
+                  value={visualStyle}
+                  onChange={(e) => setVisualStyle(e.target.value)}
+                  className="text-sm h-10"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Tom de Voz
+                </label>
+                <Textarea
+                  value={brandVoice}
+                  onChange={(e) => setBrandVoice(e.target.value)}
+                  className="text-sm h-24"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-2">
+                  Paleta de Cores
+                </label>
+                <div className="flex items-center gap-2">
+                  {colorPalette.map((color, idx) => (
+                    <span
+                      key={idx}
+                      className="w-8 h-8 rounded-lg border border-black/10 shadow-sm"
+                      style={{ backgroundColor: color }}
+                      title={color}
                     />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                      Website
-                    </label>
-                    <Input
-                      value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      className="text-xs h-9"
-                    />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Item 2: Público-Alvo */}
-              <AccordionItem
-                value="audience"
-                className="border border-border rounded-2xl px-5 py-1 bg-card shadow-sm"
-              >
-                <AccordionTrigger className="hover:no-underline py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-sm">Público-alvo</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-2" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-4">
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    Descrição do Perfil do Cliente Ideal
-                  </label>
-                  <Textarea
-                    value={targetAudience}
-                    onChange={(e) => setTargetAudience(e.target.value)}
-                    className="text-xs h-20"
-                  />
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Item 3: Estilo Visual */}
-              <AccordionItem
-                value="style"
-                className="border border-border rounded-2xl px-5 py-1 bg-card shadow-sm"
-              >
-                <AccordionTrigger className="hover:no-underline py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-pink-500/10 text-pink-600">
-                      <Palette className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-sm">Estilo Visual</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-2" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-4 space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                      Estética & Cores
-                    </label>
-                    <Input
-                      value={visualStyle}
-                      onChange={(e) => setVisualStyle(e.target.value)}
-                      className="text-xs h-9"
-                    />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Item 4: Tom de Voz */}
-              <AccordionItem
-                value="voice"
-                className="border border-border rounded-2xl px-5 py-1 bg-card shadow-sm"
-              >
-                <AccordionTrigger className="hover:no-underline py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600">
-                      <Fingerprint className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-sm">Tom de Voz</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-2" />
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-4">
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                    Postura e Linguagem dos Roteiros
-                  </label>
-                  <Textarea
-                    value={brandVoice}
-                    onChange={(e) => setBrandVoice(e.target.value)}
-                    className="text-xs h-20"
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            {/* Bottom Action Button */}
+                  ))}
+                </div>
+              </div>
+            </Card>
             <div className="pt-4 flex justify-center">
               <Button
-                onClick={() => setCurrentStep(6)}
+                onClick={() => setShowContentType(true)}
                 className="w-full sm:w-auto min-w-[320px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-full text-base gap-2 shadow-lg hover:shadow-xl transition-all"
               >
                 <CheckCircle2 className="w-5 h-5" /> Tudo certo! Continuar
@@ -579,10 +532,9 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* STEP 6: CONTENT TYPE SELECTION */}
-        {currentStep === 6 && (
+        {showContentType && (
           <div className="space-y-8 animate-fade-in text-center">
-            <div className="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 mb-2">
+            <div className="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-600">
               <FileText className="w-7 h-7" />
             </div>
             <div className="space-y-2">
@@ -601,17 +553,13 @@ export default function Onboarding() {
                   <div
                     key={ct.id}
                     onClick={() => setSelectedContentType(ct.id)}
-                    className={`p-5 rounded-2xl border cursor-pointer transition-all bg-card hover:shadow-md flex flex-col gap-3 ${
-                      isSelected
-                        ? 'border-primary ring-2 ring-primary/30 shadow-md scale-[1.02]'
-                        : 'border-border hover:border-primary/40'
-                    }`}
+                    className={`p-5 rounded-2xl border cursor-pointer transition-all bg-card hover:shadow-md flex flex-col gap-3 ${isSelected ? 'border-primary ring-2 ring-primary/30 shadow-md scale-[1.02]' : 'border-border hover:border-primary/40'}`}
                   >
                     <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit">
                       <Icon className="w-6 h-6" />
                     </div>
-                    <h3 className="font-bold text-sm text-foreground">{ct.title}</h3>
-                    <p className="text-xs text-muted-foreground">{ct.description}</p>
+                    <h3 className="font-bold text-sm">{ct.title}</h3>
+                    <p className="text-xs text-muted-foreground">{ct.desc}</p>
                   </div>
                 )
               })}
@@ -619,15 +567,15 @@ export default function Onboarding() {
             <div className="pt-4 flex justify-between">
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep(5)}
+                onClick={() => setShowContentType(false)}
                 className="rounded-full text-xs"
               >
                 Voltar
               </Button>
               <Button
-                onClick={handleFinishOnboarding}
+                onClick={handleFinish}
                 disabled={submitting}
-                className="bg-primary hover:bg-primary/90 text-white font-semibold px-8 py-2.5 rounded-full text-sm gap-2 shadow-md"
+                className="bg-primary hover:bg-primary/90 text-white font-semibold px-8 rounded-full text-sm gap-2 shadow-md"
               >
                 {submitting ? (
                   <>
