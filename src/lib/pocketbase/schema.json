@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T09:57:45.227Z",
+  "generatedAt": "2026-07-30T10:20:20.647Z",
   "collections": [
     {
       "name": "users",
@@ -252,6 +252,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "trend",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "trends"
         }
       ],
       "indexes": [

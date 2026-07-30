@@ -72,6 +72,7 @@ export default function Feed() {
   const [activeCat, setActiveCat] = useState('Todos')
   const [sortBy, setSortBy] = useState('recent')
   const [loading, setLoading] = useState(true)
+  const [generatingTrendId, setGeneratingTrendId] = useState<string | null>(null)
 
   const loadTrends = async () => {
     try {
@@ -208,6 +209,38 @@ export default function Feed() {
       toast({ title: 'Post excluído', description: 'O post foi removido.' })
     } catch (_) {
       toast({ title: 'Erro', description: 'Falha ao excluir post.', variant: 'destructive' })
+    }
+  }
+
+  const handleGeneratePost = async (trend: TrendRecord) => {
+    if (!user?.id) return
+    if (!brands.length) {
+      toast({ title: 'Atenção', description: 'Crie uma marca primeiro.' })
+      return
+    }
+    setGeneratingTrendId(trend.id)
+    try {
+      const brandId = brands[0].id
+      const record = await createPostFromTrend(
+        trend.id,
+        trend.title,
+        trend.description || '',
+        user.id,
+        brandId,
+      )
+      toast({
+        title: 'Post criado!',
+        description: 'Rascunho gerado com IA a partir da trend.',
+      })
+      navigate(`/app/editor/${(record as unknown as { id: string }).id}`)
+    } catch (_) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao gerar post. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setGeneratingTrendId(null)
     }
   }
 
@@ -468,17 +501,34 @@ export default function Feed() {
                         {trend.description}
                       </p>
                     </div>
-                    {trend.source_url && (
-                      <a
-                        href={trend.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                      {trend.source_url ? (
+                        <a
+                          href={trend.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Ver fonte
+                        </a>
+                      ) : (
+                        <span />
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={() => handleGeneratePost(trend)}
+                        disabled={generatingTrendId === trend.id}
+                        className="text-xs gap-1 h-7 ml-auto bg-primary text-white"
                       >
-                        <ExternalLink className="w-3 h-3" />
-                        Ver fonte original
-                      </a>
-                    )}
+                        {generatingTrendId === trend.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <PenTool className="w-3 h-3" />
+                        )}
+                        Gerar Post
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

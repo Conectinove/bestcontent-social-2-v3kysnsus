@@ -58,6 +58,7 @@ export function mapPost(record: any) {
     status: record.status || 'draft',
     scheduledDate: record.scheduled_date,
     hashtags: [],
+    trendId: record.trend || undefined,
     _raw: record,
   }
 }

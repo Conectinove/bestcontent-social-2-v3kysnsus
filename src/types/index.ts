@@ -47,6 +47,7 @@ export interface Post {
     shares: number
   }
   hashtags: string[]
+  trendId?: string
   _raw?: any
 }
 

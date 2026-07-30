@@ -13,6 +13,7 @@ import Feed from './pages/Feed'
 import Brands from './pages/Brands'
 import BrandDetail from './pages/BrandDetail'
 import CreatePost from './pages/CreatePost'
+import PostEditor from './pages/PostEditor'
 import GuidedCreator from './pages/GuidedCreator'
 import CalendarPage from './pages/CalendarPage'
 import Library from './pages/Library'
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/app/brands/:id" element={<BrandDetail />} />
               <Route path="/app/library" element={<Library />} />
               <Route path="/app/content/new" element={<CreatePost />} />
+              <Route path="/app/editor/:postId" element={<PostEditor />} />
               <Route path="/app/calendar" element={<CalendarPage />} />
               <Route path="/app/discover" element={<Discover />} />
               <Route path="/app/settings" element={<Settings />} />
