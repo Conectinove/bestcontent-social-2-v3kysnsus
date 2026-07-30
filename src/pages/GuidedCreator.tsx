@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { cn } from '@/lib/utils'
 import {
   Sparkles,
   Smartphone,
@@ -27,6 +28,10 @@ import {
   Maximize2,
   ShieldAlert,
   SlidersHorizontal,
+  Upload,
+  Undo2,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -57,7 +62,7 @@ const PLATFORMS = [
 const FORMATS = [
   {
     id: 'story',
-    name: 'Single Story',
+    name: 'Stories Único',
     ratio: '9:16',
     dimensions: '1080 × 1920px',
     icon: Smartphone,
@@ -131,10 +136,17 @@ export default function GuidedCreator() {
   })
 
   // Theme & Background customizer
-  const [bgTheme, setBgTheme] = useState<'purple' | 'dark' | 'orange' | 'blue'>('purple')
+  const [bgTheme, setBgTheme] = useState<'purple' | 'dark' | 'orange' | 'blue' | 'green'>('purple')
   const [customBgImage, setCustomBgImage] = useState<string>(
     'https://img.usecurling.com/p/600/900?q=wanderer%20mountain%20compass&color=purple',
   )
+  const [originalPostData, setOriginalPostData] = useState<StructuredPostData | null>(null)
+  const [originalBgTheme, setOriginalBgTheme] = useState<
+    'purple' | 'dark' | 'orange' | 'blue' | 'green'
+  >('purple')
+  const [originalBgImage, setOriginalBgImage] = useState<string>('')
+  const [panelCollapsed, setPanelCollapsed] = useState(false)
+  const [refining, setRefining] = useState(false)
 
   // AI Agent Chat Drawer
   const [chatMessages, setChatMessages] = useState<
@@ -164,8 +176,9 @@ export default function GuidedCreator() {
 
   const handleSelectInspiration = (inspiration: InspirationItem) => {
     setSelectedInspiration(inspiration)
+    let newData: StructuredPostData
     if (inspiration.id === 'plano-de-bordo') {
-      setPostData({
+      newData = {
         goal: 'Vender o "Plano de Bordo Realizador" como ferramenta de transformação para MudarCurso.com.br',
         layout: 'Vertical (9:16), bússola luminosa, aspecto mapa de jornada',
         headline: 'Cansado de apenas existir? Chegou a hora de viver a sua vocação.',
@@ -173,9 +186,9 @@ export default function GuidedCreator() {
         offer: 'Acesso imediato: Oportunidade especial de R$ 1.299,99 por R$ 0,00',
         cta: 'TOQUE AQUI E MUDE TUDO 🚀',
         footer: '@ronaldo.barreto1',
-      })
+      }
     } else {
-      setPostData({
+      newData = {
         goal: inspiration.description,
         layout: `Formato ${inspiration.format} otimizado para ${inspiration.platform}`,
         headline: inspiration.title,
@@ -183,9 +196,55 @@ export default function GuidedCreator() {
         offer: 'Aproveite a oportunidade e transforme seu conteúdo',
         cta: 'SAIBA MAIS',
         footer: activeBrand?.name || '@mudarcurso.br',
-      })
+      }
     }
-    setStep(4)
+    setPostData(newData)
+    setOriginalPostData(newData)
+    setOriginalBgTheme(bgTheme)
+    setOriginalBgImage(customBgImage)
+  }
+
+  const handleBgUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      toast({ title: 'Formato inválido', description: 'Use PNG ou JPG.', variant: 'destructive' })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Arquivo muito grande', description: 'Máximo 5MB.', variant: 'destructive' })
+      return
+    }
+    setCustomBgImage(URL.createObjectURL(file))
+    toast({ title: 'Imagem carregada', description: 'Fundo atualizado com sucesso.' })
+  }
+
+  const handleRevert = () => {
+    if (originalPostData) {
+      setPostData(originalPostData)
+      setBgTheme(originalBgTheme)
+      setCustomBgImage(originalBgImage)
+      toast({ title: 'Revertido', description: 'Alterações desfeitas para a versão original.' })
+    }
+  }
+
+  const handleRefineWithAI = async () => {
+    setRefining(true)
+    try {
+      const topic = selectedInspiration?.title || 'Plano de Bordo Realizador'
+      const res = await generateStructuredPost(topic, selectedApproach)
+      setPostData(res)
+      setOriginalPostData(res)
+      setOriginalBgTheme(bgTheme)
+      setOriginalBgImage(customBgImage)
+      toast({ title: 'Prompt refinado!', description: 'A IA otimizou o conteúdo.' })
+      setStep(4)
+    } catch {
+      toast({ title: 'Aviso', description: 'Usando modelo base.' })
+      setStep(4)
+    } finally {
+      setRefining(false)
+    }
   }
 
   const handleStartGeneration = async (topicName?: string) => {
@@ -194,6 +253,9 @@ export default function GuidedCreator() {
       const topic = topicName || selectedInspiration?.title || 'Plano de Bordo Realizador'
       const res = await generateStructuredPost(topic, selectedApproach)
       setPostData(res)
+      setOriginalPostData(res)
+      setOriginalBgTheme(bgTheme)
+      setOriginalBgImage(customBgImage)
       toast({
         title: 'Arte gerada com IA!',
         description: 'Estrutura e textos criados com sucesso.',
@@ -628,6 +690,55 @@ export default function GuidedCreator() {
               </div>
             </div>
 
+            {selectedInspiration && (
+              <Card className="p-5 border-primary/30 bg-primary/5 animate-fade-in space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-sm">{selectedInspiration.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {selectedInspiration.format} · {selectedInspiration.platform}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-2.5 rounded-lg bg-muted/50">
+                    <span className="font-bold text-primary block mb-1">Headline</span>
+                    <span className="text-muted-foreground">{postData.headline}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-muted/50">
+                    <span className="font-bold text-primary block mb-1">CTA</span>
+                    <span className="text-muted-foreground">{postData.cta}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    onClick={handleRefineWithAI}
+                    disabled={refining}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    {refining ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    Refinar com IA
+                  </Button>
+                  <Button
+                    onClick={() => setStep(4)}
+                    size="sm"
+                    className="flex-1 bg-primary text-white text-xs gap-1.5"
+                  >
+                    Continuar para Editor <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </Card>
+            )}
+
             <div className="flex justify-between pt-4">
               <Button variant="outline" size="sm" onClick={() => setStep(2)} className="text-xs">
                 Voltar
@@ -708,7 +819,7 @@ export default function GuidedCreator() {
                   {/* Theme Selector */}
                   <div>
                     <label className="font-bold block mb-1">Tema Visual / Fundo</label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => setBgTheme('purple')}
                         className={`h-7 px-2.5 rounded text-[11px] font-semibold text-white bg-purple-900 border ${
@@ -739,7 +850,66 @@ export default function GuidedCreator() {
                       >
                         Vibrante
                       </button>
+                      <button
+                        onClick={() => setBgTheme('blue')}
+                        className={`h-7 px-2.5 rounded text-[11px] font-semibold text-white bg-blue-700 border ${
+                          bgTheme === 'blue'
+                            ? 'border-primary ring-2 ring-primary/30'
+                            : 'border-transparent'
+                        }`}
+                      >
+                        Oceano
+                      </button>
+                      <button
+                        onClick={() => setBgTheme('green')}
+                        className={`h-7 px-2.5 rounded text-[11px] font-semibold text-white bg-emerald-700 border ${
+                          bgTheme === 'green'
+                            ? 'border-primary ring-2 ring-primary/30'
+                            : 'border-transparent'
+                        }`}
+                      >
+                        Floresta
+                      </button>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold block mb-1">Imagem de Fundo</label>
+                    <div className="flex gap-2">
+                      <label className="flex-1 cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          onChange={handleBgUpload}
+                          className="hidden"
+                        />
+                        <div className="flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Enviar imagem</span>
+                        </div>
+                      </label>
+                      {customBgImage && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCustomBgImage('')}
+                          className="h-8 text-xs px-3"
+                        >
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      onClick={handleRevert}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs gap-1.5"
+                    >
+                      <Undo2 className="w-3.5 h-3.5" /> Reverter para Original
+                    </Button>
                   </div>
                 </div>
 
@@ -780,7 +950,11 @@ export default function GuidedCreator() {
                     ? 'bg-gradient-to-b from-indigo-950 via-purple-900 to-indigo-900'
                     : bgTheme === 'dark'
                       ? 'bg-gradient-to-b from-slate-950 via-slate-900 to-zinc-950'
-                      : 'bg-gradient-to-b from-orange-900 via-amber-900 to-purple-950'
+                      : bgTheme === 'orange'
+                        ? 'bg-gradient-to-b from-orange-900 via-amber-900 to-purple-950'
+                        : bgTheme === 'blue'
+                          ? 'bg-gradient-to-b from-blue-950 via-cyan-900 to-blue-950'
+                          : 'bg-gradient-to-b from-emerald-950 via-green-900 to-teal-950'
                 }`}
               >
                 {/* Background image overlay */}
@@ -853,8 +1027,26 @@ export default function GuidedCreator() {
             </div>
 
             {/* Right Column: AI Agent "Social Studio" Panel */}
-            <div className="lg:col-span-3 space-y-4">
-              <Card className="p-3 space-y-3 h-[580px] flex flex-col justify-between border-primary/20 bg-card/80">
+            <div className="lg:col-span-3 space-y-4 relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPanelCollapsed(!panelCollapsed)}
+                className="absolute -top-1 right-0 h-7 w-7 text-muted-foreground hover:text-foreground z-10"
+              >
+                {panelCollapsed ? (
+                  <PanelRightOpen className="w-4 h-4" />
+                ) : (
+                  <PanelRightClose className="w-4 h-4" />
+                )}
+              </Button>
+              <Card
+                className={cn(
+                  'p-3 space-y-3 h-[580px] flex flex-col justify-between border-primary/20 bg-card/80 transition-all',
+                  panelCollapsed &&
+                    'opacity-0 pointer-events-none h-0 overflow-hidden border-0 p-0',
+                )}
+              >
                 <div>
                   <div className="flex items-center justify-between border-b border-border pb-2.5">
                     <div className="flex items-center gap-2">
