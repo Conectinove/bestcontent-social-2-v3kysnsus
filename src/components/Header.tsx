@@ -55,11 +55,12 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   const handlePublish = async () => {
     setPublishLoading(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2500))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
       toast({
         title: 'App publicado com sucesso!',
-        description: 'Disponível em https://bestcontent-social-2-5614f.goskip.app',
+        description: 'Abrindo https://bestcontent-social-2-5614f.goskip.app...',
       })
+      window.open('https://bestcontent-social-2-5614f.goskip.app', '_blank', 'noopener,noreferrer')
     } catch {
       toast({
         title: 'Falha na publicação',

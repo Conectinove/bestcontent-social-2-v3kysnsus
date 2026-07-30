@@ -6,15 +6,11 @@ import {
   Paperclip,
   Wand2,
   Lock,
-  Play,
   Film,
   CheckCircle2,
   ChevronLeft,
   Loader2,
   Clock,
-  Layers,
-  Video,
-  FileText,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -25,7 +21,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { generateVideoScript } from '@/services/ai'
-import { createPost } from '@/services/posts'
 
 const DURATIONS = [7, 15, 30, 60, 90]
 

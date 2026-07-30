@@ -10,13 +10,11 @@ import {
   Users,
   Fingerprint,
   Palette,
-  Pencil,
   CheckCircle2,
   Globe,
   X,
   ArrowRight,
   Loader2,
-  ChevronDown,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
