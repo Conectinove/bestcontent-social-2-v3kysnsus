@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Compass, Sparkles, TrendingUp, Search, PenTool, Bookmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
