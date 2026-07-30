@@ -1,13 +1,68 @@
-/* Layout Component - A component that wraps the main content of the app
-   - Use this file to add a header, footer, or other elements that should be present on every page
-   - This component is used in the App.tsx file to wrap the main content of the app */
-
-import { Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
+import { Sidebar } from './Sidebar'
+import { Header } from './Header'
+import { OfflineBanner } from './OfflineBanner'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 
 export default function Layout() {
+  const { isAuthenticated } = useAuth()
+  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Redirect unauthenticated users to login, except if already on auth routes
+  if (!isAuthenticated && !location.pathname.startsWith('/auth')) {
+    return <Navigate to="/auth/login" replace />
+  }
+
   return (
-    <main className="flex flex-col min-h-screen">
-      <Outlet />
-    </main>
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <OfflineBanner />
+
+      <div className="flex flex-1 relative overflow-hidden">
+        {/* Desktop Collapsible Sidebar */}
+        <div className="hidden md:block shrink-0">
+          <Sidebar collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
+        </div>
+
+        {/* Mobile Sidebar Sheet Drawer */}
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="p-0 w-64 border-r border-border">
+            <Sidebar
+              collapsed={false}
+              onToggleCollapse={() => {}}
+              onMobileClose={() => setMobileOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
+          <Header onOpenMobileMenu={() => setMobileOpen(true)} />
+          <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto pb-16">
+            <Outlet />
+          </main>
+          <footer className="border-t border-border py-4 px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>
+              BestContent Social 2 © {new Date().getFullYear()} — Plataforma de Criação &
+              Gerenciamento
+            </span>
+            <div className="flex gap-4">
+              <a href="#" className="hover:underline">
+                Privacidade
+              </a>
+              <a href="#" className="hover:underline">
+                Termos de Uso
+              </a>
+              <a href="#" className="hover:underline font-medium text-primary">
+                Suporte VIP
+              </a>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
   )
 }
