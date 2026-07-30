@@ -19,6 +19,8 @@ import CalendarPage from './pages/CalendarPage'
 import Library from './pages/Library'
 import Discover from './pages/Discover'
 import Settings from './pages/Settings'
+import CommunityDashboard from './pages/community/CommunityDashboard'
+import TopicDetail from './pages/community/TopicDetail'
 
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
@@ -43,6 +45,8 @@ const App = () => (
               <Route path="/app/content/new" element={<CreatePost />} />
               <Route path="/app/editor/:postId" element={<PostEditor />} />
               <Route path="/app/calendar" element={<CalendarPage />} />
+              <Route path="/app/community" element={<CommunityDashboard />} />
+              <Route path="/app/community/topic/:id" element={<TopicDetail />} />
               <Route path="/app/discover" element={<Discover />} />
               <Route path="/app/settings" element={<Settings />} />
             </Route>

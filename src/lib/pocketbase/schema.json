@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T10:22:09.336Z",
+  "generatedAt": "2026-07-30T10:51:38.799Z",
   "collections": [
     {
       "name": "users",
@@ -656,6 +656,193 @@
       "indexes": [
         "CREATE INDEX idx_social_metrics_brand_date ON social_metrics (brand, date)",
         "CREATE INDEX idx_social_metrics_user_date ON social_metrics (user, date)"
+      ]
+    },
+    {
+      "name": "community_categories",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_comm_cat_slug ON community_categories (slug)"]
+    },
+    {
+      "name": "community_topics",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "category",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "community_categories"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tags",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "views_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "likes_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_pinned",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "vector",
+          "type": "vector",
+          "required": false,
+          "system": false,
+          "vectorDimensions": 1536,
+          "vectorDistance": "cosine"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_comm_topics_user ON community_topics (user)",
+        "CREATE INDEX idx_comm_topics_cat ON community_topics (category)",
+        "CREATE INDEX idx_comm_topics_pinned ON community_topics (is_pinned)"
+      ]
+    },
+    {
+      "name": "community_replies",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "topic",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "community_topics"
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_comm_replies_topic ON community_replies (topic)",
+        "CREATE INDEX idx_comm_replies_user ON community_replies (user)"
       ]
     }
   ]

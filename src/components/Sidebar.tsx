@@ -32,6 +32,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
     { label: 'Conteúdo', href: '/app/content/new', icon: PenTool },
     { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
     { label: 'Calendário', href: '/app/calendar', icon: CalendarIcon },
+    { label: 'Comunidade', href: '/app/community', icon: Sparkles },
     { label: 'Descobrir', href: '/app/discover', icon: Compass },
     { label: 'Configurações', href: '/app/settings', icon: Settings },
   ]
