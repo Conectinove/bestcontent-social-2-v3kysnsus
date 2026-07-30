@@ -52,6 +52,8 @@ function getPlatformIcon(platform: SocialPlatform | string) {
 function getStatusBadge(status: string) {
   if (status === 'published')
     return <Badge className="bg-emerald-600 text-white border-0 text-[10px]">Publicado</Badge>
+  if (status === 'approved')
+    return <Badge className="bg-amber-500 text-white border-0 text-[10px]">Aprovado</Badge>
   if (status === 'scheduled')
     return <Badge className="bg-blue-600 text-white border-0 text-[10px]">Agendado</Badge>
   return <Badge className="bg-slate-600 text-white border-0 text-[10px]">Rascunho</Badge>
@@ -134,6 +136,7 @@ export default function Feed() {
       drafts: posts.filter((p: Post) => p.status === 'draft').length,
       scheduled: posts.filter((p: Post) => p.status === 'scheduled').length,
       published: posts.filter((p: Post) => p.status === 'published').length,
+      approved: posts.filter((p: Post) => p.status === 'approved').length,
       pending: posts.filter((p: Post) => isPostPending(p)).length,
     }),
     [posts],
@@ -144,6 +147,7 @@ export default function Feed() {
       if (activeTab === 'drafts' && post.status !== 'draft') return false
       if (activeTab === 'scheduled' && post.status !== 'scheduled') return false
       if (activeTab === 'published' && post.status !== 'published') return false
+      if (activeTab === 'approved' && post.status !== 'approved') return false
       if (activeTab === 'pending' && !isPostPending(post)) return false
       if (postSearch.trim()) {
         const q = postSearch.toLowerCase()
@@ -262,6 +266,7 @@ export default function Feed() {
     { key: 'drafts', label: 'Rascunhos', count: counts.drafts },
     { key: 'scheduled', label: 'Agendados', count: counts.scheduled },
     { key: 'published', label: 'Publicados', count: counts.published },
+    { key: 'approved', label: 'Aprovados', count: counts.approved },
     { key: 'pending', label: 'Pendentes', count: counts.pending },
   ]
 

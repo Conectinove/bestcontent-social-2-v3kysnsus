@@ -1,8 +1,13 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit3, Share2, Sparkles, Copy, X } from 'lucide-react'
+import { Edit3, Share2, Sparkles, Copy, CheckCircle2, Loader2, FlaskConical, X } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import { approvePost } from '@/services/approval'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 interface PostDetailsModalProps {
   open: boolean
@@ -17,7 +22,28 @@ export function PostDetailsModal({
   post,
   onEditDesign,
 }: PostDetailsModalProps) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [approving, setApproving] = useState(false)
+
   if (!post) return null
+
+  const handleApprove = async () => {
+    if (!post?.id || !user?.id) return
+    setApproving(true)
+    try {
+      await approvePost(post.id, user.id)
+      toast({
+        title: 'Post aprovado!',
+        description: 'Post aprovado e adicionado à fila de publicação.',
+      })
+      onOpenChange(false)
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setApproving(false)
+    }
+  }
 
   const handleCopyCaption = () => {
     navigator.clipboard.writeText(post.caption || post.content || '')
@@ -111,14 +137,43 @@ export function PostDetailsModal({
 
         {/* Bottom Modal Actions */}
         <div className="p-4 bg-muted/30 border-t border-border flex items-center justify-between">
-          <Button variant="outline" size="sm" onClick={onEditDesign} className="text-xs gap-1.5">
-            <Edit3 className="w-3.5 h-3.5" /> Editar Design
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onEditDesign} className="text-xs gap-1.5">
+              <Edit3 className="w-3.5 h-3.5" /> Editar Design
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onOpenChange(false)
+                navigate(`/app/dashboard?postId=${post.id}`)
+              }}
+              className="text-xs gap-1.5"
+            >
+              <FlaskConical className="w-3.5 h-3.5" /> Teste A/B
+            </Button>
+          </div>
 
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="text-xs gap-1.5">
               <Share2 className="w-3.5 h-3.5" /> Compartilhar
             </Button>
+            {(post.status === 'draft' || post.status === 'scheduled') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleApprove}
+                disabled={approving}
+                className="text-xs gap-1.5 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+              >
+                {approving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
+                Aprovar
+              </Button>
+            )}
             <Button size="sm" className="bg-primary text-white text-xs gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> Publicar
             </Button>

@@ -22,6 +22,7 @@ import FlyerCreator from './pages/FlyerCreator'
 import CalendarPage from './pages/CalendarPage'
 import Library from './pages/Library'
 import Discover from './pages/Discover'
+import Dashboard from './pages/Dashboard'
 import Settings from './pages/Settings'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/app/calendar" element={<CalendarPage />} />
               <Route path="/app/community" element={<CommunityDashboard />} />
               <Route path="/app/community/topic/:id" element={<TopicDetail />} />
+              <Route path="/app/dashboard" element={<Dashboard />} />
               <Route path="/app/discover" element={<Discover />} />
               <Route path="/app/settings" element={<Settings />} />
             </Route>
