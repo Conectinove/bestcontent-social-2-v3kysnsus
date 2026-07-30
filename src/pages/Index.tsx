@@ -1,5 +1,5 @@
-import { Navigate } from 'react-router-dom'
+import LandingPage from './LandingPage'
 
 export default function Index() {
-  return <Navigate to="/app/feed" replace />
+  return <LandingPage />
 }

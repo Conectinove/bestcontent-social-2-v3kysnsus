@@ -7,6 +7,7 @@ import { SocialProvider } from '@/context/SocialContext'
 
 import Layout from './components/Layout'
 import Index from './pages/Index'
+import LandingPage from './pages/LandingPage'
 import NotFound from './pages/NotFound'
 
 import Feed from './pages/Feed'
@@ -41,6 +42,8 @@ const App = () => (
             {/* Authenticated routes inside Layout */}
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/waitlist" element={<LandingPage />} />
               <Route path="/app/feed" element={<Feed />} />
               <Route path="/app/onboarding" element={<Onboarding />} />
               <Route path="/app/criar" element={<CreateHub />} />

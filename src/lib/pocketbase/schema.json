@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T12:09:02.125Z",
+  "generatedAt": "2026-07-30T12:55:09.906Z",
   "collections": [
     {
       "name": "users",
@@ -893,6 +893,64 @@
         "CREATE INDEX idx_comm_replies_topic ON community_replies (topic)",
         "CREATE INDEX idx_comm_replies_user ON community_replies (user)"
       ]
+    },
+    {
+      "name": "waitlist",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "business_handle",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profile_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plan_interest",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_waitlist_email ON waitlist (email)"]
     }
   ]
 }
