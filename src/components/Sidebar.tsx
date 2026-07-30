@@ -27,8 +27,8 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
 
   const navItems = [
     { label: 'Feed', href: '/app/feed', icon: Home },
-    { label: 'Marcas', href: '/app/brands', icon: Palette },
     { label: 'Criar', href: '/app/criar', icon: Wand2 },
+    { label: 'Marcas', href: '/app/brands', icon: Palette },
     { label: 'Conteúdo', href: '/app/content/new', icon: PenTool },
     { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
     { label: 'Calendário', href: '/app/calendar', icon: CalendarIcon },
