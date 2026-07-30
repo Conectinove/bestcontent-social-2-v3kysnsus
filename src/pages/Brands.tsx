@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react'
-import { Plus, Palette, ArrowRight, Instagram, Youtube, Twitter, Globe } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Palette, ArrowRight, Instagram, Globe, Upload } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -15,41 +15,47 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+
+const EMPTY_FORM = {
+  name: '',
+  description: '',
+  instagram: '',
+  tiktok: '',
+  youtube: '',
+  facebook: '',
+  website: '',
+  color_theme: '#BF2A95',
+}
 
 export default function Brands() {
   const { brands, addBrand } = useSocial()
   const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [logo, setLogo] = useState<File | null>(null)
 
-  const [modalOpen, setModalOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [instagram, setInstagram] = useState('')
-  const [tiktok, setTiktok] = useState('')
+  const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }))
 
-  const handleCreateBrand = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) {
+    if (!form.name.trim()) {
       toast({ title: 'Erro', description: 'O nome da marca é obrigatório.' })
       return
     }
-
-    addBrand({
-      name,
-      description: description || 'Sem descrição cadastrada.',
-      logo: `https://img.usecurling.com/p/200/200?q=${encodeURIComponent(name)}%20logo`,
-      coverImage: `https://img.usecurling.com/p/800/400?q=${encodeURIComponent(name)}%20brand`,
-      handles: {
-        instagram: instagram ? `@${instagram.replace('@', '')}` : undefined,
-        tiktok: tiktok ? `@${tiktok.replace('@', '')}` : undefined,
-      },
-    })
-
-    toast({ title: 'Marca criada!', description: `A marca ${name} foi adicionada com sucesso.` })
-    setName('')
-    setDescription('')
-    setInstagram('')
-    setTiktok('')
-    setModalOpen(false)
+    setLoading(true)
+    try {
+      await addBrand({ ...form, logo })
+      toast({ title: 'Marca criada!', description: `${form.name} foi adicionada.` })
+      setForm(EMPTY_FORM)
+      setLogo(null)
+      setOpen(false)
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -57,28 +63,25 @@ export default function Brands() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            Minhas Marcas
-            <Palette className="w-6 h-6 text-primary" />
+            Minhas Marcas <Palette className="w-6 h-6 text-primary" />
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Gerencie perfis sociais, tom de voz e estratégias de conteúdo individualmente.
+            Gerencie perfis sociais e estratégias de conteúdo.
           </p>
         </div>
-
         <Button
-          onClick={() => setModalOpen(true)}
-          className="bg-primary hover:bg-primary/90 text-white font-medium gap-2 self-start sm:self-auto"
+          onClick={() => setOpen(true)}
+          className="bg-primary hover:bg-primary/90 text-white gap-2 self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
-          Adicionar Marca
+          <Plus className="w-4 h-4" /> Adicionar Marca
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {brands.map((brand) => (
+        {brands.map((brand: any) => (
           <Card
             key={brand.id}
-            className="overflow-hidden hover:shadow-md transition-all duration-300 border-border flex flex-col justify-between"
+            className="overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col"
           >
             <div className="relative h-28 bg-muted">
               <img src={brand.coverImage} alt={brand.name} className="w-full h-full object-cover" />
@@ -86,15 +89,12 @@ export default function Brands() {
                 <img src={brand.logo} alt={brand.name} className="w-full h-full object-cover" />
               </div>
             </div>
-
             <CardContent className="pt-8 px-4 pb-4 flex-1 flex flex-col justify-between space-y-4">
               <div>
-                <h3 className="font-bold text-lg text-foreground">{brand.name}</h3>
+                <h3 className="font-bold text-lg">{brand.name}</h3>
                 <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                   {brand.description}
                 </p>
-
-                {/* Handles */}
                 <div className="flex flex-wrap gap-2 mt-3 text-xs text-muted-foreground">
                   {brand.handles.instagram && (
                     <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
@@ -110,100 +110,124 @@ export default function Brands() {
                   )}
                 </div>
               </div>
-
-              {/* Stats Bar */}
-              <div className="grid grid-cols-3 gap-2 py-2 px-3 rounded-lg bg-muted/50 text-center text-xs">
-                <div>
-                  <span className="text-muted-foreground block text-[10px]">Posts/sem</span>
-                  <span className="font-semibold text-foreground">{brand.stats.postsThisWeek}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[10px]">Engajamento</span>
-                  <span className="font-semibold text-primary">{brand.stats.engagementRate}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[10px]">Seguidores</span>
-                  <span className="font-semibold text-foreground">{brand.stats.followers}</span>
-                </div>
-              </div>
-
               <Button
                 onClick={() => navigate(`/app/brands/${brand.id}`)}
                 variant="outline"
-                className="w-full text-xs font-medium gap-2 hover:bg-primary hover:text-white transition-colors"
+                className="w-full text-xs gap-2 hover:bg-primary hover:text-white transition-colors"
               >
-                Gerenciar Marca
-                <ArrowRight className="w-3.5 h-3.5" />
+                Ver Detalhes <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Add Brand Modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleCreateBrand}>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Adicionar Nova Marca</DialogTitle>
               <DialogDescription>
-                Cadastre informações sobre a sua empresa para gerar posts sob medida com IA.
+                Cadastre sua empresa para gerar posts sob medida.
               </DialogDescription>
             </DialogHeader>
-
             <div className="space-y-3 my-4">
               <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">
-                  Nome da Marca *
-                </label>
+                <label className="text-xs font-semibold mb-1 block">Nome da Marca *</label>
                 <Input
                   placeholder="Ex: Aurora Fitwear"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={form.name}
+                  onChange={(e) => set('name', e.target.value)}
                   required
                 />
               </div>
-
               <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">
-                  Descrição da Marca
-                </label>
+                <label className="text-xs font-semibold mb-1 block">Descrição</label>
                 <Textarea
-                  placeholder="Qual é o segmento, diferenciais e tom de voz?"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Segmento, diferenciais e tom de voz"
+                  value={form.description}
+                  onChange={(e) => set('description', e.target.value)}
                   className="h-20 text-xs"
                 />
               </div>
-
+              <div>
+                <label className="text-xs font-semibold mb-1 block">Logo</label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('logo-input')?.click()}
+                  >
+                    <Upload className="w-3.5 h-3.5" /> {logo ? logo.name : 'Escolher arquivo'}
+                  </Button>
+                  <input
+                    id="logo-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => setLogo(e.target.files?.[0] || null)}
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-semibold text-foreground mb-1 block">
-                    Instagram
-                  </label>
+                  <label className="text-xs font-semibold mb-1 block">Instagram</label>
                   <Input
                     placeholder="@aurora.fit"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
+                    value={form.instagram}
+                    onChange={(e) => set('instagram', e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-foreground mb-1 block">TikTok</label>
+                  <label className="text-xs font-semibold mb-1 block">TikTok</label>
                   <Input
                     placeholder="@aurorafit"
-                    value={tiktok}
-                    onChange={(e) => setTiktok(e.target.value)}
+                    value={form.tiktok}
+                    onChange={(e) => set('tiktok', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">YouTube</label>
+                  <Input
+                    placeholder="@aurorafit"
+                    value={form.youtube}
+                    onChange={(e) => set('youtube', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Facebook</label>
+                  <Input
+                    placeholder="/aurorafit"
+                    value={form.facebook}
+                    onChange={(e) => set('facebook', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Website</label>
+                  <Input
+                    placeholder="aurora.com"
+                    value={form.website}
+                    onChange={(e) => set('website', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Cor do tema</label>
+                  <input
+                    type="color"
+                    value={form.color_theme}
+                    onChange={(e) => set('color_theme', e.target.value)}
+                    className="w-full h-9 rounded-md border border-border cursor-pointer"
                   />
                 </div>
               </div>
             </div>
-
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-primary text-white">
-                Criar Marca
+              <Button type="submit" disabled={loading} className="bg-primary text-white">
+                {loading ? 'Criando...' : 'Criar Marca'}
               </Button>
             </DialogFooter>
           </form>

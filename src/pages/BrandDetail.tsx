@@ -1,77 +1,110 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   PenTool,
-  Calendar,
-  BarChart2,
-  Settings,
-  Sparkles,
   Trash2,
-  Edit,
-  TrendingUp,
+  Share2,
+  Save,
+  Upload,
   Users,
+  TrendingUp,
   MessageCircle,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
+import { updateBrand } from '@/services/brands'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { toast } from '@/hooks/use-toast'
+import { sharePost } from '@/lib/share'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+
+const followerData = [
+  { month: 'Jan', followers: 32000 },
+  { month: 'Fev', followers: 35400 },
+  { month: 'Mar', followers: 39100 },
+  { month: 'Abr', followers: 42000 },
+  { month: 'Mai', followers: 45200 },
+]
 
 export default function BrandDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { brands, posts, ideas, deletePost } = useSocial()
-
-  const brand = brands.find((b) => b.id === id) || brands[0]
-  const brandPosts = posts.filter((p) => p.brandId === brand?.id)
-  const brandIdeas = ideas.filter((i) => i.brandId === brand?.id)
-
-  const [editName, setEditName] = useState(brand?.name || '')
-  const [editDesc, setEditDesc] = useState(brand?.description || '')
-
-  const followerData = [
-    { month: 'Jan', followers: 32000 },
-    { month: 'Fev', followers: 35400 },
-    { month: 'Mar', followers: 39100 },
-    { month: 'Abr', followers: 42000 },
-    { month: 'Mai', followers: 45200 },
-  ]
-
-  const engagementData = [
-    { day: 'Seg', eng: 4.2 },
-    { day: 'Ter', eng: 5.1 },
-    { day: 'Qua', eng: 4.8 },
-    { day: 'Qui', eng: 6.3 },
-    { day: 'Sex', eng: 7.0 },
-    { day: 'Sáb', eng: 8.2 },
-    { day: 'Dom', eng: 6.5 },
-  ]
+  const { brands, posts, ideas, deletePost, deleteBrand } = useSocial()
+  const brand = brands.find((b: any) => b.id === id)
+  const brandPosts = posts.filter((p: any) => p.brandId === id)
+  const brandIdeas = ideas.filter((i: any) => i.brandId === id)
+  const [edit, setEdit] = useState({
+    name: brand?.name || '',
+    description: brand?.description || '',
+    instagram: brand?.handles?.instagram || '',
+    tiktok: brand?.handles?.tiktok || '',
+    website: brand?.handles?.website || '',
+    color_theme: brand?.color_theme || '#BF2A95',
+  })
+  const [logo, setLogo] = useState<File | null>(null)
+  const [saving, setSaving] = useState(false)
 
   if (!brand) return null
 
+  const set = (k: string, v: string) => setEdit((p) => ({ ...p, [k]: v }))
+
+  const handleSave = async () => {
+    if (!id) return
+    setSaving(true)
+    try {
+      const fd = new FormData()
+      Object.entries(edit).forEach(([k, v]) => fd.append(k, v))
+      if (logo) fd.append('logo', logo)
+      await updateBrand(id, fd as any)
+      toast({ title: 'Salvo!', description: 'Dados da marca atualizados.' })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!id) return
+    try {
+      await deleteBrand(id)
+      toast({ title: 'Excluída', description: 'Marca removida.' })
+      navigate('/app/brands')
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Back button */}
       <Button
         variant="ghost"
         size="sm"
         onClick={() => navigate('/app/brands')}
         className="text-xs text-muted-foreground gap-1"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Voltar para Marcas
+        <ArrowLeft className="w-4 h-4" /> Voltar
       </Button>
-
-      {/* Hero Header */}
       <div className="relative rounded-2xl overflow-hidden border border-border bg-card shadow-sm">
-        <div className="h-40 bg-muted relative">
+        <div className="h-40 bg-muted">
           <img src={brand.coverImage} alt={brand.name} className="w-full h-full object-cover" />
         </div>
         <div className="p-6 pt-0 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 relative">
@@ -80,22 +113,19 @@ export default function BrandDetail() {
               <img src={brand.logo} alt={brand.name} className="w-full h-full object-cover" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{brand.name}</h1>
+              <h1 className="text-2xl font-bold">{brand.name}</h1>
               <p className="text-xs text-muted-foreground">{brand.description}</p>
             </div>
           </div>
-
           <Button
             onClick={() => navigate('/app/content/new', { state: { brandId: brand.id } })}
-            className="bg-primary text-white font-medium text-xs gap-1"
+            className="bg-primary text-white text-xs gap-1"
           >
-            <PenTool className="w-4 h-4" />
-            Novo Post para {brand.name}
+            <PenTool className="w-4 h-4" /> Novo Post
           </Button>
         </div>
       </div>
 
-      {/* Detail Tabs */}
       <Tabs defaultValue="posts" className="w-full">
         <TabsList className="grid grid-cols-4 w-full max-w-md">
           <TabsTrigger value="posts" className="text-xs">
@@ -108,67 +138,75 @@ export default function BrandDetail() {
             Análises
           </TabsTrigger>
           <TabsTrigger value="settings" className="text-xs">
-            Aparência
+            Config.
           </TabsTrigger>
         </TabsList>
 
-        {/* Posts Tab */}
         <TabsContent value="posts" className="mt-4 space-y-4">
           {brandPosts.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-6 text-center">
-              Nenhum post encontrado para esta marca.
-            </p>
+            <p className="text-sm text-muted-foreground p-6 text-center">Nenhum post encontrado.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {brandPosts.map((post) => (
+              {brandPosts.map((post: any) => (
                 <Card key={post.id} className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <Badge
                       variant={post.status === 'published' ? 'default' : 'secondary'}
                       className="text-[10px] capitalize"
                     >
-                      {post.status === 'published' ? 'Publicado' : 'Agendado'}
+                      {post.status === 'published'
+                        ? 'Publicado'
+                        : post.status === 'scheduled'
+                          ? 'Agendado'
+                          : 'Rascunho'}
                     </Badge>
-                    <span className="text-[11px] text-muted-foreground uppercase">
-                      {post.platform}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] text-muted-foreground uppercase">
+                        {post.platform}
+                      </span>
+                      {post.status === 'published' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => sharePost(post.caption || post.content)}
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          deletePost(post.id)
+                          toast({ title: 'Excluído', description: 'Post removido.' })
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-xs text-foreground line-clamp-3 leading-relaxed">
-                    {post.caption}
+                  <p className="text-xs line-clamp-3 leading-relaxed">
+                    {post.caption || post.content}
                   </p>
-                  <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
-                    <span>
-                      {post.scheduledDate
-                        ? new Date(post.scheduledDate).toLocaleDateString('pt-BR')
-                        : 'Sem data'}
+                  {post.scheduledDate && (
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(post.scheduledDate).toLocaleDateString('pt-BR')}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        deletePost(post.id)
-                        toast({ title: 'Excluído', description: 'Post removido com sucesso.' })
-                      }}
-                      className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                  )}
                 </Card>
               ))}
             </div>
           )}
         </TabsContent>
 
-        {/* Ideas Tab */}
         <TabsContent value="ideas" className="mt-4 space-y-4">
           {brandIdeas.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-6 text-center">
-              Sem ideias salvas para esta marca.
-            </p>
+            <p className="text-sm text-muted-foreground p-6 text-center">Sem ideias salvas.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {brandIdeas.map((idea) => (
+              {brandIdeas.map((idea: any) => (
                 <Card key={idea.id} className="p-4 space-y-2">
                   <h4 className="font-semibold text-sm">{idea.title}</h4>
                   <p className="text-xs text-muted-foreground">{idea.snippet}</p>
@@ -176,10 +214,10 @@ export default function BrandDetail() {
                     size="sm"
                     onClick={() =>
                       navigate('/app/content/new', {
-                        state: { caption: `${idea.title}\n\n${idea.snippet}` },
+                        state: { caption: `${idea.title}\n\n${idea.snippet}`, brandId: id },
                       })
                     }
-                    className="text-xs bg-primary text-white mt-2"
+                    className="text-xs bg-primary text-white"
                   >
                     Usar esta ideia
                   </Button>
@@ -189,29 +227,27 @@ export default function BrandDetail() {
           )}
         </TabsContent>
 
-        {/* Analytics Tab */}
         <TabsContent value="analytics" className="mt-4 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="p-4 space-y-1">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-primary" /> Crescimento de Seguidores
+                <Users className="w-3.5 h-3.5 text-primary" /> Seguidores
               </span>
               <p className="text-xl font-bold">{brand.stats.followers}</p>
             </Card>
             <Card className="p-4 space-y-1">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5 text-green-500" /> Taxa de Engajamento
+                <TrendingUp className="w-3.5 h-3.5 text-green-500" /> Engajamento
               </span>
               <p className="text-xl font-bold text-primary">{brand.stats.engagementRate}</p>
             </Card>
             <Card className="p-4 space-y-1">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <MessageCircle className="w-3.5 h-3.5 text-cyan-500" /> Interações esta Semana
+                <MessageCircle className="w-3.5 h-3.5 text-cyan-500" /> Interações
               </span>
               <p className="text-xl font-bold">1,840</p>
             </Card>
           </div>
-
           <Card className="p-4">
             <CardHeader className="p-0 mb-4">
               <CardTitle className="text-sm font-semibold">Evolução de Seguidores</CardTitle>
@@ -238,29 +274,93 @@ export default function BrandDetail() {
           </Card>
         </TabsContent>
 
-        {/* Settings Tab */}
         <TabsContent value="settings" className="mt-4">
           <Card className="p-6 max-w-xl space-y-4">
             <div>
-              <label className="text-xs font-semibold block mb-1">Nome da Marca</label>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <label className="text-xs font-semibold block mb-1">Nome</label>
+              <Input value={edit.name} onChange={(e) => set('name', e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold block mb-1">Descrição</label>
               <Textarea
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
+                value={edit.description}
+                onChange={(e) => set('description', e.target.value)}
                 className="h-24 text-xs"
               />
             </div>
-            <Button
-              onClick={() =>
-                toast({ title: 'Salvo!', description: 'Dados da marca atualizados com sucesso.' })
-              }
-              className="bg-primary text-white text-xs"
-            >
-              Salvar Alterações
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-semibold block mb-1">Instagram</label>
+                <Input value={edit.instagram} onChange={(e) => set('instagram', e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold block mb-1">TikTok</label>
+                <Input value={edit.tiktok} onChange={(e) => set('tiktok', e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold block mb-1">Website</label>
+                <Input value={edit.website} onChange={(e) => set('website', e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold block mb-1">Cor do tema</label>
+                <input
+                  type="color"
+                  value={edit.color_theme}
+                  onChange={(e) => set('color_theme', e.target.value)}
+                  className="w-full h-9 rounded-md border border-border cursor-pointer"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold block mb-1">Logo</label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('edit-logo')?.click()}
+                >
+                  <Upload className="w-3.5 h-3.5" /> {logo ? logo.name : 'Trocar logo'}
+                </Button>
+                <input
+                  id="edit-logo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setLogo(e.target.files?.[0] || null)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="text-xs gap-1">
+                    <Trash2 className="w-3.5 h-3.5" /> Excluir Marca
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir marca?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação removerá a marca e todos os posts associados. Não pode ser desfeito.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white">
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-primary text-white text-xs gap-1"
+              >
+                <Save className="w-3.5 h-3.5" /> {saving ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>

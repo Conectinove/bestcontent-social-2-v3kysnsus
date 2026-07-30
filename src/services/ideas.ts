@@ -3,10 +3,12 @@ import pb from '@/lib/pocketbase/client'
 export const getIdeas = (userId: string) =>
   pb
     .collection('ideas')
-    .getFullList({ filter: `user = "${userId}"`, sort: '-created', expand: 'category,brand' })
+    .getFullList({ filter: `user = "${userId}"`, sort: '-created', expand: 'brand,category' })
 
-export const getIdea = (id: string) =>
-  pb.collection('ideas').getOne(id, { expand: 'category,brand' })
+export const getIdeasByBrand = (brandId: string) =>
+  pb.collection('ideas').getFullList({ filter: `brand = "${brandId}"`, sort: '-created' })
+
+export const getIdea = (id: string) => pb.collection('ideas').getOne(id)
 
 export const createIdea = (data: Record<string, unknown>) => pb.collection('ideas').create(data)
 

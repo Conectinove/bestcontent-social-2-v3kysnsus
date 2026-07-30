@@ -9,13 +9,16 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { generateCaption, generateHashtags } from '@/services/ai'
 import { toast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 interface AIAssistantModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onApplyText: (text: string, hashtags?: string[]) => void
   initialTopic?: string
+  platform?: string
 }
 
 export function AIAssistantModal({
@@ -23,63 +26,48 @@ export function AIAssistantModal({
   onOpenChange,
   onApplyText,
   initialTopic = '',
+  platform = 'Instagram',
 }: AIAssistantModalProps) {
   const [topic, setTopic] = useState(initialTopic)
-  const [tone, setTone] = useState<'casual' | 'profissional' | 'engraçado' | 'inspiracional'>(
-    'casual',
-  )
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedResult, setGeneratedResult] = useState<{
-    caption: string
-    hashtags: string[]
-  } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<{ caption: string; hashtags: string[] } | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!topic.trim()) {
-      toast({ title: 'Atenção', description: 'Por favor, insira um tema ou palavras-chave.' })
+      toast({ title: 'Atenção', description: 'Insira um tema.' })
       return
     }
-
-    setIsGenerating(true)
-    setTimeout(() => {
-      setIsGenerating(false)
-      const suggestions = {
-        casual: {
-          caption: `Gente, vocês também sentem que o dia só começa de verdade depois daquele momento especial? ✨ Se liga nessa dica incrível que preparamos para tornar a sua rotina muito mais leve e produtiva! Quer saber mais? Deixa um comentário aqui! 👇`,
-          hashtags: ['#DicaDoDia', '#RotinaLeve', '#Bastidores', '#VidaReal'],
-        },
-        profissional: {
-          caption: `A inovação e a atenção aos detalhes são pilares fundamentais para alcançar resultados de alta performance. Apresentamos uma visão estratégica sobre como otimizar seus processos e impactar positivamente seus resultados. Saiba mais no link da bio.`,
-          hashtags: ['#Inovacao', '#Estrategia', '#Negocios', '#AltaPerformance'],
-        },
-        engraçado: {
-          caption: `Aquele momento em que você percebe que a semana mal começou e você já precisa de três vidas extras 😂 Fica tranquilo que a solução tá bem na sua frente! Compartilha com aquele amigo que precisa ver isso hoje! 🚀`,
-          hashtags: ['#Meme', '#HumorSemanal', '#QuemNunca', '#Relaxa'],
-        },
-        inspiracional: {
-          caption: `Grandes transformações começam com pequenos passos consistentes todos os dias. Acredite no seu potencial e celebre cada pequena vitória na sua jornada. Onde você quer chegar até o final deste ano? 🌱✨`,
-          hashtags: ['#Motivacao', '#Inspiração', '#FocoNoObjetivo', '#MentePositiva'],
-        },
+    setLoading(true)
+    try {
+      const r = await generateCaption(topic, platform)
+      const caption = (r as any).caption || ''
+      let hashtags: string[] = []
+      try {
+        const hr = await generateHashtags(caption)
+        hashtags = (hr as any).hashtags || []
+      } catch {
+        /* intentionally ignored */
       }
-
-      setGeneratedResult(suggestions[tone])
-    }, 1200)
+      setResult({ caption, hashtags })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleApply = () => {
-    if (generatedResult) {
-      onApplyText(generatedResult.caption, generatedResult.hashtags)
+    if (result) {
+      onApplyText(result.caption, result.hashtags)
       onOpenChange(false)
-      toast({ title: 'Sucesso!', description: 'Texto e hashtags aplicados ao post.' })
+      toast({ title: 'Sucesso!', description: 'Texto aplicado ao post.' })
     }
   }
 
   const handleCopy = () => {
-    if (generatedResult) {
-      navigator.clipboard.writeText(
-        `${generatedResult.caption}\n\n${generatedResult.hashtags.join(' ')}`,
-      )
+    if (result) {
+      navigator.clipboard.writeText(`${result.caption}\n\n${result.hashtags.join(' ')}`)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
@@ -90,94 +78,67 @@ export function AIAssistantModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-primary">
-            <Sparkles className="w-5 h-5 text-pink-500 animate-pulse" />
-            Assistente de IA BestContent
+            <Sparkles className="w-5 h-5 text-pink-500 animate-pulse" /> Assistente IA BestContent
           </DialogTitle>
           <DialogDescription>
-            Gere legendas cativantes e hashtags otimizadas de acordo com o tom da sua marca.
+            Gere legendas e hashtags com IA usando o Skip AI Gateway.
           </DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 my-2">
           <div>
-            <label className="text-xs font-semibold text-foreground mb-1 block">
-              Sobre o que é o seu post?
-            </label>
+            <label className="text-xs font-semibold mb-1 block">Sobre o que é o post?</label>
             <Textarea
-              placeholder="Ex: Lançamento do novo café de inverno com notas de avelã..."
+              placeholder="Ex: Lançamento do novo café de inverno..."
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               className="text-sm h-20"
             />
           </div>
-
-          <div>
-            <label className="text-xs font-semibold text-foreground mb-1 block">Tom de Voz</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(['casual', 'profissional', 'engraçado', 'inspiracional'] as const).map((t) => (
-                <Button
-                  key={t}
-                  type="button"
-                  variant={tone === t ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTone(t)}
-                  className={`capitalize text-xs ${tone === t ? 'bg-primary text-white' : ''}`}
-                >
-                  {t}
-                </Button>
-              ))}
-            </div>
-          </div>
-
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={loading}
             className="w-full bg-gradient-to-r from-primary via-pink-500 to-purple-600 text-white font-medium"
           >
-            {isGenerating ? (
+            {loading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Criando magia com IA...
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Gerando com IA...
               </>
             ) : (
               <>
-                <Wand2 className="w-4 h-4 mr-2" />
-                Gerar Legenda com IA
+                <Wand2 className="w-4 h-4 mr-2" /> Gerar Legenda com IA
               </>
             )}
           </Button>
-
-          {generatedResult && (
+          {result && (
             <div className="p-3 rounded-lg bg-muted border border-border space-y-3 animate-fade-in text-xs">
               <div>
-                <span className="font-semibold text-foreground block mb-1">Legenda Sugerida:</span>
+                <span className="font-semibold block mb-1">Legenda:</span>
                 <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
-                  {generatedResult.caption}
+                  {result.caption}
                 </p>
               </div>
-              <div>
-                <span className="font-semibold text-foreground block mb-1">
-                  Hashtags Sugeridas:
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {generatedResult.hashtags.map((h) => (
-                    <span
-                      key={h}
-                      className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[11px] font-medium"
-                    >
-                      {h}
-                    </span>
-                  ))}
+              {result.hashtags.length > 0 && (
+                <div>
+                  <span className="font-semibold block mb-1">Hashtags:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {result.hashtags.map((h) => (
+                      <span
+                        key={h}
+                        className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[11px] font-medium"
+                      >
+                        {h}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
+              )}
               <div className="flex items-center gap-2 pt-2 border-t border-border">
                 <Button
                   size="sm"
                   onClick={handleApply}
                   className="bg-primary text-white flex-1 text-xs"
                 >
-                  Usar no meu post
+                  Usar no post
                 </Button>
                 <Button size="sm" variant="outline" onClick={handleCopy} className="text-xs">
                   {copied ? (

@@ -1,4 +1,10 @@
-export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'linkedin'
+export type SocialPlatform =
+  | 'instagram'
+  | 'tiktok'
+  | 'youtube'
+  | 'twitter'
+  | 'linkedin'
+  | 'facebook'
 
 export interface Brand {
   id: string
@@ -12,12 +18,16 @@ export interface Brand {
     youtube?: string
     twitter?: string
     linkedin?: string
+    facebook?: string
+    website?: string
   }
   stats: {
     postsThisWeek: number
     engagementRate: string
     followers: string
   }
+  color_theme?: string
+  _raw?: any
 }
 
 export interface Post {
@@ -25,6 +35,7 @@ export interface Post {
   brandId: string
   platform: SocialPlatform
   contentType: 'post' | 'story' | 'reel' | 'carousel' | 'tweet'
+  content: string
   caption: string
   mediaUrls: string[]
   status: 'draft' | 'scheduled' | 'published'
@@ -36,6 +47,7 @@ export interface Post {
     shares: number
   }
   hashtags: string[]
+  _raw?: any
 }
 
 export interface IdeaCard {

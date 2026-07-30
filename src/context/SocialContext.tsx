@@ -1,182 +1,123 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { Brand, Post, IdeaCard, NotificationItem } from '@/types'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { useAuth } from '@/context/AuthContext'
 import {
-  INITIAL_BRANDS,
-  INITIAL_IDEAS,
-  INITIAL_POSTS,
-  INITIAL_NOTIFICATIONS,
-} from '@/lib/mock-data'
+  getBrands,
+  createBrand as svcCreateBrand,
+  deleteBrand as svcDeleteBrand,
+} from '@/services/brands'
+import {
+  getPosts,
+  createPost as svcCreatePost,
+  deletePost as svcDeletePost,
+} from '@/services/posts'
+import { getIdeas } from '@/services/ideas'
+import { useRealtime } from '@/hooks/use-realtime'
+import { mapBrand, mapPost, mapIdea } from '@/lib/mappers'
+import type { Brand, Post, IdeaCard, NotificationItem } from '@/types'
 
-interface SocialContextType {
-  brands: Brand[]
-  selectedBrandId: string | 'all'
-  setSelectedBrandId: (id: string | 'all') => void
-  posts: Post[]
-  ideas: IdeaCard[]
-  notifications: NotificationItem[]
-  searchQuery: string
-  setSearchQuery: (q: string) => void
-  theme: 'light' | 'dark'
-  toggleTheme: () => void
-  isOffline: boolean
-  addBrand: (brand: Omit<Brand, 'id' | 'stats'>) => void
-  addPost: (post: Omit<Post, 'id'>) => Post
-  updatePost: (id: string, data: Partial<Post>) => void
-  deletePost: (id: string) => void
-  toggleSaveIdea: (id: string) => void
-  toggleLikeIdea: (id: string) => void
-  markNotificationRead: (id: string) => void
-  markAllNotificationsRead: () => void
-}
-
-const SocialContext = createContext<SocialContextType | undefined>(undefined)
+const SocialContext = createContext<any>(undefined)
 
 export function SocialProvider({ children }: { children: ReactNode }) {
-  const [brands, setBrands] = useState<Brand[]>(() => {
-    const local = localStorage.getItem('bc_brands')
-    return local ? JSON.parse(local) : INITIAL_BRANDS
-  })
-
-  const [selectedBrandId, setSelectedBrandId] = useState<string | 'all'>('all')
-
-  const [posts, setPosts] = useState<Post[]>(() => {
-    const local = localStorage.getItem('bc_posts')
-    return local ? JSON.parse(local) : INITIAL_POSTS
-  })
-
-  const [ideas, setIdeas] = useState<IdeaCard[]>(() => {
-    const local = localStorage.getItem('bc_ideas')
-    return local ? JSON.parse(local) : INITIAL_IDEAS
-  })
-
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS)
+  const { user } = useAuth()
+  const [brands, setBrands] = useState<Brand[]>([])
+  const [posts, setPosts] = useState<Post[]>([])
+  const [ideas, setIdeas] = useState<IdeaCard[]>([])
+  const [selectedBrandId, setSelectedBrandId] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [isOffline, setIsOffline] = useState(!navigator.onLine)
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: '1',
+      title: 'Bem-vindo!',
+      message: 'Comece criando sua primeira marca.',
+      time: 'agora',
+      read: false,
+      type: 'system',
+    },
+  ])
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('bc_theme')
-    return (saved as 'light' | 'dark') || 'light'
-  })
-
-  useEffect(() => {
-    localStorage.setItem('bc_brands', JSON.stringify(brands))
-  }, [brands])
-
-  useEffect(() => {
-    localStorage.setItem('bc_posts', JSON.stringify(posts))
-  }, [posts])
-
-  useEffect(() => {
-    localStorage.setItem('bc_ideas', JSON.stringify(ideas))
-  }, [ideas])
-
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false)
-    const handleOffline = () => setIsOffline(true)
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
+  const loadAll = useCallback(async () => {
+    if (!user?.id) return
+    const [b, p, i] = await Promise.allSettled([
+      getBrands(user.id),
+      getPosts(user.id),
+      getIdeas(user.id),
+    ])
+    if (b.status === 'fulfilled') setBrands(b.value.map((r: any) => mapBrand(r)))
+    if (p.status === 'fulfilled') setPosts(p.value.map((r: any) => mapPost(r)))
+    if (i.status === 'fulfilled') setIdeas(i.value.map((r: any) => mapIdea(r)))
+  }, [user?.id])
 
   useEffect(() => {
-    const root = document.documentElement
-    if (theme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-    localStorage.setItem('bc_theme', theme)
-  }, [theme])
+    loadAll()
+  }, [loadAll])
+  useRealtime('brands', () => loadAll(), !!user?.id)
+  useRealtime('posts', () => loadAll(), !!user?.id)
+  useRealtime('ideas', () => loadAll(), !!user?.id)
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
+  const addBrand = async (data: any) => {
+    if (!user?.id) return
+    const fd = new FormData()
+    fd.append('user', user.id)
+    fd.append('name', data.name || '')
+    fd.append('description', data.description || '')
+    if (data.instagram) fd.append('instagram', data.instagram)
+    if (data.tiktok) fd.append('tiktok', data.tiktok)
+    if (data.youtube) fd.append('youtube', data.youtube)
+    if (data.facebook) fd.append('facebook', data.facebook)
+    if (data.website) fd.append('website', data.website)
+    if (data.color_theme) fd.append('color_theme', data.color_theme)
+    if (data.logo instanceof File) fd.append('logo', data.logo)
+    await svcCreateBrand(fd as any)
+    loadAll()
   }
 
-  const addBrand = (newBrandData: Omit<Brand, 'id' | 'stats'>) => {
-    const newBrand: Brand = {
-      ...newBrandData,
-      id: `brand-${Date.now()}`,
-      stats: {
-        postsThisWeek: 0,
-        engagementRate: '0.0%',
-        followers: '1',
-      },
-    }
-    setBrands((prev) => [newBrand, ...prev])
+  const addPost = async (data: any) => {
+    if (!user?.id) return null
+    const fd = new FormData()
+    fd.append('user', user.id)
+    fd.append('brand', data.brandId)
+    fd.append('content', data.content || data.caption || '')
+    fd.append('caption', data.caption || '')
+    fd.append('platform', data.platform)
+    fd.append('status', data.status)
+    if (data.scheduledDate) fd.append('scheduled_date', data.scheduledDate)
+    if (data.media instanceof File) fd.append('media', data.media)
+    const record = await svcCreatePost(fd as any)
+    loadAll()
+    return record
   }
 
-  const addPost = (postData: Omit<Post, 'id'>) => {
-    const newPost: Post = {
-      ...postData,
-      id: `post-${Date.now()}`,
-    }
-    setPosts((prev) => [newPost, ...prev])
-    return newPost
+  const deletePost = async (id: string) => {
+    await svcDeletePost(id)
+    loadAll()
   }
-
-  const updatePost = (id: string, data: Partial<Post>) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)))
+  const deleteBrand = async (id: string) => {
+    await svcDeleteBrand(id)
+    loadAll()
   }
-
-  const deletePost = (id: string) => {
-    setPosts((prev) => prev.filter((p) => p.id !== id))
-  }
-
-  const toggleSaveIdea = (id: string) => {
-    setIdeas((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, isSaved: !item.isSaved } : item)),
-    )
-  }
-
-  const toggleLikeIdea = (id: string) => {
-    setIdeas((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const isLiked = !item.isLiked
-          return {
-            ...item,
-            isLiked,
-            likesCount: isLiked ? item.likesCount + 1 : item.likesCount - 1,
-          }
-        }
-        return item
-      }),
-    )
-  }
-
-  const markNotificationRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
-  }
-
-  const markAllNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-  }
+  const toggleTheme = () => setTheme((p) => (p === 'dark' ? 'light' : 'dark'))
+  const markAllNotificationsRead = () =>
+    setNotifications((p) => p.map((n) => ({ ...n, read: true })))
 
   return (
     <SocialContext.Provider
       value={{
         brands,
-        selectedBrandId,
-        setSelectedBrandId,
         posts,
         ideas,
-        notifications,
+        selectedBrandId,
+        setSelectedBrandId,
         searchQuery,
         setSearchQuery,
+        notifications,
+        markAllNotificationsRead,
         theme,
         toggleTheme,
-        isOffline,
         addBrand,
         addPost,
-        updatePost,
         deletePost,
-        toggleSaveIdea,
-        toggleLikeIdea,
-        markNotificationRead,
-        markAllNotificationsRead,
+        deleteBrand,
       }}
     >
       {children}
@@ -185,9 +126,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
 }
 
 export function useSocial() {
-  const context = useContext(SocialContext)
-  if (!context) {
-    throw new Error('useSocial must be used within a SocialProvider')
-  }
-  return context
+  const ctx = useContext(SocialContext)
+  if (!ctx) throw new Error('useSocial must be used within SocialProvider')
+  return ctx
 }

@@ -3,7 +3,7 @@ import pb from '@/lib/pocketbase/client'
 export const getScheduledPosts = (userId: string) =>
   pb
     .collection('scheduled_posts')
-    .getFullList({ filter: `user = "${userId}"`, sort: 'scheduled_at', expand: 'post' })
+    .getFullList({ filter: `user = "${userId}"`, sort: 'scheduled_at', expand: 'post,post.brand' })
 
 export const createScheduledPost = (data: Record<string, unknown>) =>
   pb.collection('scheduled_posts').create(data)
