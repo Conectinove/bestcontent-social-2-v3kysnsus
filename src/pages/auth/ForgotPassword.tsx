@@ -1,19 +1,27 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sparkles, Mail } from 'lucide-react'
+import { Sparkles, Mail, Loader2 } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { toast } from '@/hooks/use-toast'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!email) return
+    setSubmitting(true)
+    try {
+      await pb.collection('users').requestPasswordReset(email)
+    } catch (_) {
+      // Silently handle — always show success for security
+    }
+    setSubmitting(false)
     setSent(true)
-    toast({ title: 'E-mail enviado', description: 'Verifique sua caixa de entrada.' })
   }
 
   return (
@@ -33,11 +41,11 @@ export default function ForgotPassword() {
           {sent ? (
             <div className="text-center space-y-3 py-4">
               <Mail className="w-10 h-10 text-primary mx-auto animate-bounce" />
-              <p className="text-xs text-muted-foreground">
-                Instruções enviadas para <strong className="text-foreground">{email}</strong>.
+              <p className="text-sm text-muted-foreground">
+                Enviamos um link de recuperação para o seu email.
               </p>
               <Button asChild variant="outline" className="text-xs">
-                <Link to="/auth/login">Voltar ao Login</Link>
+                <Link to="/login">Voltar ao Login</Link>
               </Button>
             </div>
           ) : (
@@ -48,13 +56,30 @@ export default function ForgotPassword() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full bg-primary text-white text-xs">
-                Enviar Link de Recuperação
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-primary text-white text-sm"
+              >
+                {submitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Enviar link de recuperação'
+                )}
               </Button>
             </form>
+          )}
+
+          {!sent && (
+            <div className="mt-6 text-center text-xs text-muted-foreground">
+              <Link to="/login" className="text-primary font-semibold hover:underline">
+                Voltar ao login
+              </Link>
+            </div>
           )}
         </CardContent>
       </Card>

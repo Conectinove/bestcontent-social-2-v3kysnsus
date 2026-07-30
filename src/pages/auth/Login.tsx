@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { Link, useNavigate, Navigate } from 'react-router-dom'
+import { Sparkles, ArrowRight, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,19 +8,39 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from '@/hooks/use-toast'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('juliana@bestcontent.app')
-  const [password, setPassword] = useState('123456')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/app/feed" replace />
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     if (!email || !password) {
-      toast({ title: 'Erro', description: 'Preencha todos os campos.' })
+      setError('Preencha todos os campos.')
       return
     }
-
-    await login(email, password)
+    setSubmitting(true)
+    const { error: loginError } = await login(email, password)
+    setSubmitting(false)
+    if (loginError) {
+      setError(loginError)
+      return
+    }
     toast({ title: 'Bem-vindo de volta!', description: 'Sessão iniciada com sucesso.' })
     navigate('/app/feed')
   }
@@ -48,6 +68,7 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
                 required
               />
             </div>
@@ -55,10 +76,7 @@ export default function Login() {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-semibold">Senha</label>
-                <Link
-                  to="/auth/forgot-password"
-                  className="text-[11px] text-primary hover:underline"
-                >
+                <Link to="/forgot-password" className="text-[11px] text-primary hover:underline">
                   Esqueceu a senha?
                 </Link>
               </div>
@@ -66,22 +84,33 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 required
               />
             </div>
 
+            {error && (
+              <p className="text-sm text-red-500 bg-red-500/10 rounded-md px-3 py-2">{error}</p>
+            )}
+
             <Button
               type="submit"
-              className="w-full bg-primary text-white font-medium text-xs gap-1"
+              disabled={submitting}
+              className="w-full bg-primary text-white font-medium text-sm gap-1"
             >
-              Entrar na Conta
-              <ArrowRight className="w-4 h-4" />
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  Entrar <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-xs text-muted-foreground">
             Ainda não possui conta?{' '}
-            <Link to="/auth/register" className="text-primary font-semibold hover:underline">
+            <Link to="/signup" className="text-primary font-semibold hover:underline">
               Criar conta grátis
             </Link>
           </div>

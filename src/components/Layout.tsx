@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Outlet, Navigate, useLocation } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
@@ -7,14 +8,20 @@ import { OfflineBanner } from './OfflineBanner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 
 export default function Layout() {
-  const { isAuthenticated } = useAuth()
-  const location = useLocation()
+  const { isAuthenticated, loading } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Redirect unauthenticated users to login, except if already on auth routes
-  if (!isAuthenticated && !location.pathname.startsWith('/auth')) {
-    return <Navigate to="/auth/login" replace />
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
   }
 
   return (
@@ -22,12 +29,10 @@ export default function Layout() {
       <OfflineBanner />
 
       <div className="flex flex-1 relative overflow-hidden">
-        {/* Desktop Collapsible Sidebar */}
         <div className="hidden md:block shrink-0">
           <Sidebar collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
         </div>
 
-        {/* Mobile Sidebar Sheet Drawer */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="p-0 w-64 border-r border-border">
             <Sidebar
@@ -38,7 +43,6 @@ export default function Layout() {
           </SheetContent>
         </Sheet>
 
-        {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
           <Header onOpenMobileMenu={() => setMobileOpen(true)} />
           <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto pb-16">

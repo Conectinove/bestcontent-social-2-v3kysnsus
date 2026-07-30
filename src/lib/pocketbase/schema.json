@@ -1,0 +1,517 @@
+{
+  "generatedAt": "2026-07-30T08:32:01.294Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "id = @request.auth.id",
+        "view": "id = @request.auth.id",
+        "create": "",
+        "update": "id = @request.auth.id",
+        "delete": "id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "categories",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_categories_name ON categories (name)",
+        "CREATE UNIQUE INDEX idx_categories_slug ON categories (slug)"
+      ]
+    },
+    {
+      "name": "brands",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id = user",
+        "view": "@request.auth.id = user",
+        "create": "@request.auth.id = user",
+        "update": "@request.auth.id = user",
+        "delete": "@request.auth.id = user"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "logo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "instagram",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tiktok",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "youtube",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "facebook",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "website",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color_theme",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_brands_user ON brands (user)"]
+    },
+    {
+      "name": "posts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id = user",
+        "view": "@request.auth.id = user",
+        "create": "@request.auth.id = user",
+        "update": "@request.auth.id = user",
+        "delete": "@request.auth.id = user"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "caption",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "platform",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Instagram", "TikTok", "YouTube", "Facebook", "LinkedIn", "Twitter/X"]
+        },
+        {
+          "name": "media",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "scheduled_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["draft", "scheduled", "published"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_posts_user ON posts (user)",
+        "CREATE INDEX idx_posts_brand ON posts (brand)",
+        "CREATE INDEX idx_posts_status ON posts (status)",
+        "CREATE INDEX idx_posts_scheduled_date ON posts (scheduled_date)"
+      ]
+    },
+    {
+      "name": "ideas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id = user",
+        "view": "@request.auth.id = user",
+        "create": "@request.auth.id = user",
+        "update": "@request.auth.id = user",
+        "delete": "@request.auth.id = user"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "category",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "categories"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_ideas_user ON ideas (user)",
+        "CREATE INDEX idx_ideas_brand ON ideas (brand)"
+      ]
+    },
+    {
+      "name": "scheduled_posts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id = user",
+        "view": "@request.auth.id = user",
+        "create": "@request.auth.id = user",
+        "update": "@request.auth.id = user",
+        "delete": "@request.auth.id = user"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "post",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "scheduled_at",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "published", "failed"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_scheduled_posts_scheduled_at ON scheduled_posts (scheduled_at)",
+        "CREATE INDEX idx_scheduled_posts_user ON scheduled_posts (user)"
+      ]
+    },
+    {
+      "name": "trends",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "category",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "categories"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "source_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "popularity_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_trends_category ON trends (category)",
+        "CREATE INDEX idx_trends_popularity ON trends (popularity_score)"
+      ]
+    },
+    {
+      "name": "saved_posts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id = user",
+        "view": "@request.auth.id = user",
+        "create": "@request.auth.id = user",
+        "update": "@request.auth.id = user",
+        "delete": "@request.auth.id = user"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "trend",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "trends"
+        },
+        {
+          "name": "saved_at",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_saved_posts_trend_user ON saved_posts (trend, user)"]
+    }
+  ]
+}

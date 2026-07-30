@@ -42,9 +42,9 @@ const App = () => (
             </Route>
 
             {/* Public Auth routes */}
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/register" element={<Register />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* Fallback */}
             <Route path="*" element={<NotFound />} />

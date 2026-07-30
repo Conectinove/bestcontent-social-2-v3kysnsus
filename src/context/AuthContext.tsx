@@ -1,69 +1,106 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { UserProfile } from '@/types'
-import { INITIAL_USER } from '@/lib/mock-data'
+import { getErrorMessage, extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
 interface AuthContextType {
   user: UserProfile | null
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  register: (name: string, email: string, password: string) => Promise<boolean>
+  loading: boolean
+  login: (email: string, password: string) => Promise<{ error: string | null }>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ error: string | null; fieldErrors?: FieldErrors }>
   logout: () => void
-  updateProfile: (data: Partial<UserProfile>) => void
+  updateProfile: (data: Record<string, unknown>) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('bestcontent_user')
-    return saved ? JSON.parse(saved) : INITIAL_USER
-  })
+function mapUser(record: any): UserProfile {
+  const avatar = record.avatar
+    ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${record.collectionId}/${record.id}/${record.avatar}`
+    : `https://img.usecurling.com/ppl/medium?gender=female&seed=${record.id}`
+  return {
+    id: record.id,
+    name: record.name || '',
+    email: record.email || '',
+    avatar,
+    plan: 'Pro Plan',
+  }
+}
 
-  const login = async (email: string) => {
-    const loggedUser: UserProfile = {
-      ...INITIAL_USER,
-      email,
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<UserProfile | null>(() =>
+    pb.authStore.isValid && pb.authStore.record ? mapUser(pb.authStore.record) : null,
+  )
+  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
+      if (pb.authStore.isValid && record) {
+        setUser(mapUser(record))
+      } else {
+        setUser(null)
+      }
+      setIsAuthenticated(pb.authStore.isValid)
+    })
+
+    if (pb.authStore.isValid) {
+      pb.collection('users')
+        .authRefresh()
+        .catch(() => pb.authStore.clear())
+        .finally(() => setLoading(false))
+    } else {
+      if (pb.authStore.record) pb.authStore.clear()
+      setLoading(false)
     }
-    setUser(loggedUser)
-    localStorage.setItem('bestcontent_user', JSON.stringify(loggedUser))
-    return true
+
+    return () => {
+      unsubscribe()
+    }
+  }, [])
+
+  const login = async (email: string, password: string) => {
+    try {
+      await pb.collection('users').authWithPassword(email, password)
+      return { error: null }
+    } catch (err) {
+      return { error: getErrorMessage(err) }
+    }
   }
 
-  const register = async (name: string, email: string) => {
-    const newUser: UserProfile = {
-      id: `usr-${Date.now()}`,
-      name,
-      email,
-      avatar: `https://img.usecurling.com/ppl/medium?gender=female&seed=${Date.now()}`,
-      plan: 'Pro Plan',
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      await pb.collection('users').create({ name, email, password, passwordConfirm: password })
+      await pb.collection('users').authWithPassword(email, password)
+      return { error: null }
+    } catch (err) {
+      return { error: getErrorMessage(err), fieldErrors: extractFieldErrors(err) }
     }
-    setUser(newUser)
-    localStorage.setItem('bestcontent_user', JSON.stringify(newUser))
-    return true
   }
 
   const logout = () => {
-    setUser(null)
-    localStorage.removeItem('bestcontent_user')
+    pb.authStore.clear()
   }
 
-  const updateProfile = (data: Partial<UserProfile>) => {
-    if (!user) return
-    const updated = { ...user, ...data }
-    setUser(updated)
-    localStorage.setItem('bestcontent_user', JSON.stringify(updated))
+  const updateProfile = async (data: Record<string, unknown>) => {
+    if (!pb.authStore.record) return { error: 'Não autenticado' }
+    try {
+      const updated = await pb.collection('users').update(pb.authStore.record.id, data)
+      pb.authStore.save(pb.authStore.token, updated)
+      return { error: null }
+    } catch (err) {
+      return { error: getErrorMessage(err) }
+    }
   }
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        updateProfile,
-      }}
+      value={{ user, isAuthenticated, loading, login, register, logout, updateProfile }}
     >
       {children}
     </AuthContext.Provider>

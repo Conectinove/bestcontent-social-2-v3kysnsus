@@ -68,3 +68,39 @@ export interface UserProfile {
   avatar: string
   plan: string
 }
+
+export interface CategoryRecord {
+  id: string
+  name: string
+  slug: string
+  created: string
+  updated: string
+}
+
+export interface TrendRecord {
+  id: string
+  title: string
+  description: string
+  source_url: string
+  image_url: string
+  category: string
+  popularity_score: number
+  user: string | null
+  created: string
+  updated: string
+  expand?: {
+    category?: CategoryRecord
+  }
+}
+
+export interface SavedPostRecord {
+  id: string
+  trend: string
+  user: string
+  saved_at: string
+  created: string
+  updated: string
+  expand?: {
+    trend?: TrendRecord
+  }
+}
