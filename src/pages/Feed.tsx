@@ -34,6 +34,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getTrends } from '@/services/trends'
 import { getCategories } from '@/services/categories'
 import { getSavedPosts, createSavedPost, deleteSavedPost } from '@/services/saved_posts'
+import { createPostFromTrend } from '@/services/posts'
 import { toast } from '@/hooks/use-toast'
 import { sharePost } from '@/lib/share'
 import type { CategoryRecord, TrendRecord, Post, SocialPlatform } from '@/types'
@@ -59,7 +60,7 @@ function getStatusBadge(status: string) {
 export default function Feed() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { posts, brands, deletePost } = useSocial()
+  const { posts, brands, deletePost, refreshPosts } = useSocial()
 
   const [activeTab, setActiveTab] = useState('all')
   const [postSearch, setPostSearch] = useState('')
@@ -115,6 +116,9 @@ export default function Feed() {
 
   useRealtime('trends', () => loadTrends())
   useRealtime('saved_posts', () => loadSaved())
+  useRealtime('posts', () => {
+    if (typeof refreshPosts === 'function') refreshPosts()
+  })
 
   const isPostPending = (post: Post) => {
     if (post.status === 'draft') return true
@@ -227,16 +231,17 @@ export default function Feed() {
         trend.description || '',
         user.id,
         brandId,
+        trend.expand?.category?.name,
       )
       toast({
         title: 'Post criado!',
         description: 'Rascunho gerado com IA a partir da trend.',
       })
       navigate(`/app/editor/${(record as unknown as { id: string }).id}`)
-    } catch (_) {
+    } catch {
       toast({
-        title: 'Erro',
-        description: 'Falha ao gerar post. Tente novamente.',
+        title: 'Erro ao gerar post',
+        description: 'Não foi possível gerar o post. Tente novamente em instantes.',
         variant: 'destructive',
       })
     } finally {

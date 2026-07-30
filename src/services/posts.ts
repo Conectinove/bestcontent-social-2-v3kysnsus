@@ -19,8 +19,10 @@ export async function createPostFromTrend(
   trendDescription: string,
   userId: string,
   brandId: string,
+  categoryName?: string,
 ) {
-  const sourceText = `${trendTitle}. ${trendDescription || ''}`.trim()
+  const sourceText =
+    `${trendTitle}. ${trendDescription || ''}${categoryName ? ` (Categoria: ${categoryName})` : ''}`.trim()
 
   const captionRes = (await generateCaption(sourceText, 'Instagram')) as { caption: string }
   const caption = captionRes.caption || ''
