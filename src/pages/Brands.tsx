@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Palette, ArrowRight, Instagram, Globe, Upload } from 'lucide-react'
+import { Plus, Palette, ArrowRight, Instagram, Globe, Upload, Sparkles } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
