@@ -1,16 +1,22 @@
-import { useState, useEffect, useRef, type ChangeEvent, type DragEvent } from 'react'
+import {
+  useState,
+  useEffect,
+  useRef,
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
+} from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Sparkles,
-  Save,
   Loader2,
   ArrowLeft,
   Upload,
   Image as ImageIcon,
   Send,
-  Wand2,
   CheckCircle2,
   X,
+  Save,
 } from 'lucide-react'
 import { getPost, updatePost } from '@/services/posts'
 import { improveText } from '@/services/ai'
@@ -19,15 +25,22 @@ import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { AssetsPanel } from '@/components/AssetsPanel'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { useWorkspace, type WidgetType } from '@/hooks/use-workspace'
+import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
+import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
+import {
+  ContentDraftWidget,
+  CaptionWidget,
+  MediaWidget,
+  ScheduleWidget,
+  PreviewWidget,
+  MetricsWidget,
+  TemplatesWidget,
+} from '@/components/workspace/editor-widgets'
 import type { PremiumElement } from '@/services/premium-elements'
-
-const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'LinkedIn', 'Twitter/X']
 
 interface PlacedElement {
   uid: string
@@ -45,6 +58,16 @@ export default function PostEditor() {
   const { brands } = useSocial()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
+
+  const {
+    leftWidgets,
+    rightWidgets,
+    focusMode,
+    activePreset,
+    reorderWidgets,
+    toggleFocusMode,
+    applyPreset,
+  } = useWorkspace()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -83,7 +106,7 @@ export default function PostEditor() {
             const parsed = JSON.parse(record.script_json)
             if (parsed.placedElements) setPlacedElements(parsed.placedElements)
           } catch {
-            /* ignore */
+            /* intentionally ignored */
           }
         }
       })
@@ -151,23 +174,19 @@ export default function PostEditor() {
         },
       ])
     } catch {
-      /* ignore */
+      /* intentionally ignored */
     }
   }
 
-  const removePlacedElement = (uid: string) => {
+  const removePlacedElement = (uid: string) =>
     setPlacedElements((prev) => prev.filter((el) => el.uid !== uid))
-  }
 
   const handleApprove = async () => {
     if (!postId || !user?.id) return
     setApproving(true)
     try {
       await approvePost(postId, user.id)
-      toast({
-        title: 'Post aprovado!',
-        description: 'Post aprovado e adicionado à fila de publicação.',
-      })
+      toast({ title: 'Post aprovado!', description: 'Adicionado à fila de publicação.' })
       navigate('/app/calendar')
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
@@ -198,7 +217,7 @@ export default function PostEditor() {
       await updatePost(postId, data)
       toast({
         title: publish ? 'Publicado!' : 'Salvo!',
-        description: publish ? 'Seu post foi publicado.' : 'Post atualizado com sucesso.',
+        description: publish ? 'Seu post foi publicado.' : 'Post atualizado.',
       })
       navigate('/app/feed')
     } catch (err) {
@@ -206,6 +225,57 @@ export default function PostEditor() {
     } finally {
       setSaving(false)
       setPublishing(false)
+    }
+  }
+
+  const selectedBrand = brands.find((b: any) => b.id === brandId)
+
+  const renderWidget = (type: WidgetType): ReactNode => {
+    switch (type) {
+      case 'assets':
+        return <AssetsPanel onDragStart={() => {}} />
+      case 'templates':
+        return <TemplatesWidget />
+      case 'content-draft':
+        return <ContentDraftWidget content={content} setContent={setContent} />
+      case 'metrics':
+        return <MetricsWidget />
+      case 'caption':
+        return (
+          <CaptionWidget
+            caption={caption}
+            setCaption={setCaption}
+            onImprove={handleImproveCaption}
+            improving={improving}
+          />
+        )
+      case 'media':
+        return <MediaWidget mediaPreview={mediaPreview} onFileChange={handleFileChange} />
+      case 'schedule':
+        return (
+          <ScheduleWidget
+            brandId={brandId}
+            setBrandId={setBrandId}
+            platform={platform}
+            setPlatform={setPlatform}
+            status={status}
+            setStatus={setStatus}
+            scheduledDate={scheduledDate}
+            setScheduledDate={setScheduledDate}
+            brands={brands}
+          />
+        )
+      case 'preview':
+        return (
+          <PreviewWidget
+            caption={caption}
+            platform={platform}
+            brandName={selectedBrand?.name || ''}
+            mediaPreview={mediaPreview}
+          />
+        )
+      default:
+        return null
     }
   }
 
@@ -218,251 +288,149 @@ export default function PostEditor() {
   }
 
   return (
-    <div className="flex gap-4 animate-fade-in">
-      <div className="flex-1 max-w-3xl space-y-4">
-        <div className="border-b border-border pb-3 flex items-center gap-3">
+    <WorkspaceLayout
+      leftWidgets={leftWidgets}
+      rightWidgets={rightWidgets}
+      focusMode={focusMode}
+      onReorder={reorderWidgets}
+      renderWidget={renderWidget}
+      header={
+        <WorkspaceHeader
+          focusMode={focusMode}
+          onToggleFocus={toggleFocusMode}
+          activePreset={activePreset}
+          onApplyPreset={applyPreset}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSave(false)}
+                disabled={saving || publishing || approving}
+                className="text-xs gap-1"
+              >
+                {saving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Salvar</span>
+              </Button>
+              {(status === 'draft' || status === 'scheduled') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleApprove}
+                  disabled={saving || publishing || approving}
+                  className="text-xs gap-1 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                >
+                  {approving ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  )}
+                  <span className="hidden sm:inline">Aprovar</span>
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => handleSave(true)}
+                disabled={saving || publishing || approving}
+                className="bg-primary text-white text-xs gap-1"
+              >
+                {publishing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Publicar</span>
+              </Button>
+            </>
+          }
+        >
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/app/feed')}
-            className="gap-1 text-xs"
+            className="gap-1 text-xs shrink-0"
           >
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              Editar Post <Sparkles className="w-5 h-5 text-primary" />
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Revise e ajuste o conteúdo gerado por IA.
-            </p>
-          </div>
+          <h1 className="text-lg font-bold flex items-center gap-2 min-w-0">
+            <span className="truncate">Editar Post</span>
+            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+          </h1>
           {trendId && (
             <Badge
               variant="outline"
-              className="text-[10px] bg-primary/10 text-primary border-primary/20"
+              className="text-[10px] bg-primary/10 text-primary border-primary/20 shrink-0"
             >
               Gerado de Trend
             </Badge>
           )}
-        </div>
-
-        <Card className="p-4 space-y-4">
-          <div>
-            <label className="text-xs font-semibold block mb-1">Imagem / Canvas</label>
+        </WorkspaceHeader>
+      }
+    >
+      <div className="space-y-3 pb-4">
+        <div
+          ref={canvasRef}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+          className="relative w-full h-64 rounded-lg border-2 border-dashed border-border overflow-hidden bg-muted/40"
+        >
+          {mediaPreview ? (
+            <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <ImageIcon className="w-8 h-8" />
+              <span className="text-xs">Clique para enviar uma imagem</span>
+            </button>
+          )}
+          {placedElements.map((el) => (
             <div
-              ref={canvasRef}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleDrop}
-              className="relative w-full h-48 rounded-lg border-2 border-dashed border-border overflow-hidden bg-muted/40"
+              key={el.uid}
+              className="absolute cursor-pointer group/el z-10"
+              style={{ left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)' }}
+              onClick={() => removePlacedElement(el.uid)}
             >
-              {mediaPreview ? (
-                <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
+              {el.type === 'texture' ? (
+                <div className="w-16 h-16 rounded shadow-lg" style={{ background: el.data }} />
               ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <ImageIcon className="w-8 h-8" />
-                  <span className="text-xs">Clique para enviar uma imagem</span>
-                </button>
-              )}
-              {placedElements.map((el) => (
                 <div
-                  key={el.uid}
-                  className="absolute cursor-pointer group/el z-10"
-                  style={{ left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)' }}
-                  onClick={() => removePlacedElement(el.uid)}
-                >
-                  {el.type === 'texture' ? (
-                    <div className="w-16 h-16 rounded shadow-lg" style={{ background: el.data }} />
-                  ) : (
-                    <div
-                      className="w-12 h-12 text-primary pointer-events-none drop-shadow-lg"
-                      dangerouslySetInnerHTML={{ __html: el.data }}
-                    />
-                  )}
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover/el:opacity-100 transition-opacity">
-                    <X className="w-2.5 h-2.5" />
-                  </div>
-                </div>
-              ))}
-              {mediaPreview && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-white flex items-center gap-1 hover:bg-black/80 transition-colors z-20"
-                >
-                  <Upload className="w-3 h-3" /> Trocar
-                </button>
+                  className="w-12 h-12 text-primary pointer-events-none drop-shadow-lg"
+                  dangerouslySetInnerHTML={{ __html: el.data }}
+                />
               )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover/el:opacity-100 transition-opacity">
+                <X className="w-2.5 h-2.5" />
+              </div>
             </div>
-            {placedElements.length > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {placedElements.length} elemento(s) na arte • Clique para remover
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold block mb-1">Marca</label>
-              <select
-                value={brandId}
-                onChange={(e) => setBrandId(e.target.value)}
-                className="w-full text-xs bg-muted border border-border rounded-md px-2.5 py-2"
-              >
-                {brands.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold block mb-1">Plataforma</label>
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
-                className="w-full text-xs bg-muted border border-border rounded-md px-2.5 py-2"
-              >
-                {PLATFORMS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1">Conteúdo</label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="h-20 text-xs"
-              placeholder="Conteúdo do post..."
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold">Legenda</label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleImproveCaption}
-                disabled={improving || !caption.trim()}
-                className="text-[10px] h-6 gap-1 text-primary"
-              >
-                {improving ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Wand2 className="w-3 h-3" />
-                )}
-                Melhorar com IA
-              </Button>
-            </div>
-            <Textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="h-32 text-xs"
-              placeholder="Legenda do post..."
-            />
-            <span className="text-[10px] text-muted-foreground float-right mt-1">
-              {caption.length} caracteres
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold block mb-1">Data de Agendamento</label>
-              <Input
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="text-xs h-9"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold block mb-1">Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full text-xs bg-muted border border-border rounded-md px-2.5 py-2"
-              >
-                <option value="draft">Rascunho</option>
-                <option value="scheduled">Agendado</option>
-                <option value="published">Publicado</option>
-                <option value="approved">Aprovado</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-border">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/app/feed')}
-              className="text-xs"
+          ))}
+          {mediaPreview && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-white flex items-center gap-1 hover:bg-black/80 transition-colors z-20"
             >
-              Cancelar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleSave(false)}
-              disabled={saving || publishing || approving}
-              className="text-xs gap-1"
-            >
-              {saving ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Save className="w-3.5 h-3.5" />
-              )}
-              Salvar
-            </Button>
-            {(status === 'draft' || status === 'scheduled') && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleApprove}
-                disabled={saving || publishing || approving}
-                className="text-xs gap-1 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-              >
-                {approving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                )}
-                Aprovar
-              </Button>
-            )}
-            <Button
-              onClick={() => handleSave(true)}
-              disabled={saving || publishing || approving}
-              className="bg-primary text-white text-xs gap-1"
-            >
-              {publishing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Send className="w-3.5 h-3.5" />
-              )}
-              Publicar
-            </Button>
-          </div>
-        </Card>
+              <Upload className="w-3 h-3" /> Trocar
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
+        {placedElements.length > 0 && (
+          <p className="text-[10px] text-muted-foreground">
+            {placedElements.length} elemento(s) na arte • Clique para remover
+          </p>
+        )}
       </div>
-
-      <div className="w-72 shrink-0 sticky top-4 h-[calc(100vh-2rem)] hidden lg:block">
-        <AssetsPanel onDragStart={() => {}} />
-      </div>
-    </div>
+    </WorkspaceLayout>
   )
 }
