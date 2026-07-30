@@ -47,7 +47,7 @@ const followerData = [
 export default function BrandDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { brands, posts, ideas, deletePost, deleteBrand } = useSocial()
+  const { brands, posts, ideas, deletePost, deleteBrand, refreshAll } = useSocial()
   const brand = brands.find((b: any) => b.id === id)
   const brandPosts = posts.filter((p: any) => p.brandId === id)
   const brandIdeas = ideas.filter((i: any) => i.brandId === id)
@@ -56,6 +56,8 @@ export default function BrandDetail() {
     description: brand?.description || '',
     instagram: brand?.handles?.instagram || '',
     tiktok: brand?.handles?.tiktok || '',
+    youtube: brand?.handles?.youtube || '',
+    facebook: brand?.handles?.facebook || '',
     website: brand?.handles?.website || '',
     color_theme: brand?.color_theme || '#BF2A95',
   })
@@ -74,6 +76,7 @@ export default function BrandDetail() {
       Object.entries(edit).forEach(([k, v]) => fd.append(k, v))
       if (logo) fd.append('logo', logo)
       await updateBrand(id, fd as any)
+      refreshAll()
       toast({ title: 'Salvo!', description: 'Dados da marca atualizados.' })
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
@@ -296,6 +299,14 @@ export default function BrandDetail() {
               <div>
                 <label className="text-xs font-semibold block mb-1">TikTok</label>
                 <Input value={edit.tiktok} onChange={(e) => set('tiktok', e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold block mb-1">YouTube</label>
+                <Input value={edit.youtube} onChange={(e) => set('youtube', e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold block mb-1">Facebook</label>
+                <Input value={edit.facebook} onChange={(e) => set('facebook', e.target.value)} />
               </div>
               <div>
                 <label className="text-xs font-semibold block mb-1">Website</label>

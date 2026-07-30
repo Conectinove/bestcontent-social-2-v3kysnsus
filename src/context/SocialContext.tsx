@@ -118,6 +118,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         addPost,
         deletePost,
         deleteBrand,
+        refreshAll: loadAll,
       }}
     >
       {children}

@@ -194,16 +194,16 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/app/settings')}>
-              <User className="mr-2 h-4 h-4 text-muted-foreground" />
+              <User className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Meu Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/app/brands')}>
-              <Palette className="mr-2 h-4 h-4 text-muted-foreground" />
+              <Palette className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Minhas Marcas</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
-              <LogOut className="mr-2 h-4 h-4" />
+              <LogOut className="mr-2 h-4 w-4" />
               <span>Sair da conta</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
