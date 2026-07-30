@@ -14,6 +14,8 @@ import {
   Facebook,
   Linkedin,
   Twitter,
+  Images,
+  X,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -25,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { ImageBankModal } from '@/components/ImageBankModal'
 
 const PLATFORMS = [
   { id: 'Instagram', icon: Instagram, color: 'text-pink-500' },
@@ -81,6 +84,7 @@ export default function ImageCreator() {
   )
   const [aiLoading, setAiLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [imageBankOpen, setImageBankOpen] = useState(false)
 
   const aiGenerate = async (type: 'caption' | 'hashtags') => {
     setAiLoading(true)
@@ -97,6 +101,25 @@ export default function ImageCreator() {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     } finally {
       setAiLoading(false)
+    }
+  }
+
+  const handleSelectBrandAsset = async (url: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const file = new File([blob], `brand-asset-${Date.now()}.png`, {
+        type: blob.type || 'image/png',
+      })
+      setMedia(file)
+      setImageBankOpen(false)
+      toast({ title: 'Asset selecionado!', description: 'Imagem da marca aplicada.' })
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar a imagem.',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -212,24 +235,42 @@ export default function ImageCreator() {
 
       {step === 3 && (
         <div className="space-y-4 animate-fade-in">
-          <h2 className="text-base font-bold">Upload de midia</h2>
+          <h2 className="text-base font-bold">Upload de mídia</h2>
           <div className="border-2 border-dashed border-border rounded-xl p-8 text-center bg-muted/20">
             {media ? (
-              <img src={mediaUrl} alt="Preview" className="max-h-48 mx-auto rounded-lg" />
+              <div className="relative inline-block">
+                <img src={mediaUrl} alt="Preview" className="max-h-48 mx-auto rounded-lg" />
+                <button
+                  onClick={() => setMedia(null)}
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-white flex items-center justify-center hover:bg-destructive/90 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             ) : (
               <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
             )}
             <p className="text-xs text-muted-foreground mt-2">
-              {media ? media.name : 'Clique para selecionar'}
+              {media ? media.name : 'Envie um arquivo ou selecione da marca'}
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 text-xs"
-              onClick={() => document.getElementById('img-media-input')?.click()}
-            >
-              Selecionar arquivo
-            </Button>
+            <div className="flex gap-2 justify-center mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1"
+                onClick={() => document.getElementById('img-media-input')?.click()}
+              >
+                <Upload className="w-3.5 h-3.5" /> Enviar arquivo
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1"
+                onClick={() => setImageBankOpen(true)}
+              >
+                <Images className="w-3.5 h-3.5" /> Selecionar da marca
+              </Button>
+            </div>
             <input
               id="img-media-input"
               type="file"
@@ -238,9 +279,36 @@ export default function ImageCreator() {
               onChange={(e) => setMedia(e.target.files?.[0] || null)}
             />
           </div>
+          {brands.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground">Logo da marca</p>
+              <div className="flex gap-2 flex-wrap">
+                {brands
+                  .filter((b: any) => b.logo)
+                  .map((brand: any) => (
+                    <button
+                      key={brand.id}
+                      onClick={() => handleSelectBrandAsset(brand.logo)}
+                      className="w-16 h-16 rounded-lg border-2 border-border hover:border-primary overflow-hidden transition-all hover:scale-105"
+                    >
+                      <img
+                        src={brand.logo}
+                        alt={brand.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                {brands.filter((b: any) => b.logo).length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum logo cadastrado. Adicione um logo na seção Marcas.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex justify-end">
             <Button onClick={() => setStep(4)} className="text-xs gap-1">
-              Proximo <ArrowRight className="w-4 h-4" />
+              Próximo <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -359,6 +427,12 @@ export default function ImageCreator() {
           </div>
         </div>
       )}
+
+      <ImageBankModal
+        open={imageBankOpen}
+        onOpenChange={setImageBankOpen}
+        onSelect={handleSelectBrandAsset}
+      />
     </div>
   )
 }
