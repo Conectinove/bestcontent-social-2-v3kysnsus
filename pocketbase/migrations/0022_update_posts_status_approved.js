@@ -4,7 +4,7 @@ migrate(
 
     var col = app.findCollectionByNameOrId('posts')
     var oldField = col.fields.getByName('status')
-    col.fields.remove(oldField)
+    col.fields.removeById(oldField.getId())
     col.fields.add(
       new SelectField({
         name: 'status',
@@ -26,7 +26,7 @@ migrate(
   (app) => {
     var col = app.findCollectionByNameOrId('posts')
     var oldField = col.fields.getByName('status')
-    col.fields.remove(oldField)
+    col.fields.removeById(oldField.getId())
     col.fields.add(
       new SelectField({
         name: 'status',
