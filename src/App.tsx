@@ -39,12 +39,14 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
+            {/* Public routes — no auth required */}
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/waitlist" element={<LandingPage />} />
+
             {/* Authenticated routes inside Layout */}
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/waitlist" element={<LandingPage />} />
-              <Route path="/app/feed" element={<Feed />} />
+              <Route path="/app/feed" element={<Feed />} />{' '}
               <Route path="/app/onboarding" element={<Onboarding />} />
               <Route path="/app/criar" element={<CreateHub />} />
               <Route path="/app/criar/imagens" element={<ImageCreator />} />

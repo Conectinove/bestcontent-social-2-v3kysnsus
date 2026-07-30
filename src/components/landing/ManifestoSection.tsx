@@ -1,7 +1,25 @@
 import { useState } from 'react'
-import { Play, Sparkles, CheckCircle2 } from 'lucide-react'
+import { Play, Sparkles, CheckCircle2, Quote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
+const manifestoScript: { section: string; lines: string[] }[] = [
+  {
+    section: 'Abertura - Direta e Emocional',
+    lines: [
+      'Você não abriu o seu negócio para virar escravo do Instagram.',
+      'Todo dia é a mesma coisa: a tela em branco, a pressão para postar, a sensação de que você está sempre atrasado. E o pior? O resultado quase nunca compensa o esforço.',
+      'Mas e se houvesse um jeito de criar não apenas posts, mas uma máquina de resultados?',
+    ],
+  },
+  {
+    section: 'Apresentação MídiaViva',
+    lines: [
+      'Apresentamos a MídiaViva. Não somos apenas um editor. Não somos apenas inteligência artificial. Somos o seu Sistema Operacional de Marketing.',
+      'Planeje, crie, aprove e analise. Tudo no mesmo lugar, focado no que importa: crescimento.',
+    ],
+  },
+]
 
 export function ManifestoSection() {
   const [isOpen, setIsOpen] = useState(false)
@@ -22,7 +40,7 @@ export function ManifestoSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-7">
             <div
               onClick={() => setIsOpen(true)}
@@ -74,6 +92,38 @@ export function ManifestoSection() {
                   <span>Organização completa do planejamento à publicação.</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Full Manifesto Script */}
+        <div className="mt-12 max-w-4xl mx-auto">
+          <div className="rounded-3xl border border-purple-100 bg-white p-8 sm:p-10 shadow-md">
+            <div className="flex items-center gap-2 mb-8">
+              <Quote className="h-6 w-6 text-purple-600" />
+              <h3 className="text-xl font-black text-slate-900">Roteiro Completo do Manifesto</h3>
+            </div>
+
+            <div className="space-y-8">
+              {manifestoScript.map((block, blockIdx) => (
+                <div key={blockIdx}>
+                  <div className="mb-3 inline-block rounded-lg bg-purple-50 px-3 py-1">
+                    <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">
+                      {block.section}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {block.lines.map((line, lineIdx) => (
+                      <p
+                        key={lineIdx}
+                        className="text-base text-slate-700 leading-relaxed font-medium pl-4 border-l-2 border-purple-200"
+                      >
+                        "{line}"
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

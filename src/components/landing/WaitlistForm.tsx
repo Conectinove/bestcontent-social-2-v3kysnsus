@@ -11,12 +11,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createWaitlistEntry } from '@/services/waitlist'
+import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
 
 interface WaitlistFormProps {
   selectedPlan?: string
   onPlanClear?: () => void
 }
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
   const [name, setName] = useState('')
@@ -25,11 +28,30 @@ export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
   const [profileType, setProfileType] = useState('Empreendedor')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [errors, setErrors] = useState<FieldErrors>({})
+
+  const validate = (): boolean => {
+    const newErrors: FieldErrors = {}
+
+    if (!name.trim()) {
+      newErrors.name = 'Por favor, informe seu nome.'
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Por favor, informe seu e-mail.'
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      newErrors.email = 'Por favor, informe um e-mail válido.'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || !email.trim()) {
-      toast.error('Por favor, preencha seu nome e e-mail.')
+    setErrors({})
+
+    if (!validate()) {
       return
     }
 
@@ -43,9 +65,19 @@ export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
         plan_interest: selectedPlan || 'General',
       })
       setSubmitted(true)
+      setName('')
+      setEmail('')
+      setBusinessHandle('')
+      setProfileType('Empreendedor')
       toast.success('Inscrição realizada com sucesso!')
     } catch (err) {
-      toast.error('Não foi possível enviar sua inscrição. Tente novamente.')
+      const fieldErrors = extractFieldErrors(err)
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors)
+        toast.error('Verifique os campos e tente novamente.')
+      } else {
+        toast.error('Não foi possível enviar sua inscrição. Tente novamente.')
+      }
     } finally {
       setLoading(false)
     }
@@ -68,7 +100,10 @@ export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
         <Button
           variant="outline"
           className="border-purple-200 text-purple-700 hover:bg-purple-50"
-          onClick={() => setSubmitted(false)}
+          onClick={() => {
+            setSubmitted(false)
+            setErrors({})
+          }}
         >
           Cadastrar outro e-mail
         </Button>
@@ -103,7 +138,7 @@ export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="name" className="text-sm font-semibold text-slate-700">
             Como podemos te chamar?
@@ -111,11 +146,15 @@ export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
           <Input
             id="name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value)
+              if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }))
+            }}
             placeholder="Seu nome"
             required
             className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white focus:border-purple-500"
           />
+          {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -126,11 +165,15 @@ export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+            }}
             placeholder="voce@empresa.com"
             required
             className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white focus:border-purple-500"
           />
+          {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -160,7 +203,7 @@ export function WaitlistForm({ selectedPlan, onPlanClear }: WaitlistFormProps) {
             <SelectContent>
               <SelectItem value="Empreendedor">Empreendedor</SelectItem>
               <SelectItem value="Criador de Conteúdo">Criador de Conteúdo</SelectItem>
-              <SelectItem value="Agência / Social Media">Agência / Social Media</SelectItem>
+              <SelectItem value="Agência de Marketing">Agência de Marketing</SelectItem>
               <SelectItem value="Profissional Liberal">Profissional Liberal</SelectItem>
               <SelectItem value="Outro">Outro</SelectItem>
             </SelectContent>
