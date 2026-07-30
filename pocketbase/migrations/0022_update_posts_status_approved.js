@@ -16,11 +16,11 @@ migrate(
     app.save(col)
 
     for (var i = 0; i < rows.length; i++) {
-      app
-        .db()
-        .newQuery('UPDATE posts SET status = {:s} WHERE id = {:id}')
-        .bind({ s: rows[i]['status'] || 'draft', id: rows[i]['id'] })
-        .execute()
+      try {
+        var record = app.findRecordById('posts', rows[i]['id'])
+        record.set('status', rows[i]['status'] || 'draft')
+        app.saveNoValidate(record)
+      } catch (_) {}
     }
   },
   (app) => {
