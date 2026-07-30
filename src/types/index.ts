@@ -116,3 +116,27 @@ export interface SavedPostRecord {
     trend?: TrendRecord
   }
 }
+
+export interface SocialAccountRecord {
+  id: string
+  user: string
+  brand?: string
+  platform: 'Instagram' | 'Facebook'
+  external_handle: string
+  status: 'connected' | 'disconnected'
+  created: string
+  updated: string
+}
+
+export interface SocialMetricRecord {
+  id: string
+  user: string
+  brand?: string
+  platform: 'Instagram' | 'Facebook'
+  date: string
+  followers_count: number
+  engagement_rate: number
+  posts_count: number
+  created: string
+  updated: string
+}

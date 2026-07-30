@@ -3,6 +3,7 @@ import {
   Home,
   Palette,
   PenTool,
+  BarChart2,
   BookOpen,
   Calendar as CalendarIcon,
   Compass,
