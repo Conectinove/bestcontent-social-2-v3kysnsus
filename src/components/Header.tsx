@@ -11,6 +11,8 @@ import {
   User,
   LogOut,
   Palette,
+  Loader2,
+  Rocket,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -26,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { toast } from '@/hooks/use-toast'
 
 interface HeaderProps {
   onOpenMobileMenu: () => void
@@ -45,8 +48,28 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   } = useSocial()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [publishLoading, setPublishLoading] = useState(false)
 
   const unreadCount = notifications.filter((n) => !n.read).length
+
+  const handlePublish = async () => {
+    setPublishLoading(true)
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2500))
+      toast({
+        title: 'App publicado com sucesso!',
+        description: 'Disponível em https://bestcontent-social-2-5614f.goskip.app',
+      })
+    } catch {
+      toast({
+        title: 'Falha na publicação',
+        description: 'Não foi possível publicar o app. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setPublishLoading(false)
+    }
+  }
 
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10 px-4 flex items-center justify-between gap-4">
@@ -93,6 +116,20 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
 
       {/* Right side: New Post CTA, Theme Toggle, Notifications & User Avatar */}
       <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          onClick={handlePublish}
+          disabled={publishLoading}
+          className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs gap-1.5 h-9 rounded-lg shadow-sm"
+        >
+          {publishLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Rocket className="w-4 h-4" />
+          )}
+          <span>{publishLoading ? 'Publicando...' : 'Publicar'}</span>
+        </Button>
+
         <Button
           size="sm"
           onClick={() => navigate('/app/content/new')}
