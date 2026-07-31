@@ -275,23 +275,20 @@ export default function Feed() {
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <h1 className="page-title flex items-center gap-2">
               Meus Posts
               <Sparkles className="w-6 h-6 text-primary animate-pulse" />
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Gerencie seus posts com filtros por status.
-            </p>
+            <p className="page-description">Gerencie seus posts com filtros por status.</p>
           </div>
           <Button
             onClick={() => navigate('/app/content/new')}
-            className="bg-primary hover:bg-primary/90 text-white gap-2 font-medium self-start md:self-auto"
+            className="bg-primary hover:bg-primary/90 text-white gap-2 font-medium self-start md:self-auto aggressive-button"
           >
             <PenTool className="w-4 h-4" />
             Criar Post
           </Button>
         </div>
-
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           {tabs.map((tab) => (
             <Button
@@ -403,13 +400,13 @@ export default function Feed() {
         )}
       </div>
 
-      <div className="space-y-4 pt-4 border-t border-border">
+      <div className="space-y-4 pt-6 border-t border-border">
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
+          <h2 className="text-xl font-bold flex items-center gap-2 tracking-tight">
             Feed de Inspiração
             <TrendingUp className="w-5 h-5 text-primary" />
           </h2>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="page-description">
             Trends e ideias em alta selecionados para as suas marcas.
           </p>
         </div>

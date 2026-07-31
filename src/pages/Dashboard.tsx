@@ -121,16 +121,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="border-b border-border pb-4 flex items-center justify-between">
+      <div className="border-b border-border pb-5 mb-2 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="page-title flex items-center gap-2">
             Dashboard <BarChart3 className="w-6 h-6 text-primary" />
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visão geral e comparador de performance
-          </p>
+          <p className="page-description">Visão geral e comparador de performance</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-primary text-white gap-2">
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="bg-primary hover:bg-primary/90 text-white gap-2 aggressive-button"
+        >
           <Plus className="w-4 h-4" /> Novo Teste A/B
         </Button>
       </div>

@@ -38,7 +38,11 @@ export function WorkspaceHeader({
         {actions}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="text-xs gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5 transition-all duration-200 hover:border-primary/40"
+            >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{activeName}</span>
             </Button>
@@ -51,7 +55,7 @@ export function WorkspaceHeader({
                 key={preset.id}
                 onClick={() => onApplyPreset(preset.id)}
                 className={cn(
-                  'cursor-pointer flex items-start gap-2 py-2',
+                  'cursor-pointer flex items-start gap-2 py-2 transition-colors duration-200',
                   activePreset === preset.id && 'bg-primary/10',
                 )}
               >
@@ -73,7 +77,15 @@ export function WorkspaceHeader({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="outline" size="sm" onClick={onToggleFocus} className="text-xs gap-1.5">
+        <Button
+          variant={focusMode ? 'default' : 'outline'}
+          size="sm"
+          onClick={onToggleFocus}
+          className={cn(
+            'text-xs gap-1.5 transition-all duration-200',
+            focusMode && 'bg-primary text-primary-foreground shadow-subtle',
+          )}
+        >
           {focusMode ? (
             <>
               <Minimize2 className="w-3.5 h-3.5" />

@@ -45,22 +45,22 @@ export default function Layout() {
 
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
           <Header onOpenMobileMenu={() => setMobileOpen(true)} />
-          <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto pb-16">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-16">
             <Outlet />
           </main>
           <footer className="border-t border-border py-4 px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
-            <span>
+            <span className="text-center sm:text-left">
               BestContent Social 2 © {new Date().getFullYear()} — Plataforma de Criação &
               Gerenciamento
             </span>
             <div className="flex gap-4">
-              <a href="#" className="hover:underline">
+              <a href="#" className="footer-link">
                 Privacidade
               </a>
-              <a href="#" className="hover:underline">
+              <a href="#" className="footer-link">
                 Termos de Uso
               </a>
-              <a href="#" className="hover:underline font-medium text-primary">
+              <a href="#" className="footer-link font-medium text-primary">
                 Suporte VIP
               </a>
             </div>

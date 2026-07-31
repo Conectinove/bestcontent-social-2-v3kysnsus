@@ -1,110 +1,352 @@
 import { useState } from 'react'
-import { Settings as SettingsIcon, User, Sun, Moon, Shield, Link2, Check } from 'lucide-react'
+import {
+  Settings as SettingsIcon,
+  User,
+  Sun,
+  Moon,
+  Shield,
+  Link2,
+  Check,
+  Info,
+  Loader2,
+  Bell,
+  Globe,
+  Download,
+  ExternalLink,
+} from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
+
+type TabKey = 'account' | 'appearance' | 'integrations' | 'about'
+
+const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: string }> = [
+  {
+    key: 'account',
+    label: 'Conta',
+    icon: User,
+    description: 'Gerencie seu perfil e dados pessoais',
+  },
+  {
+    key: 'appearance',
+    label: 'Aparência',
+    icon: Sun,
+    description: 'Personalize o tema e a interface',
+  },
+  {
+    key: 'integrations',
+    label: 'Integrações',
+    icon: Link2,
+    description: 'Conecte suas redes sociais',
+  },
+  { key: 'about', label: 'Sobre', icon: Info, description: 'Informações do aplicativo' },
+]
 
 export default function Settings() {
   const { user, updateProfile } = useAuth()
   const { theme, toggleTheme } = useSocial()
 
+  const [activeTab, setActiveTab] = useState<TabKey>('account')
   const [name, setName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
+  const [saving, setSaving] = useState(false)
+  const [notifEmail, setNotifEmail] = useState(true)
+  const [notifPush, setNotifPush] = useState(false)
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
-    updateProfile({ name, email })
-    toast({ title: 'Perfil Atualizado', description: 'Suas informações foram salvas.' })
+    setSaving(true)
+    try {
+      await new Promise((r) => setTimeout(r, 800))
+      updateProfile({ name, email })
+      toast({
+        title: 'Perfil Atualizado',
+        description: 'Suas informações foram salvas com sucesso.',
+      })
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao salvar.', variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
   }
 
+  const activeTabMeta = TABS.find((t) => t.key === activeTab)!
+  const ActiveIcon = activeTabMeta.icon
+
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
-      <div className="border-b border-border pb-5">
-        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+    <div className="animate-fade-in max-w-5xl mx-auto">
+      <div className="border-b border-border pb-5 mb-6">
+        <h1 className="page-title flex items-center gap-2">
           Configurações
           <SettingsIcon className="w-6 h-6 text-primary" />
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="page-description">
           Gerencie seu perfil, temas, integrações e preferências de conta.
         </p>
       </div>
 
-      <Tabs defaultValue="account" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full max-w-md">
-          <TabsTrigger value="account" className="text-xs">
-            Conta
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="text-xs">
-            Aparência
-          </TabsTrigger>
-          <TabsTrigger value="integrations" className="text-xs">
-            Integrações
-          </TabsTrigger>
-          <TabsTrigger value="about" className="text-xs">
-            Sobre
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col md:flex-row gap-6">
+        <aside className="w-full md:w-56 shrink-0">
+          <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible scrollbar-none pb-2 md:pb-0">
+            {TABS.map((tab) => {
+              const Icon = tab.icon
+              const active = activeTab === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn('settings-nav-item shrink-0', active && 'settings-nav-item-active')}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+        </aside>
 
-        <TabsContent value="account" className="mt-4">
-          <Card className="p-6 max-w-md space-y-4">
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold block mb-1">Nome Completo</label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="flex-1 min-w-0">
+          <Card className="aggressive-card">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 pb-5 border-b border-border mb-5">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <ActiveIcon className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">{activeTabMeta.label}</h2>
+                  <p className="text-xs text-muted-foreground">{activeTabMeta.description}</p>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold block mb-1">E-mail</label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <Button type="submit" className="bg-primary text-white text-xs">
-                Salvar Alterações
-              </Button>
-            </form>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="appearance" className="mt-4">
-          <Card className="p-6 max-w-md space-y-4">
-            <h3 className="text-sm font-semibold">Tema da Interface</h3>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-              <span className="text-xs font-medium">Modo Escuro / Claro</span>
-              <Button size="sm" onClick={toggleTheme} className="text-xs bg-primary text-white">
-                {theme === 'dark' ? 'Ativar Claro' : 'Ativar Escuro'}
-              </Button>
-            </div>
-          </Card>
-        </TabsContent>
+              {activeTab === 'account' && (
+                <form onSubmit={handleSaveProfile} className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">
+                      Nome Completo
+                    </label>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="h-10"
+                      placeholder="Seu nome"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">E-mail</label>
+                    <Input
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-10"
+                      placeholder="seu@email.com"
+                    />
+                  </div>
+                  <Separator />
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold">Preferências de Notificação</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <p className="text-sm font-medium">Notificações por e-mail</p>
+                        <p className="text-xs text-muted-foreground">
+                          Receber atualizações por e-mail
+                        </p>
+                      </div>
+                      <Switch checked={notifEmail} onCheckedChange={setNotifEmail} />
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <p className="text-sm font-medium">Notificações push</p>
+                        <p className="text-xs text-muted-foreground">Alertar no navegador</p>
+                      </div>
+                      <Switch checked={notifPush} onCheckedChange={setNotifPush} />
+                    </div>
+                  </div>
+                  <div className="pt-3">
+                    <Button
+                      type="submit"
+                      disabled={saving}
+                      className="bg-primary hover:bg-primary/90 text-white aggressive-button min-w-[160px]"
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        'Salvar Alterações'
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              )}
 
-        <TabsContent value="integrations" className="mt-4">
-          <Card className="p-6 space-y-3 max-w-lg">
-            <h3 className="text-sm font-semibold">Redes Sociais Conectadas</h3>
-            {['Instagram Graph API', 'TikTok Creator API', 'LinkedIn API'].map((net) => (
-              <div
-                key={net}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted text-xs"
-              >
-                <span>{net}</span>
-                <span className="text-green-500 font-semibold flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> Conectado
-                </span>
-              </div>
-            ))}
-          </Card>
-        </TabsContent>
+              {activeTab === 'appearance' && (
+                <div className="space-y-5">
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold">Tema da Interface</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => theme === 'dark' && toggleTheme()}
+                        className={cn(
+                          'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all duration-200',
+                          theme === 'light'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/40',
+                        )}
+                      >
+                        <Sun className="w-6 h-6 text-amber-500" />
+                        <span className="text-xs font-semibold">Claro</span>
+                        {theme === 'light' && <Check className="w-4 h-4 text-primary absolute" />}
+                      </button>
+                      <button
+                        onClick={() => theme === 'light' && toggleTheme()}
+                        className={cn(
+                          'relative flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all duration-200',
+                          theme === 'dark'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/40',
+                        )}
+                      >
+                        <Moon className="w-6 h-6 text-indigo-400" />
+                        <span className="text-xs font-semibold">Escuro</span>
+                        {theme === 'dark' && <Check className="w-4 h-4 text-primary" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold">Idioma</h3>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">Português (Brasil)</span>
+                      <Badge variant="secondary" className="ml-auto text-[10px]">
+                        Padrão
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-        <TabsContent value="about" className="mt-4">
-          <Card className="p-6 max-w-md text-xs space-y-2">
-            <h3 className="font-bold text-sm">BestContent Social 2</h3>
-            <p className="text-muted-foreground">
-              Versão 2.4.0 — PWA Habilitado com IA generativa.
-            </p>
+              {activeTab === 'integrations' && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Conecte suas redes sociais para publicar e analisar conteúdo diretamente da
+                    plataforma.
+                  </p>
+                  {[
+                    { name: 'Instagram Graph API', status: 'connected' },
+                    { name: 'TikTok Creator API', status: 'connected' },
+                    { name: 'LinkedIn API', status: 'connected' },
+                    { name: 'YouTube Data API', status: 'disconnected' },
+                    { name: 'Facebook Pages API', status: 'disconnected' },
+                  ].map((net) => (
+                    <div
+                      key={net.name}
+                      className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/30 transition-colors duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                          <Link2 className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{net.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {net.status === 'connected' ? 'Conectado e ativo' : 'Não conectado'}
+                          </p>
+                        </div>
+                      </div>
+                      {net.status === 'connected' ? (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                          <Check className="w-3.5 h-3.5" /> Conectado
+                        </span>
+                      ) : (
+                        <Button variant="outline" size="sm" className="text-xs h-7">
+                          Conectar
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground">
+                      Suas credenciais são armazenadas com segurança e criptografadas. Você pode
+                      desconectar a qualquer momento.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'about' && (
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-pink-500 flex items-center justify-center shadow-lg">
+                      <SettingsIcon className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">BestContent Social 2</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Versão 2.4.0 — PWA Habilitado com IA generativa
+                      </p>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { label: 'Modelo', value: 'SaaS' },
+                      { label: 'Plataforma', value: 'Web App (PWA)' },
+                      { label: 'IA Integrada', value: 'Skip AI Gateway' },
+                      { label: 'Backend', value: 'Skip Cloud / PocketBase' },
+                    ].map((item) => (
+                      <div key={item.label} className="p-3 rounded-lg bg-muted/50">
+                        <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wide">
+                          {item.label}
+                        </p>
+                        <p className="text-sm font-medium mt-0.5">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <Separator />
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                      <Download className="w-3.5 h-3.5" /> Exportar Dados
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs gap-1.5" asChild>
+                      <a href="#" target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-3.5 h-3.5" /> Documentação
+                      </a>
+                    </Button>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/50 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      © 2026 BestContent Social 2. Todos os direitos reservados.
+                    </p>
+                    <div className="flex items-center justify-center gap-4 mt-2">
+                      <a href="#" className="footer-link">
+                        Privacidade
+                      </a>
+                      <a href="#" className="footer-link">
+                        Termos de Uso
+                      </a>
+                      <a href="#" className="footer-link text-primary font-medium">
+                        Suporte VIP
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   )
 }

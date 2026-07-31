@@ -55,20 +55,30 @@ export function DraggableWidget({
           onDragStart(index)
         }}
         onDragEnd={onDragEnd}
-        className="flex items-center gap-2 px-3 py-2 cursor-grab active:cursor-grabbing border-b border-border select-none hover:bg-muted/50 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 cursor-grab active:cursor-grabbing border-b border-border select-none hover:bg-muted/50 transition-colors duration-200"
       >
-        <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0 hover:text-primary transition-colors duration-200" />
         <span className="text-xs font-bold flex-1">{WIDGET_TITLES[type]}</span>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="text-muted-foreground hover:text-foreground transition-colors duration-200 p-0.5 rounded"
         >
           <ChevronDown
-            className={cn('w-3.5 h-3.5 transition-transform', collapsed && 'rotate-180')}
+            className={cn(
+              'w-3.5 h-3.5 transition-transform duration-200',
+              collapsed && 'rotate-180',
+            )}
           />
         </button>
       </div>
-      {!collapsed && <div className="p-3">{children}</div>}
+      <div
+        className={cn(
+          'overflow-hidden transition-all duration-200',
+          collapsed ? 'max-h-0' : 'max-h-[1000px]',
+        )}
+      >
+        <div className="p-3">{children}</div>
+      </div>
     </div>
   )
 }
