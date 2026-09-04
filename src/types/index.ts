@@ -163,6 +163,18 @@ export interface PostTemplateRecord {
   brand?: string
   name: string
   type: 'feed' | 'story'
+  network?:
+    | 'instagram'
+    | 'facebook'
+    | 'linkedin'
+    | 'whatsapp'
+    | 'tiktok'
+    | 'youtube'
+    | 'twitter'
+    | 'all'
+  category?: 'promo' | 'educativo' | 'storytelling' | 'autoridade' | 'engajamento'
+  aspect_ratio?: string
+  dimensions?: string
   layout_data: Record<string, unknown>
   style_settings: Record<string, unknown>
   is_favorite: boolean

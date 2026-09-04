@@ -850,11 +850,16 @@ export default function Library() {
                     </div>
                   )}
 
-                  {/* Aspect Ratio & User Initials Badge */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
+                  {/* Aspect Ratio & Template Badge */}
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 flex-wrap">
                     <span className="bg-black/75 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-md font-mono font-medium border border-white/10">
                       {ratio}
                     </span>
+                    {(post.templateId || post._raw?.template_id) && (
+                      <span className="bg-purple-600/90 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-md font-bold shadow-xs flex items-center gap-1">
+                        <Layers className="w-2.5 h-2.5" /> Template
+                      </span>
+                    )}
                     {badgeUser && (
                       <span className="w-5 h-5 rounded-full bg-white/90 text-slate-900 text-[10px] font-bold flex items-center justify-center shadow-xs">
                         {badgeUser}
@@ -1047,6 +1052,11 @@ export default function Library() {
                       <span className="text-[10px] uppercase font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                         {typeLabel} &middot; {ratio}
                       </span>
+                      {(post.templateId || post._raw?.template_id) && (
+                        <span className="text-[10px] font-bold text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Layers className="w-3 h-3" /> Modelo Ativo
+                        </span>
+                      )}
                       {brand && (
                         <span className="text-xs font-semibold text-muted-foreground truncate max-w-[120px]">
                           {brand.name}
@@ -1166,8 +1176,8 @@ export default function Library() {
                     </div>
                   </div>
 
-                  {/* Brand & Timing */}
-                  <div className="grid grid-cols-2 gap-3 text-xs bg-muted/40 p-3.5 rounded-xl border border-border/60">
+                  {/* Brand & Timing & Template */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-muted/40 p-3.5 rounded-xl border border-border/60">
                     <div>
                       <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
                         Marca
@@ -1184,6 +1194,16 @@ export default function Library() {
                         {viewPost._raw?.created
                           ? new Date(viewPost._raw.created).toLocaleString('pt-BR')
                           : 'Recentemente'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
+                        Modelo Aplicado
+                      </span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400">
+                        {viewPost.templateId || viewPost._raw?.template_id
+                          ? 'Sim (Vinculado)'
+                          : 'Personalizado'}
                       </span>
                     </div>
                   </div>

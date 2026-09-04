@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T06:13:38.564Z",
+  "generatedAt": "2026-09-04T06:18:54.143Z",
   "collections": [
     {
       "name": "users",
@@ -1105,12 +1105,49 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "network",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "instagram",
+            "facebook",
+            "linkedin",
+            "whatsapp",
+            "tiktok",
+            "youtube",
+            "twitter",
+            "all"
+          ]
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["promo", "educativo", "storytelling", "autoridade", "engajamento"]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dimensions",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_post_templates_user ON post_templates (user)",
         "CREATE INDEX idx_post_templates_brand ON post_templates (brand)",
-        "CREATE INDEX idx_post_templates_type ON post_templates (type)"
+        "CREATE INDEX idx_post_templates_type ON post_templates (type)",
+        "CREATE INDEX `idx_post_templates_network` ON `post_templates` (network)",
+        "CREATE INDEX `idx_post_templates_category` ON `post_templates` (category)"
       ]
     },
     {
