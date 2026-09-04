@@ -57,65 +57,221 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
             onClick={onMobileClose}
             className="flex items-center gap-2 overflow-hidden"
           >
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shrink-0 shadow-md">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-1.5 font-bold text-lg tracking-tight text-foreground">
+              <span className="text-foreground">bestcontent</span>
+              <span className="text-[10px] font-semibold text-primary uppercase bg-primary/10 px-1 py-0.5 rounded">
+                AI
+              </span>
             </div>
-            {!collapsed && (
-              <div className="font-bold text-lg tracking-tight truncate bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent">
-                BestContent
-              </div>
-            )}
           </Link>
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleCollapse}
-            className="hidden md:flex h-8 w-8 rounded-full hover:bg-sidebar-accent"
+            className="hidden md:flex h-8 w-8 rounded-full hover:bg-sidebar-accent text-muted-foreground"
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </Button>
         </div>
 
+        {/* Brand Selector Dropdown in Sidebar */}
+        {!collapsed && (
+          <div className="px-3 pt-3">
+            <Link
+              to="/app/brands"
+              className="flex items-center justify-between p-2 rounded-xl bg-muted/60 hover:bg-muted transition-colors border border-border/50 text-xs font-semibold text-foreground group"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                  M
+                </div>
+                <span className="truncate">MudarCurso</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        )}
+
         {/* Navigation Menu */}
         <nav className="p-2 space-y-1 mt-2">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const active = isActive(item.href)
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={onMobileClose}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon
-                  className={cn(
-                    'w-5 h-5 shrink-0',
-                    active ? 'text-white' : 'text-muted-foreground',
-                  )}
-                />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            )
-          })}
+          {/* Dashboard item */}
+          <Link
+            to="/app/feed"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/feed' || location.pathname === '/'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Dashboard' : undefined}
+          >
+            <div className="grid grid-cols-2 gap-0.5 w-4 h-4 shrink-0">
+              <div className="bg-current rounded-[2px]" />
+              <div className="bg-current rounded-[2px]" />
+              <div className="bg-current rounded-[2px]" />
+              <div className="bg-current rounded-[2px]" />
+            </div>
+            {!collapsed && <span>Dashboard</span>}
+          </Link>
+
+          {/* Criar CTA button */}
+          <Link
+            to="/app/criar"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
+              'bg-primary/10 text-primary hover:bg-primary/20',
+            )}
+            title={collapsed ? 'Criar' : undefined}
+          >
+            <span className="text-base font-bold leading-none">+</span>
+            {!collapsed && <span>Criar</span>}
+          </Link>
+
+          {/* Biblioteca */}
+          <Link
+            to="/app/library"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/library'
+                ? 'bg-muted text-foreground font-bold'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Biblioteca' : undefined}
+          >
+            <BookOpen className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Biblioteca</span>}
+          </Link>
+
+          {/* Calendário */}
+          <Link
+            to="/app/calendar"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/calendar'
+                ? 'bg-muted text-foreground font-bold'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Calendário' : undefined}
+          >
+            <CalendarIcon className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Calendário</span>}
+          </Link>
+
+          {/* Analytics (BETA) */}
+          <Link
+            to="/app/discover"
+            onClick={onMobileClose}
+            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+            title={collapsed ? 'Analytics' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <BarChart2 className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Analytics</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                BETA
+              </span>
+            )}
+          </Link>
+
+          {/* Inspiração (BETA) */}
+          <Link
+            to="/app/discover"
+            onClick={onMobileClose}
+            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+            title={collapsed ? 'Inspiração' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Inspiração</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                BETA
+              </span>
+            )}
+          </Link>
+
+          {/* Minha Agência section */}
+          {!collapsed && (
+            <div className="pt-3 pb-1">
+              <div className="px-3 py-1 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Minha Agência</span>
+                </div>
+                <ChevronRight className="w-3 h-3 rotate-90 text-muted-foreground" />
+              </div>
+              <div className="space-y-0.5 pl-2 mt-1">
+                <Link
+                  to="/app/dashboard"
+                  onClick={onMobileClose}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+                >
+                  <div className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5 shrink-0 opacity-70">
+                    <div className="bg-current rounded-[1px]" />
+                    <div className="bg-current rounded-[1px]" />
+                    <div className="bg-current rounded-[1px]" />
+                    <div className="bg-current rounded-[1px]" />
+                  </div>
+                  <span>Dashboard Geral</span>
+                </Link>
+                <Link
+                  to="/app/calendar"
+                  onClick={onMobileClose}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+                >
+                  <CalendarIcon className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                  <span>Calendário Global</span>
+                </Link>
+                <Link
+                  to="/app/community"
+                  onClick={onMobileClose}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+                >
+                  <BookOpen className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                  <span>Portal do cliente</span>
+                </Link>
+              </div>
+            </div>
+          )}
         </nav>
       </div>
 
-      {/* Pro Badge or CTA */}
-      {!collapsed && (
-        <div className="p-3 m-3 rounded-xl bg-gradient-to-br from-primary/10 via-pink-500/10 to-amber-500/10 border border-primary/20 text-xs text-center space-y-2">
-          <p className="font-semibold text-primary">IA Pro Ativada</p>
-          <p className="text-muted-foreground text-[11px]">
-            Gerador de legendas e tendências em tempo real
-          </p>
-        </div>
-      )}
+      {/* Footer User & Credits Info */}
+      <div className="p-3 border-t border-sidebar-border space-y-2">
+        {!collapsed && (
+          <div className="flex items-center justify-between text-xs px-2 py-1 bg-muted/40 rounded-lg">
+            <span className="flex items-center gap-1.5 font-bold text-foreground">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              3400
+            </span>
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+          </div>
+        )}
+        <Link
+          to="/app/settings"
+          onClick={onMobileClose}
+          className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted transition-colors text-left"
+        >
+          <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-border">
+            RB
+          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-foreground truncate">Ronaldo Barreto</p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                ronaldoconectinove@gmail.com
+              </p>
+            </div>
+          )}
+        </Link>
+      </div>
     </aside>
   )
 }

@@ -15,13 +15,16 @@ export interface PostTemplate {
 }
 
 export const getTemplates = (
-  userId: string,
+  userId?: string,
   filter?: { type?: string; favoritesOnly?: boolean },
 ) => {
-  const parts: string[] = [`user = "${userId}" || is_shared = true`]
+  const parts: string[] = []
+  if (userId) {
+    parts.push(`(user = "${userId}" || is_shared = true)`)
+  }
   if (filter?.type) parts.push(`type = "${filter.type}"`)
   if (filter?.favoritesOnly) parts.push(`is_favorite = true`)
-  const filterStr = parts.join(' && ')
+  const filterStr = parts.length ? parts.join(' && ') : undefined
   return pb.collection('post_templates').getFullList({
     filter: filterStr,
     sort: '-created',

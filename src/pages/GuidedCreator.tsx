@@ -75,7 +75,11 @@ export default function GuidedCreator() {
     }
     setAiLoading(true)
     try {
-      const result = await generateVideoScript(prompt, duration, platform)
+      const result = await generateVideoScript({
+        prompt,
+        duration: Number(duration) || 30,
+        objective: platform,
+      })
       const scriptText =
         typeof result === 'string'
           ? result

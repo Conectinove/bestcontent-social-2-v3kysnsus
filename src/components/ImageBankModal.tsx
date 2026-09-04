@@ -25,6 +25,7 @@ interface ImageBankModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelectImage?: (url: string) => void
+  onSelect?: (url: string) => void
 }
 
 const CATEGORIES = [
@@ -69,7 +70,12 @@ function generateImages(query: string): StockImage[] {
   }))
 }
 
-export function ImageBankModal({ open, onOpenChange, onSelectImage }: ImageBankModalProps) {
+export function ImageBankModal({
+  open,
+  onOpenChange,
+  onSelectImage,
+  onSelect,
+}: ImageBankModalProps) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [images, setImages] = useState<StockImage[]>([])
@@ -133,7 +139,9 @@ export function ImageBankModal({ open, onOpenChange, onSelectImage }: ImageBankM
   }
 
   const handleUseImage = (url: string) => {
-    if (onSelectImage) {
+    if (onSelect) {
+      onSelect(url)
+    } else if (onSelectImage) {
       onSelectImage(url)
     } else {
       navigate('/app/content/new', { state: { mediaUrl: url } })

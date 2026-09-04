@@ -64,6 +64,7 @@ export interface IdeaCard {
   category: string
   brandId?: string
   originalUrl?: string
+  _raw?: any
 }
 
 export interface NotificationItem {

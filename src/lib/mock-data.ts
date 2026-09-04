@@ -123,6 +123,8 @@ export const INITIAL_POSTS: Post[] = [
     brandId: 'brand-1',
     platform: 'instagram',
     contentType: 'reel',
+    content:
+      'Sua pele precisa de hidratação profunda no inverno! Conheça nosso Sérum Glowing Nectar 🌱✨ #AuraSkincare #PeleSaudavel',
     caption:
       'Sua pele precisa de hidratação profunda no inverno! Conheça nosso Sérum Glowing Nectar 🌱✨ #AuraSkincare #PeleSaudavel',
     mediaUrls: ['https://img.usecurling.com/p/500/500?q=skincare%20serum'],
@@ -135,6 +137,8 @@ export const INITIAL_POSTS: Post[] = [
     brandId: 'brand-2',
     platform: 'tiktok',
     contentType: 'post',
+    content:
+      'O segredo de um espresso com cremosidade perfeita está na moagem na hora! ☕🔥 #CoffeeLovers #BaristaLife',
     caption:
       'O segredo de um espresso com cremosidade perfeita está na moagem na hora! ☕🔥 #CoffeeLovers #BaristaLife',
     mediaUrls: ['https://img.usecurling.com/p/500/500?q=latte%20art'],
@@ -147,6 +151,8 @@ export const INITIAL_POSTS: Post[] = [
     brandId: 'brand-3',
     platform: 'instagram',
     contentType: 'carousel',
+    content:
+      '5 exercícios práticos para fazer na cadeira do escritório e aliviar as dores nas costas 🧘‍♂️💪',
     caption:
       '5 exercícios práticos para fazer na cadeira do escritório e aliviar as dores nas costas 🧘‍♂️💪',
     mediaUrls: ['https://img.usecurling.com/p/500/500?q=stretching%20office'],
