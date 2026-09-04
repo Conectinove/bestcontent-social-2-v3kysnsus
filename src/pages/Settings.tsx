@@ -16,11 +16,20 @@ import {
   CreditCard,
   Gift,
   Edit3,
+  Lock,
+  Instagram,
+  Facebook,
+  Linkedin,
+  Unlink,
+  CheckCircle2,
+  AlertTriangle,
+  Radio,
 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { useCustomization } from '@/context/CustomizationContext'
+import { TikTokIcon, YouTubeIcon } from '@/pages/CreateHub'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,9 +37,26 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { EditProfileModal } from '@/components/EditProfileModal'
+import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
+import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
 type TabKey = 'account' | 'subscription' | 'appearance' | 'integrations' | 'about'
 
@@ -79,12 +105,145 @@ export default function Settings() {
   const [notifEmail, setNotifEmail] = useState(user?.notif_email ?? true)
   const [notifPush, setNotifPush] = useState(user?.notif_push ?? false)
 
+  // Integrations state
+  const [integrations, setIntegrations] = useState<
+    Record<IntegrationNetwork, { connected: boolean; connected_at?: string; external_id?: string }>
+  >({
+    instagram: { connected: true },
+    tiktok: { connected: true },
+    linkedin: { connected: true },
+    youtube: { connected: false },
+    facebook: { connected: false },
+  })
+  const [loadingIntegrations, setLoadingIntegrations] = useState(false)
+  const [actionLoadingNetwork, setActionLoadingNetwork] = useState<IntegrationNetwork | null>(null)
+  const [disconnectModalNet, setDisconnectModalNet] = useState<{
+    network: IntegrationNetwork
+    name: string
+  } | null>(null)
+
   // Listen to searchParams changes so clicking sidebar or header updates modal state
   useEffect(() => {
     if (searchParams.get('edit') === 'profile') {
       setEditProfileOpen(true)
     }
   }, [searchParams])
+
+  // Load user integrations from PocketBase
+  useEffect(() => {
+    if (!user?.id) return
+    let isMounted = true
+
+    const fetchIntegrations = async () => {
+      setLoadingIntegrations(true)
+      try {
+        const records = await getUserIntegrations(user.id)
+        if (!isMounted) return
+        if (records.length > 0) {
+          const map: Record<
+            IntegrationNetwork,
+            { connected: boolean; connected_at?: string; external_id?: string }
+          > = {
+            instagram: { connected: false },
+            tiktok: { connected: false },
+            linkedin: { connected: false },
+            youtube: { connected: false },
+            facebook: { connected: false },
+          }
+
+          records.forEach((rec) => {
+            if (rec.network in map) {
+              map[rec.network] = {
+                connected: Boolean(rec.connected),
+                connected_at: rec.connected_at,
+                external_id: rec.external_id,
+              }
+            }
+          })
+          setIntegrations(map)
+        }
+      } catch (err) {
+        console.error('Erro ao carregar integrações:', err)
+      } finally {
+        if (isMounted) setLoadingIntegrations(false)
+      }
+    }
+
+    fetchIntegrations()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id])
+
+  const handleConnectIntegration = async (network: IntegrationNetwork, name: string) => {
+    if (!user?.id) {
+      toast({
+        title: 'Atenção',
+        description: 'Faça login para gerenciar suas conexões de rede social.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setActionLoadingNetwork(network)
+    try {
+      await toggleIntegrationStatus(user.id, network, true, name)
+      setIntegrations((prev) => ({
+        ...prev,
+        [network]: {
+          ...prev[network],
+          connected: true,
+          connected_at: new Date().toISOString(),
+        },
+      }))
+      toast({
+        title: 'Rede conectada com sucesso!',
+        description: `${name} foi sincronizado na sua conta. Gerenciamento ativo.`,
+      })
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Falha na conexão',
+        description: 'Não foi possível conectar a rede social. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoadingNetwork(null)
+    }
+  }
+
+  const handleConfirmDisconnect = async () => {
+    if (!disconnectModalNet || !user?.id) return
+    const { network, name } = disconnectModalNet
+
+    setActionLoadingNetwork(network)
+    setDisconnectModalNet(null)
+    try {
+      await toggleIntegrationStatus(user.id, network, false, name)
+      setIntegrations((prev) => ({
+        ...prev,
+        [network]: {
+          ...prev[network],
+          connected: false,
+          connected_at: undefined,
+        },
+      }))
+      toast({
+        title: 'Rede desconectada',
+        description: `${name} foi desconectado com sucesso da sua conta.`,
+      })
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Erro ao desconectar',
+        description: 'Não foi possível desconectar a rede social. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoadingNetwork(null)
+    }
+  }
 
   const handleOpenEditProfile = () => {
     setEditProfileOpen(true)
@@ -424,47 +583,188 @@ export default function Settings() {
               )}
 
               {activeTab === 'integrations' && (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Conecte suas redes sociais para publicar e analisar conteúdo diretamente da
-                    plataforma.
-                  </p>
-                  {[
-                    { name: 'Instagram Graph API', status: 'connected' },
-                    { name: 'TikTok Creator API', status: 'connected' },
-                    { name: 'LinkedIn API', status: 'connected' },
-                    { name: 'YouTube Data API', status: 'disconnected' },
-                    { name: 'Facebook Pages API', status: 'disconnected' },
-                  ].map((net) => (
-                    <div
-                      key={net.name}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/30 transition-colors duration-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                          <Link2 className="w-4 h-4 text-muted-foreground" />
+                <div className="space-y-5">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-foreground">
+                      Conecte suas redes sociais
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      Conecte suas redes sociais para publicar e analisar conteúdo diretamente da
+                      plataforma.
+                    </p>
+                  </div>
+
+                  {/* Integration list cards */}
+                  <div className="space-y-3">
+                    {[
+                      {
+                        network: 'instagram' as IntegrationNetwork,
+                        name: 'Instagram Graph API',
+                        subtitle: 'Posts, Stories, Reels e Métricas de engajamento',
+                        iconBg:
+                          'bg-gradient-to-br from-[#833ab4]/15 via-[#fd1d1d]/15 to-[#fcb045]/15 border-pink-500/20 text-[#e1306c]',
+                        renderIcon: () => <Instagram className="w-5 h-5 text-[#e1306c]" />,
+                      },
+                      {
+                        network: 'tiktok' as IntegrationNetwork,
+                        name: 'TikTok Creator API',
+                        subtitle: 'Publicação de vídeos curtos, tendências e sons',
+                        iconBg: 'bg-black/10 dark:bg-white/10 border-foreground/10 text-foreground',
+                        renderIcon: () => <TikTokIcon className="w-5 h-5 text-foreground" />,
+                      },
+                      {
+                        network: 'linkedin' as IntegrationNetwork,
+                        name: 'LinkedIn API',
+                        subtitle: 'Publicações corporativas, carrosséis e networking B2B',
+                        iconBg: 'bg-[#0077b5]/15 border-[#0077b5]/20 text-[#0077b5]',
+                        renderIcon: () => <Linkedin className="w-5 h-5 text-[#0077b5]" />,
+                      },
+                      {
+                        network: 'youtube' as IntegrationNetwork,
+                        name: 'YouTube Data API',
+                        subtitle: 'Upload de Shorts, títulos otimizados e tags por IA',
+                        iconBg: 'bg-[#ff0000]/15 border-[#ff0000]/20 text-[#ff0000]',
+                        renderIcon: () => <YouTubeIcon className="w-5 h-5 text-[#ff0000]" />,
+                      },
+                      {
+                        network: 'facebook' as IntegrationNetwork,
+                        name: 'Facebook Pages API',
+                        subtitle: 'Páginas comerciais, fotos, vídeos e métricas de alcance',
+                        iconBg: 'bg-[#1877f2]/15 border-[#1877f2]/20 text-[#1877f2]',
+                        renderIcon: () => <Facebook className="w-5 h-5 text-[#1877f2]" />,
+                      },
+                    ].map((item) => {
+                      const isConnected = Boolean(integrations[item.network]?.connected)
+                      const isActionLoading = actionLoadingNetwork === item.network
+
+                      return (
+                        <div
+                          key={item.network}
+                          className={cn(
+                            'flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border transition-all duration-200',
+                            isConnected
+                              ? 'bg-card border-border hover:border-emerald-500/40 shadow-xs'
+                              : 'bg-muted/30 border-border/70 hover:border-border hover:bg-muted/50',
+                          )}
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div
+                              className={cn(
+                                'w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 shadow-xs',
+                                item.iconBg,
+                              )}
+                            >
+                              {item.renderIcon()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-bold text-foreground truncate">
+                                  {item.name}
+                                </p>
+                                {isConnected ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Conectado e ativo
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border/80">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                                    Não conectado
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                {item.subtitle}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                            {isConnected ? (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isActionLoading}
+                                    className="h-8 px-3 rounded-lg text-xs font-semibold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1.5 shadow-xs"
+                                  >
+                                    {isActionLoading ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                    )}
+                                    <span>Conectado</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-48 rounded-xl shadow-lg"
+                                >
+                                  <div className="px-2.5 py-1.5">
+                                    <p className="text-[11px] font-semibold text-foreground">
+                                      {item.name}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Status: Ativo
+                                    </p>
+                                  </div>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      setDisconnectModalNet({
+                                        network: item.network,
+                                        name: item.name,
+                                      })
+                                    }
+                                    className="text-xs text-destructive focus:text-destructive cursor-pointer gap-2"
+                                  >
+                                    <Unlink className="w-3.5 h-3.5" />
+                                    <span>Desconectar rede</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isActionLoading}
+                                onClick={() => handleConnectIntegration(item.network, item.name)}
+                                className="h-8 px-3.5 rounded-lg text-xs font-semibold border-border hover:border-primary/50 hover:bg-primary/5 transition-all shadow-xs gap-1.5"
+                              >
+                                {isActionLoading ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span>Conectar</span>
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">{net.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {net.status === 'connected' ? 'Conectado e ativo' : 'Não conectado'}
-                          </p>
-                        </div>
-                      </div>
-                      {net.status === 'connected' ? (
-                        <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                          <Check className="w-3.5 h-3.5" /> Conectado
-                        </span>
-                      ) : (
-                        <Button variant="outline" size="sm" className="text-xs h-7">
-                          Conectar
-                        </Button>
-                      )}
+                      )
+                    })}
+                  </div>
+
+                  {/* Clarification notice: platform managed & credentials */}
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
+                    <Info className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-foreground text-[11px]">
+                        Gerenciamento de conexões na plataforma
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        A conexão das redes sociais é gerenciada e monitorada diretamente nesta
+                        plataforma. A publicação automática externa nas redes oficiais será liberada
+                        conforme as credenciais oficiais de API forem ativadas no seu ambiente.
+                      </p>
                     </div>
-                  ))}
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                    <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-muted-foreground">
+                  </div>
+
+                  {/* Footer note: encrypted & safe */}
+                  <div className="flex items-start gap-3 p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 text-muted-foreground">
+                    <Lock className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed text-muted-foreground">
                       Suas credenciais são armazenadas com segurança e criptografadas. Você pode
                       desconectar a qualquer momento.
                     </p>
@@ -534,6 +834,48 @@ export default function Settings() {
           </Card>
         </div>
       </div>
+
+      {/* Disconnect Confirmation Modal */}
+      <Dialog
+        open={Boolean(disconnectModalNet)}
+        onOpenChange={(open) => {
+          if (!open) setDisconnectModalNet(null)
+        }}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader className="space-y-2">
+            <div className="w-10 h-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-1">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <DialogTitle className="text-lg font-bold">
+              Desconectar {disconnectModalNet?.name}?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Ao desconectar, o vínculo com esta rede social será desativado. Você poderá reconectar
+              a qualquer momento sem perder os conteúdos criados na plataforma.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDisconnectModalNet(null)}
+              className="rounded-xl text-xs font-semibold"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDisconnect}
+              className="rounded-xl text-xs font-semibold gap-1.5"
+            >
+              <Unlink className="w-3.5 h-3.5" />
+              Sim, desconectar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Profile Full Modal */}
       <EditProfileModal open={editProfileOpen} onOpenChange={handleCloseEditProfile} />

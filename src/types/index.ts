@@ -169,3 +169,17 @@ export interface PostTemplateRecord {
   created: string
   updated: string
 }
+
+export type IntegrationNetwork = 'instagram' | 'tiktok' | 'linkedin' | 'youtube' | 'facebook'
+
+export interface UserIntegrationRecord {
+  id: string
+  user: string
+  network: IntegrationNetwork
+  connected: boolean
+  connected_at?: string
+  display_name?: string
+  external_id?: string
+  created: string
+  updated: string
+}
