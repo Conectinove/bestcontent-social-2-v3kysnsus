@@ -43,7 +43,16 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       getPosts(user.id),
       getIdeas(user.id),
     ])
-    if (b.status === 'fulfilled') setBrands(b.value.map((r: any) => mapBrand(r)))
+    if (b.status === 'fulfilled') {
+      const mapped = b.value.map((r: any) => mapBrand(r))
+      setBrands(mapped)
+      setSelectedBrandId((prev) => {
+        if (prev && prev !== 'all' && mapped.some((m: Brand) => m.id === prev)) {
+          return prev
+        }
+        return mapped[0]?.id || 'all'
+      })
+    }
     if (p.status === 'fulfilled') setPosts(p.value.map((r: any) => mapPost(r)))
     if (i.status === 'fulfilled') setIdeas(i.value.map((r: any) => mapIdea(r)))
   }, [user?.id])

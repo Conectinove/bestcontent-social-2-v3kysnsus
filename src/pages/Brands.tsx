@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Palette, ArrowRight, Instagram, Globe, Upload, Sparkles } from 'lucide-react'
+import { QuickOnboardingModal } from '@/components/QuickOnboardingModal'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -32,6 +33,7 @@ export default function Brands() {
   const { brands, addBrand } = useSocial()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [quickOnboardOpen, setQuickOnboardOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [logo, setLogo] = useState<File | null>(null)
@@ -72,10 +74,17 @@ export default function Brands() {
         <div className="flex gap-2 self-start sm:self-auto">
           <Button
             variant="outline"
+            onClick={() => setQuickOnboardOpen(true)}
+            className="gap-2 text-xs border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950"
+          >
+            <Sparkles className="w-4 h-4 text-primary" /> Vamos agilizar! (IA)
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => navigate('/app/onboarding')}
             className="gap-2 text-xs"
           >
-            <Sparkles className="w-4 h-4 text-primary" /> Onboarding IA
+            Onboarding Completo
           </Button>
           <Button
             onClick={() => setOpen(true)}
@@ -242,6 +251,8 @@ export default function Brands() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <QuickOnboardingModal open={quickOnboardOpen} onOpenChange={setQuickOnboardOpen} />
     </div>
   )
 }

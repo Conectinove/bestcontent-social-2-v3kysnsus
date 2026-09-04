@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom'
 import {
   Loader2,
@@ -20,15 +20,33 @@ import { useCustomization } from '@/context/CustomizationContext'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { OfflineBanner } from './OfflineBanner'
+import { QuickOnboardingModal } from './QuickOnboardingModal'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
 export default function Layout() {
-  const { isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
   const { menuLayout } = useCustomization()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [quickOnboardingOpen, setQuickOnboardingOpen] = useState(false)
+
+  // Trigger quick onboarding modal automatically on first access if not seen
+  useEffect(() => {
+    if (loading || !isAuthenticated || !user) return
+
+    const seenLocal = localStorage.getItem('quick_onboarding_seen') === 'true'
+    const seenDb = user.onboarding_completed === true
+
+    // Show on first access if not yet seen
+    if (!seenLocal && !seenDb) {
+      const timer = setTimeout(() => {
+        setQuickOnboardingOpen(true)
+      }, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, isAuthenticated, user])
 
   if (loading) {
     return (
@@ -93,7 +111,11 @@ export default function Layout() {
         {/* Sidebar only rendered on desktop if layout is sidebar */}
         {menuLayout !== 'topbar' && (
           <div className="hidden md:block shrink-0">
-            <Sidebar collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
+            <Sidebar
+              collapsed={collapsed}
+              onToggleCollapse={() => setCollapsed(!collapsed)}
+              onOpenQuickOnboarding={() => setQuickOnboardingOpen(true)}
+            />
           </div>
         )}
 
@@ -104,6 +126,10 @@ export default function Layout() {
               collapsed={false}
               onToggleCollapse={() => {}}
               onMobileClose={() => setMobileOpen(false)}
+              onOpenQuickOnboarding={() => {
+                setMobileOpen(false)
+                setQuickOnboardingOpen(true)
+              }}
             />
           </SheetContent>
         </Sheet>
@@ -131,6 +157,9 @@ export default function Layout() {
           </footer>
         </div>
       </div>
+
+      {/* Quick Onboarding "Vamos agilizar!" Modal */}
+      <QuickOnboardingModal open={quickOnboardingOpen} onOpenChange={setQuickOnboardingOpen} />
     </div>
   )
 }

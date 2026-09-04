@@ -94,6 +94,7 @@ export interface UserProfile {
   notif_email?: boolean
   notif_push?: boolean
   referral_code?: string
+  onboarding_completed?: boolean
 }
 
 export interface CategoryRecord {

@@ -41,6 +41,7 @@ function mapUser(record: any): UserProfile {
     notif_email: record.notif_email ?? true,
     notif_push: record.notif_push ?? false,
     referral_code: record.referral_code || 'RONALDD89L',
+    onboarding_completed: record.onboarding_completed ?? false,
   }
 }
 
