@@ -101,6 +101,33 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     await svcDeletePost(id)
     loadAll()
   }
+  const duplicatePost = async (id: string) => {
+    if (!user?.id) return null
+    const original = posts.find((p: Post) => p.id === id)
+    const raw = original?._raw
+    const copyData: Record<string, unknown> = {
+      user: user.id,
+      brand: raw?.brand || original?.brandId || '',
+      content: `${raw?.content || original?.content || 'Novo post'} (Cópia)`.trim(),
+      caption: raw?.caption || original?.caption || '',
+      platform: raw?.platform || original?.platform || 'Instagram',
+      status: 'draft',
+      template_id: raw?.template_id || '',
+      duration: raw?.duration || 0,
+      script_json: raw?.script_json || '',
+    }
+    const created = await svcCreatePost(copyData)
+    loadAll()
+    return created
+  }
+  const updatePostStatus = async (
+    id: string,
+    status: 'draft' | 'scheduled' | 'published' | 'approved',
+  ) => {
+    const { updatePost: svcUpdatePost } = await import('@/services/posts')
+    await svcUpdatePost(id, { status })
+    loadAll()
+  }
   const deleteBrand = async (id: string) => {
     await svcDeleteBrand(id)
     loadAll()
@@ -126,6 +153,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         addBrand,
         addPost,
         deletePost,
+        duplicatePost,
+        updatePostStatus,
         deleteBrand,
         refreshAll: loadAll,
         fetchBrands: loadAll,

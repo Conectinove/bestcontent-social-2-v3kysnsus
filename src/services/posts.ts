@@ -6,12 +6,29 @@ export const getPosts = (userId: string, sort = '-created') =>
 
 export const getPost = (id: string) => pb.collection('posts').getOne(id, { expand: 'brand' })
 
-export const createPost = (data: Record<string, unknown>) => pb.collection('posts').create(data)
+export const createPost = (data: Record<string, unknown> | FormData) =>
+  pb.collection('posts').create(data)
 
-export const updatePost = (id: string, data: Record<string, unknown>) =>
+export const updatePost = (id: string, data: Record<string, unknown> | FormData) =>
   pb.collection('posts').update(id, data)
 
 export const deletePost = (id: string) => pb.collection('posts').delete(id)
+
+export async function duplicatePost(postId: string, userId: string) {
+  const original = await getPost(postId)
+  const copyData: Record<string, unknown> = {
+    user: userId,
+    brand: original.brand || '',
+    content: `${original.content || ''} (Cópia)`.trim(),
+    caption: original.caption || '',
+    platform: original.platform || 'Instagram',
+    status: 'draft',
+    template_id: original.template_id || '',
+    duration: original.duration || 0,
+    script_json: original.script_json || '',
+  }
+  return pb.collection('posts').create(copyData)
+}
 
 export async function createPostFromTrend(
   trendId: string,

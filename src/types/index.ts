@@ -38,7 +38,7 @@ export interface Post {
   content: string
   caption: string
   mediaUrls: string[]
-  status: 'draft' | 'scheduled' | 'published'
+  status: 'draft' | 'scheduled' | 'published' | 'approved'
   scheduledDate?: string
   publishedDate?: string
   engagement?: {
