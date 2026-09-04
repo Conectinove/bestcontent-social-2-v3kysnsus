@@ -23,7 +23,20 @@ import {
   Layers,
   Square,
   Smartphone,
+  Heart,
+  DollarSign,
+  Tag,
+  BookOpen,
+  Link as LinkIcon,
+  Lightbulb,
+  Flame,
+  GraduationCap,
+  Users,
+  MoreHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
+import { InspirationLibraryModal, InspirationItem } from '@/components/InspirationLibraryModal'
 import { WhatsAppIcon, TikTokIcon, YouTubeIcon } from './CreateHub'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -249,6 +262,23 @@ export default function ImageCreator() {
   // Editor states (Step 2 & 3)
   const [template, setTemplate] = useState<string>('t1')
   const [creationMode, setCreationMode] = useState<'ai' | 'template' | 'upload'>('ai')
+
+  // Step 2 new states based on the reference design:
+  // Objective: 'engajar' | 'vender'
+  const [objective, setObjective] = useState<'engajar' | 'vender'>('vender')
+  // Approach (optional): 'oferta' | 'storytelling' | 'prova_social' | 'viral' | 'educativo' | 'comunidade' | ''
+  const [approach, setApproach] = useState<string>('')
+  const [showMoreApproaches, setShowMoreApproaches] = useState(false)
+  // How to create: 'zero' | 'link' | 'inspiracoes'
+  const [createMethod, setCreateMethod] = useState<'zero' | 'link' | 'inspiracoes'>('zero')
+  // Link input (when createMethod === 'link')
+  const [sourceUrl, setSourceUrl] = useState('')
+  // Zero prompt (when createMethod === 'zero')
+  const [promptIdea, setPromptIdea] = useState('')
+  // Selected inspiration (when createMethod === 'inspiracoes')
+  const [selectedInspiration, setSelectedInspiration] = useState<InspirationItem | null>(null)
+  const [inspirationModalOpen, setInspirationModalOpen] = useState(false)
+
   const [media, setMedia] = useState<File | null>(null)
   const [caption, setCaption] = useState('')
   const [hashtags, setHashtags] = useState('')
@@ -283,6 +313,70 @@ export default function ImageCreator() {
   })
 
   const selectedFormat = IMAGE_FORMATS.find((f) => f.id === selectedFormatId) || IMAGE_FORMATS[0]
+
+  // Pre-fill caption/idea when moving to step 3 if empty
+  const handleProceedToStep3 = () => {
+    if (!caption) {
+      if (createMethod === 'zero' && promptIdea) {
+        setCaption(promptIdea)
+      } else if (createMethod === 'link' && sourceUrl) {
+        setCaption(`Conteúdo extraído do link: ${sourceUrl}`)
+      } else if (createMethod === 'inspiracoes' && selectedInspiration) {
+        setCaption(`${selectedInspiration.title} - ${selectedInspiration.description}`)
+      }
+    }
+    setCurrentStep(3)
+  }
+
+  const approachesList = [
+    {
+      id: 'oferta',
+      label: 'Oferta',
+      icon: Tag,
+      emoji: '🏷️',
+      color: 'text-amber-500',
+    },
+    {
+      id: 'storytelling',
+      label: 'Storytelling',
+      icon: BookOpen,
+      emoji: '📖',
+      color: 'text-blue-500',
+    },
+    {
+      id: 'prova_social',
+      label: 'Prova social',
+      icon: CheckCircle2,
+      emoji: '✅',
+      color: 'text-emerald-500',
+    },
+    {
+      id: 'viral',
+      label: 'Viral',
+      icon: Flame,
+      emoji: '🔥',
+      color: 'text-red-500',
+    },
+    {
+      id: 'educativo',
+      label: 'Educativo',
+      icon: GraduationCap,
+      emoji: '📚',
+      color: 'text-indigo-500',
+    },
+    {
+      id: 'comunidade',
+      label: 'Comunidade',
+      icon: Users,
+      emoji: '💬',
+      color: 'text-purple-500',
+    },
+  ]
+
+  const canContinueFromStep2 = Boolean(
+    objective &&
+    (createMethod === 'zero' ? true : createMethod === 'link' ? sourceUrl.trim().length > 0 : true),
+  )
 
   const aiGenerate = async (type: 'caption' | 'hashtags') => {
     setAiLoading(true)
@@ -402,83 +496,97 @@ export default function ImageCreator() {
   }
 
   return (
-    <div className="min-h-full flex flex-col justify-between max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-4 animate-fade-in relative">
-      {/* 1. Barra Superior de Contexto (Pill Arredondada Centrada) */}
-      <div className="flex items-center justify-center mb-4">
-        <div className="inline-flex items-center gap-3 bg-muted/60 dark:bg-card border border-border/80 rounded-full px-4 py-1.5 shadow-2xs text-xs sm:text-sm">
-          <div className="flex items-center gap-1.5 text-foreground">
-            <Sparkles className="w-4 h-4 text-primary" />
+    <div className="min-h-full flex flex-col justify-between max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-4 animate-fade-in relative bg-[#f8f8fa] dark:bg-background">
+      {/* 1. Barra Superior de Contexto (Pill Arredondada Cinza Clara Centrada) */}
+      <div className="flex items-center justify-center mb-5">
+        <div className="inline-flex items-center gap-3 bg-[#f1f3f5] dark:bg-card border border-slate-200/90 dark:border-border/80 rounded-full px-5 py-2 shadow-2xs text-xs sm:text-sm">
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-foreground">
+            <Sparkles className="w-4 h-4 text-[#8b5cf6]" />
             <span>
-              Modo <strong className="font-bold">Estática</strong>
+              Modo <strong className="font-bold text-slate-900 dark:text-white">Estática</strong>
             </span>
           </div>
-          <span className="text-muted-foreground/60">·</span>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <span>🪙</span>
+          <span className="text-slate-400">·</span>
+          <div className="flex items-center gap-1 text-slate-600 dark:text-muted-foreground">
+            <span className="select-none">🪙</span>
             <span className="font-medium">10 cr/slide</span>
           </div>
           <button
+            type="button"
             onClick={() => navigate('/app/criar')}
-            className="text-xs font-semibold text-primary hover:underline ml-1 cursor-pointer transition-colors"
+            className="text-xs font-semibold text-slate-600 dark:text-foreground hover:text-[#7c3aed] ml-3 cursor-pointer transition-colors"
           >
             Trocar
           </button>
         </div>
       </div>
 
-      {/* 2. Stepper Horizontal Centrado */}
-      <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs font-medium text-muted-foreground mb-6">
+      {/* 2. Stepper Horizontal Centrado ● Formato —— ● Modo —— ○ Criar */}
+      <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs font-medium text-slate-500 mb-8 select-none">
+        {/* Formato */}
         <div
           onClick={() => setCurrentStep(1)}
-          className={`flex items-center gap-1.5 cursor-pointer transition-colors ${
-            currentStep >= 1 ? 'text-foreground font-bold' : ''
+          className={`flex items-center gap-2 cursor-pointer transition-colors ${
+            currentStep === 1
+              ? 'text-slate-900 dark:text-white font-bold'
+              : 'text-slate-700 dark:text-slate-300 font-medium'
           }`}
         >
           <span
             className={`w-2 h-2 rounded-full ${
-              currentStep === 1 ? 'bg-foreground ring-4 ring-foreground/10' : 'bg-primary'
+              currentStep === 1
+                ? 'bg-slate-900 dark:bg-white ring-4 ring-slate-400/20'
+                : 'bg-slate-700 dark:bg-slate-300'
             }`}
           />
           <span>Formato</span>
         </div>
 
-        <div className="w-8 sm:w-12 h-px bg-border" />
+        {/* Linha separadora */}
+        <div className="w-8 sm:w-12 h-[1px] bg-slate-300 dark:bg-slate-700" />
 
+        {/* Modo */}
         <div
           onClick={() => selectedFormat && setCurrentStep(2)}
-          className={`flex items-center gap-1.5 cursor-pointer transition-colors ${
+          className={`flex items-center gap-2 cursor-pointer transition-colors ${
             currentStep === 2
-              ? 'text-foreground font-bold'
+              ? 'text-slate-900 dark:text-white font-extrabold'
               : currentStep > 2
-                ? 'text-foreground'
-                : 'text-muted-foreground/60'
+                ? 'text-slate-700 dark:text-slate-300 font-medium'
+                : 'text-slate-400 dark:text-slate-500'
           }`}
         >
           <span
             className={`w-2 h-2 rounded-full ${
               currentStep === 2
-                ? 'bg-foreground ring-4 ring-foreground/10'
+                ? 'bg-slate-900 dark:bg-white ring-4 ring-slate-400/20'
                 : currentStep > 2
-                  ? 'bg-primary'
-                  : 'bg-muted-foreground/40'
+                  ? 'bg-slate-700 dark:bg-slate-300'
+                  : 'bg-slate-300 dark:bg-slate-700'
             }`}
           />
-          <span>Modo</span>
+          <span className={currentStep === 2 ? 'font-bold text-slate-900 dark:text-white' : ''}>
+            Modo
+          </span>
         </div>
 
-        <div className="w-8 sm:w-12 h-px bg-border" />
+        {/* Linha separadora */}
+        <div className="w-8 sm:w-12 h-[1px] bg-slate-300 dark:bg-slate-700" />
 
+        {/* Criar */}
         <div
-          onClick={() => selectedFormat && setCurrentStep(3)}
-          className={`flex items-center gap-1.5 cursor-pointer transition-colors ${
-            currentStep === 3 ? 'text-foreground font-bold' : 'text-muted-foreground/60'
+          onClick={() => selectedFormat && canContinueFromStep2 && handleProceedToStep3()}
+          className={`flex items-center gap-2 cursor-pointer transition-colors ${
+            currentStep === 3
+              ? 'text-slate-900 dark:text-white font-bold'
+              : 'text-slate-400 dark:text-slate-500'
           }`}
         >
           <span
             className={`w-2 h-2 rounded-full ${
               currentStep === 3
-                ? 'bg-foreground ring-4 ring-foreground/10'
-                : 'bg-muted-foreground/40'
+                ? 'bg-slate-900 dark:bg-white ring-4 ring-slate-400/20'
+                : 'bg-slate-300 dark:bg-slate-700'
             }`}
           />
           <span>Criar</span>
@@ -781,159 +889,390 @@ export default function ImageCreator() {
       )}
 
       {/* ============================================================== */}
-      {/* ETAPA 2: ESCOLHA DO MODO / TEMPLATE                            */}
+      {/* ETAPA 2: ESCOLHA DO MODO (Defina o Conteúdo da Imagem)          */}
       {/* ============================================================== */}
       {currentStep === 2 && (
-        <div className="flex flex-col flex-1 animate-fade-in space-y-6 max-w-4xl mx-auto w-full">
-          <div className="text-center space-y-1">
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground">
-              Como você deseja criar sua arte?
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Formato selecionado:{' '}
-              <strong className="text-foreground">{selectedFormat.name}</strong> (
-              {selectedFormat.dimensions})
+        <div className="flex flex-col flex-1 animate-fade-in space-y-7 max-w-5xl mx-auto w-full pb-4">
+          {/* Título H1 bold centrado + Ícones Ajuda/Feedback */}
+          <div className="text-center space-y-2">
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+                Defina o Conteúdo da Imagem
+              </h1>
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <button
+                  type="button"
+                  title="Ajuda sobre a definição de conteúdo"
+                  onClick={() =>
+                    toast({
+                      title: 'Como funciona?',
+                      description:
+                        'A IA utiliza o objetivo e a abordagem selecionados para calibrar o tom, hierarquia visual e chamada para ação (CTA) do post.',
+                    })
+                  }
+                  className="hover:text-foreground transition-colors p-1"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  title="Enviar feedback sobre a geração"
+                  onClick={() =>
+                    toast({
+                      title: 'Feedback',
+                      description: 'Compartilhe suas sugestões conosco na Comunidade!',
+                    })
+                  }
+                  className="hover:text-foreground transition-colors p-1"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            {/* Subtítulo centrado cinza */}
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Esse conteúdo será expandido em um prompt visual para gerar a arte completa com IA.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div
-              onClick={() => setCreationMode('ai')}
-              className={`p-5 rounded-2xl border cursor-pointer transition-all flex flex-col items-center text-center gap-3 ${
-                creationMode === 'ai'
-                  ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
-                  : 'border-border hover:border-primary/40 bg-card'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-primary flex items-center justify-center">
-                <Sparkles className="w-6 h-6" />
+          {/* SEÇÃO 1: Qual o objetivo deste post? */}
+          <div className="space-y-3">
+            <label className="text-xs sm:text-sm font-semibold text-muted-foreground block text-left">
+              Qual o objetivo deste post?
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Card Engajar */}
+              <div
+                onClick={() => setObjective('engajar')}
+                className={`bg-white dark:bg-card rounded-[22px] p-6 sm:p-7 border transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-md ${
+                  objective === 'engajar'
+                    ? 'border-[#8b5cf6] border-2 ring-4 ring-[#8b5cf6]/10 shadow-sm'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <div>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-muted flex items-center justify-center text-slate-600 dark:text-muted-foreground mb-4">
+                    <Heart className="w-5 h-5 text-slate-600 dark:text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">Engajar</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                    Aumentar interação e comunidade
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-sm">Gerar com IA</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  A IA cria o design, copy e hashtags baseados na sua ideia.
-                </p>
-              </div>
-            </div>
 
-            <div
-              onClick={() => setCreationMode('template')}
-              className={`p-5 rounded-2xl border cursor-pointer transition-all flex flex-col items-center text-center gap-3 ${
-                creationMode === 'template'
-                  ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
-                  : 'border-border hover:border-primary/40 bg-card'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center">
-                <Layers className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm">Usar Template</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Comece com um layout pré-definido e personalize.
-                </p>
-              </div>
-            </div>
-
-            <div
-              onClick={() => setCreationMode('upload')}
-              className={`p-5 rounded-2xl border cursor-pointer transition-all flex flex-col items-center text-center gap-3 ${
-                creationMode === 'upload'
-                  ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
-                  : 'border-border hover:border-primary/40 bg-card'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center">
-                <Upload className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm">Upload Próprio</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Suba sua imagem pronta ou selecione do banco da marca.
-                </p>
+              {/* Card Vender */}
+              <div
+                onClick={() => setObjective('vender')}
+                className={`bg-white dark:bg-card rounded-[22px] p-6 sm:p-7 border transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-md ${
+                  objective === 'vender'
+                    ? 'border-[#8b5cf6] border-2 ring-4 ring-[#8b5cf6]/10 shadow-sm'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <div>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-muted flex items-center justify-center text-slate-600 dark:text-muted-foreground mb-4">
+                    <DollarSign className="w-5 h-5 text-slate-600 dark:text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">Vender</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                    Converter seguidores em clientes
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {creationMode === 'template' && (
-            <div className="space-y-3 pt-2">
-              <h3 className="text-sm font-bold text-foreground">Escolha um template de base</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {TEMPLATES.map((tpl) => (
-                  <div
-                    key={tpl.id}
-                    onClick={() => setTemplate(tpl.id)}
-                    className={`rounded-2xl overflow-hidden border cursor-pointer transition-all bg-card ${
-                      template === tpl.id
-                        ? 'border-primary ring-2 ring-primary/30 shadow-md'
-                        : 'border-border hover:border-primary/40'
-                    }`}
+          {/* SEÇÃO 2: Abordagem (opcional) */}
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs sm:text-sm font-semibold text-muted-foreground">
+                  Abordagem <span className="font-normal">(opcional)</span>
+                </label>
+                {approach && (
+                  <button
+                    type="button"
+                    onClick={() => setApproach('')}
+                    className="text-xs text-muted-foreground hover:text-foreground font-medium underline"
                   >
-                    <img
-                      src={tpl.img}
-                      alt={tpl.title}
-                      className="w-full aspect-square object-cover"
-                    />
-                    <p className="text-xs font-semibold p-2 text-center text-foreground">
-                      {tpl.title}
+                    Limpar seleção
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground/80 mt-0.5">
+                Define a estratégia do conteúdo interno das artes (textos, layout, tom)
+              </p>
+            </div>
+
+            {/* Linha de chips brancos arredondados */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch">
+              {/* Card 1: Oferta */}
+              <div
+                onClick={() => setApproach(approach === 'oferta' ? '' : 'oferta')}
+                className={`bg-white dark:bg-card rounded-2xl p-3.5 sm:p-4 border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-sm min-h-[82px] ${
+                  approach === 'oferta'
+                    ? 'border-[#8b5cf6] border-2 ring-2 ring-[#8b5cf6]/20 bg-purple-50/30 dark:bg-purple-950/20'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <span className="text-xl mb-1 select-none">🏷️</span>
+                <span className="text-xs font-bold text-foreground">Oferta</span>
+              </div>
+
+              {/* Card 2: Storytelling */}
+              <div
+                onClick={() => setApproach(approach === 'storytelling' ? '' : 'storytelling')}
+                className={`bg-white dark:bg-card rounded-2xl p-3.5 sm:p-4 border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-sm min-h-[82px] ${
+                  approach === 'storytelling'
+                    ? 'border-[#8b5cf6] border-2 ring-2 ring-[#8b5cf6]/20 bg-purple-50/30 dark:bg-purple-950/20'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <span className="text-xl mb-1 select-none">📖</span>
+                <span className="text-xs font-bold text-foreground">Storytelling</span>
+              </div>
+
+              {/* Card 3: Prova social */}
+              <div
+                onClick={() => setApproach(approach === 'prova_social' ? '' : 'prova_social')}
+                className={`bg-white dark:bg-card rounded-2xl p-3.5 sm:p-4 border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-sm min-h-[82px] ${
+                  approach === 'prova_social'
+                    ? 'border-[#8b5cf6] border-2 ring-2 ring-[#8b5cf6]/20 bg-purple-50/30 dark:bg-purple-950/20'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <span className="text-xl mb-1 select-none">✅</span>
+                <span className="text-xs font-bold text-foreground">Prova social</span>
+              </div>
+
+              {/* Card 4: Ver mais (ou toggle de expansão) */}
+              <div
+                onClick={() => setShowMoreApproaches((prev) => !prev)}
+                className={`bg-white dark:bg-card rounded-2xl p-3.5 sm:p-4 border border-border/80 hover:border-border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-sm min-h-[82px] ${
+                  showMoreApproaches
+                    ? 'border-[#8b5cf6]/70 bg-purple-50/20 text-[#8b5cf6]'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span className="text-base font-bold tracking-widest mb-1 text-slate-500">···</span>
+                <span className="text-xs font-semibold flex items-center gap-1">
+                  Ver mais{' '}
+                  {showMoreApproaches ? (
+                    <ChevronUp className="w-3 h-3" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3" />
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Expansão com mais abordagens: Viral, Educativo, Comunidade */}
+            {showMoreApproaches && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 animate-fade-in">
+                {/* Viral */}
+                <div
+                  onClick={() => setApproach(approach === 'viral' ? '' : 'viral')}
+                  className={`bg-white dark:bg-card rounded-2xl p-3.5 sm:p-4 border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-sm min-h-[82px] ${
+                    approach === 'viral'
+                      ? 'border-[#8b5cf6] border-2 ring-2 ring-[#8b5cf6]/20 bg-purple-50/30 dark:bg-purple-950/20'
+                      : 'border-border/80 hover:border-border'
+                  }`}
+                >
+                  <span className="text-xl mb-1 select-none">🔥</span>
+                  <span className="text-xs font-bold text-foreground">Viral</span>
+                </div>
+
+                {/* Educativo */}
+                <div
+                  onClick={() => setApproach(approach === 'educativo' ? '' : 'educativo')}
+                  className={`bg-white dark:bg-card rounded-2xl p-3.5 sm:p-4 border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-sm min-h-[82px] ${
+                    approach === 'educativo'
+                      ? 'border-[#8b5cf6] border-2 ring-2 ring-[#8b5cf6]/20 bg-purple-50/30 dark:bg-purple-950/20'
+                      : 'border-border/80 hover:border-border'
+                  }`}
+                >
+                  <span className="text-xl mb-1 select-none">📚</span>
+                  <span className="text-xs font-bold text-foreground">Educativo</span>
+                </div>
+
+                {/* Comunidade */}
+                <div
+                  onClick={() => setApproach(approach === 'comunidade' ? '' : 'comunidade')}
+                  className={`bg-white dark:bg-card rounded-2xl p-3.5 sm:p-4 border transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-sm min-h-[82px] ${
+                    approach === 'comunidade'
+                      ? 'border-[#8b5cf6] border-2 ring-2 ring-[#8b5cf6]/20 bg-purple-50/30 dark:bg-purple-950/20'
+                      : 'border-border/80 hover:border-border'
+                  }`}
+                >
+                  <span className="text-xl mb-1 select-none">💬</span>
+                  <span className="text-xs font-bold text-foreground">Comunidade</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SEÇÃO 3: Como você quer criar? */}
+          <div className="space-y-3">
+            <label className="text-xs sm:text-sm font-semibold text-muted-foreground block text-left">
+              Como você quer criar?
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Criar do Zero */}
+              <div
+                onClick={() => setCreateMethod('zero')}
+                className={`bg-white dark:bg-card rounded-[22px] p-6 border transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-md ${
+                  createMethod === 'zero'
+                    ? 'border-[#8b5cf6] border-2 ring-4 ring-[#8b5cf6]/10 shadow-sm'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <div>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-muted flex items-center justify-center text-slate-600 dark:text-muted-foreground mb-4">
+                    <Sparkles className="w-5 h-5 text-slate-600 dark:text-muted-foreground" />
+                  </div>
+                  <h3 className="text-base font-bold text-foreground">Criar do Zero</h3>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    Descreva sua ideia e deixe a IA criar todo o conteúdo
+                  </p>
+                </div>
+              </div>
+
+              {/* A partir de Link */}
+              <div
+                onClick={() => setCreateMethod('link')}
+                className={`bg-white dark:bg-card rounded-[22px] p-6 border transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-md ${
+                  createMethod === 'link'
+                    ? 'border-[#8b5cf6] border-2 ring-4 ring-[#8b5cf6]/10 shadow-sm'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <div>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-muted flex items-center justify-center text-slate-600 dark:text-muted-foreground mb-4">
+                    <LinkIcon className="w-5 h-5 text-slate-600 dark:text-muted-foreground" />
+                  </div>
+                  <h3 className="text-base font-bold text-foreground">A partir de Link</h3>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    Cole um link e a IA extrai e adapta o conteúdo
+                  </p>
+                </div>
+              </div>
+
+              {/* Inspirações */}
+              <div
+                onClick={() => setCreateMethod('inspiracoes')}
+                className={`bg-white dark:bg-card rounded-[22px] p-6 border transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-md ${
+                  createMethod === 'inspiracoes'
+                    ? 'border-[#8b5cf6] border-2 ring-4 ring-[#8b5cf6]/10 shadow-sm'
+                    : 'border-border/80 hover:border-border'
+                }`}
+              >
+                <div>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-muted flex items-center justify-center text-slate-600 dark:text-muted-foreground mb-4">
+                    <Lightbulb className="w-5 h-5 text-slate-600 dark:text-muted-foreground" />
+                  </div>
+                  <h3 className="text-base font-bold text-foreground">Inspirações</h3>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    Escolha de uma biblioteca de ideias prontas
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Detalhes interativos de acordo com o modo escolhido */}
+            {createMethod === 'zero' && (
+              <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-2 mt-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>Descreva sua ideia para o post (opcional neste passo)</span>
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Você poderá refinar no próximo passo
+                  </span>
+                </div>
+                <Textarea
+                  value={promptIdea}
+                  onChange={(e) => setPromptIdea(e.target.value)}
+                  placeholder="Ex.: Anúncio de promoção relâmpago de 30% em cursos de tecnologia para o final de semana..."
+                  className="min-h-[80px] text-xs resize-y bg-background"
+                />
+              </div>
+            )}
+
+            {createMethod === 'link' && (
+              <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-2 mt-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-primary" />
+                    <span>Cole o link do artigo, notícia ou produto</span>
+                  </label>
+                  <Badge variant="outline" className="text-[10px]">
+                    URL
+                  </Badge>
+                </div>
+                <input
+                  type="url"
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  placeholder="https://exemplo.com.br/artigo-ou-produto"
+                  className="w-full text-xs bg-background border border-border rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  A IA lerá o conteúdo da página e sintetizará os pontos principais para a arte e a
+                  legenda.
+                </p>
+              </div>
+            )}
+
+            {createMethod === 'inspiracoes' && (
+              <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3 mt-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Biblioteca de Inspirações Selecionada</span>
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {selectedInspiration
+                        ? `Inspiração: "${selectedInspiration.title}"`
+                        : 'Abra a biblioteca e escolha uma referência comprovada.'}
                     </p>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {creationMode === 'upload' && (
-            <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center bg-muted/20 space-y-3">
-              {media ? (
-                <div className="relative inline-block">
-                  <img
-                    src={mediaUrl}
-                    alt="Preview"
-                    className="max-h-48 mx-auto rounded-xl shadow-md"
-                  />
-                  <button
-                    onClick={() => setMedia(null)}
-                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-white flex items-center justify-center hover:bg-destructive/90 transition-colors"
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInspirationModalOpen(true)}
+                    className="text-xs font-semibold gap-1.5"
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                    {selectedInspiration ? 'Trocar Inspiração' : 'Explorar Ideias'}
+                  </Button>
                 </div>
-              ) : (
-                <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
-              )}
-              <p className="text-xs text-muted-foreground">
-                {media
-                  ? media.name
-                  : 'Envie um arquivo de imagem no formato ' + selectedFormat.dimensions}
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs gap-1"
-                  onClick={() => document.getElementById('media-upload-step2')?.click()}
-                >
-                  <Upload className="w-3.5 h-3.5" /> Enviar arquivo
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs gap-1"
-                  onClick={() => setImageBankOpen(true)}
-                >
-                  <Images className="w-3.5 h-3.5" /> Banco da Marca
-                </Button>
+
+                {selectedInspiration && (
+                  <div className="bg-muted/40 rounded-xl p-3 flex items-center gap-3">
+                    {selectedInspiration.imageUrl && (
+                      <img
+                        src={selectedInspiration.imageUrl}
+                        alt={selectedInspiration.title}
+                        className="w-14 h-14 rounded-lg object-cover shrink-0"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground truncate">
+                        {selectedInspiration.title}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+                        {selectedInspiration.description}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <input
-                id="media-upload-step2"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => setMedia(e.target.files?.[0] || null)}
-              />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -959,6 +1298,25 @@ export default function ImageCreator() {
                   {selectedFormat.name}
                 </Badge>
                 <span className="font-mono text-[11px]">{selectedFormat.dimensions}</span>
+              </div>
+
+              {/* Informações da Etapa 2 configurada */}
+              <div className="w-full flex items-center gap-2 mb-3 flex-wrap">
+                <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-0 text-[10px] font-bold">
+                  {objective === 'vender' ? '🎯 Vender' : '❤️ Engajar'}
+                </Badge>
+                {approach && (
+                  <Badge variant="outline" className="text-[10px] font-medium capitalize">
+                    {approach.replace('_', ' ')}
+                  </Badge>
+                )}
+                <Badge variant="secondary" className="text-[10px]">
+                  {createMethod === 'zero'
+                    ? '✨ Do Zero'
+                    : createMethod === 'link'
+                      ? '🔗 Via Link'
+                      : '💡 Inspiração'}
+                </Badge>
               </div>
 
               <div
@@ -1080,7 +1438,7 @@ export default function ImageCreator() {
         {/* Direita: Botão Voltar + Botão Continuar */}
         <div className="flex items-center gap-3">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => {
               if (currentStep === 1) {
@@ -1089,22 +1447,36 @@ export default function ImageCreator() {
                 setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3)
               }
             }}
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground gap-1"
+            className="text-xs font-semibold border-border text-foreground hover:bg-muted gap-1 px-4 h-9 rounded-xl"
           >
             ← Voltar
           </Button>
 
-          {currentStep < 3 ? (
+          {currentStep === 1 && (
             <Button
               size="sm"
               disabled={!selectedFormatId}
-              onClick={() => setCurrentStep((prev) => (prev + 1) as 1 | 2 | 3)}
+              onClick={() => setCurrentStep(2)}
               className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold text-xs px-5 h-9 rounded-xl shadow-md gap-1.5 cursor-pointer disabled:opacity-40"
             >
               <span>Continuar</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
-          ) : (
+          )}
+
+          {currentStep === 2 && (
+            <Button
+              size="sm"
+              disabled={!canContinueFromStep2}
+              onClick={handleProceedToStep3}
+              className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-bold text-xs px-5 h-9 rounded-xl shadow-md gap-1.5 cursor-pointer disabled:opacity-40"
+            >
+              <span>Continuar</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          )}
+
+          {currentStep === 3 && (
             <Button
               size="sm"
               onClick={() => handleSave('published')}
@@ -1122,6 +1494,21 @@ export default function ImageCreator() {
         open={imageBankOpen}
         onOpenChange={setImageBankOpen}
         onSelect={handleSelectBrandAsset}
+      />
+
+      <InspirationLibraryModal
+        open={inspirationModalOpen}
+        onOpenChange={setInspirationModalOpen}
+        onSelectInspiration={(item) => {
+          setSelectedInspiration(item)
+          if (!caption) {
+            setCaption(`${item.title} - ${item.description}`)
+          }
+          toast({
+            title: 'Inspiração Selecionada!',
+            description: `"${item.title}" foi configurada para o conteúdo.`,
+          })
+        }}
       />
     </div>
   )
