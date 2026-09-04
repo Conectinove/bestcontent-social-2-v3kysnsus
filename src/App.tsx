@@ -4,6 +4,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/context/AuthContext'
 import { SocialProvider } from '@/context/SocialContext'
+import { CustomizationProvider } from '@/context/CustomizationContext'
 
 import Layout from './components/Layout'
 import Index from './pages/Index'
@@ -27,6 +28,7 @@ import VisaoGeral from './pages/VisaoGeral'
 import ClientPortal from './pages/ClientPortal'
 import Settings from './pages/Settings'
 import Subscription from './pages/Subscription'
+import ReferralPage from './pages/ReferralPage'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
 
@@ -38,52 +40,55 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
-      <SocialProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            {/* Public routes — no auth required */}
-            <Route path="/landing" element={<LandingPage />} />
-            <Route path="/waitlist" element={<LandingPage />} />
+      <CustomizationProvider>
+        <SocialProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Public routes — no auth required */}
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/waitlist" element={<LandingPage />} />
 
-            {/* Authenticated routes inside Layout */}
-            <Route element={<Layout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/app/feed" element={<VisaoGeral />} />
-              <Route path="/app/feed-comunidade" element={<Feed />} />
-              <Route path="/app/visao-geral" element={<VisaoGeral />} />
-              <Route path="/app/portal-cliente" element={<ClientPortal />} />
-              <Route path="/app/onboarding" element={<Onboarding />} />
-              <Route path="/app/criar" element={<CreateHub />} />
-              <Route path="/app/criar/imagens" element={<ImageCreator />} />
-              <Route path="/app/criar/flyers" element={<FlyerCreator />} />
-              <Route path="/app/criar/videos" element={<GuidedCreator />} />
-              <Route path="/app/brands" element={<Brands />} />
-              <Route path="/app/brands/:id" element={<BrandDetail />} />
-              <Route path="/app/library" element={<Library />} />
-              <Route path="/app/content/new" element={<CreatePost />} />
-              <Route path="/app/editor/:postId" element={<PostEditor />} />
-              <Route path="/app/calendar" element={<CalendarPage />} />
-              <Route path="/app/community" element={<CommunityDashboard />} />
-              <Route path="/app/community/topic/:id" element={<TopicDetail />} />
-              <Route path="/app/dashboard" element={<Dashboard />} />
-              <Route path="/app/discover" element={<Discover />} />
-              <Route path="/app/settings" element={<Settings />} />
-              <Route path="/app/subscription" element={<Subscription />} />
-              <Route path="/app/assinatura" element={<Subscription />} />
-            </Route>
+              {/* Authenticated routes inside Layout */}
+              <Route element={<Layout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/app/feed" element={<VisaoGeral />} />
+                <Route path="/app/feed-comunidade" element={<Feed />} />
+                <Route path="/app/visao-geral" element={<VisaoGeral />} />
+                <Route path="/app/portal-cliente" element={<ClientPortal />} />
+                <Route path="/app/onboarding" element={<Onboarding />} />
+                <Route path="/app/criar" element={<CreateHub />} />
+                <Route path="/app/criar/imagens" element={<ImageCreator />} />
+                <Route path="/app/criar/flyers" element={<FlyerCreator />} />
+                <Route path="/app/criar/videos" element={<GuidedCreator />} />
+                <Route path="/app/brands" element={<Brands />} />
+                <Route path="/app/brands/:id" element={<BrandDetail />} />
+                <Route path="/app/library" element={<Library />} />
+                <Route path="/app/content/new" element={<CreatePost />} />
+                <Route path="/app/editor/:postId" element={<PostEditor />} />
+                <Route path="/app/calendar" element={<CalendarPage />} />
+                <Route path="/app/community" element={<CommunityDashboard />} />
+                <Route path="/app/community/topic/:id" element={<TopicDetail />} />
+                <Route path="/app/dashboard" element={<Dashboard />} />
+                <Route path="/app/discover" element={<Discover />} />
+                <Route path="/app/settings" element={<Settings />} />
+                <Route path="/app/indicar" element={<ReferralPage />} />
+                <Route path="/app/subscription" element={<Subscription />} />
+                <Route path="/app/assinatura" element={<Subscription />} />
+              </Route>
 
-            {/* Public Auth routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Public Auth routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Fallback */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TooltipProvider>
-      </SocialProvider>
+              {/* Fallback */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </SocialProvider>
+      </CustomizationProvider>
     </AuthProvider>
   </BrowserRouter>
 )

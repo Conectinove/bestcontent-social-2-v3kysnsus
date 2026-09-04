@@ -14,6 +14,8 @@ import {
   Loader2,
   Rocket,
   CreditCard,
+  Gift,
+  Settings as SettingsIcon,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -30,12 +32,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
+import { EditProfileModal } from '@/components/EditProfileModal'
 
 interface HeaderProps {
   onOpenMobileMenu: () => void
+  onOpenEditProfile?: () => void
 }
 
-export function Header({ onOpenMobileMenu }: HeaderProps) {
+export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
   const {
     searchQuery,
     setSearchQuery,
@@ -50,6 +54,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [publishLoading, setPublishLoading] = useState(false)
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -231,17 +236,29 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/app/settings')}>
-              <User className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>Meu Perfil</span>
+            <DropdownMenuItem
+              onClick={() => {
+                if (onOpenEditProfile) {
+                  onOpenEditProfile()
+                } else {
+                  setEditProfileOpen(true)
+                }
+              }}
+            >
+              <User className="mr-2 h-4 w-4 text-primary" />
+              <span className="font-medium text-foreground">Editar Perfil</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/app/indicar')}>
+              <Gift className="mr-2 h-4 w-4 text-purple-600" />
+              <span className="font-semibold text-foreground">Indique e Ganhe</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/app/subscription')}>
-              <CreditCard className="mr-2 h-4 w-4 text-primary" />
-              <span className="font-semibold text-foreground">Minha Assinatura</span>
+              <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span className="text-foreground">Minha Assinatura</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/app/brands')}>
-              <Palette className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>Minhas Marcas</span>
+            <DropdownMenuItem onClick={() => navigate('/app/settings')}>
+              <SettingsIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span>Configurações</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
@@ -251,6 +268,8 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <EditProfileModal open={editProfileOpen} onOpenChange={setEditProfileOpen} />
     </header>
   )
 }

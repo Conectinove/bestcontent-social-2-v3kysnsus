@@ -1,14 +1,32 @@
 import { useState } from 'react'
-import { Outlet, Navigate } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import { Outlet, Navigate, Link, useLocation } from 'react-router-dom'
+import {
+  Loader2,
+  LayoutDashboard,
+  Home,
+  Users,
+  Wand2,
+  Palette,
+  PenTool,
+  BookOpen,
+  Calendar,
+  Compass,
+  CreditCard,
+  Settings,
+  Gift,
+} from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useCustomization } from '@/context/CustomizationContext'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { OfflineBanner } from './OfflineBanner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
 export default function Layout() {
   const { isAuthenticated, loading } = useAuth()
+  const { menuLayout } = useCustomization()
+  const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -28,11 +46,58 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <OfflineBanner />
 
-      <div className="flex flex-1 relative overflow-hidden">
-        <div className="hidden md:block shrink-0">
-          <Sidebar collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
+      {/* Top menu layout (if menuLayout === 'topbar' on desktop) */}
+      {menuLayout === 'topbar' && (
+        <div className="hidden md:block border-b border-border bg-card/60 backdrop-blur-md px-4 py-2 sticky top-16 z-10 overflow-x-auto scrollbar-none">
+          <nav className="flex items-center gap-1 max-w-7xl mx-auto">
+            {[
+              { label: 'Visão Geral', href: '/app/feed', icon: LayoutDashboard },
+              { label: 'Feed Criadores', href: '/app/feed-comunidade', icon: Home },
+              { label: 'Portal Cliente', href: '/app/portal-cliente', icon: Users },
+              { label: 'Criar', href: '/app/criar', icon: Wand2, highlight: true },
+              { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
+              { label: 'Calendário', href: '/app/calendar', icon: Calendar },
+              { label: 'Indique e Ganhe', href: '/app/indicar', icon: Gift },
+              { label: 'Assinatura', href: '/app/subscription', icon: CreditCard },
+              { label: 'Configurações', href: '/app/settings', icon: Settings },
+            ].map((item) => {
+              const Icon = item.icon
+              const active =
+                item.href === '/app/feed'
+                  ? location.pathname === '/app/feed' ||
+                    location.pathname === '/' ||
+                    location.pathname === '/app/visao-geral'
+                  : location.pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors',
+                    item.highlight && !active && 'bg-primary/10 text-primary hover:bg-primary/20',
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
         </div>
+      )}
 
+      <div className="flex flex-1 relative overflow-hidden">
+        {/* Sidebar only rendered on desktop if layout is sidebar */}
+        {menuLayout !== 'topbar' && (
+          <div className="hidden md:block shrink-0">
+            <Sidebar collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
+          </div>
+        )}
+
+        {/* Mobile drawer always uses vertical sidebar */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="p-0 w-64 border-r border-border">
             <Sidebar

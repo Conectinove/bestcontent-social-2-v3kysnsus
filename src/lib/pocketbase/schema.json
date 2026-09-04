@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T05:31:19.876Z",
+  "generatedAt": "2026-09-04T05:42:57.263Z",
   "collections": [
     {
       "name": "users",
@@ -37,6 +37,78 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "bio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profession",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "company",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "instagram",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "website",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "menu_layout",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "app_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "share_community",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notif_app",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notif_email",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notif_push",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "referral_code",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

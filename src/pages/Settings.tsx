@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Settings as SettingsIcon,
   User,
@@ -14,25 +14,30 @@ import {
   Download,
   ExternalLink,
   CreditCard,
+  Gift,
+  Edit3,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
+import { useCustomization } from '@/context/CustomizationContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
+import { EditProfileModal } from '@/components/EditProfileModal'
 
-type TabKey = 'account' | 'appearance' | 'integrations' | 'subscription' | 'about'
+type TabKey = 'account' | 'subscription' | 'appearance' | 'integrations' | 'about'
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: string }> = [
   {
     key: 'account',
-    label: 'Conta',
+    label: 'Conta & Perfil',
     icon: User,
     description: 'Gerencie seu perfil e dados pessoais',
   },
@@ -60,14 +65,38 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: 
 export default function Settings() {
   const { user, updateProfile } = useAuth()
   const { theme, toggleTheme } = useSocial()
+  const { menuLayout, appColor } = useCustomization()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [activeTab, setActiveTab] = useState<TabKey>('account')
-  const [name, setName] = useState(user?.name || '')
+  const [editProfileOpen, setEditProfileOpen] = useState(
+    () => searchParams.get('edit') === 'profile',
+  )
+  const [name, setName] = useState(user?.name || 'Ronaldo Barreto')
   const [email, setEmail] = useState(user?.email || '')
   const [saving, setSaving] = useState(false)
-  const [notifEmail, setNotifEmail] = useState(true)
-  const [notifPush, setNotifPush] = useState(false)
+  const [notifEmail, setNotifEmail] = useState(user?.notif_email ?? true)
+  const [notifPush, setNotifPush] = useState(user?.notif_push ?? false)
+
+  // Listen to searchParams changes so clicking sidebar or header updates modal state
+  useEffect(() => {
+    if (searchParams.get('edit') === 'profile') {
+      setEditProfileOpen(true)
+    }
+  }, [searchParams])
+
+  const handleOpenEditProfile = () => {
+    setEditProfileOpen(true)
+  }
+
+  const handleCloseEditProfile = (open: boolean) => {
+    setEditProfileOpen(open)
+    if (!open && searchParams.has('edit')) {
+      searchParams.delete('edit')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -178,67 +207,173 @@ export default function Settings() {
               )}
 
               {activeTab === 'account' && (
-                <form onSubmit={handleSaveProfile} className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground">
-                      Nome Completo
-                    </label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="h-10"
-                      placeholder="Seu nome"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground">E-mail</label>
-                    <Input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-10"
-                      placeholder="seu@email.com"
-                    />
-                  </div>
-                  <Separator />
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-semibold">Preferências de Notificação</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
+                <div className="space-y-6">
+                  {/* Profile Preview Card with CTA to open modal */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent border border-purple-200 dark:border-purple-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <Avatar className="w-14 h-14 ring-2 ring-purple-500/30 shadow-sm">
+                        <AvatarImage src={user?.avatar} alt={user?.name} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                          {user?.name?.slice(0, 2).toUpperCase() || 'RB'}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
-                        <p className="text-sm font-medium">Notificações por e-mail</p>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-foreground text-base">
+                            {user?.name || 'Ronaldo Barreto'}
+                          </h3>
+                          <Badge className="bg-purple-600 text-white hover:bg-purple-600 text-[10px]">
+                            Pro
+                          </Badge>
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                          Receber atualizações por e-mail
+                          {user?.email || 'ronaldoconectinove@gmail.com'}
                         </p>
+                        {user?.bio && (
+                          <p className="text-xs text-foreground/80 mt-1 line-clamp-1 italic">
+                            "{user.bio}"
+                          </p>
+                        )}
                       </div>
-                      <Switch checked={notifEmail} onCheckedChange={setNotifEmail} />
                     </div>
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm font-medium">Notificações push</p>
-                        <p className="text-xs text-muted-foreground">Alertar no navegador</p>
-                      </div>
-                      <Switch checked={notifPush} onCheckedChange={setNotifPush} />
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Button
+                        type="button"
+                        onClick={handleOpenEditProfile}
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl gap-1.5 shadow-sm flex-1 sm:flex-initial"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Editar Perfil Completo
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => navigate('/app/indicar')}
+                        className="border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold text-xs rounded-xl gap-1.5 flex-1 sm:flex-initial"
+                      >
+                        <Gift className="w-3.5 h-3.5" />
+                        Indicar Amigos
+                      </Button>
                     </div>
                   </div>
-                  <div className="pt-3">
-                    <Button
-                      type="submit"
-                      disabled={saving}
-                      className="bg-primary hover:bg-primary/90 text-white aggressive-button min-w-[160px]"
-                    >
-                      {saving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        'Salvar Alterações'
-                      )}
-                    </Button>
+
+                  {/* Summary grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="p-4 rounded-xl bg-muted/40 border border-border/60 space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                        💼 Profissão
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {user?.profession || 'Marketing Digital'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/40 border border-border/60 space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                        🏢 Empresa
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {user?.company || 'BestContent AI'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/40 border border-border/60 space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                        📷 Instagram
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {user?.instagram || '@ronaldobarreto'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/40 border border-border/60 space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                        🌐 Website
+                      </p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {user?.website || 'https://bestcontent.ai'}
+                      </p>
+                    </div>
                   </div>
-                </form>
+
+                  <Separator />
+
+                  {/* Fast Profile Form */}
+                  <form onSubmit={handleSaveProfile} className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Nome Completo
+                      </label>
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="h-10 rounded-xl"
+                        placeholder="Seu nome"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground">E-mail</label>
+                      <Input
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-10 rounded-xl"
+                        placeholder="seu@email.com"
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-purple-600" />
+                        <span className="text-sm font-semibold">
+                          Preferências Rápidas de Notificação
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <p className="text-sm font-medium">Notificações por e-mail</p>
+                          <p className="text-xs text-muted-foreground">
+                            Receber atualizações por e-mail
+                          </p>
+                        </div>
+                        <Switch checked={notifEmail} onCheckedChange={setNotifEmail} />
+                      </div>
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <p className="text-sm font-medium">Notificações push</p>
+                          <p className="text-xs text-muted-foreground">
+                            Alertar no navegador desktop
+                          </p>
+                        </div>
+                        <Switch checked={notifPush} onCheckedChange={setNotifPush} />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center gap-3">
+                      <Button
+                        type="submit"
+                        disabled={saving}
+                        className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl min-w-[160px] font-bold"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          'Salvar Dados Rápidos'
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleOpenEditProfile}
+                        className="rounded-xl border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold"
+                      >
+                        Personalização Completa...
+                      </Button>
+                    </div>
+                  </form>
+                </div>
               )}
 
               {activeTab === 'appearance' && (
@@ -399,6 +534,9 @@ export default function Settings() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Profile Full Modal */}
+      <EditProfileModal open={editProfileOpen} onOpenChange={handleCloseEditProfile} />
     </div>
   )
 }

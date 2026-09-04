@@ -22,13 +22,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 function mapUser(record: any): UserProfile {
   const avatar = record.avatar
     ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${record.collectionId}/${record.id}/${record.avatar}`
-    : `https://img.usecurling.com/ppl/medium?gender=female&seed=${record.id}`
+    : `https://img.usecurling.com/ppl/medium?gender=male&seed=${record.id || 'ronaldo'}`
   return {
     id: record.id,
-    name: record.name || '',
+    name: record.name || 'Ronaldo Barreto',
     email: record.email || '',
     avatar,
     plan: 'Pro Plan',
+    bio: record.bio || '',
+    profession: record.profession || '',
+    company: record.company || '',
+    instagram: record.instagram || '',
+    website: record.website || '',
+    menu_layout: record.menu_layout || 'sidebar',
+    app_color: record.app_color || 'purple',
+    share_community: record.share_community ?? true,
+    notif_app: record.notif_app ?? true,
+    notif_email: record.notif_email ?? true,
+    notif_push: record.notif_push ?? false,
+    referral_code: record.referral_code || 'RONALDD89L',
   }
 }
 

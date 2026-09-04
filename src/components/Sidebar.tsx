@@ -15,6 +15,7 @@ import {
   Users,
   LayoutDashboard,
   CreditCard,
+  Gift,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
     { label: 'Calendário', href: '/app/calendar', icon: CalendarIcon },
     { label: 'Comunidade', href: '/app/community', icon: Sparkles },
     { label: 'Descobrir', href: '/app/discover', icon: Compass },
+    { label: 'Indique e Ganhe', href: '/app/indicar', icon: Gift },
     { label: 'Assinatura', href: '/app/subscription', icon: CreditCard },
     { label: 'Configurações', href: '/app/settings', icon: Settings },
   ]
@@ -315,16 +317,19 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
           </Link>
         )}
         <Link
-          to="/app/subscription"
+          to="/app/settings?edit=profile"
           onClick={onMobileClose}
-          className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted transition-colors text-left"
+          className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted transition-colors text-left group"
+          title="Editar Perfil"
         >
-          <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-border">
+          <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-border group-hover:ring-primary transition-all">
             RB
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-foreground truncate">Ronaldo Barreto</p>
+              <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                Ronaldo Barreto
+              </p>
               <p className="text-[10px] text-muted-foreground truncate">
                 ronaldoconectinove@gmail.com
               </p>

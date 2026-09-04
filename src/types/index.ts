@@ -82,6 +82,18 @@ export interface UserProfile {
   email: string
   avatar: string
   plan: string
+  bio?: string
+  profession?: string
+  company?: string
+  instagram?: string
+  website?: string
+  menu_layout?: 'sidebar' | 'topbar'
+  app_color?: string
+  share_community?: boolean
+  notif_app?: boolean
+  notif_email?: boolean
+  notif_push?: boolean
+  referral_code?: string
 }
 
 export interface CategoryRecord {
