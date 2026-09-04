@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Wand2,
+  Users,
+  LayoutDashboard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -26,7 +28,9 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
   const location = useLocation()
 
   const navItems = [
-    { label: 'Feed', href: '/app/feed', icon: Home },
+    { label: 'Visão Geral', href: '/app/feed', icon: LayoutDashboard },
+    { label: 'Feed Comunidade', href: '/app/feed-comunidade', icon: Home },
+    { label: 'Portal do Cliente', href: '/app/portal-cliente', icon: Users },
     { label: 'Criar', href: '/app/criar', icon: Wand2 },
     { label: 'Marcas', href: '/app/brands', icon: Palette },
     { label: 'Conteúdo', href: '/app/content/new', icon: PenTool },
@@ -94,25 +98,66 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
 
         {/* Navigation Menu */}
         <nav className="p-2 space-y-1 mt-2">
-          {/* Dashboard item */}
+          {/* Visão Geral (Central Operacional - Rota padrão /app/feed e /app/visao-geral) */}
           <Link
             to="/app/feed"
             onClick={onMobileClose}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              location.pathname === '/app/feed' || location.pathname === '/'
+              location.pathname === '/app/feed' ||
+                location.pathname === '/app/visao-geral' ||
+                location.pathname === '/'
                 ? 'bg-muted text-foreground font-bold shadow-xs'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
-            title={collapsed ? 'Dashboard' : undefined}
+            title={collapsed ? 'Visão Geral' : undefined}
           >
-            <div className="grid grid-cols-2 gap-0.5 w-4 h-4 shrink-0">
+            <div className="grid grid-cols-2 gap-0.5 w-4 h-4 shrink-0 text-primary">
               <div className="bg-current rounded-[2px]" />
               <div className="bg-current rounded-[2px]" />
               <div className="bg-current rounded-[2px]" />
               <div className="bg-current rounded-[2px]" />
             </div>
-            {!collapsed && <span>Dashboard</span>}
+            {!collapsed && <span>Visão Geral</span>}
+          </Link>
+
+          {/* Feed Comunidade */}
+          <Link
+            to="/app/feed-comunidade"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/feed-comunidade'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Feed da Comunidade' : undefined}
+          >
+            <Home className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Feed Criadores</span>}
+          </Link>
+
+          {/* Portal do Cliente (MAX) */}
+          <Link
+            to="/app/portal-cliente"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/portal-cliente'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Portal do Cliente' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Users className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Portal Cliente</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                MAX
+              </span>
+            )}
           </Link>
 
           {/* Criar CTA button */}
@@ -209,7 +254,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
               </div>
               <div className="space-y-0.5 pl-2 mt-1">
                 <Link
-                  to="/app/dashboard"
+                  to="/app/feed"
                   onClick={onMobileClose}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
                 >
@@ -219,7 +264,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
                     <div className="bg-current rounded-[1px]" />
                     <div className="bg-current rounded-[1px]" />
                   </div>
-                  <span>Dashboard Geral</span>
+                  <span>Visão Geral</span>
                 </Link>
                 <Link
                   to="/app/calendar"
@@ -230,7 +275,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
                   <span>Calendário Global</span>
                 </Link>
                 <Link
-                  to="/app/community"
+                  to="/app/portal-cliente"
                   onClick={onMobileClose}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
                 >

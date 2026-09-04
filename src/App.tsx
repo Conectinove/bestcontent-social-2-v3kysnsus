@@ -23,6 +23,8 @@ import CalendarPage from './pages/CalendarPage'
 import Library from './pages/Library'
 import Discover from './pages/Discover'
 import Dashboard from './pages/Dashboard'
+import VisaoGeral from './pages/VisaoGeral'
+import ClientPortal from './pages/ClientPortal'
 import Settings from './pages/Settings'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
@@ -47,7 +49,10 @@ const App = () => (
             {/* Authenticated routes inside Layout */}
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
-              <Route path="/app/feed" element={<Feed />} />{' '}
+              <Route path="/app/feed" element={<VisaoGeral />} />
+              <Route path="/app/feed-comunidade" element={<Feed />} />
+              <Route path="/app/visao-geral" element={<VisaoGeral />} />
+              <Route path="/app/portal-cliente" element={<ClientPortal />} />
               <Route path="/app/onboarding" element={<Onboarding />} />
               <Route path="/app/criar" element={<CreateHub />} />
               <Route path="/app/criar/imagens" element={<ImageCreator />} />
