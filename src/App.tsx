@@ -26,6 +26,7 @@ import Dashboard from './pages/Dashboard'
 import VisaoGeral from './pages/VisaoGeral'
 import ClientPortal from './pages/ClientPortal'
 import Settings from './pages/Settings'
+import Subscription from './pages/Subscription'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
 
@@ -69,6 +70,8 @@ const App = () => (
               <Route path="/app/dashboard" element={<Dashboard />} />
               <Route path="/app/discover" element={<Discover />} />
               <Route path="/app/settings" element={<Settings />} />
+              <Route path="/app/subscription" element={<Subscription />} />
+              <Route path="/app/assinatura" element={<Subscription />} />
             </Route>
 
             {/* Public Auth routes */}

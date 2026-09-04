@@ -49,19 +49,18 @@ export default function Layout() {
             <Outlet />
           </main>
           <footer className="border-t border-border py-4 px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
-            <span className="text-center sm:text-left">
-              BestContent Social 2 © {new Date().getFullYear()} — Plataforma de Criação &
-              Gerenciamento
+            <span className="text-center sm:text-left font-medium">
+              Social 2 Powered by BestContent AI
             </span>
-            <div className="flex gap-4">
+            <div className="flex items-center gap-4">
+              <a href="#" className="footer-link">
+                Novidades
+              </a>
+              <a href="#" className="footer-link">
+                Termos
+              </a>
               <a href="#" className="footer-link">
                 Privacidade
-              </a>
-              <a href="#" className="footer-link">
-                Termos de Uso
-              </a>
-              <a href="#" className="footer-link font-medium text-primary">
-                Suporte VIP
               </a>
             </div>
           </footer>

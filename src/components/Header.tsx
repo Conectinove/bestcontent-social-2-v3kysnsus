@@ -13,6 +13,7 @@ import {
   Palette,
   Loader2,
   Rocket,
+  CreditCard,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -233,6 +234,10 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
             <DropdownMenuItem onClick={() => navigate('/app/settings')}>
               <User className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>Meu Perfil</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/app/subscription')}>
+              <CreditCard className="mr-2 h-4 w-4 text-primary" />
+              <span className="font-semibold text-foreground">Minha Assinatura</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/app/brands')}>
               <Palette className="mr-2 h-4 w-4 text-muted-foreground" />

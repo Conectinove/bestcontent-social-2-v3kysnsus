@@ -14,6 +14,7 @@ import {
   Wand2,
   Users,
   LayoutDashboard,
+  CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -38,6 +39,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
     { label: 'Calendário', href: '/app/calendar', icon: CalendarIcon },
     { label: 'Comunidade', href: '/app/community', icon: Sparkles },
     { label: 'Descobrir', href: '/app/discover', icon: Compass },
+    { label: 'Assinatura', href: '/app/subscription', icon: CreditCard },
     { label: 'Configurações', href: '/app/settings', icon: Settings },
   ]
 
@@ -291,16 +293,29 @@ export function Sidebar({ collapsed, onToggleCollapse, onMobileClose }: SidebarP
       {/* Footer User & Credits Info */}
       <div className="p-3 border-t border-sidebar-border space-y-2">
         {!collapsed && (
-          <div className="flex items-center justify-between text-xs px-2 py-1 bg-muted/40 rounded-lg">
-            <span className="flex items-center gap-1.5 font-bold text-foreground">
+          <Link
+            to="/app/subscription"
+            onClick={onMobileClose}
+            className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-muted/60 hover:bg-muted rounded-lg transition-colors group cursor-pointer border border-border/40"
+            title="Ver meus créditos e assinatura"
+          >
+            <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-primary" />
-              3400
-            </span>
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-          </div>
+              <span className="font-bold text-foreground">3400</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                créditos
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                Recarregar
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+          </Link>
         )}
         <Link
-          to="/app/settings"
+          to="/app/subscription"
           onClick={onMobileClose}
           className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted transition-colors text-left"
         >

@@ -13,7 +13,9 @@ import {
   Globe,
   Download,
   ExternalLink,
+  CreditCard,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
@@ -25,7 +27,7 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 
-type TabKey = 'account' | 'appearance' | 'integrations' | 'about'
+type TabKey = 'account' | 'appearance' | 'integrations' | 'subscription' | 'about'
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: string }> = [
   {
@@ -33,6 +35,12 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: 
     label: 'Conta',
     icon: User,
     description: 'Gerencie seu perfil e dados pessoais',
+  },
+  {
+    key: 'subscription',
+    label: 'Minha Assinatura',
+    icon: CreditCard,
+    description: 'Plano atual, créditos e recargas',
   },
   {
     key: 'appearance',
@@ -52,6 +60,7 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: 
 export default function Settings() {
   const { user, updateProfile } = useAuth()
   const { theme, toggleTheme } = useSocial()
+  const navigate = useNavigate()
 
   const [activeTab, setActiveTab] = useState<TabKey>('account')
   const [name, setName] = useState(user?.name || '')
@@ -124,6 +133,49 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">{activeTabMeta.description}</p>
                 </div>
               </div>
+
+              {activeTab === 'subscription' && (
+                <div className="space-y-6">
+                  <div className="p-5 rounded-2xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-foreground">Plano Max Ativo</span>
+                        <Badge className="bg-purple-600 text-white hover:bg-purple-600 text-[10px]">
+                          👑 Max
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total Disponível: <strong>3.400 créditos</strong> (1.800 do plano + 1.600
+                        extras)
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => navigate('/app/subscription')}
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl"
+                    >
+                      Acessar Gestão Completa
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div className="p-3 rounded-xl bg-muted/60 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Slides</p>
+                      <p className="text-lg font-black text-foreground">20</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-muted/60 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Marcas</p>
+                      <p className="text-lg font-black text-foreground">20</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-muted/60 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Edições/post</p>
+                      <p className="text-lg font-black text-foreground">12</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-muted/60 border border-border/40">
+                      <p className="text-xs text-muted-foreground">Time</p>
+                      <p className="text-lg font-black text-foreground">5</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {activeTab === 'account' && (
                 <form onSubmit={handleSaveProfile} className="space-y-5">
