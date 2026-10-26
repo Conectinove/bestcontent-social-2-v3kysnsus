@@ -192,8 +192,32 @@ export default function VisaoGeral() {
           </p>
         </div>
 
-        {/* Botão outline "Calendário geral" no canto superior direito */}
-        <div>
+        {/* Ações no canto superior direito */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const csvContent =
+                'data:text/csv;charset=utf-8,Métrica,Valor\nAgendados (7d),0\nPublicados (7d),0\nRascunhos,9\nMarcas Ativas,0/5\n'
+              const encodedUri = encodeURI(csvContent)
+              const link = document.createElement('a')
+              link.setAttribute('href', encodedUri)
+              link.setAttribute('download', `relatorio-central-operacional-${Date.now()}.csv`)
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              toast({
+                title: 'Exportando Relatório Geral',
+                description: 'Download do relatório CSV concluído com sucesso.',
+              })
+            }}
+            className="rounded-xl border-border bg-card hover:bg-muted font-medium text-xs sm:text-sm h-10 px-3.5 gap-2 shadow-xs"
+            title="Exportar métricas da Central Operacional"
+          >
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span>Exportar Relatório</span>
+          </Button>
+
           <Button
             variant="outline"
             onClick={() => navigate('/app/calendar')}

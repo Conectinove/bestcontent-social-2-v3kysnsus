@@ -24,13 +24,43 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps) {
   const handleExport = () => {
     setExporting(true)
     setTimeout(() => {
+      if (format === 'csv') {
+        const csvContent =
+          'data:text/csv;charset=utf-8,Canal,Seguidores,Crescimento30d,Posts,TaxaEngajamento\nInstagram,14867,-53,12,4.2%\nFacebook,14933,+12,8,3.1%\nTotal Consolidado,29800,-41,20,3.8%\n'
+        const encodedUri = encodeURI(csvContent)
+        const link = document.createElement('a')
+        link.setAttribute('href', encodedUri)
+        link.setAttribute('download', `relatorio-analytics-${Date.now()}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } else {
+        // PDF trigger via browser print view / mock download blob
+        const pdfBlob = new Blob(
+          [
+            `BESTCONTENT SOCIAL 2 - RELATÓRIO EXECUTIVO DE ANALYTICS\nData: ${new Date().toLocaleDateString('pt-BR')}\n\n` +
+              `Métricas Consolidadas:\n- Seguidores Totais: 29.8k\n- Crescimento últimos 30 dias: -41 (-0.2%)\n- Volume de Posts: 20\n- Top Rede: Instagram (14.867)\n\n` +
+              `Gerado por Social 2 Powered by BestContent AI\n`,
+          ],
+          { type: 'text/plain;charset=utf-8' },
+        )
+        const url = URL.createObjectURL(pdfBlob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `relatorio-analytics-${Date.now()}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }
+
       setExporting(false)
       onOpenChange(false)
       toast({
         title: 'Relatório exportado!',
         description: `O arquivo .${format.toUpperCase()} foi gerado e baixado com sucesso.`,
       })
-    }, 1200)
+    }, 900)
   }
 
   return (

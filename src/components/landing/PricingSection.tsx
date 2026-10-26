@@ -74,7 +74,8 @@ export function PricingSection({ onSelectPlan }: PricingSectionProps) {
       ],
       cta: 'Falar com Vendas',
       ctaAction: () => {
-        window.location.href = 'mailto:vendas@mediaviva.com.br?subject=Plano Advanced - MídiaViva'
+        window.location.href =
+          'mailto:contato@bestcontent.ai?subject=Plano Advanced - BestContent Social 2'
       },
       highlighted: false,
       icon: MessageCircle,

@@ -29,6 +29,9 @@ import ClientPortal from './pages/ClientPortal'
 import Settings from './pages/Settings'
 import Subscription from './pages/Subscription'
 import ReferralPage from './pages/ReferralPage'
+import Analytics from './pages/Analytics'
+import TemplatesPage from './pages/TemplatesPage'
+import PagesFunis from './pages/PagesFunis'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
 
@@ -71,6 +74,9 @@ const App = () => (
                 <Route path="/app/community" element={<CommunityDashboard />} />
                 <Route path="/app/community/topic/:id" element={<TopicDetail />} />
                 <Route path="/app/dashboard" element={<Dashboard />} />
+                <Route path="/app/analytics" element={<Analytics />} />
+                <Route path="/app/templates" element={<TemplatesPage />} />
+                <Route path="/app/pages" element={<PagesFunis />} />
                 <Route path="/app/discover" element={<Discover />} />
                 <Route path="/app/settings" element={<Settings />} />
                 <Route path="/app/indicar" element={<ReferralPage />} />

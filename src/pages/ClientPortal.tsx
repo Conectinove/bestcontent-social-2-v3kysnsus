@@ -728,15 +728,15 @@ export default function ClientPortal() {
             <span>Novidades</span>
           </button>
           <span>·</span>
-          <a href="#" className="hover:text-foreground transition-colors">
+          <Link to="/app/settings" className="hover:text-foreground transition-colors">
             Termos
-          </a>
+          </Link>
           <span>·</span>
-          <a href="#" className="hover:text-foreground transition-colors">
+          <Link to="/app/settings" className="hover:text-foreground transition-colors">
             Privacidade
-          </a>
+          </Link>
           <span>·</span>
-          <span className="font-mono text-muted-foreground/70">v2.6.0</span>
+          <span className="font-mono text-muted-foreground/70">v0.0.44</span>
         </div>
       </div>
 

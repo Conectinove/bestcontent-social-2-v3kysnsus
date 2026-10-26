@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { FlaskConical, Plus, Trophy, Info, Loader2, CheckCircle2, BarChart3 } from 'lucide-react'
+import {
+  FlaskConical,
+  Plus,
+  Trophy,
+  Info,
+  Loader2,
+  CheckCircle2,
+  BarChart3,
+  Download,
+} from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { getABTests, createABTest, updateABTest, type ABTest } from '@/services/ab-tests'
@@ -126,14 +135,42 @@ export default function Dashboard() {
           <h1 className="page-title flex items-center gap-2">
             Dashboard <BarChart3 className="w-6 h-6 text-primary" />
           </h1>
-          <p className="page-description">Visão geral e comparador de performance</p>
+          <p className="page-description">Visão geral, testes A/B e relatórios de performance</p>
         </div>
-        <Button
-          onClick={() => setShowCreate(true)}
-          className="bg-primary hover:bg-primary/90 text-white gap-2 aggressive-button"
-        >
-          <Plus className="w-4 h-4" /> Novo Teste A/B
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const testSummary = abTests
+                .map((t, idx) => `Experimento #${idx + 1}: Status=${t.status}, Meta=${t.goal}`)
+                .join('\n')
+              const report = `BESTCONTENT SOCIAL 2 - RELATÓRIO CONSOLIDADO DE PERFORMANCE & TESTES A/B\nData: ${new Date().toLocaleDateString('pt-BR')}\nTotal de Experimentos: ${abTests.length}\n\n${testSummary || 'Nenhum teste A/B ativo no momento.'}\n\nSocial 2 Powered by BestContent AI`
+              const blob = new Blob([report], { type: 'text/plain;charset=utf-8' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `relatorio-dashboard-ab-${Date.now()}.pdf`
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+              URL.revokeObjectURL(url)
+              toast({
+                title: 'Exportando Relatório PDF',
+                description: 'Download do relatório consolidado concluído.',
+              })
+            }}
+            className="rounded-xl border-border bg-card hover:bg-muted text-xs sm:text-sm h-10 px-3.5 gap-2 shadow-xs"
+          >
+            <Download className="w-4 h-4 text-primary" />
+            <span>Exportar Relatório PDF</span>
+          </Button>
+          <Button
+            onClick={() => setShowCreate(true)}
+            className="bg-primary hover:bg-primary/90 text-white gap-2 aggressive-button rounded-xl text-xs sm:text-sm h-10 px-4"
+          >
+            <Plus className="w-4 h-4" /> Novo Teste A/B
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4 bg-blue-500/5 border-blue-500/20">

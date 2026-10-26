@@ -88,11 +88,11 @@ export default function LandingPage() {
               className="bg-white rounded-2xl border border-slate-200 px-6"
             >
               <AccordionTrigger className="text-left font-bold text-slate-900 py-4">
-                Quando a MídiaViva será lançada?
+                Quando a BestContent Social 2 será lançada?
               </AccordionTrigger>
               <AccordionContent className="text-slate-600 pb-4 text-sm leading-relaxed">
-                Estamos finalizando os últimos ajustes do sistema. Os convites da lista VIP serão
-                enviados em breve por ordem de inscrição.
+                Estamos finalizando os últimos ajustes da plataforma Social 2. Os convites da lista
+                VIP serão enviados em breve por ordem de inscrição.
               </AccordionContent>
             </AccordionItem>
 
@@ -128,8 +128,8 @@ export default function LandingPage() {
       <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl px-4">
           <p>
-            © {new Date().getFullYear()} MídiaViva. Todos os direitos reservados. Seu Sistema
-            Operacional de Marketing.
+            © {new Date().getFullYear()} BestContent Social 2. Social 2 Powered by BestContent AI.
+            Todos os direitos reservados.
           </p>
         </div>
       </footer>

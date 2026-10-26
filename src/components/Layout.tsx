@@ -14,6 +14,8 @@ import {
   CreditCard,
   Settings,
   Gift,
+  LayoutGrid,
+  Globe,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCustomization } from '@/context/CustomizationContext'
@@ -75,6 +77,8 @@ export default function Layout() {
               { label: 'Criar', href: '/app/criar', icon: Wand2, highlight: true },
               { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
               { label: 'Calendário', href: '/app/calendar', icon: Calendar },
+              { label: 'Templates', href: '/app/templates', icon: LayoutGrid },
+              { label: 'Páginas/Funis', href: '/app/pages', icon: Globe },
               { label: 'Indique e Ganhe', href: '/app/indicar', icon: Gift },
               { label: 'Assinatura', href: '/app/subscription', icon: CreditCard },
               { label: 'Configurações', href: '/app/settings', icon: Settings },
@@ -141,18 +145,28 @@ export default function Layout() {
           </main>
           <footer className="border-t border-border py-4 px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
             <span className="text-center sm:text-left font-medium">
-              Social 2 Powered by BestContent AI
+              Social 2 Powered by BestContent AI · v0.0.44
             </span>
             <div className="flex items-center gap-4">
-              <a href="#" className="footer-link">
+              <button
+                type="button"
+                onClick={() => setQuickOnboardingOpen(true)}
+                className="footer-link hover:text-purple-600 transition-colors"
+              >
                 Novidades
-              </a>
-              <a href="#" className="footer-link">
+              </button>
+              <Link
+                to="/app/settings"
+                className="footer-link hover:text-purple-600 transition-colors"
+              >
                 Termos
-              </a>
-              <a href="#" className="footer-link">
+              </Link>
+              <Link
+                to="/app/settings"
+                className="footer-link hover:text-purple-600 transition-colors"
+              >
                 Privacidade
-              </a>
+              </Link>
             </div>
           </footer>
         </div>

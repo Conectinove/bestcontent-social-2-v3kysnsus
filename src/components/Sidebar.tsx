@@ -307,11 +307,32 @@ export function Sidebar({
             {!collapsed && <span>Calendário</span>}
           </Link>
 
-          {/* Analytics (BETA) */}
+          {/* Templates */}
           <Link
-            to="/app/discover"
+            to="/app/templates"
             onClick={onMobileClose}
-            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/templates'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Templates' : undefined}
+          >
+            <Layers className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Templates</span>}
+          </Link>
+
+          {/* Analytics */}
+          <Link
+            to="/app/analytics"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/analytics'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
             title={collapsed ? 'Analytics' : undefined}
           >
             <div className="flex items-center gap-3">
@@ -320,16 +341,21 @@ export function Sidebar({
             </div>
             {!collapsed && (
               <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
-                BETA
+                PRO
               </span>
             )}
           </Link>
 
-          {/* Inspiração (BETA) */}
+          {/* Inspiração */}
           <Link
             to="/app/discover"
             onClick={onMobileClose}
-            className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/discover'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
             title={collapsed ? 'Inspiração' : undefined}
           >
             <div className="flex items-center gap-3">
@@ -338,7 +364,7 @@ export function Sidebar({
             </div>
             {!collapsed && (
               <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
-                BETA
+                IA
               </span>
             )}
           </Link>
@@ -370,10 +396,48 @@ export function Sidebar({
                 <Link
                   to="/app/calendar"
                   onClick={onMobileClose}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
+                  className={cn(
+                    'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    location.pathname === '/app/calendar'
+                      ? 'bg-purple-500/10 text-primary font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
                 >
                   <CalendarIcon className="w-3.5 h-3.5 shrink-0 opacity-70" />
                   <span>Calendário Global</span>
+                </Link>
+                <Link
+                  to="/app/pages"
+                  onClick={onMobileClose}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    location.pathname === '/app/pages'
+                      ? 'bg-purple-500/10 text-primary font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Layers className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                    <span>Páginas / Funis</span>
+                  </div>
+                </Link>
+                <Link
+                  to="/app/dashboard"
+                  onClick={onMobileClose}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    location.pathname === '/app/dashboard'
+                      ? 'bg-purple-500/10 text-primary font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BarChart2 className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                    <span>Testes A/B</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 py-0.2 rounded uppercase">
+                    LABS
+                  </span>
                 </Link>
                 <Link
                   to="/app/portal-cliente"

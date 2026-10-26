@@ -1034,13 +1034,13 @@ export default function Feed() {
             Novidades
           </button>
           <span>&middot;</span>
-          <a href="#" className="hover:text-primary transition-colors">
+          <Link to="/app/settings" className="hover:text-primary transition-colors">
             Termos
-          </a>
+          </Link>
           <span>&middot;</span>
-          <a href="#" className="hover:text-primary transition-colors">
+          <Link to="/app/settings" className="hover:text-primary transition-colors">
             Privacidade
-          </a>
+          </Link>
         </div>
       </div>
 

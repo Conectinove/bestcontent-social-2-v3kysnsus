@@ -328,25 +328,19 @@ export default function CreateHub() {
           <span>Social 2 Powered by BestContent AI</span>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() =>
-              alert('Novidades v2.6.0: Novo hub de criação com fluxos refinados de imagem e vídeo!')
-            }
-            className="hover:text-foreground transition-colors"
-          >
+          <Link to="/app/feed" className="hover:text-foreground transition-colors">
             Novidades
-          </button>
+          </Link>
           <span>·</span>
-          <a href="#" className="hover:text-foreground transition-colors">
+          <Link to="/app/settings" className="hover:text-foreground transition-colors">
             Termos
-          </a>
+          </Link>
           <span>·</span>
-          <a href="#" className="hover:text-foreground transition-colors">
+          <Link to="/app/settings" className="hover:text-foreground transition-colors">
             Privacidade
-          </a>
+          </Link>
           <span>·</span>
-          <span className="font-mono text-[11px]">v2.6.0</span>
+          <span className="font-mono text-[11px]">v0.0.44</span>
         </div>
       </div>
     </div>

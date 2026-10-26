@@ -13,9 +13,9 @@ const manifestoScript: { section: string; lines: string[] }[] = [
     ],
   },
   {
-    section: 'Apresentação MídiaViva',
+    section: 'Apresentação BestContent Social 2',
     lines: [
-      'Apresentamos a MídiaViva. Não somos apenas um editor. Não somos apenas inteligência artificial. Somos o seu Sistema Operacional de Marketing.',
+      'Apresentamos a Social 2 Powered by BestContent AI. Não somos apenas um editor. Não somos apenas inteligência artificial. Somos o seu Sistema Operacional de Marketing.',
       'Planeje, crie, aprove e analise. Tudo no mesmo lugar, focado no que importa: crescimento.',
     ],
   },
@@ -32,7 +32,7 @@ export function ManifestoSection() {
             <Sparkles className="h-3.5 w-3.5" /> Nosso Manifesto
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Conheça a MídiaViva
+            Conheça o Social 2 Powered by BestContent AI
           </h2>
           <p className="mt-3 text-lg text-slate-600 leading-relaxed">
             Assista ao nosso manifesto e descubra como vamos transformar a sua maneira de criar
@@ -48,7 +48,7 @@ export function ManifestoSection() {
             >
               <img
                 src="https://img.usecurling.com/p/1200/675?q=social%20media%20creator%20studio&color=purple"
-                alt="Manifesto MídiaViva"
+                alt="Manifesto Social 2"
                 className="absolute inset-0 h-full w-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-purple-950/40 to-transparent" />
@@ -74,8 +74,8 @@ export function ManifestoSection() {
                 "Você não abriu o seu negócio para virar escravo do Instagram..."
               </blockquote>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Apresentamos a MídiaViva... Seu Sistema Operacional de Marketing feito para
-                simplificar sua rotina e acelerar seus resultados.
+                Apresentamos a BestContent Social 2... Seu Sistema Operacional de Marketing feito
+                para simplificar sua rotina e acelerar seus resultados.
               </p>
 
               <div className="space-y-3 pt-2">
@@ -134,7 +134,7 @@ export function ManifestoSection() {
           <DialogHeader className="p-4 border-b border-slate-800 bg-slate-900/50">
             <DialogTitle className="text-white flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-400" />
-              Manifesto MídiaViva
+              Manifesto Social 2 Powered by BestContent AI
             </DialogTitle>
           </DialogHeader>
           <div className="aspect-video w-full bg-black flex items-center justify-center relative">
@@ -142,7 +142,7 @@ export function ManifestoSection() {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-600/20 text-purple-400">
                 <Play className="h-8 w-8 fill-purple-400 ml-1" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Vídeo do Manifesto MídiaViva</h3>
+              <h3 className="text-2xl font-bold text-white mb-2">Vídeo do Manifesto Social 2</h3>
               <p className="text-slate-400 text-sm mb-6">
                 "Postar 'qualquer coisa' não é estratégia. Transforme sua presença digital com Seu
                 Sistema Operacional de Marketing."
