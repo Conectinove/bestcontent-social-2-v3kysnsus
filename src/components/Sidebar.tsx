@@ -21,6 +21,7 @@ import {
   Layers,
   Search,
   Megaphone,
+  Palette,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -329,6 +330,29 @@ export function Sidebar({
           >
             <Layers className="w-4 h-4 shrink-0" />
             {!collapsed && <span>Templates</span>}
+          </Link>
+
+          {/* Brand Kit (Sistema de Identidade Visual MudarCurso) */}
+          <Link
+            to="/app/brand-kit"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/brand-kit'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Brand Kit (Sistema Visual)' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Palette className="w-4 h-4 shrink-0 text-purple-600" />
+              {!collapsed && <span>Brand Kit</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                NOVO
+              </span>
+            )}
           </Link>
 
           {/* Analytics */}

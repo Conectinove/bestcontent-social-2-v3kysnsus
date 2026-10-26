@@ -395,21 +395,38 @@ export function AsaasCheckoutModal({
               </div>
             )}
 
-            {/* Ações de simulação/teste do usuário */}
-            <div className="pt-2 border-t border-border/60 space-y-2">
+            {/* Ações de simulação/teste do usuário — Modo de Homologação / Teste */}
+            <div className="pt-3 border-t border-border/70 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground px-0.5">
+                <span className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-purple-600" />
+                  <span>Ambiente de Teste & Homologação</span>
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[9px] font-bold border-emerald-500/40 text-emerald-600 bg-emerald-500/5"
+                >
+                  Simulação Ativa
+                </Badge>
+              </div>
+
               <Button
                 onClick={handleSimulatePayment}
                 disabled={confirming}
-                variant="outline"
-                className="w-full h-10 rounded-xl border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 text-xs font-bold gap-2"
+                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-2 shadow-sm transition-all"
               >
                 {confirming ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-4 h-4" />
                 )}
-                <span>Confirmar Pagamento Realizado (Creditar Saldo)</span>
+                <span>Simular Pagamento Pix (Aprovar & Creditar Agora)</span>
               </Button>
+
+              <p className="text-[10px] text-center text-muted-foreground">
+                Aciona o webhook local com idempotência garantida. O saldo será creditado e o recibo
+                registrado no histórico.
+              </p>
             </div>
           </div>
         )}

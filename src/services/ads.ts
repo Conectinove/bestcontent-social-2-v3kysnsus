@@ -254,6 +254,99 @@ export function generateDailyMetricsForCampaign(
   return results
 }
 
+export interface PlatformConnectionStatus {
+  platform: 'meta' | 'google' | 'tiktok'
+  name: string
+  configured: boolean
+  status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
+  accountIdPrefix?: string | null
+  customerIdPrefix?: string | null
+  advertiserIdPrefix?: string | null
+  requiredSecrets: string[]
+}
+
+export interface PlatformsStatusResponse {
+  platforms: {
+    meta: PlatformConnectionStatus
+    google: PlatformConnectionStatus
+    tiktok: PlatformConnectionStatus
+  }
+  message: string
+}
+
+export interface PlatformOfficialMetricsResult {
+  platform: 'meta' | 'google' | 'tiktok'
+  source: 'official_api' | 'simulated_fallback'
+  is_official: boolean
+  status: string
+  metrics?: {
+    impressions: number
+    reach: number
+    clicks: number
+    spent: number
+    cpc: number
+    ctr: number
+    conversions: number
+  }
+  message?: string
+  period?: string
+}
+
+export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> {
+  try {
+    const res = await pb.send('/backend/v1/ads/status', { method: 'GET' })
+    return res as PlatformsStatusResponse
+  } catch {
+    return {
+      platforms: {
+        meta: {
+          platform: 'meta',
+          name: 'Meta Ads (Facebook & Instagram)',
+          configured: false,
+          status: 'not_configured',
+          requiredSecrets: ['META_ADS_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID'],
+        },
+        google: {
+          platform: 'google',
+          name: 'Google Ads & YouTube',
+          configured: false,
+          status: 'not_configured',
+          requiredSecrets: [
+            'GOOGLE_ADS_DEVELOPER_TOKEN',
+            'GOOGLE_ADS_CUSTOMER_ID',
+            'GOOGLE_ADS_REFRESH_TOKEN',
+          ],
+        },
+        tiktok: {
+          platform: 'tiktok',
+          name: 'TikTok Ads Manager',
+          configured: false,
+          status: 'not_configured',
+          requiredSecrets: ['TIKTOK_ADS_ACCESS_TOKEN', 'TIKTOK_ADS_ADVERTISER_ID'],
+        },
+      },
+      message: 'Status obtido em fallback local.',
+    }
+  }
+}
+
+export async function getPlatformOfficialMetrics(
+  platform: 'meta' | 'google' | 'tiktok',
+): Promise<PlatformOfficialMetricsResult> {
+  try {
+    const res = await pb.send(`/backend/v1/ads/${platform}/metrics`, { method: 'GET' })
+    return res as PlatformOfficialMetricsResult
+  } catch (err: any) {
+    return {
+      platform,
+      source: 'simulated_fallback',
+      is_official: false,
+      status: 'error',
+      message: err?.message || 'Falha ao consultar API da plataforma.',
+    }
+  }
+}
+
 export async function seedMetricsIfMissing(campaign: AdCampaignRecord): Promise<AdDailyMetric[]> {
   try {
     const existing = await getCampaignMetrics(campaign.id)

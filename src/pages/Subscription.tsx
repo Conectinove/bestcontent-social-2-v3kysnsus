@@ -174,6 +174,7 @@ export default function Subscription() {
       total: prev.total + amount,
       extraCredits: prev.extraCredits + amount,
     }))
+    loadHistory()
   }
 
   const handleManageStripe = () => {
@@ -675,7 +676,10 @@ export default function Subscription() {
       {/* Buy Credits Modal */}
       <BuyCreditsModal
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onOpenChange={(op) => {
+          setIsModalOpen(op)
+          if (!op) loadHistory()
+        }}
         onBuyCredits={handleBuyCredits}
       />
 
