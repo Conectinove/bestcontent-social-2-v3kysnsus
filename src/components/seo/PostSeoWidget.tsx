@@ -15,8 +15,11 @@ import {
   Loader2,
   Check,
   ChevronRight,
+  Layers,
+  Shuffle,
+  Copy,
 } from 'lucide-react'
-import { analyzeCaptionSeo, type SocialNetwork } from '@/services/seo'
+import { analyzeCaptionSeo, buildBalancedKeywordMix, type SocialNetwork } from '@/services/seo'
 import { improveText } from '@/services/ai'
 import { toast } from '@/hooks/use-toast'
 
@@ -242,6 +245,60 @@ Adicione um gancho forte na primeira linha antes de "...mais", melhore a legibil
             </div>
           </div>
         )}
+
+      {/* NOVO: Sugestões em Camadas & Mix Equilibrado */}
+      <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1">
+            <Layers className="w-3 h-3 text-purple-600" /> Palavras-Chave (Head + Long-tail + Local)
+          </span>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const mix = buildBalancedKeywordMix(analysis.layeredKeywords || [])
+              const mixText = mix.join(', ')
+              navigator.clipboard.writeText(mixText)
+              toast({
+                title: 'Mix de palavras-chave copiado!',
+                description: `${mix.length} termos equilibrados copiados para a área de transferência.`,
+              })
+            }}
+            className="h-6 text-[10px] text-purple-700 dark:text-purple-300 font-bold px-2 rounded-lg gap-1"
+          >
+            <Shuffle className="w-2.5 h-2.5" />
+            <span>Copiar Mix</span>
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-1">
+          {(analysis.layeredKeywords || []).slice(0, 6).map((kw, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                if (onApplyImprovement) {
+                  onApplyImprovement(`${caption.trim()} #${kw.keyword.replace(/\s+/g, '')}`)
+                  toast({
+                    title: 'Tag inserida!',
+                    description: `#${kw.keyword.replace(/\s+/g, '')} adicionada à legenda.`,
+                  })
+                } else {
+                  navigator.clipboard.writeText(kw.keyword)
+                  toast({ title: 'Copiado!', description: `"${kw.keyword}" copiado.` })
+                }
+              }}
+              title={`${kw.layerLabel} • ${kw.estimatedVolume} • Competição ${kw.competition} • Intenção ${kw.intent}`}
+              className="px-2 py-0.5 rounded-md bg-card border border-border/80 text-[10px] font-semibold text-foreground/80 hover:border-purple-500/50 hover:text-purple-600 transition-colors flex items-center gap-1"
+            >
+              <span>{kw.keyword}</span>
+              <span className="text-[9px] text-muted-foreground font-mono">({kw.competition})</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Botão de Aplicação com IA no Tom de Voz */}
       {onApplyImprovement && (

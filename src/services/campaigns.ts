@@ -16,6 +16,10 @@ export type CampaignFormatId =
   | 'pinterest'
   | 'whatsapp'
   | 'carrossel_10'
+  | 'poster_print'
+  | 'google_display'
+  | 'story_sequence_5'
+  | 'event_cover'
 
 export interface CampaignFormatOption {
   id: CampaignFormatId
@@ -148,6 +152,50 @@ export const CAMPAIGN_FORMATS: CampaignFormatOption[] = [
     aspectRatio: '4:5',
     credits: 55,
     badge: 'Guia 10 slides (55cr)',
+  },
+  {
+    id: 'poster_print',
+    name: 'Cartaz / Pôster Impresso (A4)',
+    label: 'Cartaz A4 Impresso',
+    description:
+      'Design de alta resolução pronto para impressão física, vitrine ou mural comercial.',
+    platform: 'Facebook',
+    aspectRatio: '1:1.41',
+    credits: 30,
+    badge: 'Impresso A4 (30cr)',
+  },
+  {
+    id: 'google_display',
+    name: 'Anúncio Google Display (1200×628)',
+    label: 'Google Display / GDN',
+    description:
+      'Banner horizontal em proporção 1.91:1 com copy persuasivo para campanhas de mídia paga.',
+    platform: 'Facebook',
+    aspectRatio: '1.91:1',
+    credits: 20,
+    badge: 'Display GDN (20cr)',
+  },
+  {
+    id: 'story_sequence_5',
+    name: 'Story Sequencial "Conto em 5 partes"',
+    label: 'Story 5 Partes',
+    description:
+      'Jornada narrativa completa (Problema, Agitação, Virada, Prova e CTA final nos Stories).',
+    platform: 'Instagram',
+    aspectRatio: '9:16',
+    credits: 25,
+    badge: 'Story 5 Partes (25cr)',
+  },
+  {
+    id: 'event_cover',
+    name: 'Capa de Evento / Live',
+    label: 'Capa Live / Evento',
+    description:
+      'Header widescreen de alto impacto para transmissões ao vivo, webinars e eventos de lançamento.',
+    platform: 'YouTube',
+    aspectRatio: '16:9',
+    credits: 20,
+    badge: 'Capa Live (20cr)',
   },
 ]
 
@@ -784,6 +832,155 @@ async function generatePostForFormat(params: {
       }),
       tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'carrossel-10', 'super-guia'],
       target_networks: ['instagram', 'linkedin'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'poster_print') {
+    const posterCaption = `🖨️ CARTAZ / PÔSTER IMPRESSO (A4)\n\n📌 TÍTULO: ${name.toUpperCase()}\n\n📄 CONTEÚDO PRINCIPAL:\n${briefing}\n\n📍 CHAMADA LOCAL / PONTO DE VENDA:\n${effectiveCta}${effectiveUrl}\n\n⚙️ ESPECIFICAÇÃO TÉCNICA: Formato A4 (2480×3508 px @ 300 DPI), margens seguras de 5mm para sangria física.`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Cartaz / Pôster Impresso (A4)`,
+      caption: posterCaption,
+      platform: 'Facebook',
+      status: 'draft',
+      duration: 0,
+      width: 2480,
+      height: 3508,
+      template_id: 'tpl-poster-a4-print',
+      script_json: JSON.stringify({
+        headline: name,
+        body: briefing,
+        footerCta: effectiveCta,
+        resolution: '300 DPI A4 Print Ready',
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'impresso', 'poster-a4'],
+      target_networks: ['facebook', 'instagram'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'google_display') {
+    const displayCaption = `🎯 ANÚNCIO GOOGLE DISPLAY (1200×628 GDN)\n\n⚡ HEADLINE PERSUASIVA (até 30 carac.): ${name.slice(0, 30)}\n\n📝 DESCRIÇÃO DO ANÚNCIO (até 90 carac.): ${briefing.slice(0, 85)}...\n\n🔘 BOTÃO CTA: ${effectiveCta.slice(0, 20)}\n\n🔗 URL FINAL: ${targetUrl || 'https://suamarca.com.br'}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Anúncio Google Display (1200×628)`,
+      caption: displayCaption,
+      platform: 'Facebook',
+      status: 'draft',
+      duration: 0,
+      width: 1200,
+      height: 628,
+      template_id: 'tpl-google-display-ads',
+      script_json: JSON.stringify({
+        headline: name.slice(0, 30),
+        longHeadline: `${name} - A Solução Que Você Precisa`,
+        description: briefing.slice(0, 90),
+        buttonText: 'Saiba Mais',
+        targetUrl: targetUrl || '',
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'google-display', 'ads'],
+      target_networks: ['facebook', 'instagram', 'twitter'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'story_sequence_5') {
+    const storySequence = [
+      {
+        part: 1,
+        title: 'Parte 1: O Gancho e a Dor',
+        text: `Você já passou por isso? ${briefing.slice(0, 100)}...`,
+      },
+      {
+        part: 2,
+        title: 'Parte 2: Agitando o Problema',
+        text: 'A maioria tenta contornar sem saber que o custo diário continua aumentando.',
+      },
+      {
+        part: 3,
+        title: 'Parte 3: O Ponto de Virada',
+        text: `Foi exatamente por isso que criamos ${name}: um novo padrão de resultado.`,
+      },
+      {
+        part: 4,
+        title: 'Parte 4: Prova e Benefício Real',
+        text: 'Mais agilidade, consistência profissional e autoridade imediata.',
+      },
+      {
+        part: 5,
+        title: 'Parte 5: Próximo Passo / CTA',
+        text: `${effectiveCta} Clique no adesivo de link ou mande direct!`,
+      },
+    ]
+
+    const seqSummary = storySequence
+      .map((s) => `📱 Story ${s.part} (${s.title}):\n"${s.text}"`)
+      .join('\n\n')
+    const fullStoryCaption = `📖 STORY SEQUENCIAL "CONTO EM 5 PARTES": ${name}\n\n${seqSummary}\n\n🔗 Link ou sticker direto: ${targetUrl || 'Link na bio'}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Story Sequencial (5 Partes)`,
+      caption: fullStoryCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 15,
+      width: 1080,
+      height: 1920,
+      template_id: 'tpl-story-sequence-5',
+      script_json: JSON.stringify({
+        title: name,
+        sequence: storySequence,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'story-5-partes', 'storytelling'],
+      target_networks: ['instagram', 'facebook', 'tiktok'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'event_cover') {
+    const eventCoverCaption = `🎙️ CAPA DE EVENTO / TRANSMISSÃO AO VIVO\n\n🔴 AO VIVO: ${name.toUpperCase()}\n\n📅 TEMA & BRIEFING:\n${briefing}\n\n⏰ INSCREVA-SE & ATIVE O LEMBRETE:\n${effectiveCta}${effectiveUrl}\n\n#live #webinar #evento #transmissao`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Capa de Evento / Live (16:9)`,
+      caption: eventCoverCaption,
+      platform: 'YouTube',
+      status: 'draft',
+      duration: 0,
+      width: 1920,
+      height: 1080,
+      template_id: 'tpl-live-event-cover',
+      script_json: JSON.stringify({
+        liveTitle: name,
+        speakerTopic: briefing,
+        cta: effectiveCta,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'live', 'capa-evento'],
+      target_networks: ['youtube', 'linkedin', 'facebook'],
       revision_count: 1,
       approval_level: 'Nível 1 (Em Revisão)',
       is_favorite: false,

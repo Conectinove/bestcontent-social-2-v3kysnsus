@@ -15,6 +15,12 @@ import {
   Check,
   FileSpreadsheet,
   FileText,
+  Activity,
+  Repeat,
+  HeartHandshake,
+  BarChart3,
+  ArrowUpRight,
+  ShieldCheck,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +29,10 @@ import { useToast } from '@/hooks/use-toast'
 import {
   getAudienceInsights,
   getFallbackAudienceInsight,
+  getNetworkAudienceComparisons,
   AudienceInsight,
+  WeeklyGrowthItem,
+  RetentionMetrics,
 } from '@/services/audience-insights'
 
 interface AudienceAnalysisBlockProps {
@@ -61,11 +70,17 @@ export function AudienceAnalysisBlock({
     gender: boolean
     cities: boolean
     times: boolean
+    growth: boolean
+    retention: boolean
+    networkComparison: boolean
   }>({
     age: true,
     gender: true,
     cities: true,
     times: true,
+    growth: true,
+    retention: true,
+    networkComparison: true,
   })
 
   useEffect(() => {
@@ -97,13 +112,13 @@ export function AudienceAnalysisBlock({
     return Math.round(insight.total_followers_tracked * periodMultiplier)
   }, [insight, periodMultiplier])
 
-  const togglePanel = (key: 'age' | 'gender' | 'cities' | 'times') => {
+  const togglePanel = (
+    key: 'age' | 'gender' | 'cities' | 'times' | 'growth' | 'retention' | 'networkComparison',
+  ) => {
     setVisiblePanels((prev) => {
       const next = { ...prev, [key]: !prev[key] }
-      // Garantir que pelo menos 1 permaneça ativo
-      if (!next.age && !next.gender && !next.cities && !next.times) {
-        return prev
-      }
+      const anyActive = Object.values(next).some(Boolean)
+      if (!anyActive) return prev
       return next
     })
   }
@@ -256,6 +271,9 @@ export function AudienceAnalysisBlock({
 
         <div className="flex items-center gap-1.5 flex-wrap">
           {[
+            { key: 'growth' as const, label: 'Evolução Semanal' },
+            { key: 'retention' as const, label: 'Retenção & Fidelidade' },
+            { key: 'networkComparison' as const, label: 'Comparativo entre Redes' },
             { key: 'age' as const, label: 'Faixa Etária' },
             { key: 'gender' as const, label: 'Gênero' },
             { key: 'cities' as const, label: 'Cidades' },
@@ -301,6 +319,285 @@ export function AudienceAnalysisBlock({
           )
         })}
       </div>
+
+      {/* NOVO BLOCO 1: Evolução Semanal da Audiência & Retenção Recorrente */}
+      {(visiblePanels.growth || visiblePanels.retention) && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Evolução Semanal (8 Semanas) */}
+          {visiblePanels.growth && (
+            <div
+              className={`p-5 rounded-2xl bg-muted/30 border border-border/70 space-y-4 ${
+                visiblePanels.retention ? 'lg:col-span-7' : 'lg:col-span-12'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground">
+                      Evolução Semanal da Audiência (Últimas 8 semanas)
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground">
+                      Crescimento líquido e taxa média de novos seguidores na rede{' '}
+                      {selectedNetwork.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold border-purple-500/30 text-purple-600 bg-purple-500/5"
+                >
+                  Tendência Positiva
+                </Badge>
+              </div>
+
+              {/* Mini gráfico em barras da evolução */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-8 gap-2 items-end h-32 pt-4 px-1">
+                  {(insight.weekly_growth || []).map((w, idx) => {
+                    const maxFollowers = Math.max(
+                      ...(insight.weekly_growth || []).map((item) => item.followers),
+                    )
+                    const minFollowers = Math.min(
+                      ...(insight.weekly_growth || []).map((item) => item.followers),
+                    )
+                    const range = Math.max(maxFollowers - minFollowers, 100)
+                    const heightPercent = Math.max(
+                      20,
+                      Math.round(((w.followers - minFollowers) / range) * 75 + 25),
+                    )
+                    const isLast = idx === (insight.weekly_growth || []).length - 1
+
+                    return (
+                      <div
+                        key={w.week}
+                        className="flex flex-col items-center gap-1.5 h-full justify-end"
+                      >
+                        <span className="text-[9px] font-mono text-muted-foreground">
+                          +{w.growthRate}%
+                        </span>
+                        <div
+                          style={{ height: `${heightPercent}%` }}
+                          className={`w-full max-w-[28px] rounded-t-lg transition-all ${
+                            isLast
+                              ? 'bg-purple-600 shadow-xs'
+                              : 'bg-purple-400/40 hover:bg-purple-400/70'
+                          }`}
+                          title={`${w.week}: ${w.followers.toLocaleString('pt-BR')} seguidores (+${w.netGain})`}
+                        />
+                        <span
+                          className={`text-[9px] font-bold ${
+                            isLast
+                              ? 'text-purple-600 dark:text-purple-400'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {w.week}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50 text-center">
+                  <div className="p-2 rounded-xl bg-card border border-border/60">
+                    <span className="text-[10px] text-muted-foreground block">Ganho Líquido</span>
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                      +
+                      {(insight.weekly_growth || [])
+                        .reduce((acc, curr) => acc + curr.netGain, 0)
+                        .toLocaleString('pt-BR')}{' '}
+                      seg.
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-card border border-border/60">
+                    <span className="text-[10px] text-muted-foreground block">
+                      Taxa Média/Semana
+                    </span>
+                    <span className="text-xs font-black text-foreground font-mono">
+                      +
+                      {(
+                        (insight.weekly_growth || []).reduce(
+                          (acc, curr) => acc + curr.growthRate,
+                          0,
+                        ) / Math.max((insight.weekly_growth || []).length, 1)
+                      ).toFixed(1)}
+                      %
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-card border border-border/60">
+                    <span className="text-[10px] text-muted-foreground block">
+                      Base Atual Projetada
+                    </span>
+                    <span className="text-xs font-black text-purple-600 dark:text-purple-400 font-mono">
+                      {(
+                        insight.weekly_growth?.[insight.weekly_growth.length - 1]?.followers ||
+                        effectiveTotal
+                      ).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Retenção & Engajamento Recorrente */}
+          {visiblePanels.retention && (
+            <div
+              className={`p-5 rounded-2xl bg-muted/30 border border-border/70 space-y-4 ${
+                visiblePanels.growth ? 'lg:col-span-5' : 'lg:col-span-12'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center">
+                    <HeartHandshake className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground">
+                      Retenção & Engajamento Recorrente
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground">
+                      Fidelidade e frequência de retorno
+                    </p>
+                  </div>
+                </div>
+
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold border-emerald-500/30 text-emerald-600 bg-emerald-500/5"
+                >
+                  Score {insight.retention_metrics?.retentionScore || 82}/100
+                </Badge>
+              </div>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl bg-card border border-border/60 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Repeat className="w-3 h-3 text-purple-500" /> Engajadores Recorrentes
+                      </span>
+                    </div>
+                    <p className="text-base font-black text-foreground">
+                      {insight.retention_metrics?.returningEngagersRate || 46}%
+                    </p>
+                    <span className="text-[9px] text-muted-foreground block">
+                      Interagem em mais de 1 post por mês
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-card border border-border/60 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Activity className="w-3 h-3 text-blue-500" /> Frequência Média
+                      </span>
+                    </div>
+                    <p className="text-base font-black text-foreground">
+                      {insight.retention_metrics?.averageSessionsPerWeek || 3.9}x
+                    </p>
+                    <span className="text-[9px] text-muted-foreground block">
+                      Visualizações semanais por usuário
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-1 text-xs">
+                  <div className="flex items-center justify-between font-bold text-[11px] text-purple-700 dark:text-purple-300">
+                    <span>Base Fiel Estimada:</span>
+                    <span className="font-mono">
+                      {(insight.retention_metrics?.loyalAudienceCount || 7200).toLocaleString(
+                        'pt-BR',
+                      )}{' '}
+                      seguidores
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Taxa Salvar / Compartilhar de{' '}
+                    <strong>{insight.retention_metrics?.saveToShareRatio || 1.5}x</strong>,
+                    indicando alto valor educativo e propensão de consumo contínuo da marca.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* NOVO BLOCO 2: Comparativo da Audiência entre Redes da Mesma Marca */}
+      {visiblePanels.networkComparison && (
+        <div className="p-5 rounded-2xl bg-muted/30 border border-border/70 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground">
+                  Comparativo de Audiência entre Redes da Mesma Marca
+                </h4>
+                <p className="text-[10px] text-muted-foreground">
+                  Identifique como o perfil de público e o comportamento variam em cada canal
+                </p>
+              </div>
+            </div>
+
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+            >
+              6 Redes Mapeadas
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {getNetworkAudienceComparisons().map((item) => (
+              <div
+                key={item.network}
+                className="p-3.5 rounded-xl bg-card border border-border/70 hover:border-purple-500/40 transition-all space-y-2 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-purple-600" />
+                      {item.label}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] font-mono py-0 font-bold text-purple-600"
+                    >
+                      Engaj. {item.engagementRate}%
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-1 text-[11px] pt-1 border-t border-border/50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Faixa Dominante:</span>
+                      <span className="font-semibold text-foreground">{item.primaryAgeGroup}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Gênero Predominante:</span>
+                      <span className="font-semibold text-foreground">{item.genderDominance}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-muted-foreground pt-2 mt-2 border-t border-border/40 leading-relaxed">
+                    💡 <strong>Insight:</strong> {item.keyInsight}
+                  </p>
+                </div>
+
+                <div className="p-1.5 rounded-lg bg-muted/60 text-[10px] text-purple-700 dark:text-purple-300 font-medium flex items-center gap-1 mt-1">
+                  <ArrowUpRight className="w-3 h-3 shrink-0 text-purple-600" />
+                  <span className="truncate">Formato ideal: {item.bestContentType}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Grid de Métricas de Audiência Dinâmico conforme Seleção */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

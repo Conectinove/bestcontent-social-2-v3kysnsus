@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   CreditCard,
   Crown,
@@ -11,10 +11,20 @@ import {
   Check,
   CheckCircle2,
   Lock,
+  History,
+  Clock,
+  AlertCircle,
+  FileText,
+  BadgeCheck,
+  XCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { BuyCreditsModal } from '@/components/subscription/BuyCreditsModal'
 import { AsaasCheckoutModal } from '@/components/subscription/AsaasCheckoutModal'
+import { getUserPayments, type UserPaymentRecord } from '@/services/asaas'
+import { useAuth } from '@/context/AuthContext'
 import { toast } from '@/hooks/use-toast'
 
 interface PlanTier {
@@ -113,6 +123,7 @@ const PLANS: PlanTier[] = [
 ]
 
 export default function Subscription() {
+  const { user } = useAuth()
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [checkoutItem, setCheckoutItem] = useState<{
@@ -125,6 +136,26 @@ export default function Subscription() {
     cycle?: 'monthly' | 'annual'
   } | null>(null)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+
+  // Histórico de pagamentos
+  const [paymentsHistory, setPaymentsHistory] = useState<UserPaymentRecord[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  const loadHistory = async () => {
+    setLoadingHistory(true)
+    try {
+      const data = await getUserPayments(user?.id)
+      setPaymentsHistory(data)
+    } catch {
+      setPaymentsHistory([])
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  useEffect(() => {
+    loadHistory()
+  }, [user?.id])
 
   // Real or fallback credit numbers matching reference screenshot:
   // Total: 3400 | Plan: 1800/1800 | Extra: 1600 | Used: 0
@@ -346,6 +377,132 @@ export default function Subscription() {
         </div>
       </div>
 
+      {/* Seção: Histórico de Pagamentos e Faturas Asaas */}
+      <Card className="rounded-3xl border-border bg-card p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/70">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+              <History className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-foreground">
+                Histórico de Cobranças & Faturas
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Registro de transações sincronizadas em tempo real via Webhook Asaas
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadHistory}
+            disabled={loadingHistory}
+            className="text-xs h-8 rounded-xl gap-1 self-start sm:self-auto"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingHistory ? 'animate-spin' : ''}`} />
+            <span>Atualizar</span>
+          </Button>
+        </div>
+
+        {paymentsHistory.length === 0 ? (
+          <div className="py-8 text-center space-y-2">
+            <Clock className="w-8 h-8 text-muted-foreground/50 mx-auto" />
+            <p className="text-xs font-semibold text-muted-foreground">
+              Nenhuma transação registrada até o momento.
+            </p>
+            <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
+              Ao assinar um plano ou recarregar créditos via PIX, Cartão ou Boleto, seus recibos e
+              status aparecerão aqui automaticamente.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {paymentsHistory.map((pay) => {
+              const isPaid = pay.status === 'paid' || pay.status === 'confirmed'
+              const isPending = pay.status === 'pending'
+              const isOverdue = pay.status === 'overdue'
+              const isRefunded = pay.status === 'refunded'
+              const isFailed = pay.status === 'failed' || pay.status === 'cancelled'
+
+              return (
+                <div
+                  key={pay.id}
+                  className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-foreground text-sm">
+                        {pay.itemTitle ||
+                          (pay.type === 'plan'
+                            ? `Plano ${pay.itemId}`
+                            : `${pay.creditsAmount || 0} Créditos`)}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-bold ${
+                          isPaid
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                            : isPending
+                              ? 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                              : isOverdue
+                                ? 'bg-rose-500/10 text-rose-600 border-rose-500/30'
+                                : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {isPaid && 'Pago / Confirmado'}
+                        {isPending && 'Pendente'}
+                        {isOverdue && 'Vencido'}
+                        {isRefunded && 'Estornado'}
+                        {isFailed && 'Falhou / Cancelado'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                      <span>
+                        Método: <strong className="text-foreground">{pay.billingType}</strong>
+                      </span>
+                      <span>&middot;</span>
+                      <span>
+                        Data:{' '}
+                        <strong className="text-foreground">
+                          {pay.created ? new Date(pay.created).toLocaleDateString('pt-BR') : 'Hoje'}
+                        </strong>
+                      </span>
+                      {pay.asaasPaymentId && (
+                        <>
+                          <span>&middot;</span>
+                          <span className="font-mono text-[10px]">ID: {pay.asaasPaymentId}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 self-end sm:self-auto">
+                    <span className="text-sm font-black text-foreground font-mono">
+                      R$ {Number(pay.amount).toFixed(2).replace('.', ',')}
+                    </span>
+
+                    {pay.asaasInvoiceUrl && (
+                      <a
+                        href={pay.asaasInvoiceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline px-2 py-1 rounded-lg bg-purple-500/10"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span>Fatura</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
       {/* Planos disponíveis section */}
       <div className="pt-4 space-y-6">
         {/* Section title + Toggle */}
@@ -528,6 +685,7 @@ export default function Subscription() {
         onOpenChange={setIsCheckoutOpen}
         item={checkoutItem}
         onPaymentSuccess={() => {
+          loadHistory()
           toast({
             title: 'Plano atualizado com sucesso!',
             description: 'Sua conta agora tem acesso a todos os recursos contratados.',

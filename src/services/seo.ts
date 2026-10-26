@@ -2,6 +2,22 @@ import pb from '@/lib/pocketbase/client'
 
 export type SocialNetwork = 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | 'facebook' | 'twitter'
 
+export type KeywordLayer = 'head' | 'longtail' | 'local'
+export type SearchIntent = 'descoberta' | 'consideração' | 'conversão'
+export type CompetitionLevel = 'baixo' | 'médio' | 'alto'
+
+export interface KeywordSuggestion {
+  keyword: string
+  layer: KeywordLayer
+  layerLabel: string
+  estimatedVolume: string
+  volumeNumeric: number
+  competition: CompetitionLevel
+  intent: SearchIntent
+  relevanceScore: number
+  reason: string
+}
+
 export interface SeoAnalysisResult {
   score: number // 0 a 100
   breakdown: {
@@ -41,6 +57,7 @@ export interface SeoAnalysisResult {
     difficulty: 'Fácil' | 'Médio' | 'Alto'
     intent?: string
   }>
+  layeredKeywords: KeywordSuggestion[]
 }
 
 export interface NetworkOptimizationChecklist {
@@ -450,6 +467,9 @@ export function analyzeCaptionSeo(
     },
   ]
 
+  // Motor em 3 camadas de palavras-chave
+  const layeredKeywords = generateLayeredKeywords(baseKeyword, niche, network)
+
   return {
     score: totalScore,
     breakdown: {
@@ -488,7 +508,108 @@ export function analyzeCaptionSeo(
     },
     recommendations,
     suggestedKeywords,
+    layeredKeywords,
   }
+}
+
+/**
+ * Gera palavras-chave em 3 camadas (Head terms, Long-tails, Locais/Nicho)
+ * calibradas pelo nicho da marca ativa.
+ */
+export function generateLayeredKeywords(
+  seed?: string,
+  niche?: string,
+  _network?: SocialNetwork,
+): KeywordSuggestion[] {
+  const cleanSeed = (seed || '').trim().toLowerCase()
+  const cleanNiche = (niche || 'Marketing').trim().toLowerCase()
+  const baseTerm = cleanSeed || cleanNiche
+
+  const list: KeywordSuggestion[] = []
+
+  // CAMADA 1: HEAD TERMS (Volume alto, descoberta, competição média/alta)
+  const headSeeds = [
+    baseTerm,
+    `${baseTerm} digital`,
+    `marketing de ${baseTerm}`,
+    `${baseTerm} brasil`,
+  ]
+
+  headSeeds.slice(0, 3).forEach((term, idx) => {
+    const vol = 45000 - idx * 12000
+    list.push({
+      keyword: term,
+      layer: 'head',
+      layerLabel: 'Head Term (Volume Alto)',
+      estimatedVolume: `${(vol / 1000).toFixed(1)}k buscas/mês`,
+      volumeNumeric: vol,
+      competition: idx === 0 ? 'alto' : 'médio',
+      intent: 'descoberta',
+      relevanceScore: 94 - idx * 3,
+      reason: 'Amplo alcance e topo de funil para descoberta orgânica de novos seguidores.',
+    })
+  })
+
+  // CAMADA 2: LONG-TAILS (Baixa competição, 2-4 palavras, consideração)
+  const longSeeds = [
+    `como crescer no ${baseTerm} do zero`,
+    `melhores estratégias de ${baseTerm} 2025`,
+    `erros comuns em ${baseTerm} e como evitar`,
+    `dicas práticas de ${baseTerm} para iniciantes`,
+    `passo a passo para dominar ${baseTerm}`,
+  ]
+
+  longSeeds.forEach((term, idx) => {
+    const vol = 8500 - idx * 1100
+    list.push({
+      keyword: term,
+      layer: 'longtail',
+      layerLabel: 'Long-tail (Baixa Competição)',
+      estimatedVolume: `${(vol / 1000).toFixed(1)}k buscas/mês`,
+      volumeNumeric: vol,
+      competition: 'baixo',
+      intent: 'consideração',
+      relevanceScore: 90 - idx * 2,
+      reason: 'Baixa concorrência e público qualificado buscando tutoriais e soluções.',
+    })
+  })
+
+  // CAMADA 3: LOCAIS & NICHO CALIBRADO (Intenção de conversão e serviço)
+  const localSeeds = [
+    `especialista em ${cleanNiche} são paulo`,
+    `consultoria de ${cleanNiche} online`,
+    `serviços de ${baseTerm} valor e orçamento`,
+    `agência de ${cleanNiche} sp brasil`,
+  ]
+
+  localSeeds.forEach((term, idx) => {
+    const vol = 3200 - idx * 500
+    list.push({
+      keyword: term,
+      layer: 'local',
+      layerLabel: 'Local / Nicho Específico',
+      estimatedVolume: `${(vol / 1000).toFixed(1)}k buscas/mês`,
+      volumeNumeric: vol,
+      competition: idx % 2 === 0 ? 'baixo' : 'médio',
+      intent: 'conversão',
+      relevanceScore: 96 - idx * 2,
+      reason: 'Intenção direta de contratação, compra ou contato profissional.',
+    })
+  })
+
+  return list
+}
+
+/**
+ * Monta um conjunto equilibrado de 8 a 12 palavras-chave (Mix Head + Long-tail + Local)
+ */
+export function buildBalancedKeywordMix(keywords: KeywordSuggestion[]): string[] {
+  const heads = keywords.filter((k) => k.layer === 'head').slice(0, 3)
+  const longtails = keywords.filter((k) => k.layer === 'longtail').slice(0, 5)
+  const locals = keywords.filter((k) => k.layer === 'local').slice(0, 3)
+
+  const combined = [...heads, ...longtails, ...locals].map((k) => k.keyword)
+  return Array.from(new Set(combined))
 }
 
 export async function saveSeoAudit(data: {

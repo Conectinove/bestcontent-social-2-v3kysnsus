@@ -76,12 +76,58 @@ export async function simulateConfirmPayment(
   return res as { success: boolean; message: string }
 }
 
-export async function getUserPayments(userId: string) {
+export interface UserPaymentRecord {
+  id: string
+  type: 'plan' | 'credits'
+  itemId: string
+  itemTitle?: string
+  amount: number
+  billingType: string
+  status: 'pending' | 'paid' | 'confirmed' | 'overdue' | 'refunded' | 'cancelled' | 'failed'
+  asaasPaymentId?: string
+  asaasInvoiceUrl?: string
+  bankSlipUrl?: string
+  creditsAmount?: number
+  paidAt?: string
+  created?: string
+}
+
+export async function getUserPayments(userId?: string): Promise<UserPaymentRecord[]> {
   try {
-    return await pb.collection('payments').getFullList({
-      filter: `user = "${userId}"`,
+    // Tenta primeiro endpoint backend dedicado
+    const res = await pb.send('/backend/v1/asaas/my-payments', {
+      method: 'GET',
+    })
+    if (res?.payments) {
+      return res.payments as UserPaymentRecord[]
+    }
+  } catch {
+    /* intentionally ignored */
+  }
+
+  // Fallback SDK collection direto
+  try {
+    const authId = userId || pb.authStore.record?.id
+    if (!authId) return []
+    const records = await pb.collection('payments').getFullList({
+      filter: `user = "${authId}"`,
       sort: '-created',
     })
+    return records.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      itemId: r.item_id,
+      itemTitle: r.item_title,
+      amount: r.amount,
+      billingType: r.billing_type,
+      status: r.status,
+      asaasPaymentId: r.asaas_payment_id,
+      asaasInvoiceUrl: r.asaas_invoice_url,
+      bankSlipUrl: r.bank_slip_url,
+      creditsAmount: r.credits_amount,
+      paidAt: r.paid_at,
+      created: r.created,
+    }))
   } catch {
     return []
   }

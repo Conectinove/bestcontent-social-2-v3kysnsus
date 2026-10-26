@@ -269,14 +269,17 @@ routerAdd(
 
 /**
  * Webhook do Asaas (chamado pelo Asaas em POST /backend/v1/asaas/webhook)
- * Eventos principais:
- * - PAYMENT_RECEIVED
- * - PAYMENT_CONFIRMED
- * Idempotente: só credita se status não for 'paid' ou 'confirmed'.
+ * Eventos suportados:
+ * - PAYMENT_CREATED: cobrança criada no Asaas
+ * - PAYMENT_CONFIRMED / PAYMENT_RECEIVED: pagamento aprovado → credita créditos ou ativa plano (idempotente)
+ * - PAYMENT_RECEIVED_IN_CASH_UNDONE_CHANGED: recebimento desfeito
+ * - PAYMENT_OVERDUE: cobrança vencida
+ * - PAYMENT_REFUNDED / PAYMENT_REFUND_IN_PROGRESS: cobrança estornada
+ * - PAYMENT_DELETED / PAYMENT_FAILED: cobrança removida ou falha
  */
 routerAdd('POST', '/backend/v1/asaas/webhook', (e) => {
   const body = e.requestInfo().body || {}
-  const event = body.event || ''
+  const event = String(body.event || '').toUpperCase()
   const payment = body.payment || {}
   const asaasPaymentId = payment.id || ''
 
@@ -284,11 +287,6 @@ routerAdd('POST', '/backend/v1/asaas/webhook', (e) => {
 
   if (!asaasPaymentId) {
     return e.json(200, { received: true, note: 'no payment id' })
-  }
-
-  const validEvents = ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED']
-  if (!validEvents.includes(event)) {
-    return e.json(200, { received: true, note: 'unhandled event ' + event })
   }
 
   const paymentsCol = e.app.findCollectionByNameOrId('payments')
@@ -301,8 +299,8 @@ routerAdd('POST', '/backend/v1/asaas/webhook', (e) => {
     console.log('[Asaas Webhook] Pagamento não localizado pelo asaas_payment_id:', asaasPaymentId)
   }
 
+  // Se não achou pelo asaas_payment_id, tenta pelo externalReference se disponível
   if (!paymentRecord) {
-    // Se não achou pelo asaas_payment_id, tenta pelo externalReference se disponível
     const extRef = payment.externalReference || ''
     if (extRef && extRef.includes('|')) {
       const parts = extRef.split('|')
@@ -312,76 +310,163 @@ routerAdd('POST', '/backend/v1/asaas/webhook', (e) => {
       const credits = Number(parts[3] || 0)
       try {
         const userRec = e.app.findRecordById(usersCol.id, userId)
-        // Cria registro de pagamento e credita
         paymentRecord = new Record(paymentsCol)
         paymentRecord.set('user', userRec.id)
         paymentRecord.set('type', type)
         paymentRecord.set('item_id', itemId)
         paymentRecord.set('amount', payment.value || 0)
         paymentRecord.set('billing_type', payment.billingType || 'PIX')
-        paymentRecord.set('status', 'paid')
+        paymentRecord.set('status', 'pending')
         paymentRecord.set('asaas_payment_id', asaasPaymentId)
         paymentRecord.set('credits_amount', credits)
-        paymentRecord.set('paid_at', new Date().toISOString())
+        paymentRecord.set('asaas_invoice_url', payment.invoiceUrl || '')
+        paymentRecord.set('bank_slip_url', payment.bankSlipUrl || '')
         e.app.save(paymentRecord)
-
-        // Credita usuário
-        if (type === 'credits' && credits > 0) {
-          const currentExtra = userRec.getInt('extra_credits') || 0
-          userRec.set('extra_credits', currentExtra + credits)
-          e.app.save(userRec)
-        } else if (type === 'plan') {
-          userRec.set('plan', itemId)
-          e.app.save(userRec)
-        }
-        return e.json(200, { success: true, processed: true, createdFromWebhook: true })
       } catch (recErr) {
         console.log('[Asaas Webhook] Erro ao criar registro fallback:', recErr)
       }
     }
+  }
+
+  if (!paymentRecord) {
     return e.json(200, { received: true, note: 'payment record not found' })
   }
 
-  // IDEMPOTÊNCIA: Se já foi pago, não credita novamente
+  const isConfirmed = event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED'
+  const isCreated = event === 'PAYMENT_CREATED'
+  const isOverdue = event === 'PAYMENT_OVERDUE'
+  const isRefunded =
+    event === 'PAYMENT_REFUNDED' ||
+    event === 'PAYMENT_REFUND_IN_PROGRESS' ||
+    event === 'PAYMENT_RECEIVED_IN_CASH_UNDONE_CHANGED'
+  const isFailedOrDeleted = event === 'PAYMENT_DELETED' || event === 'PAYMENT_FAILED'
+
   const currentStatus = paymentRecord.getString('status')
-  if (currentStatus === 'paid' || currentStatus === 'confirmed') {
-    return e.json(200, { received: true, alreadyProcessed: true })
-  }
-
-  // Atualiza status do pagamento
-  paymentRecord.set('status', 'paid')
-  paymentRecord.set('paid_at', new Date().toISOString())
-  e.app.save(paymentRecord)
-
-  // Credita na conta do usuário
   const userId = paymentRecord.getString('user')
   const type = paymentRecord.getString('type')
   const itemId = paymentRecord.getString('item_id')
   const creditsAmount = paymentRecord.getInt('credits_amount') || 0
 
-  try {
-    const userRec = e.app.findRecordById(usersCol.id, userId)
-    if (type === 'credits' && creditsAmount > 0) {
-      const currentExtra = userRec.getInt('extra_credits') || 0
-      userRec.set('extra_credits', currentExtra + creditsAmount)
-      e.app.save(userRec)
-      console.log(
-        '[Asaas Webhook] Creditados',
-        creditsAmount,
-        'créditos extras para o usuário',
-        userId,
-      )
-    } else if (type === 'plan') {
-      userRec.set('plan', itemId)
-      e.app.save(userRec)
-      console.log('[Asaas Webhook] Plano atualizado para', itemId, 'para o usuário', userId)
+  // 1. EVENTO: PAGAMENTO CONFIRMADO
+  if (isConfirmed) {
+    // IDEMPOTÊNCIA: Se já foi marcado como pago/confirmado, não credita novamente!
+    if (currentStatus === 'paid' || currentStatus === 'confirmed') {
+      console.log('[Asaas Webhook] Pagamento já processado anteriormente:', asaasPaymentId)
+      return e.json(200, { received: true, alreadyProcessed: true })
     }
-  } catch (userErr) {
-    console.log('[Asaas Webhook] Erro ao atualizar usuário:', userErr)
+
+    paymentRecord.set('status', 'paid')
+    paymentRecord.set('paid_at', new Date().toISOString())
+    e.app.save(paymentRecord)
+
+    try {
+      const userRec = e.app.findRecordById(usersCol.id, userId)
+      if (type === 'credits' && creditsAmount > 0) {
+        const currentExtra = userRec.getInt('extra_credits') || 0
+        userRec.set('extra_credits', currentExtra + creditsAmount)
+        e.app.save(userRec)
+        console.log(
+          '[Asaas Webhook] Creditados',
+          creditsAmount,
+          'créditos extras para o usuário',
+          userId,
+        )
+      } else if (type === 'plan') {
+        userRec.set('plan', itemId)
+        e.app.save(userRec)
+        console.log('[Asaas Webhook] Plano atualizado para', itemId, 'para o usuário', userId)
+      }
+    } catch (userErr) {
+      console.log('[Asaas Webhook] Erro ao creditar usuário:', userErr)
+    }
+
+    return e.json(200, { success: true, processed: true, event: 'paid' })
   }
 
-  return e.json(200, { success: true, processed: true })
+  // 2. EVENTO: COBRANÇA CRIADA
+  if (isCreated) {
+    if (paymentRecord.getString('status') !== 'paid') {
+      paymentRecord.set('status', 'pending')
+      if (payment.invoiceUrl) paymentRecord.set('asaas_invoice_url', payment.invoiceUrl)
+      if (payment.bankSlipUrl) paymentRecord.set('bank_slip_url', payment.bankSlipUrl)
+      e.app.save(paymentRecord)
+    }
+    return e.json(200, { received: true, event: 'pending' })
+  }
+
+  // 3. EVENTO: COBRANÇA VENCIDA (OVERDUE)
+  if (isOverdue) {
+    paymentRecord.set('status', 'overdue')
+    e.app.save(paymentRecord)
+    console.log('[Asaas Webhook] Pagamento marcado como vencido:', asaasPaymentId)
+    return e.json(200, { received: true, event: 'overdue' })
+  }
+
+  // 4. EVENTO: COBRANÇA ESTORNADA OU DESFEITA
+  if (isRefunded) {
+    paymentRecord.set('status', 'refunded')
+    e.app.save(paymentRecord)
+    console.log('[Asaas Webhook] Pagamento marcado como estornado:', asaasPaymentId)
+    return e.json(200, { received: true, event: 'refunded' })
+  }
+
+  // 5. EVENTO: CANCELADO OU FALHOU
+  if (isFailedOrDeleted) {
+    paymentRecord.set('status', 'failed')
+    e.app.save(paymentRecord)
+    console.log('[Asaas Webhook] Pagamento cancelado/falhou no Asaas:', asaasPaymentId)
+    return e.json(200, { received: true, event: 'failed' })
+  }
+
+  return e.json(200, { received: true, note: 'unhandled event ' + event })
 })
+
+/**
+ * Endpoint para listar histórico de pagamentos do usuário autenticado
+ * GET /backend/v1/asaas/my-payments
+ */
+routerAdd(
+  'GET',
+  '/backend/v1/asaas/my-payments',
+  (e) => {
+    const authRecord = e.auth
+    if (!authRecord) {
+      return e.json(401, { error: 'Não autorizado' })
+    }
+
+    try {
+      const records = e.app.findRecordsByFilter(
+        'payments',
+        `user = "${authRecord.id}"`,
+        '-created',
+        50,
+        0,
+      )
+
+      const items = records.map((r) => ({
+        id: r.id,
+        type: r.getString('type'),
+        itemId: r.getString('item_id'),
+        itemTitle: r.getString('item_title'),
+        amount: r.getFloat('amount'),
+        billingType: r.getString('billing_type'),
+        status: r.getString('status'),
+        asaasPaymentId: r.getString('asaas_payment_id'),
+        asaasInvoiceUrl: r.getString('asaas_invoice_url'),
+        bankSlipUrl: r.getString('bank_slip_url'),
+        creditsAmount: r.getInt('credits_amount'),
+        paidAt: r.getString('paid_at'),
+        created: r.getString('created'),
+      }))
+
+      return e.json(200, { payments: items })
+    } catch (err) {
+      console.log('Erro ao buscar pagamentos do usuário:', err)
+      return e.json(200, { payments: [] })
+    }
+  },
+  $apis.requireAuth(),
+)
 
 /**
  * Rota auxiliar para simulação/teste do usuário no painel quando em modo sandbox/configuração

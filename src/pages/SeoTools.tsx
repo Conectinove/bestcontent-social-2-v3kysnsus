@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Copy,
+  Check,
   Hash,
   Share2,
   Bookmark,
@@ -28,12 +29,17 @@ import {
   Wand2,
   Loader2,
   ChevronRight,
+  Shuffle,
+  Compass,
+  Target,
 } from 'lucide-react'
 import {
   analyzeCaptionSeo,
   NETWORK_CHECKLISTS,
   saveSeoAudit,
+  buildBalancedKeywordMix,
   type SocialNetwork,
+  type KeywordSuggestion,
 } from '@/services/seo'
 import { improveText } from '@/services/ai'
 import { useSocial } from '@/context/SocialContext'
@@ -60,6 +66,11 @@ export function SeoTools() {
   )
   const [nicheInput, setNicheInput] = useState<string>('Marketing & Redes Sociais')
   const [savingAudit, setSavingAudit] = useState(false)
+
+  const [keywordLayerFilter, setKeywordLayerFilter] = useState<
+    'all' | 'head' | 'longtail' | 'local'
+  >('all')
+  const [copiedTerm, setCopiedTerm] = useState<string | null>(null)
 
   // Keywords finder
   const [keywordQuery, setKeywordQuery] = useState('')
@@ -599,16 +610,213 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
           </div>
         </TabsContent>
 
-        {/* TAB 2: PALAVRAS-CHAVE & HASHTAGS COM VOLUME */}
+        {/* TAB 2: PALAVRAS-CHAVE EM CAMADAS & BOTÃO COMBINAR MIX */}
         <TabsContent value="keywords" className="space-y-6">
-          <Card className="p-6 rounded-3xl border-border bg-card space-y-6 shadow-xs">
+          {/* Card Superior: Motor em 3 Camadas & Botão Combinar */}
+          <Card className="p-6 rounded-3xl border-purple-500/30 bg-purple-500/5 space-y-5 shadow-xs">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-purple-600" />
+                  <h3 className="text-base font-black text-foreground">
+                    Sugestões em Camadas por Nicho ({nicheInput})
+                  </h3>
+                  <Badge className="bg-purple-600 text-white text-[10px] font-bold">
+                    Head + Long-tails + Locais
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Volume de busca estimado, nível de competição e intenção (descoberta, consideração
+                  e conversão).
+                </p>
+              </div>
+
+              {/* Botões de Ação: Combinar Mix Equilibrado */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  onClick={() => {
+                    const mix = buildBalancedKeywordMix(analysis.layeredKeywords || [])
+                    const mixText = mix.join(', ')
+                    navigator.clipboard.writeText(mixText)
+                    toast({
+                      title: 'Conjunto equilibrado copiado! 🎯',
+                      description: `${mix.length} termos selecionados (Mix Head + Long-tail + Local) prontos para colar.`,
+                    })
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-2xl h-9 gap-1.5 shadow-sm"
+                >
+                  <Shuffle className="w-3.5 h-3.5" />
+                  <span>Combinar Mix (8-12 Termos)</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const mix = buildBalancedKeywordMix(analysis.layeredKeywords || [])
+                    const tagsText = '\n\n' + mix.map((k) => `#${k.replace(/\s+/g, '')}`).join(' ')
+                    setCaptionInput((prev) => (prev ? prev + tagsText : tagsText.trim()))
+                    toast({
+                      title: 'Mix aplicado na legenda!',
+                      description: `${mix.length} palavras-chave inseridas como hashtags estratégicas no editor.`,
+                    })
+                  }}
+                  className="text-xs font-bold rounded-2xl h-9 gap-1.5 border-purple-500/30 text-purple-700 dark:text-purple-300"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Aplicar na Legenda</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Filtro de Camadas */}
+            <div className="flex items-center gap-2 pt-2 border-t border-purple-500/20 flex-wrap">
+              <span className="text-xs font-bold text-muted-foreground mr-1">
+                Filtrar por camada:
+              </span>
+              {[
+                { key: 'all' as const, label: 'Todas as Camadas' },
+                { key: 'head' as const, label: 'Head Terms (Volume Alto)' },
+                { key: 'longtail' as const, label: 'Long-tails (Baixa Competição)' },
+                { key: 'local' as const, label: 'Locais & Nicho (Conversão)' },
+              ].map((f) => (
+                <Button
+                  key={f.key}
+                  type="button"
+                  variant={keywordLayerFilter === f.key ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setKeywordLayerFilter(f.key)}
+                  className={`text-[11px] h-7 rounded-xl ${
+                    keywordLayerFilter === f.key
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                      : 'border-border'
+                  }`}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+          </Card>
+
+          {/* Grid de Palavras-Chave do Motor em Camadas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(analysis.layeredKeywords || [])
+              .filter((k) => keywordLayerFilter === 'all' || k.layer === keywordLayerFilter)
+              .map((kw, idx) => {
+                const isCopied = copiedTerm === kw.keyword
+                const compColor =
+                  kw.competition === 'baixo'
+                    ? 'border-emerald-500/30 text-emerald-600 bg-emerald-500/5'
+                    : kw.competition === 'médio'
+                      ? 'border-amber-500/30 text-amber-600 bg-amber-500/5'
+                      : 'border-rose-500/30 text-rose-600 bg-rose-500/5'
+
+                return (
+                  <Card
+                    key={idx}
+                    className="p-4 rounded-2xl border-border bg-card space-y-3 hover:border-purple-500/40 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground"
+                        >
+                          {kw.layerLabel}
+                        </Badge>
+                        <span className="text-[10px] font-mono font-bold text-purple-600">
+                          Score {kw.relevanceScore}%
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-black text-foreground">{kw.keyword}</h4>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                          {kw.reason}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-border/60 text-center">
+                        <div className="p-1.5 rounded-lg bg-muted/40">
+                          <span className="text-[9px] text-muted-foreground block">Volume</span>
+                          <span className="text-[10px] font-bold text-foreground font-mono">
+                            {kw.estimatedVolume}
+                          </span>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-muted/40">
+                          <span className="text-[9px] text-muted-foreground block">Competição</span>
+                          <span
+                            className={`text-[10px] font-bold capitalize ${
+                              kw.competition === 'baixo'
+                                ? 'text-emerald-600'
+                                : kw.competition === 'médio'
+                                  ? 'text-amber-600'
+                                  : 'text-rose-600'
+                            }`}
+                          >
+                            {kw.competition}
+                          </span>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-muted/40">
+                          <span className="text-[9px] text-muted-foreground block">Intenção</span>
+                          <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 capitalize">
+                            {kw.intent}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(kw.keyword)
+                          setCopiedTerm(kw.keyword)
+                          setTimeout(() => setCopiedTerm(null), 2000)
+                          toast({
+                            title: 'Termo copiado!',
+                            description: `"${kw.keyword}" copiado para a área de transferência.`,
+                          })
+                        }}
+                        className="text-[11px] h-8 flex-1 rounded-xl font-bold gap-1"
+                      >
+                        {isCopied ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                        <span>{isCopied ? 'Copiado' : 'Copiar'}</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCaptionInput((prev) => `${prev} ${kw.keyword}`)
+                          toast({
+                            title: 'Inserido na legenda!',
+                            description: `"${kw.keyword}" adicionado ao texto da análise.`,
+                          })
+                        }}
+                        className="text-[11px] h-8 px-2.5 rounded-xl border-purple-500/30 text-purple-600 hover:bg-purple-500/10 font-bold"
+                      >
+                        + Legenda
+                      </Button>
+                    </div>
+                  </Card>
+                )
+              })}
+          </div>
+
+          {/* Busca Manual Adicional & Termos de Autocomplete */}
+          <Card className="p-6 rounded-3xl border-border bg-card space-y-5 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-black text-foreground">
-                  Mapeamento de Palavras-Chave e Termos de Busca
+                  Busca Customizada de Termos e Concorrência
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Estimativas de volume de busca mensal e nível de concorrência por nicho
+                  Pesquise variações adicionais e adicione à lista permanente
                 </p>
               </div>
 
@@ -632,8 +840,8 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
             <div className="p-3 rounded-2xl bg-muted/40 border border-border/80 text-xs text-muted-foreground flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-purple-600 shrink-0" />
               <span>
-                <strong>Aviso de Estimativa:</strong> Volumes e CPCs baseados em benchmarks
-                agregados do setor digital até sincronização de APIs diretas.
+                <strong>Aviso de Estimativa:</strong> Volumes e métricas calibrados por benchmarks
+                de mercado até conexão de APIs nativas.
               </span>
             </div>
 

@@ -47,6 +47,10 @@ import {
   Pin,
   MessageCircle,
   BookOpen,
+  Printer,
+  MonitorPlay,
+  ListOrdered,
+  Tv,
 } from 'lucide-react'
 
 export const CAMPAIGN_TONES = [
@@ -230,6 +234,14 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
         return <MessageCircle className="w-4 h-4 text-emerald-600" />
       case 'carrossel_10':
         return <BookOpen className="w-4 h-4 text-purple-600" />
+      case 'poster_print':
+        return <Printer className="w-4 h-4 text-cyan-600" />
+      case 'google_display':
+        return <MonitorPlay className="w-4 h-4 text-amber-600" />
+      case 'story_sequence_5':
+        return <ListOrdered className="w-4 h-4 text-pink-600" />
+      case 'event_cover':
+        return <Tv className="w-4 h-4 text-indigo-600" />
       default:
         return <FileText className="w-4 h-4 text-muted-foreground" />
     }
@@ -257,7 +269,8 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
                   </div>
                   <DialogDescription className="text-xs sm:text-sm text-purple-100 mt-0.5">
                     Gere múltiplos formatos (Reels, Story, Feed, Carrosséis, YouTube, Thread,
-                    Newsletter, Pins, WhatsApp) de uma vez só a partir de um único briefing.
+                    Newsletter, Pins, WhatsApp, Cartaz Impresso, Google Display, Story 5 Partes,
+                    Capa Live) de uma vez só a partir de um único briefing.
                   </DialogDescription>
                 </div>
               </div>
