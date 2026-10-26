@@ -58,9 +58,30 @@ export interface Post {
   isArchived?: boolean
   revisionCount?: number
   approvalLevel?: string
+  campaignId?: string
   created?: string
   createdAt?: string
   _raw?: any
+}
+
+export interface CampaignRecord {
+  id: string
+  user: string
+  brand?: string
+  name: string
+  objective: 'engajar' | 'vender' | 'awareness'
+  brand_voice?: string
+  briefing: string
+  target_url?: string
+  cta?: string
+  formats: string[]
+  status: 'draft' | 'active' | 'completed' | 'archived'
+  total_credits?: number
+  created: string
+  updated: string
+  expand?: {
+    brand?: Brand
+  }
 }
 
 export interface IdeaCard {

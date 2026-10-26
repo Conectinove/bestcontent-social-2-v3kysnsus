@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   BookOpen,
   Search,
@@ -39,7 +39,11 @@ import {
   Star,
   Tag,
   Maximize2,
+  Megaphone,
+  X,
 } from 'lucide-react'
+import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
+import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import {
   togglePostFavorite,
   togglePostArchived,
@@ -186,6 +190,7 @@ function getPostImage(post: Post, isVideo: boolean, presetImage?: string): strin
 
 export default function Library() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const {
     posts,
     brands,
@@ -205,6 +210,11 @@ export default function Library() {
   const [selectedFormat, setSelectedFormat] = useState('all') // 'all', 'flyer', 'video', 'post'
   const [selectedTag, setSelectedTag] = useState('all')
   const [onlyFavorites, setOnlyFavorites] = useState(false)
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(() => {
+    return searchParams.get('campaign') || 'all'
+  })
+  const [campaignsList, setCampaignsList] = useState<CampaignRecord[]>([])
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false)
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -221,6 +231,21 @@ export default function Library() {
   // Cache de métricas de posts carregadas do backend
   const [metricsMap, setMetricsMap] = useState<Record<string, PostMetric>>({})
   const [multiMetricsMap, setMultiMetricsMap] = useState<Record<string, PostMetric[]>>({})
+
+  // Sincronizar query param com selectedCampaignId
+  useEffect(() => {
+    const fromUrl = searchParams.get('campaign')
+    if (fromUrl && fromUrl !== selectedCampaignId) {
+      setSelectedCampaignId(fromUrl)
+    }
+  }, [searchParams])
+
+  // Carregar lista de campanhas
+  useEffect(() => {
+    getCampaigns().then((res) => {
+      setCampaignsList(res)
+    })
+  }, [posts])
 
   useEffect(() => {
     getAllPostMetrics().then((list) => {
@@ -323,6 +348,12 @@ export default function Library() {
           if (!postTags.includes(selectedTag.toLowerCase())) return false
         }
 
+        // Campaign filter
+        if (selectedCampaignId !== 'all') {
+          const postCampId = post.campaignId || post._raw?.campaign
+          if (postCampId !== selectedCampaignId) return false
+        }
+
         // Search text
         if (search.trim()) {
           const q = search.toLowerCase()
@@ -357,6 +388,7 @@ export default function Library() {
     selectedPlatform,
     selectedFormat,
     selectedTag,
+    selectedCampaignId,
     onlyFavorites,
     search,
     sortOrder,
@@ -643,6 +675,15 @@ export default function Library() {
           >
             <ImageIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             <span>Banco de Imagens</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => setCampaignModalOpen(true)}
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-xs h-9 px-3.5 gap-2 shadow-xs transition-all"
+          >
+            <Megaphone className="w-3.5 h-3.5" />
+            <span>Nova Campanha</span>
           </Button>
 
           <Button
@@ -966,7 +1007,7 @@ export default function Library() {
         </div>
 
         {/* Brand quick filter */}
-        <div className="md:col-span-3">
+        <div className="md:col-span-2">
           <Select value={selectedBrandFilter} onValueChange={setSelectedBrandFilter}>
             <SelectTrigger
               aria-label="Filtrar por Marca"
@@ -976,9 +1017,9 @@ export default function Library() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">
-                {activeBrand ? `Marca Ativa: ${activeBrand.name}` : 'Todas as marcas'}
+                {activeBrand ? `Marca: ${activeBrand.name}` : 'Todas marcas'}
               </SelectItem>
-              <SelectItem value="all">Todas as Marcas (Geral)</SelectItem>
+              <SelectItem value="all">Todas as Marcas</SelectItem>
               {brands.map((b: any) => (
                 <SelectItem key={b.id} value={b.id}>
                   {b.name}
@@ -1005,6 +1046,40 @@ export default function Library() {
               <SelectItem value="tiktok">TikTok</SelectItem>
               <SelectItem value="linkedin">LinkedIn</SelectItem>
               <SelectItem value="twitter">Twitter / X</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Campaign quick filter */}
+        <div className="md:col-span-3">
+          <Select
+            value={selectedCampaignId}
+            onValueChange={(val) => {
+              setSelectedCampaignId(val)
+              if (val === 'all') {
+                searchParams.delete('campaign')
+                setSearchParams(searchParams)
+              } else {
+                setSearchParams({ ...Object.fromEntries(searchParams), campaign: val })
+              }
+            }}
+          >
+            <SelectTrigger
+              aria-label="Filtrar por Campanha"
+              className="h-10 text-xs rounded-xl bg-card border-border/80 shadow-xs text-purple-700 dark:text-purple-300 font-semibold"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                <Megaphone className="w-3.5 h-3.5 text-purple-600" />
+                <SelectValue placeholder="Campanha" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Campanhas</SelectItem>
+              {campaignsList.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -1108,9 +1183,47 @@ export default function Library() {
       </div>
 
       {/* =========================================================================
-          BANNER INFORMATIVO DA MARCA SELECIONADA
+          BANNER INFORMATIVO DE CAMPANHA / MARCA ATIVA
           ========================================================================= */}
-      {selectedBrandFilter === 'active' && activeBrand && (
+      {selectedCampaignId !== 'all' && (
+        <div className="p-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-500/15 via-purple-500/10 to-indigo-500/10 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-xs">
+              <Megaphone className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-foreground">
+                  Filtro Ativo: Campanha &ldquo;
+                  {campaignsList.find((c) => c.id === selectedCampaignId)?.name || 'Campanha'}
+                  &rdquo;
+                </span>
+                <Badge className="bg-purple-600 text-white text-[9px] px-1.5 py-0">
+                  {filteredPosts.length} {filteredPosts.length === 1 ? 'formato' : 'formatos'}
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Exibindo todos os rascunhos multi-formato gerados juntos nesta campanha.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedCampaignId('all')
+              searchParams.delete('campaign')
+              setSearchParams(searchParams)
+            }}
+            className="text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 h-8 gap-1.5 self-end sm:self-auto"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Remover filtro de campanha</span>
+          </Button>
+        </div>
+      )}
+
+      {selectedCampaignId === 'all' && selectedBrandFilter === 'active' && activeBrand && (
         <div className="p-3 px-4 rounded-xl bg-purple-500/10 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
@@ -2130,9 +2243,21 @@ export default function Library() {
       )}
 
       {/* =========================================================================
-          IMAGE BANK MODAL
+          IMAGE BANK MODAL & CREATE CAMPAIGN MODAL
           ========================================================================= */}
       <ImageBankModal open={imageBankOpen} onOpenChange={setImageBankOpen} />
+
+      <CreateCampaignModal
+        open={campaignModalOpen}
+        onOpenChange={setCampaignModalOpen}
+        onSuccess={(cId) => {
+          setSelectedCampaignId(cId)
+          searchParams.set('campaign', cId)
+          setSearchParams(searchParams)
+          refreshPosts()
+          getCampaigns().then(setCampaignsList)
+        }}
+      />
 
       {/* =========================================================================
           RODAPÉ PADRÃO DA PLATAFORMA

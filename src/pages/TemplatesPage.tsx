@@ -17,18 +17,30 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { TemplateSelector, NETWORKS_CONFIG, CATEGORIES_CONFIG } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
+import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import { suggestTemplates, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
+import { getCampaigns } from '@/services/campaigns'
+import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { useEffect } from 'react'
 
 export default function TemplatesPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { activeBrand } = useSocial()
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [whatToPostOpen, setWhatToPostOpen] = useState(false)
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false)
+  const [campaignsCount, setCampaignsCount] = useState<number>(0)
   const [activeNetwork, setActiveNetwork] = useState('all')
   const [featuredAiTemplates, setFeaturedAiTemplates] = useState<PostTemplate[]>([])
   const [loadingAi, setLoadingAi] = useState(false)
+
+  useEffect(() => {
+    getCampaigns(user?.id)
+      .then((camps) => setCampaignsCount(camps.length))
+      .catch(() => setCampaignsCount(0))
+  }, [user?.id])
 
   useEffect(() => {
     let isMounted = true
@@ -87,6 +99,19 @@ export default function TemplatesPage() {
 
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <Button
+            onClick={() => setCampaignModalOpen(true)}
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs h-10 px-4 gap-2 shadow-md hover:shadow-purple-500/20 transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Criar Campanha Multi-formato</span>
+            {campaignsCount > 0 && (
+              <Badge className="bg-white/20 text-white hover:bg-white/30 text-[10px] px-1.5 py-0">
+                {campaignsCount}
+              </Badge>
+            )}
+          </Button>
+
+          <Button
             onClick={() => setWhatToPostOpen(true)}
             className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
           >
@@ -101,6 +126,58 @@ export default function TemplatesPage() {
             <Sparkles className="w-4 h-4" />
             <span>Abrir Catálogo Completo</span>
           </Button>
+        </div>
+      </div>
+
+      {/* Banner Destaque: Criar Campanha Multi-formato 5-em-1 */}
+      <div
+        onClick={() => setCampaignModalOpen(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault()
+            setCampaignModalOpen(true)
+          }
+        }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-700 p-6 sm:p-7 text-white cursor-pointer group hover:shadow-xl hover:shadow-purple-500/20 transition-all border border-purple-400/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300"
+      >
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-white/20 text-white hover:bg-white/30 border-0 text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm">
+                NOVO • Multi-Formato 5-em-1
+              </Badge>
+              {campaignsCount > 0 && (
+                <span className="text-xs text-purple-200 font-medium">
+                  • {campaignsCount} {campaignsCount === 1 ? 'campanha ativa' : 'campanhas ativas'}
+                </span>
+              )}
+            </div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white group-hover:translate-x-0.5 transition-transform">
+              Criar Campanha Integrada
+            </h2>
+            <p className="text-xs sm:text-sm text-purple-100 leading-relaxed">
+              Gere reels, story, feed, carrossel e flyer de uma vez só a partir do mesmo briefing
+              com IA. Todos os formatos salvos diretamente como rascunhos na sua biblioteca.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <Button
+              type="button"
+              className="bg-white text-purple-900 hover:bg-purple-50 font-bold text-xs sm:text-sm h-11 px-6 rounded-2xl shadow-lg gap-2 group-hover:scale-105 transition-transform"
+            >
+              <span>Configurar Briefing</span>
+              <ArrowRight className="w-4 h-4 text-purple-700" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Efeitos Decorativos */}
+        <div className="absolute right-[-30px] bottom-[-30px] w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 text-white/10 group-hover:text-white/20 transition-colors pointer-events-none hidden md:block">
+          <Sparkles className="w-36 h-36" />
         </div>
       </div>
 
@@ -236,6 +313,17 @@ export default function TemplatesPage() {
               caption: `${idea.title}\n\n${idea.caption}\n\n${idea.hashtags.join(' ')}`,
             },
           })
+        }}
+      />
+
+      {/* Modal Criar Campanha Multi-formato */}
+      <CreateCampaignModal
+        open={campaignModalOpen}
+        onOpenChange={setCampaignModalOpen}
+        onSuccess={() => {
+          getCampaigns(user?.id)
+            .then((camps) => setCampaignsCount(camps.length))
+            .catch(() => {})
         }}
       />
     </div>

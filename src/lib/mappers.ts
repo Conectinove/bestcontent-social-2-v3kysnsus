@@ -106,6 +106,7 @@ export function mapPost(record: any): Post {
     isArchived: Boolean(record.is_archived),
     revisionCount: typeof record.revision_count === 'number' ? record.revision_count : 1,
     approvalLevel: record.approval_level || undefined,
+    campaignId: record.campaign || undefined,
     _raw: record,
   }
 }

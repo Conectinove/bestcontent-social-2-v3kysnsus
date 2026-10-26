@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Sparkles,
@@ -10,8 +10,11 @@ import {
   Smartphone,
   Crown,
   Share2,
+  ArrowRight,
+  Layers,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 
 // Custom WhatsApp SVG icon
 export function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
@@ -142,6 +145,7 @@ export function FlyerCardIllustration() {
 
 export default function CreateHub() {
   const navigate = useNavigate()
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false)
 
   return (
     <div className="min-h-full flex flex-col justify-between max-w-6xl mx-auto px-4 py-4 md:py-8 animate-fade-in">
@@ -297,28 +301,51 @@ export default function CreateHub() {
         </div>
       </div>
 
-      {/* Banner Inferior: Criar campanha (EM BREVE) */}
+      {/* Banner Inferior: Criar campanha Multi-formato (ATIVO) */}
       <div className="mt-8 mb-6">
-        <div className="w-full bg-[#f5f3ff] dark:bg-primary/10 border border-purple-200/70 dark:border-primary/20 rounded-2xl p-4 sm:p-5 flex items-center gap-4 transition-all hover:border-primary/40">
-          <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0">
-            <Crown className="w-5 h-5 text-[#7c3aed]" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-sm sm:text-base font-bold text-foreground">Criar campanha</h4>
-              <Badge
-                variant="outline"
-                className="bg-amber-100/80 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300 text-[10px] font-bold px-2 py-0 uppercase"
-              >
-                EM BREVE
-              </Badge>
+        <div
+          onClick={() => setCampaignModalOpen(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault()
+              setCampaignModalOpen(true)
+            }
+          }}
+          className="w-full bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 text-white rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+              <Layers className="w-6 h-6" />
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Gere reels, story, feed, carrossel e flyer de uma vez só, a partir do mesmo briefing.
-            </p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-base sm:text-lg font-black text-white tracking-tight">
+                  Criar Campanha Multi-formato
+                </h4>
+                <Badge className="bg-white/20 hover:bg-white/25 text-white border-white/30 text-[10px] font-bold px-2 py-0 uppercase tracking-wider">
+                  5-em-1 • IA Integrada
+                </Badge>
+              </div>
+              <p className="text-xs sm:text-sm text-purple-100 mt-1 max-w-2xl leading-relaxed">
+                Gere reels, story, feed, carrossel e flyer de uma vez só, a partir do mesmo
+                briefing.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <span className="text-xs font-bold text-white group-hover:translate-x-1 transition-transform flex items-center gap-1.5 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-xs border border-white/20">
+              <span>Iniciar agora</span>
+              <ArrowRight className="w-4 h-4" />
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Modal Criar Campanha */}
+      <CreateCampaignModal open={campaignModalOpen} onOpenChange={setCampaignModalOpen} />
 
       {/* Bottom Footer inside Hub */}
       <div className="border-t border-border/60 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
