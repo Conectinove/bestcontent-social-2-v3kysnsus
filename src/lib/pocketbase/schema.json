@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T12:03:00.682Z",
+  "generatedAt": "2026-10-26T12:18:28.905Z",
   "collections": [
     {
       "name": "users",
@@ -1473,6 +1473,15 @@
             "estilo_de_vida",
             "saude",
             "moda",
+            "fitness",
+            "viagem",
+            "imoveis",
+            "financas",
+            "beleza",
+            "pets",
+            "gastronomia",
+            "esportes",
+            "eventos",
             "geral"
           ]
         },
@@ -1527,6 +1536,12 @@
         {
           "name": "height",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_favorite",
+          "type": "bool",
           "required": false,
           "system": false
         }

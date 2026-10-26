@@ -125,12 +125,154 @@ const DURATIONS = [
 ]
 
 const TEMPLATES = [
-  { id: 'tutorial', title: 'Tutorial Passo a Passo', desc: 'Ensine algo de forma rápida' },
-  { id: 'produto', title: 'Produto em Destaque', desc: 'Mostre seu produto em ação' },
-  { id: 'storytelling', title: 'Storytelling', desc: 'Conte uma história envolvente' },
-  { id: 'trend', title: 'Trend / Desafio', desc: 'Aproveite trends e desafios' },
-  { id: 'bastidores', title: 'Bastidores', desc: 'Mostre os bastidores do negócio' },
-  { id: 'depoimento', title: 'Depoimento', desc: 'Prova social e depoimentos' },
+  {
+    id: 'tutorial',
+    title: 'Tutorial Rápido (3 Passos)',
+    desc: 'Ensine um hack prático em 30s com gancho magnético e retenção alta',
+    category: 'educativo',
+    duration: 30,
+    hook: 'Pare de perder tempo com isso agora mesmo!',
+    beats: ['0-3s: Gancho', '3-12s: O Erro', '12-24s: 3 Passos', '24-30s: CTA'],
+  },
+  {
+    id: 'antes-depois',
+    title: 'Antes e Depois Transformador',
+    desc: 'Evolução quadro a quadro de um caso real com alto impacto visual',
+    category: 'autoridade',
+    duration: 25,
+    hook: 'Você não vai acreditar como isso estava antes...',
+    beats: ['0-3s: Choque', '3-10s: Situação Caótica', '10-14s: A Virada', '14-25s: O Depois'],
+  },
+  {
+    id: 'depoimento-ugc',
+    title: 'Depoimento de Cliente (UGC)',
+    desc: 'Prova social autêntica no estilo selfie gravado por cliente satisfeito',
+    category: 'autoridade',
+    duration: 45,
+    hook: 'Eu preciso te contar o que aconteceu depois de 14 dias...',
+    beats: [
+      '0-5s: Declaração',
+      '5-18s: A Dor Antiga',
+      '18-35s: Resultado Real',
+      '35-45s: Recomendação',
+    ],
+  },
+  {
+    id: 'tour-negocio',
+    title: 'Tour pelo Negócio & Espaço',
+    desc: 'Passeio acolhedor pela estrutura da sua empresa gerando conexão e confiança',
+    category: 'storytelling',
+    duration: 35,
+    hook: 'Já imaginou como é trabalhar aqui dentro?',
+    beats: [
+      '0-4s: Entrada & Boas-vindas',
+      '4-15s: Espaço & Detalhes',
+      '15-25s: Equipe',
+      '25-35s: Convite',
+    ],
+  },
+  {
+    id: 'faq-dinamico',
+    title: 'Perguntas Frequentes (FAQ)',
+    desc: 'Responda a dúvida mais enviada na caixinha de forma direta e sem jargões',
+    category: 'educativo',
+    duration: 30,
+    hook: 'Todo dia alguém me pergunta isso na caixinha...',
+    beats: [
+      '0-4s: A Dúvida',
+      '4-18s: A Resposta Clara',
+      '18-26s: Dica de Ouro',
+      '26-30s: Pergunta Final',
+    ],
+  },
+  {
+    id: 'trend-audio',
+    title: 'Trend com Áudio do Momento',
+    desc: 'Humor ou situação relacionável sincronizada com o som que está viralizando',
+    category: 'engajamento',
+    duration: 15,
+    hook: 'Pov: Quando o cliente pede algo para ontem...',
+    beats: ['0-3s: Situação inicial', '3-10s: Sincronia com áudio', '10-15s: Punchline'],
+  },
+  {
+    id: 'bastidores-producao',
+    title: 'Bastidores da Produção (ASMR)',
+    desc: 'Mostre o cuidado e carinho ao preparar um pedido ou serviço nos mínimos detalhes',
+    category: 'storytelling',
+    duration: 35,
+    hook: 'Vem ver o carinho que colocamos em cada detalhe...',
+    beats: [
+      '0-4s: Início do processo',
+      '4-15s: Manuseio com som imersivo',
+      '15-25s: Bilhete especial',
+      '25-35s: Finalização',
+    ],
+  },
+  {
+    id: 'lancamento-teaser',
+    title: 'Lançamento de Produto Teaser',
+    desc: 'Cortes rápidos e iluminação cinematográfica para despertar desejo imediato',
+    category: 'promo',
+    duration: 20,
+    hook: 'Você pediu, nós criamos.',
+    beats: [
+      '0-3s: Revelação do mistério',
+      '3-10s: Detalhes do produto',
+      '10-16s: Benefício central',
+      '16-20s: Oferta de estreia',
+    ],
+  },
+  {
+    id: 'top5-list',
+    title: 'Lista Rápida (Top 5 Dicas)',
+    desc: 'Dicas numeradas em ritmo acelerado com salvamento e compartilhamento alto',
+    category: 'educativo',
+    duration: 40,
+    hook: 'Se eu soubesse disso há 2 anos estaria muito mais longe...',
+    beats: [
+      '0-4s: Promessa da lista',
+      '4-18s: Dicas 1 e 2',
+      '18-30s: Dica 3 e 4',
+      '30-40s: Dica de ouro',
+    ],
+  },
+  {
+    id: 'aula-30s',
+    title: 'Conteúdo Educativo em 30s',
+    desc: 'Micro-aula condensada explicando um conceito valioso de forma descomplicada',
+    category: 'educativo',
+    duration: 30,
+    hook: 'Em 30 segundos eu vou te provar uma coisa...',
+    beats: [
+      '0-3s: Desafio',
+      '3-15s: Conceito simplificado',
+      '15-25s: Aplicação prática',
+      '25-30s: CTA para seguir',
+    ],
+  },
+  {
+    id: 'evento-live',
+    title: 'Chamada para Evento / Live Urgente',
+    desc: 'Gera senso de urgência imediato para transmissão ou evento presencial',
+    category: 'promo',
+    duration: 20,
+    hook: 'ESTAMOS AO VIVO AGORA: Entra na sala!',
+    beats: ['0-4s: Alerta ao vivo', '4-12s: O que está rolando', '12-20s: Botão de entrada'],
+  },
+  {
+    id: 'linkedin-case',
+    title: 'Estudo de Caso Executivo B2B',
+    desc: 'Depoimento de liderança e métricas de retorno em formato horizontal 16:9',
+    category: 'autoridade',
+    duration: 60,
+    hook: 'Eficiência operacional não é sorte, é método.',
+    beats: [
+      '0-8s: Métrica de destaque',
+      '8-25s: O Desafio',
+      '25-45s: Implementação',
+      '45-60s: Resultados consolidados',
+    ],
+  },
 ]
 
 function downloadFile(content: string, filename: string, type: string) {
@@ -673,18 +815,35 @@ export default function GuidedCreator() {
             {TEMPLATES.map((t) => (
               <div
                 key={t.id}
-                onClick={() => setTemplate(t.id)}
-                className={`p-5 rounded-2xl border cursor-pointer transition-all ${
+                onClick={() => {
+                  setTemplate(t.id)
+                  if (t.duration) setDuration(t.duration)
+                  if (t.hook && !prompt) setPrompt(t.hook)
+                }}
+                className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
                   template === t.id
-                    ? 'border-primary ring-2 ring-primary/30 bg-primary/5 shadow-md'
-                    : 'border-border hover:border-primary/40 bg-card'
+                    ? 'border-purple-600 ring-2 ring-purple-600/30 bg-purple-600/5 shadow-md'
+                    : 'border-border hover:border-purple-500/40 bg-card'
                 }`}
               >
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3">
-                  <LayoutIcon className="w-4 h-4" />
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                      <LayoutIcon className="w-4 h-4" />
+                    </div>
+                    <Badge variant="outline" className="text-[10px] font-mono">
+                      {t.duration}s
+                    </Badge>
+                  </div>
+                  <h3 className="font-bold text-sm text-foreground">{t.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t.desc}</p>
                 </div>
-                <h3 className="font-bold text-sm text-foreground">{t.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t.desc}</p>
+
+                <div className="mt-3 pt-2 border-t border-border/60">
+                  <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold block truncate">
+                    Gancho: "{t.hook}"
+                  </span>
+                </div>
               </div>
             ))}
           </div>

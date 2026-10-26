@@ -25,6 +25,16 @@ export function ContentDraftWidget({
   )
 }
 
+export const CAPTION_TONES = [
+  { id: 'profissional', label: 'Profissional', emoji: '💼' },
+  { id: 'descontraido', label: 'Descontraído', emoji: '😊' },
+  { id: 'inspirador', label: 'Inspirador', emoji: '🚀' },
+  { id: 'divertido', label: 'Divertido', emoji: '🎉' },
+  { id: 'direto', label: 'Direto ao Ponto', emoji: '🎯' },
+  { id: 'empatico', label: 'Empático', emoji: '🤝' },
+  { id: 'provocativo', label: 'Provocativo', emoji: '🔥' },
+]
+
 export function CaptionWidget({
   caption,
   setCaption,
@@ -33,6 +43,8 @@ export function CaptionWidget({
   onGenerateVariations,
   variations,
   onSelectVariation,
+  currentTone,
+  onToneChange,
 }: {
   caption: string
   setCaption: (v: string) => void
@@ -41,9 +53,50 @@ export function CaptionWidget({
   onGenerateVariations?: () => void
   variations?: Array<{ title: string; text: string; cta?: string }>
   onSelectVariation?: (text: string) => void
+  currentTone?: string
+  onToneChange?: (tone: string) => void
 }) {
+  const [localTone, setLocalTone] = useState<string>(() => {
+    return currentTone || localStorage.getItem('bestcontent_caption_tone') || 'profissional'
+  })
+
+  const handleSelectTone = (toneId: string) => {
+    setLocalTone(toneId)
+    localStorage.setItem('bestcontent_caption_tone', toneId)
+    onToneChange?.(toneId)
+  }
+
   return (
     <div className="space-y-2">
+      {/* Seletor de Tom de Voz da Legenda */}
+      <div className="space-y-1">
+        <label className="text-[10px] font-semibold text-muted-foreground flex items-center justify-between">
+          <span>Tom de Voz da IA</span>
+          <span className="text-[9px] text-purple-600 dark:text-purple-400 font-bold capitalize">
+            {CAPTION_TONES.find((t) => t.id === (currentTone || localTone))?.label}
+          </span>
+        </label>
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+          {CAPTION_TONES.map((t) => {
+            const active = (currentTone || localTone) === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => handleSelectTone(t.id)}
+                className={`text-[9px] px-2 py-0.5 rounded-full font-semibold shrink-0 transition-all ${
+                  active
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-muted/70 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.emoji} {t.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="flex items-center gap-1">
         <Button
           variant="ghost"
@@ -62,7 +115,7 @@ export function CaptionWidget({
             onClick={onGenerateVariations}
             disabled={improving}
             className="text-[10px] h-6 gap-1 px-2 border-primary/30 text-purple-600 dark:text-purple-400"
-            title="Gerar 3 opções de legendas contextuais"
+            title="Gerar 3 opções de legendas contextuais no tom escolhido"
           >
             <Sparkles className="w-3 h-3" />3 Opções
           </Button>

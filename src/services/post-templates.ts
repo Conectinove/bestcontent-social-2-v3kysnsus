@@ -24,6 +24,7 @@ export interface PostTemplate {
   is_shared: boolean
   created: string
   updated: string
+  ai_reason?: string
 }
 
 export interface GetTemplatesFilter {
@@ -67,3 +68,28 @@ export const toggleFavorite = async (id: string, current: boolean) => {
 }
 
 export const deleteTemplate = (id: string) => pb.collection('post_templates').delete(id)
+
+export interface SuggestTemplatesOptions {
+  brandName?: string
+  brandVoice?: string
+  objective?: string
+  approach?: string
+  network?: string
+  format?: string
+}
+
+export async function suggestTemplates(
+  options: SuggestTemplatesOptions = {},
+): Promise<PostTemplate[]> {
+  try {
+    const res = await pb.send('/backend/v1/ai/suggest-templates', {
+      method: 'POST',
+      body: JSON.stringify(options),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    return (res as any)?.suggestions || []
+  } catch (err) {
+    console.error('Falha ao sugerir templates por IA:', err)
+    return []
+  }
+}

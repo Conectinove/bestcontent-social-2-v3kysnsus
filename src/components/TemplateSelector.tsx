@@ -12,8 +12,14 @@ import {
   Tag,
   ArrowRight,
 } from 'lucide-react'
-import { getTemplates, toggleFavorite, type PostTemplate } from '@/services/post-templates'
+import {
+  getTemplates,
+  toggleFavorite,
+  suggestTemplates,
+  type PostTemplate,
+} from '@/services/post-templates'
 import { useAuth } from '@/context/AuthContext'
+import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -101,7 +107,10 @@ export function TemplateSelector({
   initialNetwork,
 }: TemplateSelectorProps) {
   const { user } = useAuth()
+  const { activeBrand } = useSocial()
   const [templates, setTemplates] = useState<PostTemplate[]>([])
+  const [suggestedTemplates, setSuggestedTemplates] = useState<PostTemplate[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [loading, setLoading] = useState(false)
   const [networkFilter, setNetworkFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -142,11 +151,31 @@ export function TemplateSelector({
     }
   }, [user?.id, typeFilter, networkFilter, categoryFilter, favoritesOnly])
 
+  // Carrega sugestões de IA baseadas na marca ativa e rede
+  const loadAiSuggestions = useCallback(async () => {
+    setLoadingSuggestions(true)
+    try {
+      const suggestions = await suggestTemplates({
+        brandName: activeBrand?.name,
+        brandVoice: activeBrand?.brandVoice,
+        objective: 'engajar',
+        network: networkFilter !== 'all' ? networkFilter : 'instagram',
+        format: typeFilter !== 'all' ? typeFilter : undefined,
+      })
+      setSuggestedTemplates(suggestions)
+    } catch {
+      setSuggestedTemplates([])
+    } finally {
+      setLoadingSuggestions(false)
+    }
+  }, [activeBrand?.name, activeBrand?.brandVoice, networkFilter, typeFilter])
+
   useEffect(() => {
     if (open) {
       loadTemplates()
+      loadAiSuggestions()
     }
-  }, [open, loadTemplates])
+  }, [open, loadTemplates, loadAiSuggestions])
 
   const handleToggleFav = async (template: PostTemplate, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -339,6 +368,113 @@ export function TemplateSelector({
 
         {/* Grade de Modelos */}
         <div className="overflow-y-auto flex-1 p-5 sm:p-6 bg-muted/20">
+          {/* Seção Destacada: Sugeridos pela IA */}
+          {!favoritesOnly && !searchQuery && suggestedTemplates.length > 0 && (
+            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-purple-900/20 via-purple-900/10 to-transparent border border-purple-500/30">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-600/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+                      Sugeridos pela IA para você
+                      <Badge className="bg-purple-600 text-white text-[9px] px-1.5 py-0">
+                        IA Recomenda
+                      </Badge>
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Baseado na sua marca {activeBrand?.name ? `"${activeBrand.name}"` : 'ativa'} e
+                      alta performance para {networkFilter !== 'all' ? networkFilter : 'suas redes'}
+                      .
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={loadAiSuggestions}
+                  disabled={loadingSuggestions}
+                  className="text-[11px] h-7 px-2.5 text-purple-600 dark:text-purple-400"
+                >
+                  {loadingSuggestions ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    'Atualizar sugestões'
+                  )}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {suggestedTemplates.slice(0, 3).map((tpl) => {
+                  const styles = (tpl.style_settings as Record<string, any>) || {}
+                  const layout = (tpl.layout_data as Record<string, any>) || {}
+                  const accentColor = styles.accentColor || '#9333EA'
+                  const textColor = styles.textColor || '#FFFFFF'
+                  const gradient =
+                    styles.gradient ||
+                    `linear-gradient(135deg, ${styles.bgColor || '#0F0B1E'} 0%, #1a103c 100%)`
+                  const netKey = tpl.network || 'all'
+                  const netConfig = NETWORKS_CONFIG[netKey] || NETWORKS_CONFIG.all
+
+                  return (
+                    <div
+                      key={`ai-${tpl.id}`}
+                      onClick={() => handleSelect(tpl)}
+                      className="group cursor-pointer rounded-xl overflow-hidden border-2 border-purple-500/40 hover:border-purple-500 bg-card hover:shadow-lg transition-all duration-200 flex flex-col"
+                    >
+                      <div
+                        className="p-3 relative flex flex-col justify-between aspect-[16/10] select-none"
+                        style={{ background: gradient }}
+                      >
+                        <div className="flex items-center justify-between z-10">
+                          <span
+                            className={cn(
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase',
+                              netConfig.badgeClass,
+                            )}
+                          >
+                            {netConfig.label}
+                          </span>
+                          <Badge className="bg-purple-600 text-white text-[9px] py-0 px-1.5 gap-1 shadow-xs">
+                            <Sparkles className="w-2.5 h-2.5" /> Recomendado
+                          </Badge>
+                        </div>
+
+                        <div className="z-10 my-auto text-center px-1">
+                          <h4
+                            className="text-xs font-black line-clamp-2 leading-tight"
+                            style={{ color: textColor }}
+                          >
+                            {layout.headline || tpl.name}
+                          </h4>
+                        </div>
+
+                        <div className="z-10 flex items-center justify-center">
+                          <div
+                            className="w-full py-1 rounded-lg text-center font-bold text-[9px] uppercase text-white shadow-xs"
+                            style={{ backgroundColor: styles.ctaColor || accentColor }}
+                          >
+                            USAR MODELO SUGERIDO
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 bg-card flex flex-col gap-1 border-t border-border/60">
+                        <p className="text-xs font-bold text-foreground truncate">{tpl.name}</p>
+                        {tpl.ai_reason && (
+                          <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium line-clamp-2 leading-tight">
+                            💡 {tpl.ai_reason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 space-y-3">
               <Loader2 className="w-8 h-8 animate-spin text-purple-600" />

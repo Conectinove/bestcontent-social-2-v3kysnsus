@@ -13,6 +13,7 @@ export interface GenerateCaptionOptions {
   approach?: string
   brandName?: string
   brandVoice?: string
+  tone?: string
   formatName?: string
   headline?: string
   variations?: boolean

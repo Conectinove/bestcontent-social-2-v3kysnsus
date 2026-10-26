@@ -441,6 +441,9 @@ export default function ImageCreator() {
   const [captionVariations, setCaptionVariations] = useState<
     Array<{ title: string; text: string; cta?: string }>
   >([])
+  const [captionTone, setCaptionTone] = useState<string>(() => {
+    return localStorage.getItem('bestcontent_caption_tone') || 'profissional'
+  })
 
   // Modal / Feedback states
   const [inspirationModalOpen, setInspirationModalOpen] = useState(false)
@@ -646,6 +649,7 @@ export default function ImageCreator() {
           approach,
           brandName: activeBrand?.name,
           brandVoice: (activeBrand as any)?.brand_voice,
+          tone: captionTone,
           formatName: selectedFormat.name,
           headline,
           variations: false,
@@ -664,6 +668,7 @@ export default function ImageCreator() {
           approach,
           brandName: activeBrand?.name,
           brandVoice: (activeBrand as any)?.brand_voice,
+          tone: captionTone,
           formatName: selectedFormat.name,
           headline,
           variations: true,
@@ -2029,6 +2034,58 @@ export default function ImageCreator() {
 
                 {/* Legenda do Post com IA */}
                 <div>
+                  {/* Seletor de Tom de Voz da Legenda */}
+                  <div className="mb-2 p-2.5 rounded-xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-900/30 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                        <span>🎙️ Tom de Voz da Legenda</span>
+                      </span>
+                      <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold capitalize">
+                        {
+                          [
+                            { id: 'profissional', label: 'Profissional' },
+                            { id: 'descontraido', label: 'Descontraído' },
+                            { id: 'inspirador', label: 'Inspirador' },
+                            { id: 'divertido', label: 'Divertido' },
+                            { id: 'direto', label: 'Direto ao Ponto' },
+                            { id: 'empatico', label: 'Empático' },
+                            { id: 'provocativo', label: 'Provocativo' },
+                          ].find((t) => t.id === captionTone)?.label
+                        }
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar">
+                      {[
+                        { id: 'profissional', label: 'Profissional', emoji: '💼' },
+                        { id: 'descontraido', label: 'Descontraído', emoji: '😊' },
+                        { id: 'inspirador', label: 'Inspirador', emoji: '🚀' },
+                        { id: 'divertido', label: 'Divertido', emoji: '🎉' },
+                        { id: 'direto', label: 'Direto ao Ponto', emoji: '🎯' },
+                        { id: 'empatico', label: 'Empático', emoji: '🤝' },
+                        { id: 'provocativo', label: 'Provocativo', emoji: '🔥' },
+                      ].map((t) => {
+                        const active = captionTone === t.id
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setCaptionTone(t.id)
+                              localStorage.setItem('bestcontent_caption_tone', t.id)
+                            }}
+                            className={`text-[10px] px-2.5 py-1 rounded-full font-semibold shrink-0 transition-all ${
+                              active
+                                ? 'bg-purple-600 text-white shadow-xs'
+                                : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+                            }`}
+                          >
+                            {t.emoji} {t.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor="caption-input" className="text-xs font-bold text-foreground">
                       Legenda do Post
@@ -2041,7 +2098,7 @@ export default function ImageCreator() {
                         onClick={() => aiGenerate('variations')}
                         disabled={aiLoading}
                         className="text-xs text-purple-600 dark:text-purple-400 h-7 gap-1 rounded-lg border border-purple-500/20"
-                        title="Gerar 3 opções estratégicas de legenda"
+                        title="Gerar 3 opções estratégicas no tom escolhido"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         {aiLoading && aiLoadingAction === 'variations' ? (

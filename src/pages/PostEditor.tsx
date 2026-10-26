@@ -75,6 +75,9 @@ export default function PostEditor() {
   const [publishing, setPublishing] = useState(false)
   const [approving, setApproving] = useState(false)
   const [improving, setImproving] = useState(false)
+  const [captionTone, setCaptionTone] = useState<string>(() => {
+    return localStorage.getItem('bestcontent_caption_tone') || 'profissional'
+  })
   const [captionVariations, setCaptionVariations] = useState<
     Array<{ title: string; text: string; cta?: string }>
   >([])
@@ -175,6 +178,7 @@ export default function PostEditor() {
         platform,
         brandName: activeBrand?.name,
         brandVoice: (activeBrand as any)?.brand_voice,
+        tone: captionTone,
         variations: true,
       })) as any
       if (res.variations && res.variations.length > 0) {
@@ -298,6 +302,8 @@ export default function PostEditor() {
               setCaption(chosen)
               toast({ title: 'Opção aplicada!', description: 'Legenda do post atualizada.' })
             }}
+            currentTone={captionTone}
+            onToneChange={(tone) => setCaptionTone(tone)}
           />
         )
       case 'media':

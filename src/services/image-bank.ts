@@ -13,10 +13,20 @@ export interface ImageBankAsset {
     | 'estilo_de_vida'
     | 'saude'
     | 'moda'
+    | 'fitness'
+    | 'viagem'
+    | 'imoveis'
+    | 'financas'
+    | 'beleza'
+    | 'pets'
+    | 'gastronomia'
+    | 'esportes'
+    | 'eventos'
     | 'geral'
   network?: string
   tags?: string[]
   is_curated: boolean
+  is_favorite?: boolean
   user?: string
   brand?: string
   width?: number
@@ -31,6 +41,7 @@ export interface GetImageBankParams {
   search?: string
   onlyCurated?: boolean
   onlyMine?: boolean
+  onlyFavorites?: boolean
   page?: number
   perPage?: number
 }
@@ -61,6 +72,10 @@ export async function getImageBankAssets(
 
   if (params.onlyMine && pb.authStore.record?.id) {
     filters.push(`user = "${pb.authStore.record.id}"`)
+  }
+
+  if (params.onlyFavorites) {
+    filters.push('is_favorite = true')
   }
 
   if (params.search && params.search.trim()) {
@@ -96,6 +111,7 @@ export async function getImageBankAssets(
       network: r.network || 'todas',
       tags: tagsParsed,
       is_curated: Boolean(r.is_curated),
+      is_favorite: Boolean(r.is_favorite),
       user: r.user,
       brand: r.brand,
       width: r.width,
@@ -143,4 +159,17 @@ export async function uploadImageBankAsset(
     created: record.created,
     updated: record.updated,
   }
+}
+
+export async function deleteImageBankAsset(id: string): Promise<boolean> {
+  await pb.collection('image_bank_assets').delete(id)
+  return true
+}
+
+export async function toggleImageBankFavorite(id: string, currentStatus = false): Promise<boolean> {
+  const newStatus = !currentStatus
+  await pb.collection('image_bank_assets').update(id, {
+    is_favorite: newStatus,
+  })
+  return newStatus
 }
