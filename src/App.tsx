@@ -38,6 +38,7 @@ import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
 import { SeoTools } from './pages/SeoTools'
 import { AdsPage } from './pages/AdsPage'
+import PerformanceDashboard from './pages/PerformanceDashboard'
 
 import Onboarding from './pages/Onboarding'
 import Login from './pages/auth/Login'
@@ -78,6 +79,8 @@ const App = () => (
                 <Route path="/app/community" element={<CommunityDashboard />} />
                 <Route path="/app/community/topic/:id" element={<TopicDetail />} />
                 <Route path="/app/dashboard" element={<Dashboard />} />
+                <Route path="/app/performance" element={<PerformanceDashboard />} />
+                <Route path="/app/dashboard-performance" element={<PerformanceDashboard />} />
                 <Route path="/app/analytics" element={<Analytics />} />
                 <Route path="/app/templates" element={<TemplatesPage />} />
                 <Route path="/app/brand-kit" element={<BrandKitPage />} />

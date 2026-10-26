@@ -77,7 +77,7 @@ const NETWORK_LABELS: Record<string, { label: string; badgeClass: string }> = {
   },
   linkedin: {
     label: 'LinkedIn',
-    badgeClass: 'bg-sky-600/10 text-sky-600 dark:text-sky-400 border-sky-600/20',
+    badgeClass: 'bg-[#0077b5]/10 text-[#0077b5] dark:text-[#0077b5] border-[#0077b5]/20',
   },
   whatsapp: {
     label: 'WhatsApp',

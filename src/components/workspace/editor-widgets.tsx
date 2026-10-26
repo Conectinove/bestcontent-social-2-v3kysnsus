@@ -28,14 +28,21 @@ export function ContentDraftWidget({
 
 export const CAPTION_TONES = [
   { id: 'profissional', label: 'Profissional', emoji: '💼' },
-  { id: 'descontraido', label: 'Descontraído', emoji: '😊' },
-  { id: 'inspirador', label: 'Inspirador', emoji: '🚀' },
+  { id: 'inspirador', label: 'Inspirador', emoji: '✨' },
   { id: 'divertido', label: 'Divertido', emoji: '🎉' },
-  { id: 'direto', label: 'Direto ao Ponto', emoji: '🎯' },
-  { id: 'empatico', label: 'Empático', emoji: '🤝' },
+  { id: 'tecnico', label: 'Técnico / Especialista', emoji: '🔬' },
+  { id: 'acolhedor', label: 'Acolhedor', emoji: '🤝' },
+  { id: 'urgente', label: 'Urgente / Oferta', emoji: '⚡' },
+  { id: 'premium', label: 'Premium / Sofisticado', emoji: '💎' },
   { id: 'provocativo', label: 'Provocativo', emoji: '🔥' },
+  { id: 'educativo', label: 'Educacional', emoji: '📚' },
+  { id: 'storytelling', label: 'Storytelling', emoji: '📖' },
+  { id: 'descontraido', label: 'Descontraído', emoji: '😎' },
+  { id: 'direto', label: 'Direto ao Ponto', emoji: '🎯' },
+  { id: 'emocional', label: 'Emocional', emoji: '❤️' },
+  { id: 'autoridade', label: 'Autoridade & Liderança', emoji: '👑' },
+  { id: 'minimalista', label: 'Minimalista & Elegante', emoji: '🌿' },
 ]
-
 export function CaptionWidget({
   caption,
   setCaption,

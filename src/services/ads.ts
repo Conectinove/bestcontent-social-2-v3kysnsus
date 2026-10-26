@@ -112,9 +112,11 @@ export function generateSmartAdCopy(
   objective: AdObjective,
   network: AdNetwork,
   segment?: string,
+  tone?: string,
 ): AdCopy {
   const brand = brandName || 'Sua Marca'
   const seg = segment || 'produtos e serviços de alta qualidade'
+  const toneLabel = tone || 'Profissional'
 
   if (objective === 'vendas') {
     return {
@@ -122,7 +124,7 @@ export function generateSmartAdCopy(
       primaryText: `Descubra a linha completa de ${seg} que está conquistando clientes em todo o Brasil. Clique e aproveite entrega rápida e garantia total.`,
       description: 'Garanta sua compra em até 12x sem juros.',
       cta: 'Comprar Agora',
-      tone: 'Persuasivo & Direto',
+      tone: toneLabel,
     }
   }
 
@@ -132,7 +134,7 @@ export function generateSmartAdCopy(
       primaryText: `Quer acelerar seus resultados em ${seg}? Preencha o formulário em menos de 1 minuto e converse com um especialista dedicado.`,
       description: 'Vagas limitadas para este ciclo.',
       cta: 'Cadastre-se Já',
-      tone: 'Consultivo',
+      tone: toneLabel,
     }
   }
 
@@ -142,7 +144,7 @@ export function generateSmartAdCopy(
       primaryText: `Feito para quem não abre mão de excelência em ${seg}. Acompanhe nossas novidades e inspire-se diariamente.`,
       description: 'Mais de 10.000 clientes satisfeitos.',
       cta: 'Saiba Mais',
-      tone: 'Inspirador',
+      tone: toneLabel,
     }
   }
 
@@ -152,7 +154,7 @@ export function generateSmartAdCopy(
     primaryText: `Conecte-se com o melhor em ${seg}. Acesse nosso site oficial e explore conteúdos e ofertas pensadas para você.`,
     description: 'Acesse o link direto e confira.',
     cta: network === 'instagram' ? 'Acessar Link' : 'Visitar Site',
-    tone: 'Profissional e Convidativo',
+    tone: toneLabel,
   }
 }
 
@@ -255,13 +257,14 @@ export function generateDailyMetricsForCampaign(
 }
 
 export interface PlatformConnectionStatus {
-  platform: 'meta' | 'google' | 'tiktok'
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube'
   name: string
   configured: boolean
   status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
   accountIdPrefix?: string | null
   customerIdPrefix?: string | null
   advertiserIdPrefix?: string | null
+  channelIdPrefix?: string | null
   requiredSecrets: string[]
 }
 
@@ -270,12 +273,13 @@ export interface PlatformsStatusResponse {
     meta: PlatformConnectionStatus
     google: PlatformConnectionStatus
     tiktok: PlatformConnectionStatus
+    youtube?: PlatformConnectionStatus
   }
   message: string
 }
 
 export interface PlatformOfficialMetricsResult {
-  platform: 'meta' | 'google' | 'tiktok'
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube'
   source: 'official_api' | 'simulated_fallback'
   is_official: boolean
   status: string
@@ -287,6 +291,10 @@ export interface PlatformOfficialMetricsResult {
     cpc: number
     ctr: number
     conversions: number
+    views?: number
+    watchMinutes?: number
+    totalSubscribers?: number
+    totalVideos?: number
   }
   message?: string
   period?: string
@@ -308,7 +316,7 @@ export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> 
         },
         google: {
           platform: 'google',
-          name: 'Google Ads & YouTube',
+          name: 'Google Ads Search & Display',
           configured: false,
           status: 'not_configured',
           requiredSecrets: [
@@ -324,6 +332,13 @@ export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> 
           status: 'not_configured',
           requiredSecrets: ['TIKTOK_ADS_ACCESS_TOKEN', 'TIKTOK_ADS_ADVERTISER_ID'],
         },
+        youtube: {
+          platform: 'youtube',
+          name: 'YouTube Analytics & Video Ads',
+          configured: false,
+          status: 'not_configured',
+          requiredSecrets: ['YOUTUBE_ACCESS_TOKEN', 'YOUTUBE_API_KEY', 'YOUTUBE_CHANNEL_ID'],
+        },
       },
       message: 'Status obtido em fallback local.',
     }
@@ -331,7 +346,7 @@ export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> 
 }
 
 export async function getPlatformOfficialMetrics(
-  platform: 'meta' | 'google' | 'tiktok',
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube',
 ): Promise<PlatformOfficialMetricsResult> {
   try {
     const res = await pb.send(`/backend/v1/ads/${platform}/metrics`, { method: 'GET' })

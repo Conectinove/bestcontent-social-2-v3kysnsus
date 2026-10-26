@@ -23,18 +23,36 @@ routerAdd(
     const toneDescriptions = {
       profissional:
         'PROFISSIONAL: Vocabulário maduro, confiável, corporativo, sem gírias, estrutura impecável e autoridade serena.',
-      descontraido:
-        'DESCONTRAÍDO: Tom leve, acessível, conversa entre amigos, emojis moderados, linguagem natural e calorosa.',
       inspirador:
         'INSPIRADOR: Tom motivador, focado em superação, visão de futuro, energia positiva e reflexão transformadora.',
       divertido:
         'DIVERTIDO: Bem-humorado, perspicaz, ritmo rápido, pitadas de ironia leve ou humor relacionável do dia a dia.',
-      direto:
-        'DIRETO AO PONTO: Frases curtas e objetivas, sem rodeios ou floreios, benefício imediato e clareza cirúrgica.',
-      empatico:
-        'EMPÁTICO: Acolhedor, compreensivo, focado na dor ou sentimento do leitor, gerando conexão humana profunda.',
+      tecnico:
+        'TÉCNICO / ESPECIALISTA: Rico em dados, terminologia setorial precisa, embasamento analítico e profundidade metodológica.',
+      acolhedor:
+        'ACOLHEDOR / EMPÁTICO: Compreensivo, focado na dor do leitor, calor humano, escuta ativa e conexão genuína.',
+      urgente:
+        'URGENTE / OFERTA: Gatilhos fortes de escassez, contagem regressiva, oportunidade única e chamada imediata à ação.',
+      premium:
+        'PREMIUM / SOFISTICADO: Exclusivo, elegante, refinado, vocabulário nobre, foco em valor e diferenciação de elite.',
       provocativo:
         'PROVOCATIVO: Quebra de padrões, desafiador, questiona o senso comum, gancho instigante e forte debate.',
+      educativo:
+        'EDUCACIONAL: Didático, estruturado em passos, exemplos práticos, fácil assimilação e alto valor de salvamento.',
+      storytelling:
+        'STORYTELLING: Narrativa imersiva, arco de personagem, desafio superado, virada de chave e lição marcante.',
+      descontraido:
+        'DESCONTRAÍDO: Tom leve, acessível, conversa entre amigos, emojis moderados, linguagem natural e calorosa.',
+      direto:
+        'DIRETO AO PONTO: Frases curtas e objetivas, sem rodeios ou floreios, benefício imediato e clareza cirúrgica.',
+      emocional:
+        'EMOCIONAL: Toca o coração, desperta memória afetiva, vulnerabilidade corajosa e identificação profunda.',
+      autoridade:
+        'AUTORIDADE & LIDERANÇA: Posicionamento firme de mercado, visão de vanguarda, diretriz estratégica assertiva.',
+      minimalista:
+        'MINIMALISTA & ELEGANTE: Poucas palavras, impacto estético máximo, sobriedade, respiro e precisão poética.',
+      empatico:
+        'ACOLHEDOR / EMPÁTICO: Compreensivo, focado na dor do leitor, calor humano, escuta ativa e conexão genuína.',
     }
 
     let contextDesc = 'Plataforma: ' + platform + '\nTema/Contexto: ' + subject

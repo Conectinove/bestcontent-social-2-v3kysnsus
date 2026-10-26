@@ -76,6 +76,7 @@ export default function Layout() {
               { label: 'Feed Criadores', href: '/app/feed-comunidade', icon: Home },
               { label: 'Portal Cliente', href: '/app/portal-cliente', icon: Users },
               { label: 'Criar', href: '/app/criar', icon: Wand2, highlight: true },
+              { label: 'Performance', href: '/app/performance', icon: BarChart3 },
               { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
               { label: 'Calendário', href: '/app/calendar', icon: Calendar },
               { label: 'Templates', href: '/app/templates', icon: LayoutGrid },

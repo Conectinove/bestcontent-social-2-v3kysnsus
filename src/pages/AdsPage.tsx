@@ -264,7 +264,7 @@ export function AdsPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* META ADS CARD */}
           {(() => {
             const meta = platformsStatus?.platforms?.meta
@@ -341,7 +341,7 @@ export function AdsPage() {
                   <p className="text-[11px] text-muted-foreground leading-tight">
                     {isConn
                       ? `Google Ads API ativa · ${google?.customerIdPrefix ? `Cliente ${google.customerIdPrefix}` : 'Conta Oficial'}`
-                      : 'Exibindo estimativas baseline (Google & YouTube)'}
+                      : 'Exibindo estimativas baseline (Google Search & Display)'}
                   </p>
                   <span className="text-[9px] font-mono text-muted-foreground block">
                     Segredos: GOOGLE_ADS_DEVELOPER_TOKEN
@@ -392,6 +392,53 @@ export function AdsPage() {
                   </p>
                   <span className="text-[9px] font-mono text-muted-foreground block">
                     Segredos: TIKTOK_ADS_ACCESS_TOKEN
+                  </span>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className={`text-[9px] font-bold shrink-0 uppercase ${
+                    isConn ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {isConn ? 'Oficial' : 'Estimativa'}
+                </Badge>
+              </div>
+            )
+          })()}
+
+          {/* YOUTUBE ANALYTICS CARD */}
+          {(() => {
+            const youtube = platformsStatus?.platforms?.youtube
+            const isConn = youtube?.configured
+            return (
+              <div
+                className={`p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                  isConn
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-foreground'
+                    : 'bg-muted/40 border-border/70 text-foreground'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-xs">YouTube Analytics</span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[9px] font-bold ${
+                        isConn
+                          ? 'border-emerald-500/40 text-emerald-600 bg-emerald-500/10'
+                          : 'border-purple-500/30 text-purple-600 bg-purple-500/5'
+                      }`}
+                    >
+                      {isConn ? '● Conectado (API Oficial)' : 'Em configuração'}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    {isConn
+                      ? `YouTube Analytics API ativa · ${youtube?.channelIdPrefix ? `Canal ${youtube.channelIdPrefix}` : 'Canal Oficial'}`
+                      : 'Exibindo estimativas baseline (YouTube Videos & Shorts)'}
+                  </p>
+                  <span className="text-[9px] font-mono text-muted-foreground block">
+                    Segredos: YOUTUBE_ACCESS_TOKEN
                   </span>
                 </div>
                 <Badge
@@ -529,11 +576,13 @@ export function AdsPage() {
                 {(() => {
                   const net = selectedCampaign.network
                   const isMeta = net === 'instagram' || net === 'facebook'
-                  const isGoogle = net === 'youtube'
+                  const isYouTube = net === 'youtube'
                   const isTikTok = net === 'tiktok'
                   const isOfficial =
                     (isMeta && platformsStatus?.platforms?.meta?.configured) ||
-                    (isGoogle && platformsStatus?.platforms?.google?.configured) ||
+                    (isYouTube &&
+                      (platformsStatus?.platforms?.youtube?.configured ||
+                        platformsStatus?.platforms?.google?.configured)) ||
                     (isTikTok && platformsStatus?.platforms?.tiktok?.configured)
 
                   return (
