@@ -96,10 +96,15 @@ export function Sidebar({
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-xs shrink-0">
               <span className="font-black text-xs leading-none">b</span>
             </div>
-            <div className="flex items-center gap-1.5 font-bold text-lg tracking-tight text-foreground">
-              <span className="text-foreground tracking-tight">bestcontent</span>
-              <span className="text-[10px] font-extrabold text-primary uppercase bg-primary/10 px-1 py-0.5 rounded leading-none">
-                AI
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5 font-bold text-lg tracking-tight text-foreground">
+                <span className="text-foreground tracking-tight">MidiaViva</span>
+                <span className="text-[10px] font-extrabold text-primary uppercase bg-primary/10 px-1 py-0.5 rounded leading-none">
+                  AI
+                </span>
+              </div>
+              <span className="text-[9px] text-muted-foreground font-medium -mt-1">
+                by BestContent AI
               </span>
             </div>
           </Link>
@@ -191,7 +196,7 @@ export function Sidebar({
                               {b.name}
                             </p>
                             <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
-                              {b.description || `${b.name} no BestContent Social`}
+                              {b.description || `${b.name} no MidiaViva`}
                             </p>
                           </div>
                         </div>

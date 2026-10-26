@@ -53,7 +53,7 @@ export default function Login() {
             <Sparkles className="w-6 h-6" />
           </div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent">
-            BestContent Social 2
+            MidiaViva
           </CardTitle>
           <CardDescription className="text-xs">
             Entre na sua conta para gerenciar conteúdo e tendências.

@@ -848,7 +848,7 @@ export function PerformanceReport({
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Relatório Executivo de Performance — BestContent Social 2</title>
+  <title>Relatório Executivo de Performance — MidiaViva</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px; color: #0f172a; background: #fff; }
     .header { border-bottom: 3px solid #7c3aed; padding-bottom: 20px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
@@ -870,7 +870,7 @@ export function PerformanceReport({
 <body>
   <div class="header">
     <div>
-      <h1>BestContent Social 2 — Relatório Consolidado de Performance</h1>
+      <h1>MidiaViva — Relatório Consolidado de Performance</h1>
       <p class="meta">Gerado em ${nowFormatted} · Gestor: ${userName}</p>
       <p class="meta" style="margin-top: 4px;"><strong>Escopo:</strong> ${brandNames} · <strong>Período:</strong> ${selectedPeriod}</p>
     </div>
@@ -889,7 +889,7 @@ export function PerformanceReport({
   ${abSectionHtml}
 
   <div class="footer">
-    BestContent Social 2 · Documento de Prestação de Contas & Performance Estratégica
+    MidiaViva — Powered by BestContent AI · Documento de Prestação de Contas & Performance Estratégica
   </div>
   <script>
     window.onload = function() {

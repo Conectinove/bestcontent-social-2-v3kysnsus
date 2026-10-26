@@ -1060,8 +1060,8 @@ export default function Feed() {
           </DialogHeader>
           <div className="space-y-3 text-xs text-muted-foreground py-2 leading-relaxed">
             <p>
-              O BestContent Social 2 ajuda você a planejar, criar e publicar conteúdos profissionais
-              com inteligência artificial para suas redes sociais.
+              O MidiaViva ajuda você a planejar, criar e publicar conteúdos profissionais com
+              inteligência artificial para suas redes sociais.
             </p>
             <div className="p-3 bg-muted/60 rounded-xl space-y-1.5">
               <p className="font-bold text-foreground">Atalhos rápidos:</p>
@@ -1100,7 +1100,7 @@ export default function Feed() {
             </p>
             <textarea
               rows={4}
-              placeholder="Descreva o que você gostaria de ver no BestContent Social..."
+              placeholder="Descreva o que você gostaria de ver no MidiaViva..."
               className="w-full text-xs p-3 rounded-xl border border-border bg-background focus:outline-hidden focus:ring-1 focus:ring-primary"
             />
             <Button

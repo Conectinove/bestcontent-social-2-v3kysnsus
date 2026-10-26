@@ -8,6 +8,9 @@ import {
   Info,
   Layers,
   Sparkles,
+  TrendingUp,
+  BrainCircuit,
+  Award,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -90,6 +93,13 @@ export function CompetitorAnalysisBlock({
       posts: net.posts,
     }
   }, [selectedNetwork, myFollowers, myEngagementRate])
+
+  // Ranking de concorrentes por crescimento
+  const growthRanking = useMemo(() => {
+    return [...filteredCompetitors].sort(
+      (a, b) => b.estimated_growth_rate - a.estimated_growth_rate,
+    )
+  }, [filteredCompetitors])
 
   // Médias do mercado / concorrentes
   const marketAverages = useMemo(() => {
@@ -321,6 +331,156 @@ export function CompetitorAnalysisBlock({
               <p className="text-[10px] text-muted-foreground">Engajamento médio</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Ranking de Concorrentes por Crescimento & Evolução Temporal */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Painel 1: Ranking por Crescimento */}
+        <div className="p-4 rounded-xl border border-border/80 bg-muted/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              <span>Ranking por Taxa de Crescimento</span>
+            </h4>
+            <Badge variant="outline" className="text-[9px] font-mono">
+              Top Players
+            </Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Marcas com maior ritmo percentual de expansão de base no período.
+          </p>
+          <div className="space-y-2 pt-1">
+            {/* Linha da sua marca */}
+            <div className="flex items-center justify-between p-2 rounded-lg bg-purple-500/10 border border-purple-500/30 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">
+                  ★
+                </span>
+                <span className="font-bold text-foreground">{brandName} (Você)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">Ritmo atual</span>
+                <Badge className="bg-purple-600 text-white font-mono font-bold text-[10px] px-1.5 py-0 border-0">
+                  +7.5%
+                </Badge>
+              </div>
+            </div>
+
+            {growthRanking.map((c, idx) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/60 text-xs hover:border-purple-500/40 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
+                      idx === 0
+                        ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {idx + 1}
+                  </span>
+                  <div className="truncate">
+                    <span className="font-semibold text-foreground truncate block">{c.name}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {c.estimated_followers.toLocaleString('pt-BR')} seg. • {c.network}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className={`font-mono font-bold text-[10px] px-1.5 py-0 ${
+                      c.estimated_growth_rate >= 7.5
+                        ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+                        : 'text-muted-foreground border-border'
+                    }`}
+                  >
+                    +{c.estimated_growth_rate}%
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Painel 2: Evolução Temporal das Últimas 4 Semanas (Série Histórica) */}
+        <div className="p-4 rounded-xl border border-border/80 bg-muted/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
+              <Award className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span>Evolução Temporal Comparativa (4 Semanas)</span>
+            </h4>
+            <Badge variant="outline" className="text-[9px] font-mono">
+              Série Temporal
+            </Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Acompanhe a curva semanal de seguidores e engajamento dos concorrentes.
+          </p>
+          <div className="space-y-3 pt-1">
+            {filteredCompetitors.slice(0, 3).map((c) => (
+              <div
+                key={c.id}
+                className="p-2.5 rounded-lg bg-card border border-border/60 space-y-2 text-xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground">{c.name}</span>
+                  <Badge variant="outline" className="text-[9px] uppercase font-mono">
+                    {c.network}
+                  </Badge>
+                </div>
+                {/* 4 Semanas mini-barras */}
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  {(c.history || []).map((h, i) => (
+                    <div
+                      key={i}
+                      className="p-1.5 rounded bg-muted/50 border border-border/40 text-center"
+                    >
+                      <p className="text-[9px] text-muted-foreground font-medium">{h.period}</p>
+                      <p className="text-[11px] font-bold font-mono text-foreground mt-0.5">
+                        {(h.followers / 1000).toFixed(1)}k
+                      </p>
+                      <p className="text-[9px] font-mono text-purple-600 dark:text-purple-400">
+                        {h.engagement}%
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Parecer de Inteligência da IA sobre Concorrentes */}
+      <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 space-y-3">
+        <div className="flex items-center gap-2">
+          <BrainCircuit className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+          <h4 className="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
+            Parecer da IA: Diagnóstico Comparativo com sua Marca
+          </h4>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filteredCompetitors.slice(0, 4).map((c) => (
+            <div
+              key={c.id}
+              className="p-3 rounded-lg bg-card border border-border/70 text-xs space-y-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-foreground">{c.name}</span>
+                <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400">
+                  {c.estimated_growth_rate}% cresc.
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {c.ai_verdict ||
+                  `Você cresceu 7.5% vs. ${c.estimated_growth_rate}% do ${c.name} — publique mais carrosséis educativos, formato que lidera o nicho.`}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 

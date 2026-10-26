@@ -128,8 +128,8 @@ export default function LandingPage() {
       <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl px-4">
           <p>
-            © {new Date().getFullYear()} BestContent Social 2. Social 2 Powered by BestContent AI.
-            Todos os direitos reservados.
+            © {new Date().getFullYear()} MidiaViva. MidiaViva — Powered by BestContent AI. Todos os
+            direitos reservados.
           </p>
         </div>
       </footer>

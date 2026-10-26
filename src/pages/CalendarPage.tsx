@@ -195,8 +195,15 @@ export default function CalendarPage() {
                             className="w-1.5 h-1.5 rounded-full shrink-0"
                             style={{ backgroundColor: brand?.color_theme || '#BF2A95' }}
                           />
-                          <span className="truncate">
+                          <span className="truncate flex-1">
                             {post?.caption || post?.content || 'Post'}
+                          </span>
+                          <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 shrink-0 font-mono">
+                            ⏰{' '}
+                            {new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </span>
                         </div>
                       )
@@ -234,10 +241,27 @@ export default function CalendarPage() {
                       />
                       <span className="font-semibold">{brand?.name || 'Marca'}</span>
                     </div>
-                    <Badge variant="outline" className="text-[10px]">
-                      {post?.platform}
-                    </Badge>
-                  </div>
+                    <div className="flex items-center gap-1.5">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20 font-bold"
+                      >
+                        ⏰ Agendado para{' '}
+                        {new Date(s.scheduled_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                        })}{' '}
+                        às{' '}
+                        {new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {post?.platform}
+                      </Badge>
+                    </div>
+                  </div>{' '}
                   <p className="text-foreground leading-relaxed">
                     {post?.caption || post?.content}
                   </p>

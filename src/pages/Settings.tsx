@@ -926,9 +926,9 @@ export default function Settings() {
                       <SettingsIcon className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold">BestContent Social 2</h3>
+                      <h3 className="text-lg font-bold">MidiaViva</h3>
                       <p className="text-xs text-muted-foreground">
-                        Versão 2.4.0 — PWA Habilitado com IA generativa
+                        Powered by BestContent AI · Versão 0.0.57
                       </p>
                     </div>
                   </div>
@@ -961,7 +961,7 @@ export default function Settings() {
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50 text-center">
                     <p className="text-xs text-muted-foreground">
-                      © 2026 BestContent Social 2. Todos os direitos reservados.
+                      © 2026 MidiaViva — Powered by BestContent AI. Todos os direitos reservados.
                     </p>
                     <div className="flex items-center justify-center gap-4 mt-2">
                       <a href="#" className="footer-link">

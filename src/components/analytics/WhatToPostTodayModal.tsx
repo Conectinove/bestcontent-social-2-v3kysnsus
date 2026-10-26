@@ -11,6 +11,10 @@ import {
   RefreshCw,
   Flame,
   FileText,
+  Video,
+  Twitter,
+  Mail,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -41,6 +45,7 @@ export function WhatToPostTodayModal({
   const [ideas, setIdeas] = useState<TodayPostIdea[]>([])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [selectedFormatFilter, setSelectedFormatFilter] = useState<string>('all')
 
   const fetchIdeas = async () => {
     setLoading(true)
@@ -120,6 +125,38 @@ export function WhatToPostTodayModal({
               Novas Ideias
             </Button>
           </div>
+
+          {/* Seletor de Formatos de Conteúdo para IA */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-2">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase mr-1">
+              Formato:
+            </span>
+            {[
+              { key: 'all', label: 'Todos os Formatos', icon: Layers },
+              { key: 'Carrossel', label: 'Carrossel (Slides)', icon: Layers },
+              { key: 'Vídeo Curto / Reels', label: 'Roteiro de Vídeo (Beats)', icon: Video },
+              { key: 'Thread X / Twitter', label: 'Threads (X)', icon: Twitter },
+              { key: 'Newsletter / Artigo', label: 'Newsletter & LinkedIn', icon: Mail },
+            ].map((f) => {
+              const Icon = f.icon
+              const active = selectedFormatFilter === f.key
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setSelectedFormatFilter(f.key)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                    active
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{f.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </DialogHeader>
 
         {loading ? (
@@ -134,99 +171,104 @@ export function WhatToPostTodayModal({
           </div>
         ) : (
           <div className="space-y-4 pt-2">
-            {ideas.map((idea, idx) => (
-              <div
-                key={idea.id || idx}
-                className="p-5 rounded-xl border border-border/80 bg-muted/20 hover:border-purple-500/40 transition-all space-y-3 relative group"
-              >
-                {/* Header da Ideia */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-purple-600/15 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center">
-                      #{idx + 1}
-                    </span>
-                    <h3 className="font-bold text-sm text-foreground">{idea.title}</h3>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] bg-card border-purple-500/30 text-purple-600 dark:text-purple-400"
-                    >
-                      <Layers className="w-3 h-3 mr-1" />
-                      {idea.suggestedModel}
-                    </Badge>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {idea.format}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Justificativa de IA */}
-                <div className="p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/15 text-[11px] text-purple-700 dark:text-purple-300 font-medium flex items-center gap-2">
-                  <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>{idea.reason}</span>
-                </div>
-
-                {/* Legenda sugerida */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                    Legenda Completa Sugerida
-                  </span>
-                  <div className="p-3 rounded-lg bg-card border border-border text-xs text-foreground/90 whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto">
-                    {idea.caption}
-                  </div>
-                </div>
-
-                {/* Hashtags e Horário Recomendado */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-border/60">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Hash className="w-3.5 h-3.5 text-muted-foreground" />
-                    {idea.hashtags.map((h, hIdx) => (
-                      <span
-                        key={hIdx}
-                        className="text-[11px] font-mono text-purple-600 dark:text-purple-400"
-                      >
-                        {h}
+            {ideas
+              .filter((idea) => {
+                if (selectedFormatFilter === 'all') return true
+                return idea.format.toLowerCase().includes(selectedFormatFilter.toLowerCase())
+              })
+              .map((idea, idx) => (
+                <div
+                  key={idea.id || idx}
+                  className="p-5 rounded-xl border border-border/80 bg-muted/20 hover:border-purple-500/40 transition-all space-y-3 relative group"
+                >
+                  {/* Header da Ideia */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-purple-600/15 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center">
+                        #{idx + 1}
                       </span>
-                    ))}
+                      <h3 className="font-bold text-sm text-foreground">{idea.title}</h3>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] bg-card border-purple-500/30 text-purple-600 dark:text-purple-400"
+                      >
+                        <Layers className="w-3 h-3 mr-1" />
+                        {idea.suggestedModel}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {idea.format}
+                      </Badge>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{idea.bestTime}</span>
+                  {/* Justificativa de IA */}
+                  <div className="p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/15 text-[11px] text-purple-700 dark:text-purple-300 font-medium flex items-center gap-2">
+                    <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>{idea.reason}</span>
+                  </div>
+
+                  {/* Legenda sugerida */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+                      Legenda Completa Sugerida
+                    </span>
+                    <div className="p-3 rounded-lg bg-card border border-border text-xs text-foreground/90 whitespace-pre-line leading-relaxed max-h-36 overflow-y-auto">
+                      {idea.caption}
+                    </div>
+                  </div>
+
+                  {/* Hashtags e Horário Recomendado */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-border/60">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Hash className="w-3.5 h-3.5 text-muted-foreground" />
+                      {idea.hashtags.map((h, hIdx) => (
+                        <span
+                          key={hIdx}
+                          className="text-[11px] font-mono text-purple-600 dark:text-purple-400"
+                        >
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{idea.bestTime}</span>
+                    </div>
+                  </div>
+
+                  {/* Ações da Ideia */}
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyCaption(idea)}
+                      className="text-xs h-8 px-3 rounded-xl gap-1.5"
+                    >
+                      {copiedId === idea.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" /> Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" /> Copiar Texto
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={() => handleUseIdea(idea)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-8 px-3 rounded-xl gap-1.5 shadow-xs"
+                    >
+                      Usar esta Ideia no Post <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
                   </div>
                 </div>
-
-                {/* Ações da Ideia */}
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopyCaption(idea)}
-                    className="text-xs h-8 px-3 rounded-xl gap-1.5"
-                  >
-                    {copiedId === idea.id ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-500" /> Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" /> Copiar Texto
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    onClick={() => handleUseIdea(idea)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-8 px-3 rounded-xl gap-1.5 shadow-xs"
-                  >
-                    Usar esta Ideia no Post <ArrowRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </DialogContent>

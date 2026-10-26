@@ -41,6 +41,11 @@ import {
   MetricsWidget,
   TemplatesWidget,
 } from '@/components/workspace/editor-widgets'
+import {
+  AdvancedCustomizationPanel,
+  AdvancedCustomizationState,
+  DEFAULT_CUSTOMIZATION,
+} from '@/components/workspace/AdvancedCustomizationPanel'
 import type { PremiumElement } from '@/services/premium-elements'
 
 interface PlacedElement {
@@ -92,6 +97,8 @@ export default function PostEditor() {
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [imageBankOpen, setImageBankOpen] = useState(false)
   const [placedElements, setPlacedElements] = useState<PlacedElement[]>([])
+  const [customization, setCustomization] =
+    useState<AdvancedCustomizationState>(DEFAULT_CUSTOMIZATION)
 
   useEffect(() => {
     if (!postId) return
@@ -435,6 +442,26 @@ export default function PostEditor() {
             <span className="truncate">Editar Post</span>
             <Sparkles className="w-4 h-4 text-primary shrink-0" />
           </h1>
+          {status === 'scheduled' && scheduledDate && (
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 shrink-0 font-bold flex items-center gap-1 shadow-2xs"
+            >
+              ⏰ Agendado para{' '}
+              {(() => {
+                try {
+                  const parts = scheduledDate.split('T')[0].split('-')
+                  if (parts.length === 3) {
+                    return `${parts[2]}/${parts[1]}`
+                  }
+                  return scheduledDate
+                } catch {
+                  return scheduledDate
+                }
+              })()}{' '}
+              às 10h
+            </Badge>
+          )}
           {trendId && (
             <Badge
               variant="outline"
@@ -454,7 +481,31 @@ export default function PostEditor() {
           className="relative w-full h-64 rounded-2xl border-2 border-dashed border-border/80 hover:border-primary/50 transition-colors overflow-hidden bg-muted/30 shadow-xs"
         >
           {mediaPreview ? (
-            <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
+            <div className="w-full h-full relative overflow-hidden">
+              <img
+                src={mediaPreview}
+                alt="Preview"
+                className="w-full h-full object-cover transition-all"
+                style={{
+                  filter: `brightness(${customization.brightness}%) contrast(${customization.contrast}%) saturate(${customization.saturation}%) blur(${customization.blur}px)`,
+                }}
+              />
+              {/* Camada de sobreposição configurável */}
+              <div
+                className="absolute inset-0 pointer-events-none transition-all"
+                style={{
+                  backgroundColor:
+                    customization.gradientMode === 'none' ? customization.overlayColor : undefined,
+                  backgroundImage:
+                    customization.gradientMode === 'linear'
+                      ? `linear-gradient(135deg, ${customization.primaryColor}80, ${customization.secondaryColor}80)`
+                      : customization.gradientMode === 'radial'
+                        ? `radial-gradient(circle, ${customization.primaryColor}80, ${customization.secondaryColor}80)`
+                        : undefined,
+                  opacity: customization.overlayOpacity / 100,
+                }}
+              />
+            </div>
           ) : (
             <button
               type="button"
@@ -506,6 +557,16 @@ export default function PostEditor() {
             {placedElements.length} elemento(s) na arte • Clique para remover
           </p>
         )}
+
+        {/* Painel de Edição Avançada de Personalização & Melhores Práticas */}
+        <AdvancedCustomizationPanel
+          customization={customization}
+          onChange={setCustomization}
+          onReset={() => setCustomization(DEFAULT_CUSTOMIZATION)}
+          platform={platform}
+          caption={caption || content}
+          hasMedia={Boolean(mediaPreview)}
+        />
       </div>
     </WorkspaceLayout>
   )

@@ -126,38 +126,50 @@ export async function getWhatToPostToday(options: {
     return [
       {
         id: 'idea-1',
-        title: 'O Erro Invisível que Custa Clientes (E a Solução em 3 Passos)',
-        suggestedModel: 'Carrossel Passo a Passo',
-        format: 'Carrossel (1080x1350)',
+        title: 'Carrossel Slide-a-Slide: Guia Prático de 5 Passos',
+        suggestedModel: 'Carrossel Educativo',
+        format: 'Carrossel (Slides)',
         caption:
-          'A maioria dos negócios perde vendas por um detalhe que passa despercebido no dia a dia. Salve este post para conferir a auditoria prática de 3 minutos! 👇\n\n1. O sintoma inicial...\n2. Onde a conversão quebra...\n3. O ajuste que destrava o resultado.\n\nQual desses pontos mais chama atenção na sua operação hoje?',
-        hashtags: ['#estratégia', '#negocios', '#produtividade', '#crescimento'],
+          'Deslize para o lado para dominar este guia! 👉\n\n• Slide 1: O erro invisível que custa caro\n• Slide 2: Onde a maioria quebra\n• Slide 3: O método em 3 etapas\n• Slide 4: Aplicação prática imediata\n• Slide 5: Salve para consultar sempre que produzir!',
+        hashtags: ['#carrossel', '#educativo', '#dicaspraticas', '#estrategia'],
         bestTime: '18:30 (Melhor horário mapeado da sua audiência)',
         reason:
-          'Seus posts em formato carrossel educativo tiveram 2.1x mais engajamento e salvamentos.',
+          'Seus posts em formato carrossel educativo geram 3x mais salvamentos e retenção slide a slide.',
       },
       {
         id: 'idea-2',
-        title: 'Estudo de Caso Rápido: Do Zero à Autoridade Sem Gastar com Anúncios',
-        suggestedModel: 'Post Único com Prova Social',
-        format: 'Feed Quadrado (1080x1080)',
+        title: 'Roteiro de Vídeo Curto com Beats de Tempo (TikTok & Reels)',
+        suggestedModel: 'Roteiro de Vídeo (Beats)',
+        format: 'Vídeo Curto / Reels',
         caption:
-          'Quando começamos, muitos disseram que o mercado estava saturado. Aqui está o princípio que nos diferenciou e atraiu os clientes certos de forma orgânica. 🚀\n\nComente "GUIA" que te envio o resumo completo no direct!',
-        hashtags: ['#autoridade', '#empreendedorismo', '#marketingdeconteudo', '#sucesso'],
+          '🎬 ROTEIRO COMPLETO (30s):\n\n[0:00 - 0:03] GANCHO: "Pare de cometer esse erro agora mesmo se você quer crescer!"\n[0:03 - 0:15] DESENVOLVIMENTO: "A maioria tenta pelo caminho longo, mas com essa mudança simples você dobra seus cliques."\n[0:15 - 0:25] DEMONSTRAÇÃO: Mostrar o produto ou tela em funcionamento.\n[0:25 - 0:30] CTA: "Comente QUERO para receber o acesso gratuito no direct!"',
+        hashtags: ['#reels', '#shorts', '#viral', '#roteiro'],
         bestTime: '12:00 (Pico no horário de almoço)',
         reason:
-          'Conteúdos com prova social e tom direto aumentaram a conversão em +45% no histórico recente.',
+          'Ganchos de 3 segundos aumentam a retenção em 70% nos algoritmos de Reels e TikTok.',
       },
       {
         id: 'idea-3',
-        title: 'Checklist Definitivo da Semana: 5 Hábitos para Escalar Resultados',
-        suggestedModel: 'Infográfico / Checklist Visual',
-        format: 'Stories / Reels Vertical (1080x1920)',
+        title: 'Thread Estruturada para X/Twitter (5 Tweets Encadeados)',
+        suggestedModel: 'Thread no X',
+        format: 'Thread X / Twitter',
         caption:
-          'Sua semana pode ser produtiva ou apenas ocupada. Qual dos 5 itens da lista você já aplicou hoje? Deixe nos comentários seu foco principal da semana! 👇🔥',
-        hashtags: ['#foco', '#planejamento', '#dicaspraticas', '#altaperformance'],
-        bestTime: '20:15 (Maior tempo de tela)',
-        reason: 'Formatos interativos com checklist aumentam em +38% as interações de respostas.',
+          '🧵 1/5 | 90% das pessoas erram feio ao planejar seu conteúdo.\n\nAqui estão os 3 pilares validados para destravar sua consistência 👇\n\n2/5 | Ponto 1: Simplicidade bate sofisticação.\n3/5 | Ponto 2: Consistência vence picos isolados.\n4/5 | Ponto 3: Conversas no direct fecham contratos.\n5/5 | Curtiu? Dê um RT no primeiro tweet e siga para receber insights diários!',
+        hashtags: ['#twitter', '#threads', '#estrategia', '#negocios'],
+        bestTime: '09:00 (Manhã Executiva)',
+        reason: 'Threads estruturadas no X geram 4x mais retweets e consolidam autoridade rápida.',
+      },
+      {
+        id: 'idea-4',
+        title: 'Newsletter & Artigo Longo para LinkedIn (Liderança de Pensamento)',
+        suggestedModel: 'Newsletter LinkedIn',
+        format: 'Newsletter / Artigo',
+        caption:
+          'Assunto: O que os líderes de mercado não contam sobre consistência em 2025.\n\nPrezados colegas,\n\nAo analisar dezenas de operações bem-sucedidas, um fato fica claro: qualidade e constância superam qualquer hack efêmero de algoritmo.\n\nNesta edição semanal, detalho as 3 decisões estratégicas que separam marcas relevantes de marcas esquecíveis.\n\nQual a sua perspectiva sobre esse cenário? Vamos debater nos comentários!',
+        hashtags: ['#newsletter', '#linkedin', '#lideranca', '#gestao'],
+        bestTime: '08:00 (Início do Expediente)',
+        reason:
+          'Artigos longos e newsletters aumentam a geração de leads qualificados em até 65% no LinkedIn.',
       },
     ]
   }

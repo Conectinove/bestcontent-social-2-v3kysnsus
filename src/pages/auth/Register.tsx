@@ -55,7 +55,7 @@ export default function Register() {
       if (fe) setFieldErrors(fe)
       return
     }
-    toast({ title: 'Conta Criada!', description: 'Bem-vindo ao BestContent Social 2!' })
+    toast({ title: 'Conta Criada!', description: 'Bem-vindo ao MidiaViva!' })
     navigate('/app/feed')
   }
 
