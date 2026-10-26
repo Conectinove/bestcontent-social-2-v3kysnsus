@@ -83,45 +83,60 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            Calendário <CalendarIcon className="w-6 h-6 text-primary" />
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Planeje e organize suas publicações.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-purple-600/10 text-primary flex items-center justify-center shadow-xs">
+              <CalendarIcon className="w-5 h-5 text-primary" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              Calendário Editorial
+            </h1>
+            <Badge
+              variant="secondary"
+              className="bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 font-bold text-[10px] px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800"
+            >
+              Planejamento Global
+            </Badge>
+          </div>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Arraste para reagendar e organize a grade de publicações de todas as suas marcas.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-muted rounded-lg border border-border p-1">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center bg-muted/80 rounded-2xl border border-border/80 p-1 shadow-xs">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
+              aria-label="Mês anterior"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-xs font-semibold px-3">
+            <span className="text-xs font-bold px-3 min-w-[120px] text-center text-foreground">
               {MONTHS[month]} {year}
             </span>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
+              aria-label="Próximo mês"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
           <Button
             onClick={() => navigate('/app/content/new')}
-            className="bg-primary text-white text-xs gap-1"
+            className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-2xl h-10 px-4 gap-1.5 shadow-xs"
           >
-            <Plus className="w-4 h-4" /> Agendar
+            <Plus className="w-4 h-4" /> Agendar Novo Post
           </Button>
         </div>
       </div>
 
-      <Card className="p-4 overflow-x-auto">
+      <Card className="p-5 rounded-2xl border border-border/80 bg-card shadow-xs overflow-x-auto">
         <div className="min-w-[600px]">
           <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground mb-2">
             {DAYS.map((d) => (
@@ -150,7 +165,7 @@ export default function CalendarPage() {
                   onDragLeave={() => setDragOver(null)}
                   onDrop={() => handleDrop(dayNum)}
                   draggable={false}
-                  className={`h-24 p-1.5 rounded-md border flex flex-col justify-between transition-all cursor-pointer ${isToday ? 'border-primary ring-1 ring-primary/40 bg-primary/5' : dragOver === dayNum ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50 bg-card'}`}
+                  className={`h-28 p-2 rounded-xl border flex flex-col justify-between transition-all cursor-pointer ${isToday ? 'border-primary ring-2 ring-primary/30 bg-purple-500/5' : dragOver === dayNum ? 'border-primary bg-primary/10' : 'border-border/70 hover:border-primary/50 bg-card/60 shadow-2xs'}`}
                 >
                   <div className="flex justify-between items-center">
                     <span
@@ -195,9 +210,12 @@ export default function CalendarPage() {
       </Card>
 
       <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-sm">Posts Agendados</DialogTitle>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4 text-primary" />
+              Posts Agendados ({selectedDay?.length || 0})
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 my-2">
             {selectedDay?.map((s) => {
@@ -206,7 +224,7 @@ export default function CalendarPage() {
               return (
                 <div
                   key={s.id}
-                  className="p-3 rounded-lg bg-muted space-y-2 text-xs border border-border"
+                  className="p-3.5 rounded-2xl bg-muted/50 space-y-2 text-xs border border-border/70 shadow-xs"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">

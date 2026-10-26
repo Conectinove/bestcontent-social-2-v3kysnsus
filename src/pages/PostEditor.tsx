@@ -376,14 +376,15 @@ export default function PostEditor() {
           ref={canvasRef}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          className="relative w-full h-64 rounded-lg border-2 border-dashed border-border overflow-hidden bg-muted/40"
+          className="relative w-full h-64 rounded-2xl border-2 border-dashed border-border/80 hover:border-primary/50 transition-colors overflow-hidden bg-muted/30 shadow-xs"
         >
           {mediaPreview ? (
             <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
           ) : (
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+              className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ImageIcon className="w-8 h-8" />
               <span className="text-xs">Clique para enviar uma imagem</span>

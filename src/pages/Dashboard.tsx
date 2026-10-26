@@ -141,22 +141,88 @@ export default function Dashboard() {
           <Button
             variant="outline"
             onClick={() => {
-              const testSummary = abTests
-                .map((t, idx) => `Experimento #${idx + 1}: Status=${t.status}, Meta=${t.goal}`)
-                .join('\n')
-              const report = `BESTCONTENT SOCIAL 2 - RELATÓRIO CONSOLIDADO DE PERFORMANCE & TESTES A/B\nData: ${new Date().toLocaleDateString('pt-BR')}\nTotal de Experimentos: ${abTests.length}\n\n${testSummary || 'Nenhum teste A/B ativo no momento.'}\n\nSocial 2 Powered by BestContent AI`
-              const blob = new Blob([report], { type: 'text/plain;charset=utf-8' })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `relatorio-dashboard-ab-${Date.now()}.pdf`
-              document.body.appendChild(a)
-              a.click()
-              document.body.removeChild(a)
-              URL.revokeObjectURL(url)
+              const printWindow = window.open('', '_blank')
+              const nowFormatted = new Date().toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+              const experimentsRows =
+                abTests.length > 0
+                  ? abTests
+                      .map(
+                        (t, i) =>
+                          `<tr><td style="padding: 8px; border: 1px solid #e2e8f0;">Experimento #${i + 1}</td><td style="padding: 8px; border: 1px solid #e2e8f0;">${t.status === 'running' ? 'Em andamento' : t.status === 'completed' ? 'Concluído' : 'Rascunho'}</td><td style="padding: 8px; border: 1px solid #e2e8f0;">${t.goal === 'clicks' ? 'Cliques' : 'Conversões'}</td><td style="padding: 8px; border: 1px solid #e2e8f0;">${t.winner ? 'Vencedor definido' : 'Pendente'}</td></tr>`,
+                      )
+                      .join('')
+                  : '<tr><td colspan="4" style="padding: 12px; text-align: center; color: #64748b; border: 1px solid #e2e8f0;">Nenhum experimento ativo no período.</td></tr>'
+
+              const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Relatório Dashboard BestContent Social 2</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 32px; color: #0f172a; }
+    .header { border-bottom: 2px solid #7c3aed; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0; font-size: 22px; color: #7c3aed; }
+    .meta { font-size: 12px; color: #64748b; }
+    .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+    .stat-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; flex: 1; background: #f8fafc; }
+    .stat-val { font-size: 24px; font-weight: bold; color: #0f172a; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+    th { background: #ede9fe; color: #5b21b6; padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
+    .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 11px; color: #94a3b8; text-align: center; }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>bestcontent AI — Relatório de Performance & Testes A/B</h1>
+      <p class="meta">Gerado em ${nowFormatted} · Organização: ${user?.name || 'BestContent'}</p>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat-card"><div style="font-size: 12px; color: #64748b;">Total de Posts</div><div class="stat-val">${posts.length}</div></div>
+    <div class="stat-card"><div style="font-size: 12px; color: #64748b;">Experimentos A/B</div><div class="stat-val">${abTests.length}</div></div>
+    <div class="stat-card"><div style="font-size: 12px; color: #64748b;">Marcas Cadastradas</div><div class="stat-val">${brands.length}</div></div>
+  </div>
+  <h3 style="font-size: 15px; margin-bottom: 8px;">Comparador de Performance (Testes A/B)</h3>
+  <table>
+    <thead><tr><th>Experimento</th><th>Status</th><th>Meta</th><th>Resultado</th></tr></thead>
+    <tbody>${experimentsRows}</tbody>
+  </table>
+  <div class="footer">
+    BestContent Social 2 · Plataforma de Gestão e Criação com IA · Documento Oficial de Auditoria
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 250);
+    }
+  </script>
+</body>
+</html>`
+
+              if (printWindow) {
+                printWindow.document.open()
+                printWindow.document.write(html)
+                printWindow.document.close()
+              } else {
+                // Fallback direct printable blob
+                const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+                const url = URL.createObjectURL(blob)
+                window.open(url, '_blank')
+              }
+
               toast({
-                title: 'Exportando Relatório PDF',
-                description: 'Download do relatório consolidado concluído.',
+                title: 'Relatório preparado',
+                description: 'Janela de impressão e exportação em PDF aberta.',
               })
             }}
             className="rounded-xl border-border bg-card hover:bg-muted text-xs sm:text-sm h-10 px-3.5 gap-2 shadow-xs"

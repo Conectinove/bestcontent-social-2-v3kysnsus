@@ -616,7 +616,10 @@ export default function Library() {
         {/* Brand quick filter */}
         <div className="md:col-span-3">
           <Select value={selectedBrandFilter} onValueChange={setSelectedBrandFilter}>
-            <SelectTrigger className="h-10 text-xs rounded-xl bg-card border-border/80 shadow-xs">
+            <SelectTrigger
+              aria-label="Filtrar por Marca"
+              className="h-10 text-xs rounded-xl bg-card border-border/80 shadow-xs"
+            >
               <SelectValue placeholder="Marca" />
             </SelectTrigger>
             <SelectContent>
@@ -636,7 +639,10 @@ export default function Library() {
         {/* Platform quick filter */}
         <div className="md:col-span-2">
           <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-            <SelectTrigger className="h-10 text-xs rounded-xl bg-card border-border/80 shadow-xs">
+            <SelectTrigger
+              aria-label="Filtrar por Rede Social"
+              className="h-10 text-xs rounded-xl bg-card border-border/80 shadow-xs"
+            >
               <SelectValue placeholder="Rede Social" />
             </SelectTrigger>
             <SelectContent>
@@ -657,6 +663,7 @@ export default function Library() {
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                aria-label="Abrir mais filtros de formato e ordenação"
                 className="w-full h-10 text-xs font-semibold gap-2 rounded-xl border-border/80 bg-card hover:bg-muted shadow-xs"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
@@ -690,7 +697,7 @@ export default function Library() {
                   Tipo de Formato
                 </label>
                 <Select value={selectedFormat} onValueChange={setSelectedFormat}>
-                  <SelectTrigger className="h-8 text-xs rounded-lg">
+                  <SelectTrigger aria-label="Selecionar Formato" className="h-8 text-xs rounded-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -711,7 +718,10 @@ export default function Library() {
                   value={sortOrder}
                   onValueChange={(val: 'newest' | 'oldest') => setSortOrder(val)}
                 >
-                  <SelectTrigger className="h-8 text-xs rounded-lg">
+                  <SelectTrigger
+                    aria-label="Selecionar Ordenação"
+                    className="h-8 text-xs rounded-lg"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

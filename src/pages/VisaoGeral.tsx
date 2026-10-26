@@ -197,22 +197,38 @@ export default function VisaoGeral() {
           <Button
             variant="outline"
             onClick={() => {
-              const csvContent =
-                'data:text/csv;charset=utf-8,Métrica,Valor\nAgendados (7d),0\nPublicados (7d),0\nRascunhos,9\nMarcas Ativas,0/5\n'
-              const encodedUri = encodeURI(csvContent)
+              const csvRows = [
+                ['Métrica', 'Valor'],
+                ['Agendados (7d)', String(scheduledCount)],
+                ['Publicados (7d)', String(publishedCount)],
+                ['Rascunhos', String(draftCount)],
+                ['Marcas Ativas', activeBrandsRatio],
+                ['Total de Marcas Cadastradas', String(brands.length)],
+                ['Total de Alertas Críticos', String(alerts.length)],
+                ['Data da Exportação', new Date().toLocaleString('pt-BR')],
+              ]
+              const csvString =
+                '\uFEFF' +
+                csvRows
+                  .map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','))
+                  .join('\r\n')
+              const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
               const link = document.createElement('a')
-              link.setAttribute('href', encodedUri)
+              link.href = url
               link.setAttribute('download', `relatorio-central-operacional-${Date.now()}.csv`)
               document.body.appendChild(link)
               link.click()
               document.body.removeChild(link)
+              URL.revokeObjectURL(url)
+
               toast({
                 title: 'Exportando Relatório Geral',
-                description: 'Download do relatório CSV concluído com sucesso.',
+                description: 'Download do arquivo CSV concluído com sucesso.',
               })
             }}
             className="rounded-xl border-border bg-card hover:bg-muted font-medium text-xs sm:text-sm h-10 px-3.5 gap-2 shadow-xs"
-            title="Exportar métricas da Central Operacional"
+            title="Exportar métricas da Central Operacional em CSV"
           >
             <Sparkles className="w-4 h-4 text-primary" />
             <span>Exportar Relatório</span>

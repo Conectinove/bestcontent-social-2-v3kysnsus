@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   Trophy,
   Zap,

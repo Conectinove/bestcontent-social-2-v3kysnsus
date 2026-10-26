@@ -491,9 +491,10 @@ export default function CreatePost() {
                   Marca Ativa <span className="text-rose-500">*</span>
                 </label>
                 <select
+                  aria-label="Selecionar Marca"
                   value={brandId}
                   onChange={(e) => setBrandId(e.target.value)}
-                  className="w-full text-xs font-semibold bg-muted/60 border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus:outline-hidden transition-colors"
+                  className="w-full text-xs font-semibold bg-muted/60 border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-primary focus:outline-hidden transition-colors"
                 >
                   {brands.map((b: any) => (
                     <option key={b.id} value={b.id}>
@@ -508,9 +509,10 @@ export default function CreatePost() {
                   Rede Social de Destino
                 </label>
                 <select
+                  aria-label="Selecionar Rede Social"
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value)}
-                  className="w-full text-xs font-semibold bg-muted/60 border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus:outline-hidden transition-colors"
+                  className="w-full text-xs font-semibold bg-muted/60 border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-primary focus:outline-hidden transition-colors"
                 >
                   {PLATFORMS_META.map((p) => (
                     <option key={p.key} value={p.key}>
@@ -662,10 +664,11 @@ export default function CreatePost() {
               </label>
               <div className="relative">
                 <input
+                  aria-label="Data e horário de agendamento"
                   type="datetime-local"
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full text-xs font-semibold bg-muted/60 border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus:outline-hidden"
+                  className="w-full text-xs font-semibold bg-muted/60 border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-primary focus:outline-hidden"
                 />
               </div>
             </div>

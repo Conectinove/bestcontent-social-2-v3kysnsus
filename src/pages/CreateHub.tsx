@@ -42,27 +42,27 @@ export function YouTubeIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 export function ImagesCardIllustration() {
   return (
-    <div className="w-full h-44 rounded-2xl bg-gradient-to-b from-[#f5f3ff] via-[#ede9fe] to-[#f3f0ff] p-4 flex items-center justify-center relative overflow-hidden select-none">
+    <div className="w-full h-44 rounded-2xl bg-gradient-to-b from-[#f5f3ff] via-[#ede9fe] to-[#f3f0ff] dark:from-purple-950/40 dark:via-purple-900/30 dark:to-background p-4 flex items-center justify-center relative overflow-hidden select-none">
       {/* Decorative stacked cards */}
       <div className="relative w-48 h-32 flex items-center justify-center">
         {/* Back card */}
-        <div className="absolute w-36 h-28 bg-[#ddd6fe]/60 rounded-xl transform -rotate-12 translate-x-[-18px] translate-y-[-2px] border border-white/60 shadow-xs" />
+        <div className="absolute w-36 h-28 bg-[#ddd6fe]/60 dark:bg-purple-900/40 rounded-xl transform -rotate-12 translate-x-[-18px] translate-y-[-2px] border border-white/60 dark:border-purple-800/40 shadow-xs" />
         {/* Middle card */}
-        <div className="absolute w-38 h-28 bg-[#ede9fe] rounded-xl transform -rotate-6 translate-x-[-6px] border border-white/80 shadow-sm" />
+        <div className="absolute w-38 h-28 bg-[#ede9fe] dark:bg-purple-900/60 rounded-xl transform -rotate-6 translate-x-[-6px] border border-white/80 dark:border-purple-700/50 shadow-sm" />
         {/* Front card (framed image) */}
-        <div className="absolute w-44 h-28 bg-white rounded-xl shadow-md border border-purple-100 p-2 flex flex-col justify-between overflow-hidden">
-          <div className="w-full h-full bg-[#f8fafc] rounded-lg relative overflow-hidden flex items-end justify-center">
+        <div className="absolute w-44 h-28 bg-white dark:bg-slate-900 rounded-xl shadow-md border border-purple-100 dark:border-purple-800/60 p-2 flex flex-col justify-between overflow-hidden">
+          <div className="w-full h-full bg-[#f8fafc] dark:bg-slate-800/70 rounded-lg relative overflow-hidden flex items-end justify-center">
             {/* Sun / Moon circle */}
-            <div className="absolute top-2.5 right-3 w-3.5 h-3.5 rounded-full bg-[#cbd5e1]" />
+            <div className="absolute top-2.5 right-3 w-3.5 h-3.5 rounded-full bg-[#cbd5e1] dark:bg-slate-600" />
             {/* Mountain shapes */}
             <svg
               viewBox="0 0 160 80"
-              className="w-full h-16 text-[#94a3b8] fill-current opacity-85"
+              className="w-full h-16 text-[#94a3b8] dark:text-slate-500 fill-current opacity-85"
               preserveAspectRatio="none"
             >
-              <polygon points="0,80 30,35 65,80" fill="#94a3b8" />
-              <polygon points="40,80 85,20 135,80" fill="#64748b" />
-              <polygon points="105,80 140,40 160,80" fill="#475569" />
+              <polygon points="0,80 30,35 65,80" fill="currentColor" />
+              <polygon points="40,80 85,20 135,80" fill="currentColor" opacity="0.8" />
+              <polygon points="105,80 140,40 160,80" fill="currentColor" opacity="0.6" />
             </svg>
           </div>
         </div>
@@ -73,9 +73,9 @@ export function ImagesCardIllustration() {
 
 export function VideoCardIllustration() {
   return (
-    <div className="w-full h-44 rounded-2xl bg-gradient-to-b from-[#f5f3ff] via-[#ede9fe] to-[#f3f0ff] p-4 flex items-center justify-center relative overflow-hidden select-none">
+    <div className="w-full h-44 rounded-2xl bg-gradient-to-b from-[#f5f3ff] via-[#ede9fe] to-[#f3f0ff] dark:from-purple-950/40 dark:via-purple-900/30 dark:to-background p-4 flex items-center justify-center relative overflow-hidden select-none">
       {/* Video player card */}
-      <div className="w-56 h-30 bg-white/95 backdrop-blur rounded-2xl shadow-md border border-purple-100 p-3.5 flex flex-col justify-between relative">
+      <div className="w-56 h-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-2xl shadow-md border border-purple-100 dark:border-purple-800/60 p-3.5 flex flex-col justify-between relative">
         {/* Equalizer bars top left */}
         <div className="flex items-end gap-1 h-4">
           <div className="w-1 h-2 bg-[#94a3b8] rounded-full" />
@@ -96,9 +96,9 @@ export function VideoCardIllustration() {
 
         {/* Bottom progress bar */}
         <div className="w-full pt-2">
-          <div className="w-full h-1.5 bg-[#e2e8f0] rounded-full relative flex items-center">
+          <div className="w-full h-1.5 bg-[#e2e8f0] dark:bg-slate-800 rounded-full relative flex items-center">
             <div className="w-1/3 h-full bg-[#7c3aed] rounded-full" />
-            <div className="w-3 h-3 rounded-full bg-[#7c3aed] shadow-xs -ml-1 border-2 border-white" />
+            <div className="w-3 h-3 rounded-full bg-[#7c3aed] shadow-xs -ml-1 border-2 border-white dark:border-slate-900" />
           </div>
         </div>
       </div>
@@ -108,9 +108,9 @@ export function VideoCardIllustration() {
 
 export function FlyerCardIllustration() {
   return (
-    <div className="w-full h-44 rounded-2xl bg-gradient-to-b from-[#f5f3ff] via-[#ede9fe] to-[#f3f0ff] p-4 flex items-center justify-center relative overflow-hidden select-none">
+    <div className="w-full h-44 rounded-2xl bg-gradient-to-b from-[#f5f3ff] via-[#ede9fe] to-[#f3f0ff] dark:from-purple-950/40 dark:via-purple-900/30 dark:to-background p-4 flex items-center justify-center relative overflow-hidden select-none">
       {/* Flyer document representation */}
-      <div className="w-36 h-36 bg-white rounded-2xl shadow-md border border-purple-100 p-2.5 flex flex-col justify-between relative">
+      <div className="w-36 h-36 bg-white dark:bg-slate-900 rounded-2xl shadow-md border border-purple-100 dark:border-purple-800/60 p-2.5 flex flex-col justify-between relative">
         {/* Header bar purple */}
         <div className="w-full h-4 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] rounded-md" />
 
@@ -122,12 +122,12 @@ export function FlyerCardIllustration() {
         </div>
 
         {/* Mock promo banner with discount tag */}
-        <div className="w-full h-14 bg-[#f8fafc] rounded-lg border border-slate-100 p-1.5 relative overflow-hidden flex items-end justify-between">
-          <div className="w-12 h-8 bg-[#94a3b8]/40 rounded-sm" />
+        <div className="w-full h-14 bg-[#f8fafc] dark:bg-slate-800/70 rounded-lg border border-slate-100 dark:border-slate-800 p-1.5 relative overflow-hidden flex items-end justify-between">
+          <div className="w-12 h-8 bg-[#94a3b8]/40 dark:bg-slate-600/50 rounded-sm" />
           <div className="absolute top-1 right-2 px-1.5 py-0.5 bg-[#7c3aed] text-white rounded text-[8px] font-bold">
             50%
           </div>
-          <div className="w-10 h-3 bg-[#475569] rounded-xs" />
+          <div className="w-10 h-3 bg-[#475569] dark:bg-slate-500 rounded-xs" />
         </div>
 
         {/* Bottom indicator lines */}
@@ -159,9 +159,10 @@ export default function CreateHub() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         {/* CARD 1: Posts de Imagens */}
         <div className="flex flex-col">
-          <div
+          <button
+            type="button"
             onClick={() => navigate('/app/criar/imagens')}
-            className="group relative bg-white dark:bg-card border border-border/80 hover:border-primary/60 rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col flex-1"
+            className="text-left group relative bg-white dark:bg-card border border-border/80 hover:border-primary/60 rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             {/* Visual illustration */}
             <div className="group-hover:scale-[1.02] transition-transform duration-300">
@@ -188,7 +189,7 @@ export default function CreateHub() {
               <Linkedin className="w-4 h-4 hover:text-foreground transition-colors" />
               <WhatsAppIcon className="w-4 h-4 hover:text-foreground transition-colors" />
             </div>
-          </div>
+          </button>
 
           {/* Sub-link */}
           <Link
@@ -202,9 +203,10 @@ export default function CreateHub() {
 
         {/* CARD 2: Posts de Vídeo */}
         <div className="flex flex-col">
-          <div
+          <button
+            type="button"
             onClick={() => navigate('/app/criar/videos')}
-            className="group relative bg-white dark:bg-card border border-border/80 hover:border-primary/60 rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col flex-1"
+            className="text-left group relative bg-white dark:bg-card border border-border/80 hover:border-primary/60 rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             {/* BETA badge in corner */}
             <div className="absolute top-7 right-7 z-10">
@@ -238,7 +240,7 @@ export default function CreateHub() {
               <YouTubeIcon className="w-4 h-4 hover:text-foreground transition-colors" />
               <Facebook className="w-4 h-4 hover:text-foreground transition-colors" />
             </div>
-          </div>
+          </button>
 
           {/* Sub-link */}
           <Link
@@ -252,9 +254,10 @@ export default function CreateHub() {
 
         {/* CARD 3: Flyers / Panfletos */}
         <div className="flex flex-col">
-          <div
+          <button
+            type="button"
             onClick={() => navigate('/app/criar/flyers')}
-            className="group relative bg-white dark:bg-card border border-border/80 hover:border-primary/60 rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col flex-1"
+            className="text-left group relative bg-white dark:bg-card border border-border/80 hover:border-primary/60 rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             {/* Visual illustration */}
             <div className="group-hover:scale-[1.02] transition-transform duration-300">
@@ -281,7 +284,7 @@ export default function CreateHub() {
               <div className="w-3.5 h-3.5 border border-current rounded-xs" />
               <Smartphone className="w-4 h-4 hover:text-foreground transition-colors" />
             </div>
-          </div>
+          </button>
 
           {/* Sub-link */}
           <Link

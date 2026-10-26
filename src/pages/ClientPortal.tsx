@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Search,
   Filter,
@@ -783,9 +784,10 @@ export default function ClientPortal() {
                 Marca Vinculada
               </label>
               <select
+                aria-label="Selecionar Marca Vinculada"
                 value={selectedBrand}
                 onChange={(e) => setSelectedBrand(e.target.value)}
-                className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2.5"
+                className="w-full text-xs rounded-xl border border-input bg-background px-3 py-2.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
               >
                 <option value="">Todas as marcas ou Geral</option>
                 {brands.map((b: any) => (
@@ -799,10 +801,11 @@ export default function ClientPortal() {
             <div className="pt-2 border-t border-border">
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
                 <input
+                  aria-label="Proteger link com senha de acesso"
                   type="checkbox"
                   checked={requirePassword}
                   onChange={(e) => setRequirePassword(e.target.checked)}
-                  className="rounded text-primary"
+                  className="rounded text-primary focus-visible:ring-2 focus-visible:ring-primary"
                 />
                 <span>Proteger link com senha de acesso</span>
               </label>
