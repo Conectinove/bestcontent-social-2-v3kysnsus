@@ -19,7 +19,7 @@ import {
   Save,
 } from 'lucide-react'
 import { getPost, updatePost } from '@/services/posts'
-import { improveText } from '@/services/ai'
+import { improveText, generateCaption } from '@/services/ai'
 import { approvePost } from '@/services/approval'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -31,6 +31,7 @@ import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { useWorkspace, type WidgetType } from '@/hooks/use-workspace'
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
+import { ImageBankModal } from '@/components/ImageBankModal'
 import {
   ContentDraftWidget,
   CaptionWidget,
@@ -74,15 +75,19 @@ export default function PostEditor() {
   const [publishing, setPublishing] = useState(false)
   const [approving, setApproving] = useState(false)
   const [improving, setImproving] = useState(false)
+  const [captionVariations, setCaptionVariations] = useState<
+    Array<{ title: string; text: string; cta?: string }>
+  >([])
   const [content, setContent] = useState('')
   const [caption, setCaption] = useState('')
   const [platform, setPlatform] = useState('Instagram')
   const [brandId, setBrandId] = useState('')
-  const [status, setStatus] = useState('draft')
   const [trendId, setTrendId] = useState('')
-  const [scheduledDate, setScheduledDate] = useState('')
-  const [mediaFile, setMediaFile] = useState<File | null>(null)
+  const [status, setStatus] = useState('draft')
+  const [scheduledDate, setScheduledDate] = useState(new Date().toISOString().split('T')[0])
   const [mediaPreview, setMediaPreview] = useState('')
+  const [mediaFile, setMediaFile] = useState<File | null>(null)
+  const [imageBankOpen, setImageBankOpen] = useState(false)
   const [placedElements, setPlacedElements] = useState<PlacedElement[]>([])
 
   useEffect(() => {
@@ -148,6 +153,46 @@ export default function PostEditor() {
       }
     } catch {
       toast({ title: 'Erro', description: 'Falha ao melhorar texto.', variant: 'destructive' })
+    } finally {
+      setImproving(false)
+    }
+  }
+
+  const handleGenerateVariations = async () => {
+    const textTheme = caption.trim() || content.trim()
+    if (!textTheme) {
+      toast({
+        title: 'Informe um tema',
+        description: 'Digite um rascunho de conteúdo ou legenda antes de gerar variações.',
+      })
+      return
+    }
+    setImproving(true)
+    try {
+      const activeBrand = brands.find((b: any) => b.id === brandId)
+      const res = (await generateCaption({
+        content: textTheme,
+        platform,
+        brandName: activeBrand?.name,
+        brandVoice: (activeBrand as any)?.brand_voice,
+        variations: true,
+      })) as any
+      if (res.variations && res.variations.length > 0) {
+        setCaptionVariations(res.variations)
+        toast({
+          title: '3 opções geradas!',
+          description: 'Selecione uma opção de legenda sugerida pela IA.',
+        })
+      } else if (res.caption) {
+        setCaption(res.caption)
+        toast({ title: 'Legenda gerada!', description: 'Texto atualizado com IA.' })
+      }
+    } catch {
+      toast({
+        title: 'Erro na IA',
+        description: 'Falha ao gerar variações.',
+        variant: 'destructive',
+      })
     } finally {
       setImproving(false)
     }
@@ -247,10 +292,22 @@ export default function PostEditor() {
             setCaption={setCaption}
             onImprove={handleImproveCaption}
             improving={improving}
+            onGenerateVariations={handleGenerateVariations}
+            variations={captionVariations}
+            onSelectVariation={(chosen) => {
+              setCaption(chosen)
+              toast({ title: 'Opção aplicada!', description: 'Legenda do post atualizada.' })
+            }}
           />
         )
       case 'media':
-        return <MediaWidget mediaPreview={mediaPreview} onFileChange={handleFileChange} />
+        return (
+          <MediaWidget
+            mediaPreview={mediaPreview}
+            onFileChange={handleFileChange}
+            onOpenImageBank={() => setImageBankOpen(true)}
+          />
+        )
       case 'schedule':
         return (
           <ScheduleWidget
@@ -283,10 +340,20 @@ export default function PostEditor() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <ImageBankModal
+          open={imageBankOpen}
+          onOpenChange={setImageBankOpen}
+          onSelectImage={(url) => {
+            setMediaPreview(url)
+            toast({
+              title: 'Imagem aplicada!',
+              description: 'A imagem do banco interno foi adicionada ao post.',
+            })
+          }}
+        />
       </div>
     )
   }
-
   return (
     <WorkspaceLayout
       leftWidgets={leftWidgets}

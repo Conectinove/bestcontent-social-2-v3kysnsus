@@ -37,6 +37,7 @@ import {
   Coins,
   ShieldAlert,
   Palette,
+  Wand2,
 } from 'lucide-react'
 import { InspirationLibraryModal, InspirationItem } from '@/components/InspirationLibraryModal'
 import { WhatsAppIcon, TikTokIcon, YouTubeIcon } from './CreateHub'
@@ -159,8 +160,24 @@ export const IMAGE_FORMATS: ImageFormatOption[] = [
     defaultSlides: 3,
   },
   {
+    id: 'reels-capa-ig',
+    name: 'Capa de Reels / TikTok',
+    dimensions: '1080 × 1920px',
+    width: 1080,
+    height: 1920,
+    aspectRatioLabel: '9:16',
+    aspectRatioClass: 'w-13 h-24 rounded-2xl',
+    previewAspectRatio: '9/16',
+    gradient: 'from-[#000000] via-[#1e1b4b] to-[#ec4899]',
+    mainNetwork: 'tiktok',
+    networks: ['tiktok', 'instagram', 'youtube'],
+    isTop: true,
+    description: 'Capa vertical com visual de impacto e área central segura para grade do perfil.',
+    defaultSlides: 1,
+  },
+  {
     id: 'post-portrait-fb',
-    name: 'Post Portrait',
+    name: 'Post Portrait Facebook',
     dimensions: '1080 × 1350px',
     width: 1080,
     height: 1350,
@@ -169,7 +186,7 @@ export const IMAGE_FORMATS: ImageFormatOption[] = [
     previewAspectRatio: '4/5',
     gradient: 'from-[#2563eb] via-[#3b82f6] to-[#06b6d4]', // blue-cyan
     mainNetwork: 'facebook',
-    networks: ['instagram', 'facebook', 'linkedin'],
+    networks: ['facebook', 'instagram', 'linkedin'],
     isTop: true,
     description: 'Excelente performance visual para o feed do Facebook e LinkedIn.',
     defaultSlides: 1,
@@ -208,6 +225,72 @@ export const IMAGE_FORMATS: ImageFormatOption[] = [
     defaultSlides: 4,
   },
   {
+    id: 'carrossel-landscape',
+    name: 'Carrossel Landscape',
+    dimensions: '1080 × 608px',
+    width: 1080,
+    height: 608,
+    aspectRatioLabel: '16:9',
+    aspectRatioClass: 'w-24 h-13 rounded-2xl',
+    previewAspectRatio: '1.77/1',
+    gradient: 'from-[#3b82f6] via-[#0284c7] to-[#06b6d4]',
+    mainNetwork: 'linkedin',
+    networks: ['linkedin', 'facebook', 'twitter'],
+    isTop: false,
+    isCarousel: true,
+    description: 'Carrossel panorâmico moderno para infográficos e dados técnicos corporativos.',
+    defaultSlides: 4,
+  },
+  {
+    id: 'post-linkedin-landscape',
+    name: 'Post LinkedIn Landscape',
+    dimensions: '1200 × 627px',
+    width: 1200,
+    height: 627,
+    aspectRatioLabel: '1.91:1',
+    aspectRatioClass: 'w-24 h-13 rounded-2xl',
+    previewAspectRatio: '1200/627',
+    gradient: 'from-[#0a66c2] via-[#004182] to-[#38bdf8]',
+    mainNetwork: 'linkedin',
+    networks: ['linkedin', 'facebook', 'twitter'],
+    isTop: true,
+    description: 'Padrão ouro corporativo B2B com maior taxa de cliques para links e artigos.',
+    defaultSlides: 1,
+  },
+  {
+    id: 'banner-linkedin',
+    name: 'Banner Perfil LinkedIn',
+    dimensions: '1584 × 396px',
+    width: 1584,
+    height: 396,
+    aspectRatioLabel: '4:1',
+    aspectRatioClass: 'w-26 h-8 rounded-2xl',
+    previewAspectRatio: '4/1',
+    gradient: 'from-[#0f172a] via-[#1e293b] to-[#0a66c2]',
+    mainNetwork: 'linkedin',
+    networks: ['linkedin'],
+    isBanner: true,
+    isTop: false,
+    description: 'Capa panorâmica topo de perfil pessoal ou Company Page no LinkedIn.',
+    defaultSlides: 1,
+  },
+  {
+    id: 'card-twitter-landscape',
+    name: 'Card X / Twitter Landscape',
+    dimensions: '1600 × 900px',
+    width: 1600,
+    height: 900,
+    aspectRatioLabel: '16:9',
+    aspectRatioClass: 'w-24 h-14 rounded-2xl',
+    previewAspectRatio: '16/9',
+    gradient: 'from-[#09090b] via-[#18181b] to-[#71717a]',
+    mainNetwork: 'twitter',
+    networks: ['twitter', 'linkedin'],
+    isTop: true,
+    description: 'Card horizontal otimizado para feed do X/Twitter com preview expansível.',
+    defaultSlides: 1,
+  },
+  {
     id: 'banner-whatsapp',
     name: 'Banner Template WhatsApp',
     dimensions: '1125 × 600px',
@@ -226,23 +309,57 @@ export const IMAGE_FORMATS: ImageFormatOption[] = [
   },
   {
     id: 'thumbnail-youtube',
-    name: 'Thumbnail',
+    name: 'Thumbnail YouTube',
     dimensions: '1280 × 720px',
     width: 1280,
     height: 720,
     aspectRatioLabel: '16:9',
     aspectRatioClass: 'w-24 h-14 rounded-2xl',
     previewAspectRatio: '16/9',
-    gradient: 'from-[#ef4444] via-[#f97316] to-[#eab308]',
+    gradient: 'from-[#ef4444] via-[#dc2626] to-[#991b1b]',
     mainNetwork: 'youtube',
     networks: ['youtube', 'facebook'],
-    disabled: true,
-    description: 'Thumbnail para vídeos horizontais do YouTube.',
+    isTop: true,
+    disabled: false,
+    description: 'Miniatura chamativa para vídeos no YouTube e YouTube Shorts horizontal.',
+    defaultSlides: 1,
+  },
+  {
+    id: 'capa-facebook-evento',
+    name: 'Capa Evento Facebook',
+    dimensions: '1920 × 1005px',
+    width: 1920,
+    height: 1005,
+    aspectRatioLabel: '1.91:1',
+    aspectRatioClass: 'w-24 h-13 rounded-2xl',
+    previewAspectRatio: '1920/1005',
+    gradient: 'from-[#1877f2] via-[#2563eb] to-[#4338ca]',
+    mainNetwork: 'facebook',
+    networks: ['facebook'],
+    isBanner: true,
+    isTop: false,
+    description: 'Banner para páginas de eventos e transmissões ao vivo no Facebook.',
+    defaultSlides: 1,
+  },
+  {
+    id: 'pin-pinterest',
+    name: 'Pin Pinterest Vertical',
+    dimensions: '1000 × 1500px',
+    width: 1000,
+    height: 1500,
+    aspectRatioLabel: '2:3',
+    aspectRatioClass: 'w-15 h-23 rounded-2xl',
+    previewAspectRatio: '2/3',
+    gradient: 'from-[#e60023] via-[#b91c1c] to-[#991b1b]',
+    mainNetwork: 'instagram',
+    networks: ['instagram', 'facebook'],
+    isTop: false,
+    description: 'Proporção 2:3 ideal para pins de alta conversão visual no Pinterest.',
     defaultSlides: 1,
   },
   {
     id: 'post-landscape',
-    name: 'Post Landscape',
+    name: 'Post Landscape Panorâmico',
     dimensions: '1200 × 675px',
     width: 1200,
     height: 675,
@@ -252,8 +369,8 @@ export const IMAGE_FORMATS: ImageFormatOption[] = [
     gradient: 'from-[#0284c7] via-[#06b6d4] to-[#10b981]',
     mainNetwork: 'twitter',
     networks: ['twitter', 'facebook', 'linkedin'],
-    disabled: true,
-    description: 'Formato horizontal panorâmico.',
+    disabled: false,
+    description: 'Formato horizontal panorâmico para posts informativos e notícias.',
     defaultSlides: 1,
   },
 ]
@@ -321,12 +438,18 @@ export default function ImageCreator() {
   const [scheduledDate, setScheduledDate] = useState(
     new Date(Date.now() + 86400000).toISOString().slice(0, 16),
   )
+  const [captionVariations, setCaptionVariations] = useState<
+    Array<{ title: string; text: string; cta?: string }>
+  >([])
 
   // Modal / Feedback states
   const [inspirationModalOpen, setInspirationModalOpen] = useState(false)
   const [imageBankOpen, setImageBankOpen] = useState(false)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiLoadingAction, setAiLoadingAction] = useState<
+    'caption' | 'hashtags' | 'variations' | null
+  >(null)
   const [aiGeneratingArt, setAiGeneratingArt] = useState(false)
   const [artGenerated, setArtGenerated] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -501,29 +624,80 @@ export default function ImageCreator() {
   }
 
   // Gera legenda ou hashtags com IA
-  const aiGenerate = async (type: 'caption' | 'hashtags') => {
+  const aiGenerate = async (type: 'caption' | 'hashtags' | 'variations') => {
     setAiLoading(true)
+    setAiLoadingAction(type)
+    const activeBrand = brands[0]
+    const contentTheme =
+      caption ||
+      headline ||
+      promptIdea ||
+      (selectedInspiration
+        ? `${selectedInspiration.title}: ${selectedInspiration.description}`
+        : '') ||
+      `post ${selectedFormat.name} sobre ${currentTemplate.name}`
+
     try {
       if (type === 'caption') {
-        const theme =
-          caption ||
-          headline ||
-          promptIdea ||
-          `post ${selectedFormat.name} com objetivo ${objective} e abordagem ${approach || 'direta'}`
-        const r = await generateCaption(theme, selectedFormat.mainNetwork)
+        const r = await generateCaption({
+          content: contentTheme,
+          platform: selectedFormat.mainNetwork,
+          objective,
+          approach,
+          brandName: activeBrand?.name,
+          brandVoice: (activeBrand as any)?.brand_voice,
+          formatName: selectedFormat.name,
+          headline,
+          variations: false,
+        })
         const generated = (r as any).caption || ''
         setCaption(generated)
         toast({
           title: 'Legenda gerada pela IA!',
-          description: 'Texto calibrado com o tom do post e da rede selecionada.',
+          description: `Alinhada ao objetivo "${objective === 'vender' ? 'Vender' : 'Engajar'}" e rede ${selectedFormat.mainNetwork}.`,
         })
+      } else if (type === 'variations') {
+        const r = await generateCaption({
+          content: contentTheme,
+          platform: selectedFormat.mainNetwork,
+          objective,
+          approach,
+          brandName: activeBrand?.name,
+          brandVoice: (activeBrand as any)?.brand_voice,
+          formatName: selectedFormat.name,
+          headline,
+          variations: true,
+        })
+        const res = r as any
+        if (res.variations && res.variations.length > 0) {
+          setCaptionVariations(res.variations)
+          if (!caption && res.caption) setCaption(res.caption)
+          if (res.hashtags && res.hashtags.length > 0) {
+            setHashtags(res.hashtags.join(' '))
+          }
+          toast({
+            title: '3 opções geradas!',
+            description: 'Escolha a variação que melhor combina com seu tom.',
+          })
+        } else if (res.caption) {
+          setCaption(res.caption)
+          toast({
+            title: 'Legenda gerada pela IA!',
+            description: 'Texto atualizado.',
+          })
+        }
       } else {
-        const r = await generateHashtags(caption || headline || selectedFormat.name)
+        const r = await generateHashtags({
+          content: `${headline} ${caption}`.trim() || selectedFormat.name,
+          platform: selectedFormat.mainNetwork,
+          objective,
+          category: approach || currentTemplate.tag,
+        })
         const tags = ((r as any).hashtags || []).join(' ')
         setHashtags(tags)
         toast({
           title: 'Hashtags sugeridas!',
-          description: 'Tags de alto alcance adicionadas ao post.',
+          description: `Tags calibradas para ${selectedFormat.mainNetwork} e objetivo ${objective}.`,
         })
       }
     } catch (err) {
@@ -534,6 +708,7 @@ export default function ImageCreator() {
       })
     } finally {
       setAiLoading(false)
+      setAiLoadingAction(null)
     }
   }
 
@@ -561,21 +736,38 @@ export default function ImageCreator() {
 
   const handleSelectBrandAsset = async (url: string) => {
     try {
+      // Se for data URI (SVG) ou URL remota
+      if (url.startsWith('data:')) {
+        setMedia(null)
+        setMediaPreviewUrl(url)
+        setImageBankOpen(false)
+        toast({
+          title: 'Imagem aplicada!',
+          description: 'Fundo selecionado do banco interno aplicado ao post.',
+        })
+        return
+      }
+
       const response = await fetch(url)
       const blob = await response.blob()
-      const file = new File([blob], `brand-asset-${Date.now()}.png`, {
+      const file = new File([blob], `image-bank-asset-${Date.now()}.png`, {
         type: blob.type || 'image/png',
       })
       setMedia(file)
       if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl)
       setMediaPreviewUrl(URL.createObjectURL(file))
       setImageBankOpen(false)
-      toast({ title: 'Asset selecionado!', description: 'Imagem da marca aplicada ao canvas.' })
-    } catch {
       toast({
-        title: 'Erro ao carregar asset',
-        description: 'Não foi possível carregar a imagem selecionada.',
-        variant: 'destructive',
+        title: 'Imagem aplicada!',
+        description: 'Imagem do banco interno aplicada ao canvas.',
+      })
+    } catch {
+      // Fallback: aplicar url diretamente como preview
+      setMediaPreviewUrl(url)
+      setImageBankOpen(false)
+      toast({
+        title: 'Imagem aplicada!',
+        description: 'Asset selecionado e vinculado à arte.',
       })
     }
   }
@@ -944,45 +1136,48 @@ export default function ImageCreator() {
               <span>WhatsApp</span>
             </button>
 
-            {/* TikTok - Em breve */}
+            {/* TikTok */}
             <button
               type="button"
-              disabled
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground/60 bg-muted/40 cursor-not-allowed shrink-0"
+              onClick={() => setActiveFilter('tiktok')}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                activeFilter === 'tiktok'
+                  ? 'bg-foreground text-background shadow-xs'
+                  : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
             >
-              <TikTokIcon className="w-3.5 h-3.5 opacity-60" />
+              <TikTokIcon className="w-3.5 h-3.5" />
               <span>TikTok</span>
-              <span className="text-[10px] bg-muted px-1.5 py-0.2 rounded text-muted-foreground">
-                Em breve
-              </span>
             </button>
 
-            {/* YouTube - Em breve */}
+            {/* YouTube */}
             <button
               type="button"
-              disabled
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground/60 bg-muted/40 cursor-not-allowed shrink-0"
+              onClick={() => setActiveFilter('youtube')}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                activeFilter === 'youtube'
+                  ? 'bg-foreground text-background shadow-xs'
+                  : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
             >
-              <YouTubeIcon className="w-3.5 h-3.5 opacity-60" />
+              <YouTubeIcon className="w-3.5 h-3.5" />
               <span>YouTube</span>
-              <span className="text-[10px] bg-muted px-1.5 py-0.2 rounded text-muted-foreground">
-                Em breve
-              </span>
             </button>
 
-            {/* Twitter/X - Em breve */}
+            {/* Twitter/X */}
             <button
               type="button"
-              disabled
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground/60 bg-muted/40 cursor-not-allowed shrink-0"
+              onClick={() => setActiveFilter('twitter')}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                activeFilter === 'twitter'
+                  ? 'bg-foreground text-background shadow-xs'
+                  : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
             >
-              <svg className="w-3 h-3 opacity-60 fill-current" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
-              <span>Twitter/X</span>
-              <span className="text-[10px] bg-muted px-1.5 py-0.2 rounded text-muted-foreground">
-                Em breve
-              </span>
+              <span>X / Twitter</span>
             </button>
           </div>
 
@@ -1838,18 +2033,88 @@ export default function ImageCreator() {
                     <label htmlFor="caption-input" className="text-xs font-bold text-foreground">
                       Legenda do Post
                     </label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => aiGenerate('caption')}
-                      disabled={aiLoading}
-                      className="text-xs text-purple-600 dark:text-purple-400 h-7 gap-1 rounded-lg"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Gerar com IA'}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => aiGenerate('variations')}
+                        disabled={aiLoading}
+                        className="text-xs text-purple-600 dark:text-purple-400 h-7 gap-1 rounded-lg border border-purple-500/20"
+                        title="Gerar 3 opções estratégicas de legenda"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {aiLoading && aiLoadingAction === 'variations' ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          '3 Opções'
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => aiGenerate('caption')}
+                        disabled={aiLoading}
+                        className="text-xs text-purple-600 dark:text-purple-400 h-7 gap-1 rounded-lg"
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        {aiLoading && aiLoadingAction === 'caption' ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          'Gerar Direta'
+                        )}
+                      </Button>
+                    </div>
                   </div>
+
+                  {captionVariations.length > 0 && (
+                    <div className="mb-2 p-2.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-900/40 space-y-2 animate-in fade-in-50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Escolha uma das 3 opções de legenda:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCaptionVariations([])}
+                          className="text-[10px] text-muted-foreground hover:text-foreground"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {captionVariations.map((v, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              const finalTxt = v.cta ? `${v.text}\n\n👉 ${v.cta}` : v.text
+                              setCaption(finalTxt)
+                              toast({
+                                title: `${v.title} aplicada!`,
+                                description: 'A legenda do post foi atualizada.',
+                              })
+                            }}
+                            className="p-2 text-left rounded-lg bg-card hover:bg-muted/80 border border-border/80 transition-all text-xs group"
+                          >
+                            <span className="font-bold text-purple-600 dark:text-purple-400 block text-[11px]">
+                              {v.title}
+                            </span>
+                            <p className="text-muted-foreground line-clamp-2 text-[11px] mt-0.5">
+                              {v.text}
+                            </p>
+                            {v.cta && (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block mt-1">
+                                CTA: {v.cta}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <Textarea
                     id="caption-input"
                     value={caption}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T11:19:49.911Z",
+  "generatedAt": "2026-10-26T12:03:00.682Z",
   "collections": [
     {
       "name": "users",
@@ -1429,6 +1429,112 @@
       "indexes": [
         "CREATE UNIQUE INDEX idx_user_integrations_user_network ON user_integrations (user, network)",
         "CREATE INDEX idx_user_integrations_user ON user_integrations (user)"
+      ]
+    },
+    {
+      "name": "image_bank_assets",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && (user = @request.auth.id || is_curated = true)",
+        "view": "@request.auth.id != \"\" && (user = @request.auth.id || is_curated = true)",
+        "create": "@request.auth.id != \"\"",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "file",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "preview_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "negocios",
+            "educacao",
+            "alimentacao",
+            "tecnologia",
+            "estilo_de_vida",
+            "saude",
+            "moda",
+            "geral"
+          ]
+        },
+        {
+          "name": "network",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "instagram",
+            "facebook",
+            "linkedin",
+            "whatsapp",
+            "tiktok",
+            "youtube",
+            "twitter",
+            "todas"
+          ]
+        },
+        {
+          "name": "tags",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_curated",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_image_bank_user ON image_bank_assets (user)",
+        "CREATE INDEX idx_image_bank_category ON image_bank_assets (category)",
+        "CREATE INDEX idx_image_bank_curated ON image_bank_assets (is_curated)"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
-import { Loader2, Wand2, Upload, Image as ImageIcon, Layout } from 'lucide-react'
+import { Loader2, Wand2, Upload, Image as ImageIcon, Layout, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -30,24 +30,69 @@ export function CaptionWidget({
   setCaption,
   onImprove,
   improving,
+  onGenerateVariations,
+  variations,
+  onSelectVariation,
 }: {
   caption: string
   setCaption: (v: string) => void
   onImprove: () => void
   improving: boolean
+  onGenerateVariations?: () => void
+  variations?: Array<{ title: string; text: string; cta?: string }>
+  onSelectVariation?: (text: string) => void
 }) {
   return (
     <div className="space-y-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onImprove}
-        disabled={improving || !caption.trim()}
-        className="text-[10px] h-6 gap-1 text-primary w-full border border-primary/20"
-      >
-        {improving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-        Melhorar com IA
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onImprove}
+          disabled={improving || !caption.trim()}
+          className="text-[10px] h-6 gap-1 text-primary flex-1 border border-primary/20"
+        >
+          {improving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+          Melhorar com IA
+        </Button>
+        {onGenerateVariations && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onGenerateVariations}
+            disabled={improving}
+            className="text-[10px] h-6 gap-1 px-2 border-primary/30 text-purple-600 dark:text-purple-400"
+            title="Gerar 3 opções de legendas contextuais"
+          >
+            <Sparkles className="w-3 h-3" />3 Opções
+          </Button>
+        )}
+      </div>
+
+      {variations && variations.length > 0 && (
+        <div className="space-y-1.5 p-2 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-900/40 rounded-lg">
+          <p className="text-[10px] font-bold text-foreground flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+            Sugestões da IA (clique para aplicar):
+          </p>
+          <div className="space-y-1 max-h-36 overflow-y-auto">
+            {variations.map((v, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelectVariation?.(v.cta ? `${v.text}\n\n👉 ${v.cta}` : v.text)}
+                className="w-full text-left p-1.5 rounded bg-card hover:bg-muted text-[10px] border border-border/60 transition-colors"
+              >
+                <span className="font-semibold text-purple-600 dark:text-purple-400 block truncate">
+                  {v.title}
+                </span>
+                <span className="text-muted-foreground line-clamp-2 mt-0.5">{v.text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Textarea
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
@@ -64,9 +109,11 @@ export function CaptionWidget({
 export function MediaWidget({
   mediaPreview,
   onFileChange,
+  onOpenImageBank,
 }: {
   mediaPreview: string
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void
+  onOpenImageBank?: () => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   return (
@@ -81,21 +128,46 @@ export function MediaWidget({
       {mediaPreview ? (
         <div className="relative rounded-lg overflow-hidden border border-border">
           <img src={mediaPreview} alt="Preview" className="w-full h-24 object-cover" />
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-[10px] gap-1 transition-opacity"
-          >
-            <Upload className="w-3 h-3" /> Trocar imagem
-          </button>
+          <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-[10px] gap-2 transition-opacity p-2">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="bg-white/20 hover:bg-white/30 px-2 py-1 rounded flex items-center gap-1"
+            >
+              <Upload className="w-3 h-3" /> Upload
+            </button>
+            {onOpenImageBank && (
+              <button
+                type="button"
+                onClick={onOpenImageBank}
+                className="bg-purple-600/80 hover:bg-purple-600 px-2 py-1 rounded flex items-center gap-1"
+              >
+                <ImageIcon className="w-3 h-3" /> Banco
+              </button>
+            )}
+          </div>
         </div>
       ) : (
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="w-full h-24 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-        >
-          <ImageIcon className="w-5 h-5" />
-          <span className="text-[10px]">Enviar imagem</span>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="h-24 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors p-2 text-center"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="text-[10px]">Enviar imagem</span>
+          </button>
+          {onOpenImageBank ? (
+            <button
+              type="button"
+              onClick={onOpenImageBank}
+              className="h-24 rounded-lg border-2 border-dashed border-purple-500/40 bg-purple-50/20 dark:bg-purple-950/20 flex flex-col items-center justify-center gap-1 text-purple-600 dark:text-purple-400 hover:border-purple-500 transition-colors p-2 text-center"
+            >
+              <ImageIcon className="w-4 h-4" />
+              <span className="text-[10px] font-semibold">Banco Interno</span>
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   )
