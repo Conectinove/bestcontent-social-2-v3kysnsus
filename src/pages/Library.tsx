@@ -78,7 +78,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ImageBankModal } from '@/components/ImageBankModal'
-import { getAllPostMetrics, getSimulatedMetricFallback, PostMetric } from '@/services/post-metrics'
+import {
+  getAllPostMetrics,
+  getPostMetricsListByPost,
+  getSimulatedMetricFallback,
+  getSimulatedMultiNetworkMetrics,
+  PostMetric,
+} from '@/services/post-metrics'
 import {
   PostPerformanceBadge,
   PostPerformanceCard,
@@ -214,14 +220,21 @@ export default function Library() {
 
   // Cache de métricas de posts carregadas do backend
   const [metricsMap, setMetricsMap] = useState<Record<string, PostMetric>>({})
+  const [multiMetricsMap, setMultiMetricsMap] = useState<Record<string, PostMetric[]>>({})
 
   useEffect(() => {
     getAllPostMetrics().then((list) => {
-      const map: Record<string, PostMetric> = {}
+      const singleMap: Record<string, PostMetric> = {}
+      const multiMap: Record<string, PostMetric[]> = {}
       list.forEach((m) => {
-        if (m.post) map[m.post] = m
+        if (m.post) {
+          if (!singleMap[m.post]) singleMap[m.post] = m
+          if (!multiMap[m.post]) multiMap[m.post] = []
+          multiMap[m.post].push(m)
+        }
       })
-      setMetricsMap(map)
+      setMetricsMap(singleMap)
+      setMultiMetricsMap(multiMap)
     })
   }, [posts])
 
@@ -1788,7 +1801,19 @@ export default function Library() {
                             viewPost.createdAt || viewPost._raw?.created,
                           )
                         }
+                        networkMetricsList={
+                          multiMetricsMap[viewPost.id] ||
+                          getSimulatedMultiNetworkMetrics(
+                            viewPost.id,
+                            Array.isArray(viewPost.targetNetworks) &&
+                              viewPost.targetNetworks.length > 0
+                              ? viewPost.targetNetworks
+                              : [viewPost.platform || 'Instagram'],
+                            viewPost.createdAt || viewPost._raw?.created,
+                          )
+                        }
                         brandAverageRate={5.1}
+                        brandId={viewPost.brandId}
                       />
                     </div>
                   )}

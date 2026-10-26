@@ -10,7 +10,9 @@ import { approvePost } from '@/services/approval'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   getPostMetricsByPost,
+  getPostMetricsListByPost,
   getSimulatedMetricFallback,
+  getSimulatedMultiNetworkMetrics,
   PostMetric,
 } from '@/services/post-metrics'
 import { PostPerformanceCard } from '@/components/analytics/PostPerformanceCard'
@@ -32,23 +34,39 @@ export function PostDetailsModal({
   const navigate = useNavigate()
   const [approving, setApproving] = useState(false)
   const [metrics, setMetrics] = useState<PostMetric | null>(null)
+  const [networkMetricsList, setNetworkMetricsList] = useState<PostMetric[]>([])
 
   useEffect(() => {
     if (!post?.id) return
     if (post.status === 'published') {
-      getPostMetricsByPost(post.id).then((data) => {
-        if (data) {
-          setMetrics(data)
+      // Buscar métricas da lista multi-rede
+      getPostMetricsListByPost(post.id).then((list) => {
+        if (list && list.length > 0) {
+          setNetworkMetricsList(list)
+          setMetrics(list[0])
         } else {
+          // Fallback multi-rede baseado em targetNetworks ou plataforma
+          const targetNets =
+            Array.isArray(post.targetNetworks) && post.targetNetworks.length > 0
+              ? post.targetNetworks
+              : [post.platform || 'Instagram']
+          const simulatedList = getSimulatedMultiNetworkMetrics(
+            post.id,
+            targetNets,
+            post.created || post.createdAt,
+          )
+          setNetworkMetricsList(simulatedList)
           setMetrics(
-            getSimulatedMetricFallback(post.id, post.platform, post.created || post.createdAt),
+            simulatedList[0] ||
+              getSimulatedMetricFallback(post.id, post.platform, post.created || post.createdAt),
           )
         }
       })
     } else {
       setMetrics(null)
+      setNetworkMetricsList([])
     }
-  }, [post?.id, post?.status, post?.platform, post?.created, post?.createdAt])
+  }, [post?.id, post?.status, post?.platform, post?.created, post?.createdAt, post?.targetNetworks])
 
   if (!post) return null
 
@@ -161,7 +179,12 @@ export function PostDetailsModal({
           {/* Análise de Performance do Post (quando publicado) */}
           {post.status === 'published' && (
             <div className="pt-2 border-t border-border/80">
-              <PostPerformanceCard metrics={metrics} brandAverageRate={5.1} />
+              <PostPerformanceCard
+                metrics={metrics}
+                networkMetricsList={networkMetricsList}
+                brandAverageRate={5.1}
+                brandId={post.brandId || post.brand}
+              />
             </div>
           )}
         </div>

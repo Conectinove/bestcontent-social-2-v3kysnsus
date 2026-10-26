@@ -17,7 +17,7 @@ routerAdd(
         'post_templates',
         'is_shared = true || is_favorite = true',
         '-created',
-        60,
+        100,
       )
     } catch (_) {
       templates = []
