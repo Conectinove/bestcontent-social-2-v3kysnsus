@@ -20,6 +20,11 @@ export const PLATFORM_TO_DB: Record<string, string> = {
   telegram: 'Instagram',
   kwai: 'TikTok',
   reddit: 'Twitter/X',
+  google_business: 'Facebook',
+  bluesky: 'Twitter/X',
+  mastodon: 'Twitter/X',
+  tumblr: 'Twitter/X',
+  dribbble: 'Instagram',
 }
 
 export const PLATFORM_FROM_DB: Record<string, string> = {
@@ -107,6 +112,9 @@ export function mapPost(record: any): Post {
     revisionCount: typeof record.revision_count === 'number' ? record.revision_count : 1,
     approvalLevel: record.approval_level || undefined,
     campaignId: record.campaign || undefined,
+    isReviewed: Boolean(record.is_reviewed),
+    reviewNotes: record.review_notes || undefined,
+    campaignFormat: record.campaign_format || undefined,
     _raw: record,
   }
 }

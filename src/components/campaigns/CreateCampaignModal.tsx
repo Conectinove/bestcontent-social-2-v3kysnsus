@@ -51,6 +51,12 @@ import {
   MonitorPlay,
   ListOrdered,
   Tv,
+  Star,
+  Clapperboard,
+  Mail,
+  Building2,
+  BadgePercent,
+  Wand2,
 } from 'lucide-react'
 
 export const CAMPAIGN_TONES = [
@@ -210,6 +216,53 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
     }
   }
 
+  // Sugestões de Pacotes Recomendados por Objetivo
+  const RECOMMENDED_PACKAGES: Record<
+    'engajar' | 'vender' | 'awareness',
+    { name: string; formats: CampaignFormatId[]; desc: string }
+  > = {
+    vender: {
+      name: 'Pacote Vendas & Conversão Máxima',
+      formats: [
+        'feed',
+        'story',
+        'carousel_testimonials',
+        'meta_ad_square',
+        'google_display',
+        'whatsapp',
+      ],
+      desc: 'Feed + Story + Carrossel Depoimentos + Meta Ads + Google Display + WhatsApp',
+    },
+    engajar: {
+      name: 'Pacote Viral & Engajamento Total',
+      formats: ['reels_cinematic', 'story_backstage_3', 'feed', 'carousel', 'story_sequence_5'],
+      desc: 'Reels Cinematográfico + Stories Bastidores + Feed + Carrossel + Story 5 Partes',
+    },
+    awareness: {
+      name: 'Pacote Autoridade & Branding Executivo',
+      formats: [
+        'newsletter',
+        'banner_linkedin_company',
+        'email_newsletter_visual',
+        'carrossel_10',
+        'youtube',
+        'event_cover',
+      ],
+      desc: 'Artigo LinkedIn + Banner Empresa + E-mail Visual + Super Guia 10 slides + YouTube + Capa Live',
+    },
+  }
+
+  const applyRecommendedPackage = (obj: 'engajar' | 'vender' | 'awareness') => {
+    const pkg = RECOMMENDED_PACKAGES[obj]
+    if (pkg) {
+      setSelectedFormats(pkg.formats)
+      toast({
+        title: `Pacote aplicado: ${pkg.name}`,
+        description: `${pkg.formats.length} formatos ideais selecionados para o objetivo ${obj.toUpperCase()}.`,
+      })
+    }
+  }
+
   const renderFormatIcon = (formatId: string) => {
     switch (formatId) {
       case 'reels':
@@ -242,6 +295,18 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
         return <ListOrdered className="w-4 h-4 text-pink-600" />
       case 'event_cover':
         return <Tv className="w-4 h-4 text-indigo-600" />
+      case 'carousel_testimonials':
+        return <Star className="w-4 h-4 text-amber-500 fill-amber-500/20" />
+      case 'story_backstage_3':
+        return <Clapperboard className="w-4 h-4 text-violet-500" />
+      case 'reels_cinematic':
+        return <Film className="w-4 h-4 text-fuchsia-500" />
+      case 'email_newsletter_visual':
+        return <Mail className="w-4 h-4 text-sky-500" />
+      case 'banner_linkedin_company':
+        return <Building2 className="w-4 h-4 text-blue-600" />
+      case 'meta_ad_square':
+        return <BadgePercent className="w-4 h-4 text-emerald-600" />
       default:
         return <FileText className="w-4 h-4 text-muted-foreground" />
     }
@@ -268,9 +333,9 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
                     </Badge>
                   </div>
                   <DialogDescription className="text-xs sm:text-sm text-purple-100 mt-0.5">
-                    Gere múltiplos formatos (Reels, Story, Feed, Carrosséis, YouTube, Thread,
-                    Newsletter, Pins, WhatsApp, Cartaz Impresso, Google Display, Story 5 Partes,
-                    Capa Live) de uma vez só a partir de um único briefing.
+                    Gere 21 formatos integrados (Reels Cinematográfico, Depoimentos, Bastidores,
+                    E-mail Visual, Banners B2B, Meta Ads, Display Google e mais) a partir de um
+                    único briefing.
                   </DialogDescription>
                 </div>
               </div>
@@ -488,15 +553,37 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
               </div>
             </div>
 
+            {/* Sugestão de Pacote Inteligente 1-clique */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-pink-500/10 border border-purple-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-700 dark:text-purple-300">
+                  <Wand2 className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Pacote Recomendado para {objective.toUpperCase()}:</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {RECOMMENDED_PACKAGES[objective].name} — {RECOMMENDED_PACKAGES[objective].desc}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => applyRecommendedPackage(objective)}
+                className="h-8 text-xs font-bold rounded-xl shrink-0 bg-purple-600 text-white hover:bg-purple-700 shadow-xs"
+              >
+                Aplicar Pacote
+              </Button>
+            </div>
+
             {/* 6. Seleção dos Formatos a Gerar (Checkboxes com Custo de Créditos) */}
             <div className="space-y-2 pt-2 border-t border-border/60">
               <div className="flex items-center justify-between">
                 <div>
                   <label className="text-xs font-bold text-foreground block">
-                    Formatos a Gerar Nesta Campanha
+                    Formatos a Gerar Nesta Campanha ({CAMPAIGN_FORMATS.length} disponíveis)
                   </label>
                   <p className="text-[11px] text-muted-foreground">
-                    Marque qualquer combinação. Cada formato gerará um rascunho completo.
+                    Marque qualquer combinação. Cada formato gerará um rascunho completo calibrado.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

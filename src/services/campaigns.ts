@@ -20,6 +20,13 @@ export type CampaignFormatId =
   | 'google_display'
   | 'story_sequence_5'
   | 'event_cover'
+  // 6 Novos Formatos
+  | 'carousel_testimonials'
+  | 'story_backstage_3'
+  | 'reels_cinematic'
+  | 'email_newsletter_visual'
+  | 'banner_linkedin_company'
+  | 'meta_ad_square'
 
 export interface CampaignFormatOption {
   id: CampaignFormatId
@@ -196,6 +203,71 @@ export const CAMPAIGN_FORMATS: CampaignFormatOption[] = [
     aspectRatio: '16:9',
     credits: 20,
     badge: 'Capa Live (20cr)',
+  },
+  {
+    id: 'carousel_testimonials',
+    name: 'Carrossel Depoimentos (6 slides)',
+    label: 'Carrossel Depoimentos',
+    description:
+      'Prova social magnética com 6 lâminas narrando dor inicial, transformação, prints e CTA.',
+    platform: 'Instagram',
+    aspectRatio: '4:5',
+    credits: 40,
+    badge: 'Depoimentos 6s (40cr)',
+  },
+  {
+    id: 'story_backstage_3',
+    name: 'Série Stories "Bastidores" (3 telas)',
+    label: 'Stories Bastidores',
+    description: 'Sequência autêntica de bastidores (making-of, processo e spoiler do lançamento).',
+    platform: 'Instagram',
+    aspectRatio: '9:16',
+    credits: 20,
+    badge: 'Bastidores 3t (20cr)',
+  },
+  {
+    id: 'reels_cinematic',
+    name: 'Reels Vertical Cinematográfico',
+    label: 'Reels Cinematográfico',
+    description:
+      'Roteiro áudio-visual imersivo, cortes de ritmo rápido, direção de iluminação e sound design.',
+    platform: 'Instagram',
+    aspectRatio: '9:16',
+    credits: 30,
+    badge: 'Cinematográfico (30cr)',
+  },
+  {
+    id: 'email_newsletter_visual',
+    name: 'E-mail Marketing / Newsletter Visual',
+    label: 'E-mail / Newsletter',
+    description:
+      'Layout estruturado com assunto de alta abertura, pré-header, blocos visuais e botão de clique.',
+    platform: 'LinkedIn',
+    aspectRatio: '1:1.2',
+    credits: 25,
+    badge: 'E-mail Visual (25cr)',
+  },
+  {
+    id: 'banner_linkedin_company',
+    name: 'Banner LinkedIn Company (1584×396)',
+    label: 'Banner LinkedIn',
+    description:
+      'Capa panorâmica corporativa para Company Page com posicionamento de autoridade B2B.',
+    platform: 'LinkedIn',
+    aspectRatio: '4:1',
+    credits: 20,
+    badge: 'LinkedIn Cover (20cr)',
+  },
+  {
+    id: 'meta_ad_square',
+    name: 'Card de Anúncio Meta (1080×1080)',
+    label: 'Meta Ad Square',
+    description:
+      'Criativo de alta conversão para Instagram & Facebook Ads com gancho visual e oferta direta.',
+    platform: 'Facebook',
+    aspectRatio: '1:1',
+    credits: 20,
+    badge: 'Meta Ads 1:1 (20cr)',
   },
 ]
 
@@ -418,6 +490,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'reels',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Reels / Vídeo Curto`,
       caption: fullCaption,
       platform: 'TikTok',
@@ -485,6 +559,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'carousel',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Carrossel (5 Slides)`,
       caption: fullCaption,
       platform: 'Instagram',
@@ -517,6 +593,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'story',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Story Interativo`,
       caption: storyCaption,
       platform: 'Instagram',
@@ -554,6 +632,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'flyer',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Flyer Promocional`,
       caption: flyerCaption,
       platform: 'Facebook',
@@ -617,6 +697,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'youtube',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Vídeo YouTube / Shorts`,
       caption: fullCaption,
       platform: 'YouTube',
@@ -657,6 +739,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'thread',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Thread X / Twitter`,
       caption: fullCaption,
       platform: 'Twitter',
@@ -682,6 +766,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'newsletter',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Newsletter / Artigo LinkedIn`,
       caption: newsletterCaption,
       platform: 'LinkedIn',
@@ -711,6 +797,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'pinterest',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Pin Pinterest`,
       caption: pinCaption,
       platform: 'Pinterest',
@@ -740,6 +828,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'whatsapp',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Copy & Banner WhatsApp`,
       caption: whatsCaption,
       platform: 'WhatsApp',
@@ -818,6 +908,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'carrossel_10',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Carrossel Super Guia (10 Slides)`,
       caption: fullCaption,
       platform: 'Instagram',
@@ -846,6 +938,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'poster_print',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Cartaz / Pôster Impresso (A4)`,
       caption: posterCaption,
       platform: 'Facebook',
@@ -870,7 +964,16 @@ async function generatePostForFormat(params: {
   }
 
   if (formatId === 'google_display') {
-    const displayCaption = `🎯 ANÚNCIO GOOGLE DISPLAY (1200×628 GDN)\n\n⚡ HEADLINE PERSUASIVA (até 30 carac.): ${name.slice(0, 30)}\n\n📝 DESCRIÇÃO DO ANÚNCIO (até 90 carac.): ${briefing.slice(0, 85)}...\n\n🔘 BOTÃO CTA: ${effectiveCta.slice(0, 20)}\n\n🔗 URL FINAL: ${targetUrl || 'https://suamarca.com.br'}`
+    // 3 Headlines no limite oficial do Google Ads (30 caracteres) e 2 Descrições (90 caracteres)
+    const hl1 = name.slice(0, 30)
+    const hl2 = `${name}: Solução Completa`.slice(0, 30)
+    const hl3 = (
+      objective === 'vender' ? 'Garanta Oferta Exclusiva' : 'Conheça o Novo Padrão'
+    ).slice(0, 30)
+    const desc1 = `${briefing.slice(0, 80)}. Saiba mais!`.slice(0, 90)
+    const desc2 = `${effectiveCta.slice(0, 75)} Clique e confira.`.slice(0, 90)
+
+    const displayCaption = `🎯 ANÚNCIO GOOGLE DISPLAY (1200×628 GDN / GOOGLE ADS)\n\n⚡ HEADLINES RESPONSIVAS (máx. 30 caracteres cada):\n• H1: ${hl1} (${hl1.length}/30)\n• H2: ${hl2} (${hl2.length}/30)\n• H3: ${hl3} (${hl3.length}/30)\n\n📝 DESCRIÇÕES RESPONSIVAS (máx. 90 caracteres cada):\n• D1: ${desc1} (${desc1.length}/90)\n• D2: ${desc2} (${desc2.length}/90)\n\n🔘 CALL TO ACTION: ${effectiveCta.slice(0, 20)}\n🔗 URL FINAL: ${targetUrl || 'https://suamarca.com.br'}`
 
     return {
       user: userId,
@@ -884,10 +987,11 @@ async function generatePostForFormat(params: {
       width: 1200,
       height: 628,
       template_id: 'tpl-google-display-ads',
+      campaign_format: 'google_display',
+      is_reviewed: false,
       script_json: JSON.stringify({
-        headline: name.slice(0, 30),
-        longHeadline: `${name} - A Solução Que Você Precisa`,
-        description: briefing.slice(0, 90),
+        headlines: [hl1, hl2, hl3],
+        descriptions: [desc1, desc2],
         buttonText: 'Saiba Mais',
         targetUrl: targetUrl || '',
       }),
@@ -938,6 +1042,8 @@ async function generatePostForFormat(params: {
       user: userId,
       brand: brandId || null,
       campaign: campaignId,
+      campaign_format: 'story_sequence_5',
+      is_reviewed: false,
       content: `[Campanha: ${name}] Story Sequencial (5 Partes)`,
       caption: fullStoryCaption,
       platform: 'Instagram',
@@ -974,6 +1080,8 @@ async function generatePostForFormat(params: {
       width: 1920,
       height: 1080,
       template_id: 'tpl-live-event-cover',
+      campaign_format: 'event_cover',
+      is_reviewed: false,
       script_json: JSON.stringify({
         liveTitle: name,
         speakerTopic: briefing,
@@ -981,6 +1089,294 @@ async function generatePostForFormat(params: {
       }),
       tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'live', 'capa-evento'],
       target_networks: ['youtube', 'linkedin', 'facebook'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'carousel_testimonials') {
+    const slidesTestimonials = [
+      {
+        slide_number: 1,
+        title: `Capa: O que estão falando sobre ${name}`,
+        text: 'Histórias reais de quem transformou seus resultados na prática.',
+        badge: 'Depoimentos Reais',
+      },
+      {
+        slide_number: 2,
+        title: 'O Cenário Inicial',
+        text: `Antes de conhecer ${name}, o maior obstáculo era: "${briefing.slice(0, 90)}..."`,
+        badge: 'O Ponto de Partida',
+      },
+      {
+        slide_number: 3,
+        title: 'Depoimento 1: Resultado Tangível',
+        text: `"Em menos de 14 dias a nossa operação mudou completamente de nível. Super recomendo!" — Cliente Verificado ⭐⭐⭐⭐⭐`,
+        badge: 'Impacto Real',
+      },
+      {
+        slide_number: 4,
+        title: 'Depoimento 2: Agilidade e Eficiência',
+        text: `"O suporte e o método entregam exatamente o que prometem. Valeu cada centavo investido." — Parceiro Estratégico ⭐⭐⭐⭐⭐`,
+        badge: 'Excelência Comprovada',
+      },
+      {
+        slide_number: 5,
+        title: 'A Grande Lição',
+        text: 'Você não precisa passar pelos mesmos erros. É possível acelerar com confiança.',
+        badge: 'A Virada de Chave',
+      },
+      {
+        slide_number: 6,
+        title: 'Sua Vez de Transformar',
+        text: `${effectiveCta} Deixe seu comentário ou envie uma mensagem direta!`,
+        badge: 'Próximo Passo',
+      },
+    ]
+
+    const slidesSummary = slidesTestimonials
+      .map((s) => `• Slide ${s.slide_number} [${s.badge}]: ${s.title}\n  ${s.text}`)
+      .join('\n\n')
+
+    const testimonialsCaption = `⭐ CARROSSEL DE DEPOIMENTOS (6 SLIDES): ${name}\n\nResultados reais falam mais alto que qualquer promessa. Deslize para ver! 👉\n\n${slidesSummary}\n\n👉 ${effectiveCta}${effectiveUrl}\n\n#depoimentos #provasocial #resultados #casosdesucesso`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Carrossel Depoimentos (6 Slides)`,
+      caption: testimonialsCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1350,
+      template_id: 'tpl-carousel-testimonials',
+      campaign_format: 'carousel_testimonials',
+      is_reviewed: false,
+      script_json: JSON.stringify({
+        cover_title: `O que estão falando sobre ${name}`,
+        slides: slidesTestimonials,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'depoimentos', 'prova-social'],
+      target_networks: ['instagram', 'linkedin', 'facebook'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'story_backstage_3') {
+    const backstageScreens = [
+      {
+        screen: 1,
+        title: 'Tela 1: Bastidores Secretos (Making of)',
+        text: `👀 Um vislumbre exclusivo de bastidores: preparando os detalhes de ${name}...`,
+        sticker: 'Caixa de Perguntas: "Querem spoiler?"',
+      },
+      {
+        screen: 2,
+        title: 'Tela 2: O Processo Real',
+        text: `Nem tudo são flores na rotina. Aqui está o desafio real: ${briefing.slice(0, 80)}. Mas a solução ficou incrível!`,
+        sticker: 'Enquete: "Curtem ver bastidores?" (Sim / Com certeza)',
+      },
+      {
+        screen: 3,
+        title: 'Tela 3: Revelação & Link de Acesso VIP',
+        text: `Quer ser avisado primeiro assim que liberar? ${effectiveCta}`,
+        sticker: `Figurinha de Link: ${targetUrl || 'Link na Bio'}`,
+      },
+    ]
+
+    const backstageSummary = backstageScreens
+      .map((s) => `📱 Tela ${s.screen} (${s.title}):\n"${s.text}"\n[Adesivo: ${s.sticker}]`)
+      .join('\n\n')
+
+    const backstageCaption = `🎬 SÉRIE STORIES "BASTIDORES" (3 TELAS): ${name}\n\n${backstageSummary}\n\n🔗 ${targetUrl || 'Link na bio'}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Stories Bastidores (3 Telas)`,
+      caption: backstageCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 15,
+      width: 1080,
+      height: 1920,
+      template_id: 'tpl-story-backstage',
+      campaign_format: 'story_backstage_3',
+      is_reviewed: false,
+      script_json: JSON.stringify({
+        title: name,
+        screens: backstageScreens,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'bastidores', 'making-of'],
+      target_networks: ['instagram', 'facebook', 'tiktok'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'reels_cinematic') {
+    const cinematicScript = {
+      hook_3s: `[0:00 - 0:03] Câmera em movimento lento com iluminação contrastante (rim light). Título em tipografia bold: "${name.toUpperCase()}". Narrador com voz firme e grave.`,
+      development_beat1: `[0:03 - 0:12] Corte rítmico acompanhando a batida musical. Transição de zoom-in. Narração: "O erro que 90% das marcas cometem ao falar sobre ${name}..."`,
+      development_beat2: `[0:12 - 0:22] Exibição de solução cinematográfica: ${briefing.slice(0, 110)}. Efeitos visuais de blur de movimento e texto pontual na tela.`,
+      climax_cta: `[0:22 - 0:30] Música sobe no clímax. Narrador: "${effectiveCta}". Encerramento com logotipo e animação de swipe up.`,
+      sound_design:
+        'Trilha cinematográfica moderna (synthwave/orchestral híbrido), sound effects de whoosh e bass drop nos cortes.',
+    }
+
+    const cinematicCaption = `🎬 REELS VERTICAL CINEMATOGRÁFICO: ${name}\n\n[ROTEIRO ÁUDIO-VISUAL]\n${cinematicScript.hook_3s}\n\n${cinematicScript.development_beat1}\n\n${cinematicScript.development_beat2}\n\n${cinematicScript.climax_cta}\n\n🎵 TRILHA & SOUND DESIGN:\n${cinematicScript.sound_design}\n\n👉 ${effectiveCta}${effectiveUrl}\n\n#cinematic #reelsviral #producaodevideo #estilo`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Reels Vertical Cinematográfico`,
+      caption: cinematicCaption,
+      platform: 'TikTok',
+      status: 'draft',
+      duration: 30,
+      width: 1080,
+      height: 1920,
+      template_id: 'tpl-reels-cinematic',
+      campaign_format: 'reels_cinematic',
+      is_reviewed: false,
+      script_json: JSON.stringify(cinematicScript),
+      tags: [
+        'campanha',
+        name.toLowerCase().replace(/\s+/g, '-'),
+        'cinematografico',
+        'video-vertical',
+      ],
+      target_networks: ['tiktok', 'instagram', 'youtube'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'email_newsletter_visual') {
+    const emailData = {
+      subject: `[Exclusivo] O que você precisa saber sobre ${name}`,
+      preheader: `Insights diretos, novidades e o próximo passo para o seu negócio.`,
+      headerTitle: name.toUpperCase(),
+      block1: {
+        title: '1. O Cenário & O Diagnóstico',
+        content: `Caro leitor,\n\nAcompanhando o mercado, percebemos que o maior desafio atual envolve ${briefing}. Muitos tentam abordagens genéricas que não geram retenção.`,
+      },
+      block2: {
+        title: '2. A Metodologia Validada',
+        content: `Na ${brandName}, estruturamos um método claro baseado em consistência, dados e execução simplificada. Quando esses três pilares se encontram, o crescimento deixa de ser sorte.`,
+      },
+      block3: {
+        title: '3. Ação Imediata',
+        content: `O que você pode fazer hoje: aplique o primeiro passo antes de tentar reinventar todo o fluxo.`,
+      },
+      buttonText: effectiveCta.slice(0, 30),
+      buttonUrl: targetUrl || 'https://suamarca.com.br',
+    }
+
+    const emailCaption = `📧 E-MAIL MARKETING & NEWSLETTER VISUAL\n\n📌 ASSUNTO: ${emailData.subject}\n📬 PRÉ-HEADER: ${emailData.preheader}\n\n🏷️ CABEÇALHO:\n${emailData.headerTitle}\n\n${emailData.block1.title}\n${emailData.block1.content}\n\n${emailData.block2.title}\n${emailData.block2.content}\n\n${emailData.block3.title}\n${emailData.block3.content}\n\n🔘 BOTÃO PRINCIPAL:\n[${emailData.buttonText}] -> ${emailData.buttonUrl}\n\n💡 Dica de Envio: Terça ou Quinta às 10h da manhã para máxima taxa de abertura.`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] E-mail Marketing / Newsletter Visual`,
+      caption: emailCaption,
+      platform: 'LinkedIn',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1350,
+      template_id: 'tpl-email-newsletter-visual',
+      campaign_format: 'email_newsletter_visual',
+      is_reviewed: false,
+      script_json: JSON.stringify(emailData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'email-marketing', 'newsletter'],
+      target_networks: ['linkedin', 'medium'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'banner_linkedin_company') {
+    const bannerData = {
+      headline: name,
+      subheadline: briefing.slice(0, 90),
+      brandTagline: `${brandName} · Inovação e Autoridade`,
+      ctaBadge: effectiveCta.slice(0, 25),
+      recommendedDimensions: '1584×396 px (Proporção 4:1)',
+      safeZone: 'Manter textos e logotipos a pelo menos 40px das bordas horizontais.',
+    }
+
+    const bannerCaption = `🏢 BANNER LINKEDIN COMPANY (1584×396)\n\n💼 HEADLINE DE AUTORIDADE:\n${bannerData.headline}\n\n📝 SUB-HEADLINE / POSICIONAMENTO:\n${bannerData.subheadline}\n\n🏷️ TAGLINE DA EMPRESA:\n${bannerData.brandTagline}\n\n🔘 CALL TO ACTION:\n${bannerData.ctaBadge}${effectiveUrl}\n\n⚙️ ESPECIFICAÇÃO:\n${bannerData.recommendedDimensions} — ${bannerData.safeZone}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Banner LinkedIn Company (1584×396)`,
+      caption: bannerCaption,
+      platform: 'LinkedIn',
+      status: 'draft',
+      duration: 0,
+      width: 1584,
+      height: 396,
+      template_id: 'tpl-linkedin-company-cover',
+      campaign_format: 'banner_linkedin_company',
+      is_reviewed: false,
+      script_json: JSON.stringify(bannerData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'linkedin-company', 'banner'],
+      target_networks: ['linkedin'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'meta_ad_square') {
+    const adData = {
+      primaryText: `${briefing}\n\nDescubra por que líderes de mercado escolhem a ${brandName}.`,
+      headline: name.slice(0, 45),
+      description: 'Oferta por tempo limitado. Clique para conferir!',
+      callToAction: 'Saiba mais',
+      creativeAspect: '1:1 Square (1080×1080 px)',
+      placement: 'Feed Instagram & Facebook Ads',
+    }
+
+    const metaAdCaption = `🎯 CARD DE ANÚNCIO META ADS (1080×1080 QUADRADO)\n\n📝 TEXTO PRINCIPAL (COPY PERSUASIVA):\n${adData.primaryText}\n\n⚡ TÍTULO DO ANÚNCIO (HEADLINE):\n${adData.headline}\n\n💬 DESCRIÇÃO NO FEED:\n${adData.description}\n\n🔘 BOTÃO CTA:\n${adData.callToAction} -> ${targetUrl || 'Link de destino'}\n\n⚙️ FORMATO: ${adData.creativeAspect} otimizado para leilão Meta Ads.`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Card Anúncio Meta (1080×1080)`,
+      caption: metaAdCaption,
+      platform: 'Facebook',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1080,
+      template_id: 'tpl-meta-ad-square',
+      campaign_format: 'meta_ad_square',
+      is_reviewed: false,
+      script_json: JSON.stringify(adData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'meta-ads', 'anuncio-1080'],
+      target_networks: ['facebook', 'instagram'],
       revision_count: 1,
       approval_level: 'Nível 1 (Em Revisão)',
       is_favorite: false,
@@ -1016,6 +1412,8 @@ async function generatePostForFormat(params: {
     user: userId,
     brand: brandId || null,
     campaign: campaignId,
+    campaign_format: 'feed',
+    is_reviewed: false,
     content: `[Campanha: ${name}] Post de Feed`,
     caption: fullCaption,
     platform: 'Instagram',

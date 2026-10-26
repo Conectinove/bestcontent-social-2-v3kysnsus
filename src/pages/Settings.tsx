@@ -128,6 +128,11 @@ export default function Settings() {
     behance: { connected: false },
     medium: { connected: false },
     vimeo: { connected: false },
+    google_business: { connected: false },
+    bluesky: { connected: false },
+    mastodon: { connected: false },
+    tumblr: { connected: false },
+    dribbble: { connected: false },
   })
   const [loadingIntegrations, setLoadingIntegrations] = useState(false)
   const [actionLoadingNetwork, setActionLoadingNetwork] = useState<IntegrationNetwork | null>(null)
@@ -176,6 +181,11 @@ export default function Settings() {
             behance: { connected: false },
             medium: { connected: false },
             vimeo: { connected: false },
+            google_business: { connected: false },
+            bluesky: { connected: false },
+            mastodon: { connected: false },
+            tumblr: { connected: false },
+            dribbble: { connected: false },
           }
 
           records.forEach((rec) => {
@@ -780,6 +790,53 @@ export default function Settings() {
                           <span className="font-black text-xs text-[#1AB7EA]">vm</span>
                         ),
                       },
+                      {
+                        network: 'google_business' as IntegrationNetwork,
+                        name: 'Google Business Profile',
+                        subtitle:
+                          'Atualizações de negócios locais, ofertas, novidades e Google Maps',
+                        iconBg: 'bg-[#4285F4]/15 border-[#4285F4]/20 text-[#4285F4]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#4285F4]">GBP</span>
+                        ),
+                      },
+                      {
+                        network: 'bluesky' as IntegrationNetwork,
+                        name: 'Bluesky Social (AT Protocol)',
+                        subtitle:
+                          'Microblogging aberto, rede descentralizada e feeds personalizados',
+                        iconBg: 'bg-[#1185FE]/15 border-[#1185FE]/20 text-[#1185FE]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#1185FE]">BSKY</span>
+                        ),
+                      },
+                      {
+                        network: 'mastodon' as IntegrationNetwork,
+                        name: 'Mastodon (Fediverse)',
+                        subtitle: 'Instâncias federadas, posts autorais e privacidade comunitária',
+                        iconBg: 'bg-[#6364FF]/15 border-[#6364FF]/20 text-[#6364FF]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#6364FF]">MAST</span>
+                        ),
+                      },
+                      {
+                        network: 'tumblr' as IntegrationNetwork,
+                        name: 'Tumblr Publishing API',
+                        subtitle: 'Microblogging criativo, multimídia, fandoms e cultura visual',
+                        iconBg:
+                          'bg-[#36465D]/20 border-[#36465D]/30 text-[#36465D] dark:text-sky-300',
+                        renderIcon: () => <span className="font-serif font-black text-xs">t.</span>,
+                      },
+                      {
+                        network: 'dribbble' as IntegrationNetwork,
+                        name: 'Dribbble API v2',
+                        subtitle:
+                          'Shots de design, portfolios visuais e vitrine para criativos globais',
+                        iconBg: 'bg-[#EA4C89]/15 border-[#EA4C89]/20 text-[#EA4C89]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#EA4C89]">DRB</span>
+                        ),
+                      },
                     ].map((item) => {
                       const isConnected = Boolean(integrations[item.network]?.connected)
                       const isActionLoading = actionLoadingNetwork === item.network
@@ -928,7 +985,7 @@ export default function Settings() {
                     <div>
                       <h3 className="text-lg font-bold">MidiaViva</h3>
                       <p className="text-xs text-muted-foreground">
-                        Powered by BestContent AI · Versão 0.0.57
+                        Powered by BestContent AI · Versão 0.0.64
                       </p>
                     </div>
                   </div>

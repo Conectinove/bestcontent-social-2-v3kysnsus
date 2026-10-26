@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T20:48:39.794Z",
+  "generatedAt": "2026-10-26T21:03:21.646Z",
   "collections": [
     {
       "name": "users",
@@ -485,6 +485,24 @@
           "type": "json",
           "required": false,
           "system": false
+        },
+        {
+          "name": "is_reviewed",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "review_notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_format",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -494,7 +512,8 @@
         "CREATE INDEX idx_posts_scheduled_date ON posts (scheduled_date)",
         "CREATE INDEX `idx_posts_favorite` ON `posts` (is_favorite)",
         "CREATE INDEX `idx_posts_archived` ON `posts` (is_archived)",
-        "CREATE INDEX `idx_posts_campaign` ON `posts` (campaign)"
+        "CREATE INDEX `idx_posts_campaign` ON `posts` (campaign)",
+        "CREATE INDEX `idx_posts_reviewed` ON `posts` (is_reviewed)"
       ]
     },
     {
@@ -1442,7 +1461,12 @@
             "snapchat",
             "behance",
             "medium",
-            "vimeo"
+            "vimeo",
+            "google_business",
+            "bluesky",
+            "mastodon",
+            "tumblr",
+            "dribbble"
           ]
         },
         {
@@ -1658,7 +1682,12 @@
             "snapchat",
             "behance",
             "medium",
-            "vimeo"
+            "vimeo",
+            "google_business",
+            "bluesky",
+            "mastodon",
+            "tumblr",
+            "dribbble"
           ]
         },
         {

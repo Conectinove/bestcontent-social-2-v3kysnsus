@@ -47,6 +47,7 @@ import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import {
   togglePostFavorite,
   togglePostArchived,
+  togglePostReviewed,
   bulkUpdatePostsStatus,
   bulkTogglePostsArchived,
   bulkTogglePostsFavorite,
@@ -482,6 +483,29 @@ export default function Library() {
     } catch {
       toast({
         title: 'Erro ao atualizar favorito',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
+  const handleToggleReviewed = async (post: Post, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const nextVal = !post.isReviewed
+    setActionLoadingId(post.id)
+    try {
+      await togglePostReviewed(post.id, nextVal)
+      toast({
+        title: nextVal ? 'Post marcado como revisado!' : 'Marcado como pendente de revisão',
+        description: nextVal
+          ? 'O rascunho da campanha foi revisado e aprovado para publicação.'
+          : 'O rascunho retornou para a fila de revisão.',
+      })
+      refreshPosts()
+    } catch {
+      toast({
+        title: 'Erro ao atualizar status de revisão',
         variant: 'destructive',
       })
     } finally {
@@ -1183,43 +1207,93 @@ export default function Library() {
       </div>
 
       {/* =========================================================================
-          BANNER INFORMATIVO DE CAMPANHA / MARCA ATIVA
+          BANNER INFORMATIVO DE CAMPANHA / MARCA ATIVA & ESTATÍSTICAS DE REVISÃO
           ========================================================================= */}
       {selectedCampaignId !== 'all' && (
-        <div className="p-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-500/15 via-purple-500/10 to-indigo-500/10 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-xs">
-              <Megaphone className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground">
-                  Filtro Ativo: Campanha &ldquo;
-                  {campaignsList.find((c) => c.id === selectedCampaignId)?.name || 'Campanha'}
-                  &rdquo;
-                </span>
-                <Badge className="bg-purple-600 text-white text-[9px] px-1.5 py-0">
-                  {filteredPosts.length} {filteredPosts.length === 1 ? 'formato' : 'formatos'}
-                </Badge>
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/15 via-purple-500/10 to-indigo-500/10 border border-purple-500/30 space-y-3 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                <Megaphone className="w-4 h-4" />
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Exibindo todos os rascunhos multi-formato gerados juntos nesta campanha.
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sm text-foreground">
+                    Campanha: &ldquo;
+                    {campaignsList.find((c) => c.id === selectedCampaignId)?.name || 'Campanha'}
+                    &rdquo;
+                  </span>
+                  <Badge className="bg-purple-600 text-white text-[10px] px-2 py-0.5">
+                    {filteredPosts.length}{' '}
+                    {filteredPosts.length === 1 ? 'formato' : 'formatos gerados'}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Briefing integrado multi-formato: revise cada peça abaixo e marque como revisada
+                  para publicar.
+                </p>
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedCampaignId('all')
+                searchParams.delete('campaign')
+                setSearchParams(searchParams)
+              }}
+              className="text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 h-8 gap-1.5 self-end sm:self-auto"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Ver todas as criações</span>
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSelectedCampaignId('all')
-              searchParams.delete('campaign')
-              setSearchParams(searchParams)
-            }}
-            className="text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 h-8 gap-1.5 self-end sm:self-auto"
-          >
-            <X className="w-3.5 h-3.5" />
-            <span>Remover filtro de campanha</span>
-          </Button>
+
+          {/* Sumário de Revisão da Campanha */}
+          {(() => {
+            const campaignPosts = posts.filter(
+              (p: Post) => (p.campaignId || p._raw?.campaign) === selectedCampaignId,
+            )
+            const reviewedCount = campaignPosts.filter((p) => Boolean(p.isReviewed)).length
+            const pendingCount = campaignPosts.length - reviewedCount
+            const formatCounts: Record<string, number> = {}
+            campaignPosts.forEach((p) => {
+              const f = p.campaignFormat || p._raw?.campaign_format || p.contentType || 'geral'
+              formatCounts[f] = (formatCounts[f] || 0) + 1
+            })
+
+            return (
+              <div className="pt-2 border-t border-purple-500/20 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Status da Revisão:</span>
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold"
+                  >
+                    ✓ {reviewedCount} revisados
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 font-bold"
+                  >
+                    ⏳ {pendingCount} pendentes
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-muted-foreground">Formatos agrupados:</span>
+                  {Object.entries(formatCounts).map(([fmt, cnt]) => (
+                    <span
+                      key={fmt}
+                      className="px-2 py-0.5 rounded-md bg-card/80 border border-border text-[10px] font-mono text-foreground font-semibold"
+                    >
+                      {fmt}: {cnt}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -1397,8 +1471,26 @@ export default function Library() {
                     )}
                   </div>
 
-                  {/* Status Indicator */}
-                  <div className="absolute bottom-3 right-3">
+                  {/* Status Indicator & Botão de Revisão */}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                    {/* Botão de revisão rápida se for post de campanha */}
+                    {(post.campaignId || post._raw?.campaign) && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleReviewed(post, e)}
+                        title={
+                          post.isReviewed ? 'Marcar como não revisado' : 'Marcar como revisado'
+                        }
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition-all backdrop-blur-xs shadow-xs ${
+                          post.isReviewed
+                            ? 'bg-emerald-600/90 text-white hover:bg-emerald-700'
+                            : 'bg-amber-500/90 text-white hover:bg-amber-600'
+                        }`}
+                      >
+                        <Check className="w-2.5 h-2.5" />
+                        <span>{post.isReviewed ? 'Revisado' : 'Revisar'}</span>
+                      </button>
+                    )}
                     <Badge
                       className={`${statusConfig.badgeClass} text-[10px] font-bold px-2 py-0.5 gap-1 shadow-xs backdrop-blur-xs`}
                     >
@@ -1664,6 +1756,23 @@ export default function Library() {
                         <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotClass}`} />
                         {statusConfig.label}
                       </Badge>
+                      {(post.campaignId || post._raw?.campaign) && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleReviewed(post, e)}
+                          title={
+                            post.isReviewed ? 'Marcar como não revisado' : 'Marcar como revisado'
+                          }
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition-all ${
+                            post.isReviewed
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                              : 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30'
+                          }`}
+                        >
+                          <Check className="w-2.5 h-2.5" />
+                          <span>{post.isReviewed ? 'Revisado' : 'Pendente de Revisão'}</span>
+                        </button>
+                      )}
                       <span className="text-[10px] uppercase font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                         {typeLabel} &middot; {ratio}
                       </span>
@@ -2003,11 +2112,23 @@ export default function Library() {
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold">
-                    Nível de Aprovação
+                    Status de Revisão
                   </span>
-                  <span className="font-bold text-purple-600 dark:text-purple-400">
-                    {detailsDrawerPost.approvalLevel || 'Nível 1 (Em Revisão)'}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleReviewed(detailsDrawerPost)}
+                    className="font-bold text-left hover:underline flex items-center gap-1 mt-0.5"
+                  >
+                    {detailsDrawerPost.isReviewed ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        ✓ Revisado (Aprovado)
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400 font-bold">
+                        ⏳ Pendente de Revisão
+                      </span>
+                    )}
+                  </button>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold">

@@ -98,6 +98,17 @@ export async function bulkTogglePostsFavorite(ids: string[], is_favorite: boolea
   return Promise.all(ids.map((id) => pb.collection('posts').update(id, { is_favorite })))
 }
 
+export async function togglePostReviewed(id: string, isReviewed: boolean, reviewNotes?: string) {
+  const payload: Record<string, unknown> = {
+    is_reviewed: isReviewed,
+    approval_level: isReviewed ? 'Nível 2 (Aprovado)' : 'Nível 1 (Em Revisão)',
+  }
+  if (reviewNotes !== undefined) {
+    payload.review_notes = reviewNotes
+  }
+  return pb.collection('posts').update(id, payload)
+}
+
 export async function bulkDeletePosts(ids: string[]) {
   return Promise.all(ids.map((id) => pb.collection('posts').delete(id)))
 }

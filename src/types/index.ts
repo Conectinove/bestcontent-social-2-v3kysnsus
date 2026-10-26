@@ -59,6 +59,9 @@ export interface Post {
   revisionCount?: number
   approvalLevel?: string
   campaignId?: string
+  isReviewed?: boolean
+  reviewNotes?: string
+  campaignFormat?: string
   created?: string
   createdAt?: string
   _raw?: any
@@ -234,6 +237,11 @@ export type IntegrationNetwork =
   | 'behance'
   | 'medium'
   | 'vimeo'
+  | 'google_business'
+  | 'bluesky'
+  | 'mastodon'
+  | 'tumblr'
+  | 'dribbble'
 
 export interface UserIntegrationRecord {
   id: string
