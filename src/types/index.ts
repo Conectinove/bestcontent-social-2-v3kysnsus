@@ -58,6 +58,8 @@ export interface Post {
   isArchived?: boolean
   revisionCount?: number
   approvalLevel?: string
+  created?: string
+  createdAt?: string
   _raw?: any
 }
 
@@ -205,6 +207,12 @@ export type IntegrationNetwork =
   | 'telegram'
   | 'kwai'
   | 'reddit'
+  | 'discord'
+  | 'twitch'
+  | 'snapchat'
+  | 'behance'
+  | 'medium'
+  | 'vimeo'
 
 export interface UserIntegrationRecord {
   id: string

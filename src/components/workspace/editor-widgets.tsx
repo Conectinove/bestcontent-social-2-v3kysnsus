@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { NetworkHashtagGenerator } from '@/components/NetworkHashtagGenerator'
 import { getTemplates } from '@/services/post-templates'
 
 const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'LinkedIn', 'Twitter/X']
@@ -45,6 +46,8 @@ export function CaptionWidget({
   onSelectVariation,
   currentTone,
   onToneChange,
+  currentPlatform = 'Instagram',
+  onPlatformChange,
 }: {
   caption: string
   setCaption: (v: string) => void
@@ -55,6 +58,8 @@ export function CaptionWidget({
   onSelectVariation?: (text: string) => void
   currentTone?: string
   onToneChange?: (tone: string) => void
+  currentPlatform?: string
+  onPlatformChange?: (platform: string) => void
 }) {
   const [localTone, setLocalTone] = useState<string>(() => {
     return currentTone || localStorage.getItem('bestcontent_caption_tone') || 'profissional'
@@ -67,7 +72,7 @@ export function CaptionWidget({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {/* Seletor de Tom de Voz da Legenda */}
       <div className="space-y-1">
         <label className="text-[10px] font-semibold text-muted-foreground flex items-center justify-between">
@@ -155,6 +160,18 @@ export function CaptionWidget({
       <span className="text-[10px] text-muted-foreground float-right">
         {caption.length} caracteres
       </span>
+
+      {/* Widget integrado de Hashtags com chips por rede social */}
+      <NetworkHashtagGenerator
+        contentSource={caption}
+        selectedNetwork={currentPlatform}
+        onNetworkChange={(net) => onPlatformChange?.(net)}
+        onApplyHashtags={(tags) => {
+          setCaption(caption ? `${caption}\n\n${tags}` : tags)
+        }}
+        currentHashtags={caption}
+        compact
+      />
     </div>
   )
 }

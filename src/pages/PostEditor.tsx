@@ -304,6 +304,8 @@ export default function PostEditor() {
             }}
             currentTone={captionTone}
             onToneChange={(tone) => setCaptionTone(tone)}
+            currentPlatform={platform}
+            onPlatformChange={(net) => setPlatform(net)}
           />
         )
       case 'media':

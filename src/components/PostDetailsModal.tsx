@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,12 @@ import { toast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { approvePost } from '@/services/approval'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import {
+  getPostMetricsByPost,
+  getSimulatedMetricFallback,
+  PostMetric,
+} from '@/services/post-metrics'
+import { PostPerformanceCard } from '@/components/analytics/PostPerformanceCard'
 
 interface PostDetailsModalProps {
   open: boolean
@@ -25,6 +31,24 @@ export function PostDetailsModal({
   const { user } = useAuth()
   const navigate = useNavigate()
   const [approving, setApproving] = useState(false)
+  const [metrics, setMetrics] = useState<PostMetric | null>(null)
+
+  useEffect(() => {
+    if (!post?.id) return
+    if (post.status === 'published') {
+      getPostMetricsByPost(post.id).then((data) => {
+        if (data) {
+          setMetrics(data)
+        } else {
+          setMetrics(
+            getSimulatedMetricFallback(post.id, post.platform, post.created || post.createdAt),
+          )
+        }
+      })
+    } else {
+      setMetrics(null)
+    }
+  }, [post?.id, post?.status, post?.platform, post?.created, post?.createdAt])
 
   if (!post) return null
 
@@ -133,6 +157,13 @@ export function PostDetailsModal({
               </div>
             </div>
           </div>
+
+          {/* Análise de Performance do Post (quando publicado) */}
+          {post.status === 'published' && (
+            <div className="pt-2 border-t border-border/80">
+              <PostPerformanceCard metrics={metrics} brandAverageRate={5.1} />
+            </div>
+          )}
         </div>
 
         {/* Bottom Modal Actions */}

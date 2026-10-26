@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   BookOpen,
@@ -78,6 +78,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ImageBankModal } from '@/components/ImageBankModal'
+import { getAllPostMetrics, getSimulatedMetricFallback, PostMetric } from '@/services/post-metrics'
+import {
+  PostPerformanceBadge,
+  PostPerformanceCard,
+} from '@/components/analytics/PostPerformanceCard'
 import { toast } from '@/hooks/use-toast'
 import { sharePost } from '@/lib/share'
 import { cn } from '@/lib/utils'
@@ -206,6 +211,19 @@ export default function Library() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
+
+  // Cache de métricas de posts carregadas do backend
+  const [metricsMap, setMetricsMap] = useState<Record<string, PostMetric>>({})
+
+  useEffect(() => {
+    getAllPostMetrics().then((list) => {
+      const map: Record<string, PostMetric> = {}
+      list.forEach((m) => {
+        if (m.post) map[m.post] = m
+      })
+      setMetricsMap(map)
+    })
+  }, [posts])
 
   // Painel lateral de detalhes / edição rápida do post selecionado
   const [detailsDrawerPost, setDetailsDrawerPost] = useState<Post | null>(null)
@@ -1256,13 +1274,31 @@ export default function Library() {
                   {/* Status Indicator */}
                   <div className="absolute bottom-3 right-3">
                     <Badge
-                      className={`${statusConfig.badgeClass} text-[10px] font-bold px-2 py-0.5 gap-1 shadow-xs`}
+                      className={`${statusConfig.badgeClass} text-[10px] font-bold px-2 py-0.5 gap-1 shadow-xs backdrop-blur-xs`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotClass}`} />
                       {statusConfig.label}
                     </Badge>
                   </div>
                 </div>
+
+                {/* Badge de Análise de Performance para Posts Publicados */}
+                {post.status === 'published' && (
+                  <div className="px-4 pt-2 -mb-1">
+                    <PostPerformanceBadge
+                      metrics={
+                        metricsMap[post.id] ||
+                        getSimulatedMetricFallback(
+                          post.id,
+                          post.platform,
+                          post.createdAt || post._raw?.created,
+                        )
+                      }
+                      platform={post.platform}
+                      status={post.status}
+                    />
+                  </div>
+                )}
 
                 {/* Content & Details */}
                 <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-3">
@@ -1737,6 +1773,23 @@ export default function Library() {
                         Programado para publicação em:{' '}
                         {new Date(viewPost.scheduledDate).toLocaleString('pt-BR')}
                       </span>
+                    </div>
+                  )}
+
+                  {/* Análise de Performance do Post Publicado */}
+                  {viewPost.status === 'published' && (
+                    <div className="pt-2">
+                      <PostPerformanceCard
+                        metrics={
+                          metricsMap[viewPost.id] ||
+                          getSimulatedMetricFallback(
+                            viewPost.id,
+                            viewPost.platform,
+                            viewPost.createdAt || viewPost._raw?.created,
+                          )
+                        }
+                        brandAverageRate={5.1}
+                      />
                     </div>
                   )}
 

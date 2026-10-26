@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   BarChart3,
   TrendingUp,
@@ -21,7 +21,11 @@ import {
   Building2,
   Trophy,
   Filter,
+  Eye,
+  Heart,
+  Bookmark,
 } from 'lucide-react'
+import { getAllPostMetrics, getSimulatedMetricFallback, PostMetric } from '@/services/post-metrics'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -51,6 +55,11 @@ export function PerformanceReport({
 }: PerformanceReportProps) {
   const [selectedBrandId, setSelectedBrandId] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30d')
+  const [allMetrics, setAllMetrics] = useState<PostMetric[]>([])
+
+  useEffect(() => {
+    getAllPostMetrics().then((data) => setAllMetrics(data))
+  }, [])
 
   // Período real: 7/30/90 dias ou tudo — filtra pela data de criação do post
   const periodDays =
@@ -216,6 +225,28 @@ export function PerformanceReport({
 
     return Object.values(networks)
   }, [filteredPosts])
+
+  // Ranking Top Posts por engajamento estimado / salvo
+  const topPostsRanking = useMemo(() => {
+    const published = filteredPosts.filter((p) => p.status === 'published')
+    const metricsByPostId = new Map<string, PostMetric>()
+    allMetrics.forEach((m) => {
+      if (m.post) metricsByPostId.set(m.post, m)
+    })
+
+    const scored = published.map((post) => {
+      const metric =
+        metricsByPostId.get(post.id) ||
+        getSimulatedMetricFallback(post.id, post.platform, post.createdAt || post._raw?.created)
+      return {
+        post,
+        metric,
+        score: metric.engajamento,
+      }
+    })
+
+    return scored.sort((a, b) => b.score - a.score).slice(0, 6)
+  }, [filteredPosts, allMetrics])
 
   // Evolução nos últimos 30 dias (agrupada por semanas / dias)
   const timelineData = useMemo(() => {
@@ -826,6 +857,210 @@ export function PerformanceReport({
           </div>
         </Card>
       </div>
+
+      {/* Top Posts Ranking por Engajamento Estimado */}
+      <Card className="rounded-2xl border-border bg-card p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/80">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+              <Trophy className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span>Top Posts: Melhores Desempenhos</span>
+                <Badge variant="secondary" className="text-[10px] bg-purple-500/10 text-purple-600">
+                  Ranking por Engajamento
+                </Badge>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Posts com maior retenção e taxa de resposta no período filtrado (
+                {selectedPeriod === 'all' ? 'Todo o histórico' : selectedPeriod}).
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] text-muted-foreground font-mono">
+            {topPostsRanking.length} em destaque
+          </span>
+        </div>
+
+        {topPostsRanking.length === 0 ? (
+          <div className="py-8 text-center text-xs text-muted-foreground space-y-1">
+            <p>Nenhum post publicado com métricas para este filtro.</p>
+            <p className="text-[11px]">
+              Publique conteúdos ou altere o filtro de período para visualizar o ranking.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {topPostsRanking.map(({ post, metric }, idx) => (
+              <div
+                key={post.id}
+                className="p-3.5 rounded-xl bg-muted/30 border border-border/70 hover:border-purple-500/40 hover:bg-muted/50 transition-all flex flex-col justify-between space-y-3"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shadow-2xs">
+                      #{idx + 1}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] capitalize">
+                      {post.platform || 'Instagram'}
+                    </Badge>
+                  </div>
+                  <h4 className="text-xs font-bold text-foreground line-clamp-2">
+                    {post.content || post.caption || 'Sem título'}
+                  </h4>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <div className="grid grid-cols-3 gap-1 text-center">
+                    <div className="p-1 rounded bg-card border border-border/40">
+                      <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
+                        <Eye className="w-2.5 h-2.5 text-purple-500" /> Alcance
+                      </span>
+                      <span className="text-xs font-bold text-foreground">
+                        {metric.alcance >= 1000
+                          ? `${(metric.alcance / 1000).toFixed(1)}k`
+                          : metric.alcance}
+                      </span>
+                    </div>
+
+                    <div className="p-1 rounded bg-card border border-border/40">
+                      <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
+                        <Heart className="w-2.5 h-2.5 text-emerald-500" /> Interações
+                      </span>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        {metric.engajamento}
+                      </span>
+                    </div>
+
+                    <div className="p-1 rounded bg-card border border-border/40">
+                      <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
+                        <Bookmark className="w-2.5 h-2.5 text-pink-500" /> Salvos
+                      </span>
+                      <span className="text-xs font-bold text-foreground">
+                        {metric.salvamentos}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-purple-600 dark:text-purple-400">
+                      Taxa: {metric.taxa_engajamento}%
+                    </span>
+                    {metric.is_simulated && (
+                      <span className="text-[9px] text-muted-foreground uppercase">
+                        Estimativa Baseline
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Top Posts Ranking por Engajamento Estimado */}
+      <Card className="rounded-2xl border-border bg-card p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/80">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+              <Trophy className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span>Top Posts: Ranking de Performance</span>
+                <Badge variant="secondary" className="text-[10px] bg-purple-500/10 text-purple-600">
+                  Mais Engajados
+                </Badge>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Criações publicadas com maior volume de reações, comentários e salvamentos no
+                período filtrado.
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] text-muted-foreground font-mono">
+            {topPostsRanking.length} em destaque
+          </span>
+        </div>
+
+        {topPostsRanking.length === 0 ? (
+          <div className="py-8 text-center text-xs text-muted-foreground space-y-1">
+            <p>Nenhum post publicado com métricas para os filtros selecionados.</p>
+            <p className="text-[11px]">
+              Publique conteúdos ou altere o filtro de período para visualizar o ranking.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {topPostsRanking.map(({ post, metric }, idx) => (
+              <div
+                key={post.id}
+                className="p-3.5 rounded-xl bg-muted/30 border border-border/70 hover:border-purple-500/40 hover:bg-muted/50 transition-all flex flex-col justify-between space-y-3"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shadow-2xs">
+                      #{idx + 1}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] capitalize">
+                      {post.platform || 'Instagram'}
+                    </Badge>
+                  </div>
+                  <h4 className="text-xs font-bold text-foreground line-clamp-2">
+                    {post.content || post.caption || 'Sem título'}
+                  </h4>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <div className="grid grid-cols-3 gap-1 text-center">
+                    <div className="p-1 rounded bg-card border border-border/40">
+                      <span className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
+                        <Eye className="w-2.5 h-2.5 text-purple-500" /> Alcance
+                      </span>
+                      <span className="text-xs font-bold text-foreground">
+                        {metric.alcance >= 1000
+                          ? `${(metric.alcance / 1000).toFixed(1)}k`
+                          : metric.alcance}
+                      </span>
+                    </div>
+
+                    <div className="p-1 rounded bg-card border border-border/40">
+                      <span className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
+                        <Heart className="w-2.5 h-2.5 text-emerald-500" /> Interações
+                      </span>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        {metric.engajamento}
+                      </span>
+                    </div>
+
+                    <div className="p-1 rounded bg-card border border-border/40">
+                      <span className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
+                        <Bookmark className="w-2.5 h-2.5 text-pink-500" /> Salvos
+                      </span>
+                      <span className="text-xs font-bold text-foreground">
+                        {metric.salvamentos}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-purple-600 dark:text-purple-400">
+                      Taxa: {metric.taxa_engajamento}%
+                    </span>
+                    {metric.is_simulated && (
+                      <span className="text-[9px] text-muted-foreground uppercase">
+                        Estimativa Baseline
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Desempenho por Rede Social & Testes A/B */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 import { InspirationLibraryModal, InspirationItem } from '@/components/InspirationLibraryModal'
 import { WhatsAppIcon, TikTokIcon, YouTubeIcon } from './CreateHub'
+import { NetworkHashtagGenerator } from '@/components/NetworkHashtagGenerator'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { createScheduledPost } from '@/services/scheduled_posts'
@@ -2181,23 +2182,12 @@ export default function ImageCreator() {
                   />
                 </div>
 
-                {/* Hashtags com IA */}
-                <div>
+                {/* Hashtags com IA e seletor por rede */}
+                <div className="space-y-2">
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor="hashtags-input" className="text-xs font-bold text-foreground">
-                      Hashtags
+                      Hashtags do Post
                     </label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => aiGenerate('hashtags')}
-                      disabled={aiLoading}
-                      className="text-xs text-purple-600 dark:text-purple-400 h-7 gap-1 rounded-lg"
-                    >
-                      <Hash className="w-3.5 h-3.5" />
-                      {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Sugerir'}
-                    </Button>
                   </div>
                   <Textarea
                     id="hashtags-input"
@@ -2205,6 +2195,19 @@ export default function ImageCreator() {
                     onChange={(e) => setHashtags(e.target.value)}
                     placeholder="#marketing #conteudo #redessociais #engajamento..."
                     className="min-h-[60px] text-xs resize-y bg-background"
+                  />
+
+                  {/* Gerador de Hashtags com chips de rede social */}
+                  <NetworkHashtagGenerator
+                    contentSource={`${headline} ${caption}`.trim() || selectedFormat.name}
+                    selectedNetwork={selectedFormat.mainNetwork}
+                    onNetworkChange={(net) => {
+                      // opcionalmente atualiza formato se conveniente
+                    }}
+                    onApplyHashtags={(tags) => {
+                      setHashtags(hashtags ? `${hashtags} ${tags}` : tags)
+                    }}
+                    currentHashtags={hashtags}
                   />
                 </div>
 

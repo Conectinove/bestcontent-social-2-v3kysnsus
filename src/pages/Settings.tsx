@@ -122,6 +122,12 @@ export default function Settings() {
     telegram: { connected: false },
     kwai: { connected: false },
     reddit: { connected: false },
+    discord: { connected: false },
+    twitch: { connected: false },
+    snapchat: { connected: false },
+    behance: { connected: false },
+    medium: { connected: false },
+    vimeo: { connected: false },
   })
   const [loadingIntegrations, setLoadingIntegrations] = useState(false)
   const [actionLoadingNetwork, setActionLoadingNetwork] = useState<IntegrationNetwork | null>(null)
@@ -164,6 +170,12 @@ export default function Settings() {
             telegram: { connected: false },
             kwai: { connected: false },
             reddit: { connected: false },
+            discord: { connected: false },
+            twitch: { connected: false },
+            snapchat: { connected: false },
+            behance: { connected: false },
+            medium: { connected: false },
+            vimeo: { connected: false },
           }
 
           records.forEach((rec) => {
@@ -704,6 +716,68 @@ export default function Settings() {
                         iconBg: 'bg-[#FF4500]/15 border-[#FF4500]/20 text-[#FF4500]',
                         renderIcon: () => (
                           <span className="font-black text-xs text-[#FF4500]">r/</span>
+                        ),
+                      },
+                      {
+                        network: 'discord' as IntegrationNetwork,
+                        name: 'Discord Bot & Webhooks API',
+                        subtitle:
+                          'Disparo em canais de comunidade, webhooks ricos e alertas automáticos',
+                        iconBg: 'bg-[#5865F2]/15 border-[#5865F2]/20 text-[#5865F2]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#5865F2]">DC</span>
+                        ),
+                      },
+                      {
+                        network: 'twitch' as IntegrationNetwork,
+                        name: 'Twitch Helix API',
+                        subtitle:
+                          'Lives de criadores, clipes em destaque e transmissões simultâneas',
+                        iconBg: 'bg-[#9146FF]/15 border-[#9146FF]/20 text-[#9146FF]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#9146FF]">TW</span>
+                        ),
+                      },
+                      {
+                        network: 'snapchat' as IntegrationNetwork,
+                        name: 'Snapchat Marketing API',
+                        subtitle: 'Snaps efêmeros, filtros de realidade aumentada e Spotlight',
+                        iconBg:
+                          'bg-[#FFFC00]/20 border-yellow-500/30 text-yellow-600 dark:text-yellow-400',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-yellow-600 dark:text-yellow-400">
+                            SNAP
+                          </span>
+                        ),
+                      },
+                      {
+                        network: 'behance' as IntegrationNetwork,
+                        name: 'Adobe Behance API',
+                        subtitle:
+                          'Portfólios visuais, cases de design e projetos criativos completos',
+                        iconBg: 'bg-[#1769FF]/15 border-[#1769FF]/20 text-[#1769FF]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#1769FF]">Bē</span>
+                        ),
+                      },
+                      {
+                        network: 'medium' as IntegrationNetwork,
+                        name: 'Medium Publishing API',
+                        subtitle:
+                          'Artigos aprofundados, publicações autorais e distribuição de conteúdo longo',
+                        iconBg: 'bg-black/15 dark:bg-white/10 border-foreground/15 text-foreground',
+                        renderIcon: () => (
+                          <span className="font-serif font-black text-xs text-foreground">M</span>
+                        ),
+                      },
+                      {
+                        network: 'vimeo' as IntegrationNetwork,
+                        name: 'Vimeo Video API',
+                        subtitle:
+                          'Hospedagem profissional de vídeos HD/4K, players embutidos e portfolios',
+                        iconBg: 'bg-[#1AB7EA]/15 border-[#1AB7EA]/20 text-[#1AB7EA]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#1AB7EA]">vm</span>
                         ),
                       },
                     ].map((item) => {

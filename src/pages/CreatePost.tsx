@@ -33,6 +33,7 @@ import { createScheduledPost } from '@/services/scheduled_posts'
 import { updatePost } from '@/services/posts'
 import { generateCaption, generateHashtags, improveText } from '@/services/ai'
 import { sharePost } from '@/lib/share'
+import { NetworkHashtagGenerator } from '@/components/NetworkHashtagGenerator'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -633,23 +634,12 @@ export default function CreatePost() {
             </div>
 
             {/* Linha 3: Legenda com Assistente IA & Hashtags */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-foreground">
                   Legenda Completa para Redes
                 </label>
                 <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => aiAction('hashtags')}
-                    disabled={aiLoading === 'hashtags'}
-                    className="text-xs text-purple-600 dark:text-purple-400 gap-1 h-7 px-2 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg"
-                  >
-                    <Hash className="w-3.5 h-3.5" />
-                    <span>{aiLoading === 'hashtags' ? 'Gerando...' : '+ Hashtags'}</span>
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -665,12 +655,25 @@ export default function CreatePost() {
                 placeholder="Escreva a legenda detalhada, storytelling ou copie da IA..."
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="min-h-[120px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
+                className="min-h-[100px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
                 <span>Dica: Use quebras de linha e emojis para maior retenção.</span>
                 <span className="font-mono">{caption.length} caracteres</span>
               </div>
+
+              {/* Gerador de Hashtags com chips por rede social */}
+              <NetworkHashtagGenerator
+                contentSource={`${content} ${caption}`.trim()}
+                selectedNetwork={platform}
+                onNetworkChange={(net) => {
+                  // opcional sincronização
+                }}
+                onApplyHashtags={(tags) => {
+                  setCaption((prev) => (prev ? `${prev}\n\n${tags}` : tags))
+                }}
+                currentHashtags={caption}
+              />
             </div>
 
             {/* Linha 4: Mídia com Upload e Preview imediato */}

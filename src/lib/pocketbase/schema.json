@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T12:18:28.905Z",
+  "generatedAt": "2026-10-26T12:54:35.395Z",
   "collections": [
     {
       "name": "users",
@@ -1384,7 +1384,13 @@
             "whatsapp",
             "telegram",
             "kwai",
-            "reddit"
+            "reddit",
+            "discord",
+            "twitch",
+            "snapchat",
+            "behance",
+            "medium",
+            "vimeo"
           ]
         },
         {
@@ -1550,6 +1556,125 @@
         "CREATE INDEX idx_image_bank_user ON image_bank_assets (user)",
         "CREATE INDEX idx_image_bank_category ON image_bank_assets (category)",
         "CREATE INDEX idx_image_bank_curated ON image_bank_assets (is_curated)"
+      ]
+    },
+    {
+      "name": "post_metrics",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\"",
+        "view": "@request.auth.id != \"\"",
+        "create": "@request.auth.id != \"\"",
+        "update": "@request.auth.id != \"\"",
+        "delete": "@request.auth.id != \"\""
+      },
+      "fields": [
+        {
+          "name": "post",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "rede",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "instagram",
+            "tiktok",
+            "linkedin",
+            "youtube",
+            "facebook",
+            "twitter",
+            "threads",
+            "pinterest",
+            "whatsapp",
+            "telegram",
+            "kwai",
+            "reddit",
+            "discord",
+            "twitch",
+            "snapchat",
+            "behance",
+            "medium",
+            "vimeo"
+          ]
+        },
+        {
+          "name": "alcance",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressoes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "engajamento",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cliques",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "salvamentos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "taxa_engajamento",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_simulated",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_post_metrics_post ON post_metrics (post)",
+        "CREATE INDEX idx_post_metrics_rede ON post_metrics (rede)"
       ]
     }
   ]
