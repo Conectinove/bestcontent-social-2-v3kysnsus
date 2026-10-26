@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
+  Plus,
   Download,
   FileText,
   Sliders,
@@ -52,6 +53,14 @@ import { buildMudarCursoContrastMatrix, type ContrastMatrixRow } from '@/service
 import { createSimpleZip, type ZipFileEntry } from '@/services/simple-zip'
 import { AdvancedLogoEditorModal } from '@/components/brandkit/AdvancedLogoEditorModal'
 import { RevisedPromptsModal } from '@/components/brandkit/RevisedPromptsModal'
+import { CreateOrEditMaterialModal } from '@/components/brandkit/CreateOrEditMaterialModal'
+import {
+  type BrandKitMaterialItem,
+  getBrandKitMaterials,
+  saveBrandKitMaterial,
+  deleteBrandKitMaterial,
+  generateMaterialSvg,
+} from '@/services/brand-materials'
 import { isLabFeatureEnabled } from '@/services/labs-features'
 
 interface LogEntry {
@@ -105,7 +114,14 @@ export function MudarCursoLogoKit() {
   const [editingKind, setEditingKind] = useState<LogoVariationKind | null>(null)
   const [promptsModalOpen, setPromptsModalOpen] = useState(false)
 
-  // Previews por fundo ativos em cada card
+  // Materiais Customizados (Persistidos no PocketBase brand_kit_materials / localStorage)
+  const [customMaterials, setCustomMaterials] = useState<BrandKitMaterialItem[]>([])
+  const [loadingMaterials, setLoadingMaterials] = useState(false)
+  const [materialModalOpen, setMaterialModalOpen] = useState(false)
+  const [editingMaterial, setEditingMaterial] = useState<BrandKitMaterialItem | null>(null)
+  const [materialToDelete, setMaterialToDelete] = useState<BrandKitMaterialItem | null>(null)
+
+  // Previews por fundo ativos em cada card oficial
   const [previewBgs, setPreviewBgs] = useState<
     Record<LogoVariationKind, 'light' | 'dark' | 'violet'>
   >({
@@ -114,6 +130,11 @@ export function MudarCursoLogoKit() {
     'mono-dark': 'light',
     mark: 'violet',
   })
+
+  // Previews por fundo ativos em cada material customizado
+  const [customMaterialBgs, setCustomMaterialBgs] = useState<
+    Record<string, 'light' | 'dark' | 'violet'>
+  >({})
 
   // 2. Nomenclatura dos arquivos
   const [projectName, setProjectName] = useState('mudarcurso')
@@ -144,9 +165,21 @@ export function MudarCursoLogoKit() {
     'all' | 'Carrossel' | 'Miniaturas' | 'Página'
   >('all')
 
-  // Carregar edições salvas na montagem
+  // Carregar edições salvas e materiais customizados na montagem
+  const fetchMaterials = async () => {
+    setLoadingMaterials(true)
+    try {
+      const mats = await getBrandKitMaterials(user?.id)
+      setCustomMaterials(mats)
+    } catch (err) {
+      console.warn('[BrandKit] Erro ao carregar materiais:', err)
+    } finally {
+      setLoadingMaterials(false)
+    }
+  }
+
   useEffect(() => {
-    async function loadEdits() {
+    async function loadEditsAndMaterials() {
       const saved = await getSavedLogoKitEdits(user?.id)
       setLogoConfigs((prev) => {
         const next = { ...prev }
@@ -157,8 +190,10 @@ export function MudarCursoLogoKit() {
         })
         return next
       })
+
+      fetchMaterials()
     }
-    loadEdits()
+    loadEditsAndMaterials()
   }, [user?.id])
 
   // Persistir checklist
@@ -782,6 +817,231 @@ export function MudarCursoLogoKit() {
     addLog('Página', `Configuração da "${updated.title}" salva com sucesso.`, 'ok')
   }
 
+  // DOWNLOAD DE MATERIAL CUSTOMIZADO
+  const downloadCustomMaterial = async (
+    material: BrandKitMaterialItem,
+    format: 'svg' | 'png' | 'jpg' | 'pdf' | 'draft' | 'favicons',
+    size = 2048,
+  ) => {
+    const isDraft = format === 'draft'
+
+    if (dryRun) {
+      addLog(
+        'Página',
+        `[DRY-RUN] Planejado download: ${material.title} em .${format.toUpperCase()} (${size}px). Nenhuma escrita em disco.`,
+        'ok',
+      )
+      toast({
+        title: 'Modo Dry-Run Ativo',
+        description: `Download planejado: ${material.title} (${format.toUpperCase()}) sem gerar arquivos.`,
+      })
+      return
+    }
+
+    addLog(
+      'Página',
+      `Iniciando renderização de "${material.title}" em formato .${format.toUpperCase()} (${size}px)...`,
+      'pending',
+    )
+
+    try {
+      const svgCode = generateMaterialSvg(material, {
+        background: format === 'jpg' ? 'light' : 'transparent',
+        forceWatermark: isDraft,
+      })
+
+      const safeSlug =
+        material.fileNameCustom || material.title.toLowerCase().replace(/[^a-z0-9_-]/g, '-')
+
+      if (format === 'svg') {
+        const fileName = `${safeSlug}-${isDraft ? 'rascunho' : 'vetor'}.svg`
+        const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' })
+        triggerFileDownload(blob, fileName)
+        addLog('Página', `Download SVG concluído: ${fileName}`, 'ok')
+      } else if (format === 'png' || format === 'draft') {
+        const isIconOrMark = material.category === 'simbolo' || material.category === 'icone'
+        const h = isIconOrMark ? size : Math.round(size * (360 / 1200))
+        const canvas = await renderSvgToCanvas(svgCode, size, h, 'transparent')
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const fileName = `${safeSlug}-${isDraft ? `rascunho-${size}px` : `${size}px`}.png`
+            triggerFileDownload(blob, fileName)
+            addLog('Página', `Download PNG concluído: ${fileName}`, 'ok')
+          }
+        }, 'image/png')
+      } else if (format === 'jpg') {
+        const isIconOrMark = material.category === 'simbolo' || material.category === 'icone'
+        const h = isIconOrMark ? size : Math.round(size * (360 / 1200))
+        const canvas = await renderSvgToCanvas(svgCode, size, h, '#FFFFFF')
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const fileName = `${safeSlug}-fundo-branco-${size}px.jpg`
+              triggerFileDownload(blob, fileName)
+              addLog('Página', `Download JPG concluído: ${fileName}`, 'ok')
+            }
+          },
+          'image/jpeg',
+          0.92,
+        )
+      } else if (format === 'favicons') {
+        const markSvg = generateMaterialSvg(material, { background: 'transparent' })
+        const entries: ZipFileEntry[] = [
+          { name: 'favicon.svg', data: markSvg },
+          {
+            name: 'README-FAVICONS.txt',
+            data: `Favicons gerados para o material ${material.title} (MidiaViva / MudarCurso).`,
+          },
+        ]
+        const faviconSizes = [16, 32, 48, 64, 180, 512]
+        for (const fSize of faviconSizes) {
+          const cvs = await renderSvgToCanvas(markSvg, fSize, fSize, 'transparent')
+          const dataUrl = cvs.toDataURL('image/png')
+          const base64 = dataUrl.split(',')[1]
+          const binaryStr = window.atob(base64)
+          const bytes = new Uint8Array(binaryStr.length)
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i)
+          }
+          entries.push({
+            name: `favicon-${fSize}x${fSize}.png`,
+            data: bytes,
+          })
+        }
+        const zipBlob = createSimpleZip(entries)
+        const zipName = `${safeSlug}-favicons-pack.zip`
+        triggerFileDownload(zipBlob, zipName)
+        addLog(
+          'Miniaturas',
+          `Pacote de favicons gerado para ${material.title}: ${zipName} (${entries.length} arquivos)`,
+          'ok',
+        )
+      } else if (format === 'pdf') {
+        const printWindow = window.open('', '_blank', 'width=900,height=750')
+        if (printWindow) {
+          printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+              <meta charset="utf-8" />
+              <title>${material.title} · Guia de Impressão</title>
+              <style>
+                @page { size: A4 landscape; margin: 15mm; }
+                body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #fff; color: #0F0B1F; margin: 0; padding: 20px; }
+                .header { border-bottom: 3px solid #5B21B6; padding-bottom: 12px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+                .title { font-size: 24px; font-weight: 900; color: #5B21B6; }
+                .meta { font-size: 11px; color: #6b7280; }
+                .preview-box { border: 2px dashed #e5e7eb; border-radius: 12px; padding: 32px; display: flex; justify-content: center; align-items: center; background: #fafafa; }
+                .specs { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 12px; }
+                .spec-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
+                .spec-label { font-weight: bold; color: #5B21B6; font-size: 10px; text-transform: uppercase; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <div>
+                  <div class="title">${material.title}</div>
+                  <div class="meta">${material.subtitle || 'Material do Brand Kit'} · Categoria: ${material.category}</div>
+                </div>
+                <div class="meta">MidiaViva Brand Kit · ${new Date().toLocaleDateString('pt-BR')}</div>
+              </div>
+              <div class="preview-box">
+                <div style="max-width: 600px; width: 100%;">${svgCode}</div>
+              </div>
+              <div class="specs">
+                <div class="spec-card">
+                  <div class="spec-label">Cor Primária</div>
+                  <div style="font-family: monospace; font-weight: bold;">${material.primaryColor}</div>
+                </div>
+                <div class="spec-card">
+                  <div class="spec-label">Cor Secundária</div>
+                  <div style="font-family: monospace; font-weight: bold;">${material.secondaryColor || 'N/A'}</div>
+                </div>
+                <div class="spec-card">
+                  <div class="spec-label">Destaque Rosa</div>
+                  <div style="font-family: monospace; font-weight: bold;">${material.accentColor || '#FF2E93'}</div>
+                </div>
+              </div>
+            </body>
+            </html>
+          `)
+          printWindow.document.close()
+          printWindow.focus()
+          setTimeout(() => {
+            printWindow.print()
+          }, 350)
+        }
+        addLog('Página', `Guia de impressão PDF aberto para "${material.title}"`, 'ok')
+      }
+
+      toast({
+        title: 'Download gerado com sucesso!',
+        description: `Material "${material.title}" exportado em .${format.toUpperCase()}.`,
+      })
+    } catch (err: any) {
+      addLog('Página', `Falha ao gerar ${material.title}: ${err?.message}`, 'failed')
+      toast({
+        title: 'Erro ao gerar download',
+        description: err?.message || 'Falha no processamento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // EXCLUSÃO DE MATERIAL CUSTOMIZADO
+  const handleConfirmDeleteMaterial = async () => {
+    if (!materialToDelete) return
+    try {
+      await deleteBrandKitMaterial(materialToDelete.id)
+      setCustomMaterials((prev) => prev.filter((m) => m.id !== materialToDelete.id))
+      toast({
+        title: 'Material excluído',
+        description: `"${materialToDelete.title}" foi removido do seu kit de marca.`,
+      })
+      addLog('Sistema', `Material customizado excluído: ${materialToDelete.title}`, 'ok')
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao excluir',
+        description: err?.message || 'Não foi possível excluir o material.',
+        variant: 'destructive',
+      })
+    } finally {
+      setMaterialToDelete(null)
+    }
+  }
+
+  // SALVAR MATERIAL (CRIADO OU EDITADO)
+  const handleSaveMaterial = async (data: Partial<BrandKitMaterialItem>) => {
+    try {
+      const saved = await saveBrandKitMaterial({
+        ...data,
+        userId: user?.id,
+      })
+      setCustomMaterials((prev) => {
+        const idx = prev.findIndex((m) => m.id === saved.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = saved
+          return next
+        }
+        return [saved, ...prev]
+      })
+      toast({
+        title: 'Material salvo com sucesso!',
+        description: `"${saved.title}" está disponível no seu Brand Kit.`,
+      })
+      addLog('Sistema', `Material customizado salvo: ${saved.title}`, 'ok')
+      setMaterialModalOpen(false)
+      setEditingMaterial(null)
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao salvar material',
+        description: err?.message || 'Falha ao salvar no banco de dados.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   // Janela de impressão estruturada para PDF do guia
   const openPdfPrintGuide = (
     kind: LogoVariationKind,
@@ -1040,22 +1300,34 @@ export function MudarCursoLogoKit() {
       {/* 2. OS 4 CARDS DE VARIAÇÃO DA LOGO                             */}
       {/* ============================================================ */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-foreground">
-              Variações Oficiais da Logo
+              Variações da Identidade & Materiais
             </h2>
             <p className="text-xs text-muted-foreground">
-              Quatro variações técnicas da MudarCurso com preview em tempo real e downloads nos
-              formatos oficiais.
+              As 4 variações oficiais da MudarCurso mais seus materiais customizados com preview em
+              tempo real, download em 6 formatos e edição.
             </p>
           </div>
-          <Badge
-            variant="outline"
-            className="text-xs font-mono border-purple-500/30 text-purple-600"
-          >
-            4 Variações Oficiais
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="text-xs font-mono border-purple-500/30 text-purple-600"
+            >
+              4 Oficiais + {customMaterials.length} Customizados
+            </Badge>
+            <Button
+              onClick={() => {
+                setEditingMaterial(null)
+                setMaterialModalOpen(true)
+              }}
+              className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#5B21B6] to-[#FF2E93] hover:brightness-110 text-white font-bold text-xs shadow-md gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Novo material</span>
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1258,6 +1530,239 @@ export function MudarCursoLogoKit() {
             )
           })}
         </div>
+
+        {/* Grade de Materiais Customizados criados pelo usuário */}
+        {customMaterials.length > 0 && (
+          <div className="space-y-4 pt-6 border-t border-border/60">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-foreground">
+                  Materiais Adicionais da Marca ({customMaterials.length})
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Materiais criados sob medida com controle de cor, ícone, subtítulo e exportação
+                  multiformato.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {customMaterials.map((material) => {
+                const activeBg = customMaterialBgs[material.id] || 'light'
+                const svgPreview = generateMaterialSvg(material, { background: activeBg })
+
+                return (
+                  <Card
+                    key={material.id}
+                    className="overflow-hidden rounded-3xl border border-purple-500/30 bg-card hover:border-purple-500/60 hover:shadow-2xl hover:shadow-purple-900/10 transition-all flex flex-col justify-between"
+                  >
+                    {/* Cabeçalho do Card */}
+                    <div className="p-5 pb-3 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-mono uppercase">
+                              {material.category}
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground font-mono">
+                              {material.fileNameCustom || material.title}.svg
+                            </span>
+                          </div>
+                          <h4 className="text-lg font-black text-foreground">{material.title}</h4>
+                          {material.subtitle && (
+                            <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold">
+                              {material.subtitle}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Ações: Editar e Excluir */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingMaterial(material)
+                              setMaterialModalOpen(true)
+                            }}
+                            className="rounded-xl border-purple-500/40 text-purple-600 dark:text-purple-300 hover:bg-purple-500/10 text-xs font-bold gap-1 h-8 px-2.5"
+                          >
+                            <Sliders className="w-3.5 h-3.5" />
+                            <span>Editar</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setMaterialToDelete(material)}
+                            className="rounded-xl text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 text-xs font-bold h-8 px-2"
+                            title="Excluir material"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      {material.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {material.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Área de Preview por fundo com 3 Abas */}
+                    <div className="px-5 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-semibold text-foreground flex items-center gap-1">
+                          <Eye className="w-3 h-3 text-purple-600" /> Preview por fundo:
+                        </span>
+                        <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCustomMaterialBgs((prev) => ({ ...prev, [material.id]: 'light' }))
+                            }
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                              activeBg === 'light'
+                                ? 'bg-white text-black shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Fundo claro
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCustomMaterialBgs((prev) => ({ ...prev, [material.id]: 'dark' }))
+                            }
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                              activeBg === 'dark'
+                                ? 'bg-[#0F0B1F] text-white shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Fundo escuro
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCustomMaterialBgs((prev) => ({ ...prev, [material.id]: 'violet' }))
+                            }
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                              activeBg === 'violet'
+                                ? 'bg-[#5B21B6] text-white shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            Fundo violeta
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Canvas do Preview */}
+                      <div
+                        className={`relative rounded-2xl p-6 min-h-[190px] flex items-center justify-center border transition-all ${
+                          activeBg === 'light'
+                            ? 'bg-white border-slate-200 text-slate-900'
+                            : activeBg === 'dark'
+                              ? 'bg-[#0F0B1F] border-purple-500/20 text-white'
+                              : 'bg-[#5B21B6] border-purple-400/30 text-white'
+                        }`}
+                      >
+                        <div
+                          className="w-full max-h-[150px] flex items-center justify-center"
+                          dangerouslySetInnerHTML={{ __html: svgPreview }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Rodapé com Botões de Download */}
+                    <div className="p-5 pt-4 space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => downloadCustomMaterial(material, 'svg')}
+                          className="rounded-xl text-xs font-bold bg-[#5B21B6] hover:bg-[#6D28D9] text-white gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>SVG</span>
+                        </Button>
+
+                        {/* Dropdown de tamanhos PNG */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl text-xs font-bold border-border/80 gap-1"
+                            >
+                              <Download className="w-3.5 h-3.5 text-purple-600" />
+                              <span>PNG (2048px) ▼</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="rounded-2xl border-border bg-card">
+                            {[128, 256, 512, 768, 1024, 2048, 4096].map((s) => (
+                              <DropdownMenuItem
+                                key={s}
+                                onClick={() => downloadCustomMaterial(material, 'png', s)}
+                                className="text-xs font-medium cursor-pointer"
+                              >
+                                PNG {s}px
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => downloadCustomMaterial(material, 'jpg')}
+                          className="rounded-xl text-xs font-bold border-border/80 gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5 text-pink-600" />
+                          <span>JPG</span>
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => downloadCustomMaterial(material, 'pdf')}
+                          className="rounded-xl text-xs font-bold border-border/80 gap-1"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>PDF</span>
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => downloadCustomMaterial(material, 'favicons')}
+                          className="rounded-xl text-xs font-bold border-border/80 gap-1"
+                          title="Miniaturas e Favicons em SVG e PNG"
+                        >
+                          <span>Favicons</span>
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => downloadCustomMaterial(material, 'draft')}
+                          className="rounded-xl text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 gap-1"
+                        >
+                          <span>"Rascunho"</span>
+                        </Button>
+                      </div>
+
+                      {/* Nota técnica */}
+                      <p className="text-[11px] text-muted-foreground leading-tight pt-1 border-t border-border/60">
+                        SVG e PNG com transparência · JPG com fundo branco · Rascunho com marca
+                        d'água técnica.
+                      </p>
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ============================================================ */}
@@ -1840,6 +2345,56 @@ export function MudarCursoLogoKit() {
       {/* MODAL DE PROMPTS REVISADOS                                   */}
       {/* ============================================================ */}
       <RevisedPromptsModal open={promptsModalOpen} onOpenChange={setPromptsModalOpen} />
+
+      {/* ============================================================ */}
+      {/* MODAL DE CRIAÇÃO / EDIÇÃO DE MATERIAL                        */}
+      {/* ============================================================ */}
+      <CreateOrEditMaterialModal
+        open={materialModalOpen}
+        onOpenChange={(v) => {
+          setMaterialModalOpen(v)
+          if (!v) setEditingMaterial(null)
+        }}
+        initialMaterial={editingMaterial}
+        onSave={handleSaveMaterial}
+      />
+
+      {/* ============================================================ */}
+      {/* DIÁLOGO DE CONFIRMAÇÃO DE EXCLUSÃO DE MATERIAL                */}
+      {/* ============================================================ */}
+      {materialToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <Card className="max-w-md w-full p-6 space-y-4 rounded-3xl bg-card border-border shadow-2xl">
+            <div className="space-y-1">
+              <h4 className="text-lg font-black text-foreground">Excluir material da marca?</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Tem certeza de que deseja remover{' '}
+                <strong className="text-foreground font-bold">"{materialToDelete.title}"</strong>?
+                Esta ação não pode ser desfeita e o arquivo deixará de estar disponível no kit.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMaterialToDelete(null)}
+                className="rounded-xl text-xs font-bold"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleConfirmDeleteMaterial}
+                className="rounded-xl text-xs font-bold gap-1 bg-rose-600 hover:bg-rose-700 text-white"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Excluir definitivamente</span>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

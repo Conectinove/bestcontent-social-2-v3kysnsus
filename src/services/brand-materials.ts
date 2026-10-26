@@ -507,6 +507,7 @@ export function materialToLogoKitConfig(item: BrandKitMaterialItem): LogoKitVari
     monoColor: item.monoColor,
     symbolSize: item.symbolSize,
     logoPosition: item.logoPosition,
+    bgChoice: 'transparent',
     altText: item.altText,
     showSafeArea: item.showSafeArea,
     draftWatermark: item.draftWatermark,
