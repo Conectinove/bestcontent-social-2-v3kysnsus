@@ -30,8 +30,10 @@ const NETWORK_BUTTONS: { key: string; label: string }[] = [
   { key: 'instagram', label: 'Instagram' },
   { key: 'facebook', label: 'Facebook' },
   { key: 'linkedin', label: 'LinkedIn' },
-  { key: 'whatsapp', label: 'WhatsApp' },
   { key: 'tiktok', label: 'TikTok' },
+  { key: 'whatsapp', label: 'WhatsApp' },
+  { key: 'youtube', label: 'YouTube' },
+  { key: 'twitter', label: 'Twitter / X' },
 ]
 
 export function AudienceAnalysisBlock({

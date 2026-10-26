@@ -27,6 +27,12 @@ import {
 } from 'lucide-react'
 import { getAllPostMetrics, getSimulatedMetricFallback, PostMetric } from '@/services/post-metrics'
 import { AudienceAnalysisBlock } from '@/components/analytics/AudienceAnalysisBlock'
+import { CompetitorAnalysisBlock } from '@/components/analytics/CompetitorAnalysisBlock'
+import {
+  CustomizeReportModal,
+  ReportSectionsConfig,
+  DEFAULT_REPORT_SECTIONS,
+} from '@/components/analytics/CustomizeReportModal'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,6 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
+import { SlidersHorizontal } from 'lucide-react'
 import type { Post, Brand } from '@/types'
 import type { ABTest } from '@/services/ab-tests'
 
@@ -54,13 +61,22 @@ export function PerformanceReport({
   abTests,
   userName = 'Ronaldo Barreto',
 }: PerformanceReportProps) {
-  const [selectedBrandId, setSelectedBrandId] = useState<string>('all')
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>(['all'])
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30d')
   const [allMetrics, setAllMetrics] = useState<PostMetric[]>([])
+  const [reportSections, setReportSections] =
+    useState<ReportSectionsConfig>(DEFAULT_REPORT_SECTIONS)
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false)
 
   useEffect(() => {
     getAllPostMetrics().then((data) => setAllMetrics(data))
   }, [])
+
+  // Para compatibilidade com componentes que recebem um único brandId
+  const primaryBrandId =
+    selectedBrandIds.includes('all') || selectedBrandIds.length === 0 ? 'all' : selectedBrandIds[0]
+  const currentBrandObj = brands.find((b) => b.id === primaryBrandId)
+  const currentBrandName = currentBrandObj?.name || 'Sua Marca'
 
   // Período real: 7/30/90 dias ou tudo — filtra pela data de criação do post
   const periodDays =
@@ -76,10 +92,12 @@ export function PerformanceReport({
     return Date.now() - periodDays * 24 * 60 * 60 * 1000
   }, [periodDays])
 
-  // Filtro de posts por marca selecionada + período
+  // Filtro de posts por marca selecionada (suporta múltiplas) + período
   const filteredPosts = useMemo(() => {
     let list = posts
-    if (selectedBrandId !== 'all') list = list.filter((p) => p.brandId === selectedBrandId)
+    if (!selectedBrandIds.includes('all') && selectedBrandIds.length > 0) {
+      list = list.filter((p) => selectedBrandIds.includes(p.brandId))
+    }
     if (periodCutoff) {
       list = list.filter((p) => {
         const created = new Date(p._raw?.created || p.scheduledDate || 0).getTime()
@@ -88,7 +106,7 @@ export function PerformanceReport({
       })
     }
     return list
-  }, [posts, selectedBrandId, periodCutoff])
+  }, [posts, selectedBrandIds, periodCutoff])
 
   // Desempenho por status geral
   const statusStats = useMemo(() => {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T13:13:56.916Z",
+  "generatedAt": "2026-10-26T13:26:55.526Z",
   "collections": [
     {
       "name": "users",
@@ -1785,6 +1785,128 @@
         "CREATE INDEX idx_audience_insights_brand ON audience_insights (brand)",
         "CREATE INDEX idx_audience_insights_network ON audience_insights (network)",
         "CREATE INDEX idx_audience_insights_user ON audience_insights (user)"
+      ]
+    },
+    {
+      "name": "competitor_analysis",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\"",
+        "view": "@request.auth.id != \"\"",
+        "create": "@request.auth.id != \"\"",
+        "update": "@request.auth.id != \"\"",
+        "delete": "@request.auth.id != \"\""
+      },
+      "fields": [
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "handle",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "network",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "instagram",
+            "facebook",
+            "linkedin",
+            "tiktok",
+            "youtube",
+            "twitter",
+            "whatsapp",
+            "all"
+          ]
+        },
+        {
+          "name": "estimated_followers",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_engagement_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "post_frequency",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_growth_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "strengths",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "weaknesses",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_simulated",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_competitor_brand ON competitor_analysis (brand)",
+        "CREATE INDEX idx_competitor_network ON competitor_analysis (network)",
+        "CREATE INDEX idx_competitor_user ON competitor_analysis (user)"
       ]
     }
   ]

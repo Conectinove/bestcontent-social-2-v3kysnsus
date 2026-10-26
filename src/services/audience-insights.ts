@@ -237,6 +237,102 @@ export function getFallbackAudienceInsight(network = 'all'): AudienceInsight {
     }
   }
 
+  if (net === 'tiktok') {
+    return {
+      id: 'fallback-tiktok',
+      network: 'tiktok',
+      age_distribution: [
+        { range: '18-24', percentage: 46 },
+        { range: '25-34', percentage: 34 },
+        { range: '35-44', percentage: 13 },
+        { range: '45-54', percentage: 5 },
+        { range: '55+', percentage: 2 },
+      ],
+      gender_distribution: { female: 61, male: 36, other: 3 },
+      top_cities: [
+        { city: 'São Paulo, SP', percentage: 32 },
+        { city: 'Rio de Janeiro, RJ', percentage: 17 },
+        { city: 'Fortaleza, CE', percentage: 9 },
+        { city: 'Belo Horizonte, MG', percentage: 8 },
+        { city: 'Recife, PE', percentage: 7 },
+      ],
+      best_times: [
+        { day: 'Terça-feira', hour: '21:00', score: 94 },
+        { day: 'Quinta-feira', hour: '21:30', score: 98 },
+        { day: 'Sexta-feira', hour: '22:00', score: 96 },
+        { day: 'Sábado', hour: '16:00', score: 91 },
+      ],
+      total_followers_tracked: 19500,
+      engagement_peak_day: 'Quinta-feira',
+      engagement_peak_hour: '21:30',
+      is_simulated: true,
+    }
+  }
+
+  if (net === 'youtube') {
+    return {
+      id: 'fallback-youtube',
+      network: 'youtube',
+      age_distribution: [
+        { range: '18-24', percentage: 22 },
+        { range: '25-34', percentage: 41 },
+        { range: '35-44', percentage: 24 },
+        { range: '45-54', percentage: 9 },
+        { range: '55+', percentage: 4 },
+      ],
+      gender_distribution: { female: 47, male: 50, other: 3 },
+      top_cities: [
+        { city: 'São Paulo, SP', percentage: 36 },
+        { city: 'Rio de Janeiro, RJ', percentage: 18 },
+        { city: 'Belo Horizonte, MG', percentage: 10 },
+        { city: 'Curitiba, PR', percentage: 9 },
+        { city: 'Porto Alegre, RS', percentage: 8 },
+      ],
+      best_times: [
+        { day: 'Terça-feira', hour: '18:00', score: 92 },
+        { day: 'Quinta-feira', hour: '19:30', score: 96 },
+        { day: 'Sábado', hour: '14:00', score: 94 },
+        { day: 'Domingo', hour: '17:00', score: 99 },
+      ],
+      total_followers_tracked: 22400,
+      engagement_peak_day: 'Domingo',
+      engagement_peak_hour: '17:00',
+      is_simulated: true,
+    }
+  }
+
+  if (net === 'twitter' || net === 'x') {
+    return {
+      id: 'fallback-twitter',
+      network: 'twitter',
+      age_distribution: [
+        { range: '18-24', percentage: 28 },
+        { range: '25-34', percentage: 46 },
+        { range: '35-44', percentage: 18 },
+        { range: '45-54', percentage: 6 },
+        { range: '55+', percentage: 2 },
+      ],
+      gender_distribution: { female: 39, male: 57, other: 4 },
+      top_cities: [
+        { city: 'São Paulo, SP', percentage: 42 },
+        { city: 'Rio de Janeiro, RJ', percentage: 19 },
+        { city: 'Belo Horizonte, MG', percentage: 12 },
+        { city: 'Brasília, DF', percentage: 11 },
+        { city: 'Curitiba, PR', percentage: 7 },
+      ],
+      best_times: [
+        { day: 'Segunda-feira', hour: '12:30', score: 93 },
+        { day: 'Terça-feira', hour: '10:00', score: 95 },
+        { day: 'Quarta-feira', hour: '15:00', score: 97 },
+        { day: 'Quinta-feira', hour: '21:00', score: 91 },
+      ],
+      total_followers_tracked: 11200,
+      engagement_peak_day: 'Quarta-feira',
+      engagement_peak_hour: '15:00',
+      is_simulated: true,
+    }
+  }
+
   return {
     id: 'fallback-default',
     network: 'all',
