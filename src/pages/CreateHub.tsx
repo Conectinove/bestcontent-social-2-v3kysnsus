@@ -342,8 +342,6 @@ export default function CreateHub() {
           <Link to="/app/settings" className="hover:text-foreground transition-colors">
             Privacidade
           </Link>
-          <span>·</span>
-          <span className="font-mono text-[11px]">v0.0.44</span>
         </div>
       </div>
     </div>

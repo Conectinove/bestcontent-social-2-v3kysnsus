@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Sparkles,
@@ -137,6 +137,50 @@ export default function CreatePost() {
   const [publishedPostId, setPublishedPostId] = useState<string | null>(null)
   const [templateOpen, setTemplateOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(initialTemplate)
+  // Validação inline
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
+
+  // ============================================================
+  // PERSISTÊNCIA DO RASCUNHO — restaura ao voltar para a etapa
+  // ============================================================
+  const DRAFT_STORAGE_KEY = 'bestcontent_social2_create_post_draft'
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      if (draft.brandId) setBrandId(draft.brandId)
+      if (draft.platform) setPlatform(draft.platform)
+      if (draft.content) setContent(draft.content)
+      if (draft.caption) setCaption(draft.caption)
+      if (draft.scheduledDate) setScheduledDate(draft.scheduledDate)
+      if (draft.template) {
+        setSelectedTemplate(draft.template as PostTemplate)
+      }
+    } catch {
+      /* ignore draft restore errors */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!content.trim() && !caption.trim() && !selectedTemplate) {
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
+      return
+    }
+    localStorage.setItem(
+      DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        brandId,
+        platform,
+        content,
+        caption,
+        scheduledDate,
+        template: selectedTemplate,
+      }),
+    )
+  }, [brandId, platform, content, caption, scheduledDate, selectedTemplate])
 
   // Seleciona marca ativa
   const selectedBrand = useMemo(() => {
@@ -290,6 +334,13 @@ export default function CreatePost() {
         })
       }
 
+      // Limpa rascunho temporário do storage ao salvar com sucesso
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY)
+      } catch {
+        /* ignore */
+      }
+
       const statusLabels = {
         draft: 'Rascunho salvo',
         scheduled: 'Publicação agendada',
@@ -354,13 +405,32 @@ export default function CreatePost() {
 
   const PlatformIcon = currentPlatformMeta.icon
 
+  // ============================================================
+  // VALIDAÇÃO INLINE CLARA POR CAMPO
+  // ============================================================
+  const contentError =
+    touchedFields.content && !content.trim() && !caption.trim()
+      ? 'Preencha o conteúdo ou a legenda para continuar.'
+      : null
+
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl mx-auto pb-12 text-foreground">
       {/* =========================================================================
-          CABEÇALHO PADRÃO SOCIAL 2 / BESTCONTENT AI
+          CABEÇALHO PADRÃO SOCIAL 2 / BESTCONTENT AI COM BOTÃO VOLTAR CONSISTENTE
           ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
         <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/app/criar')}
+            className="rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground h-9 px-2.5 gap-1.5"
+            title="Voltar ao Hub de Criação"
+          >
+            <ArrowRight className="w-4 h-4 rotate-180" />
+            <span className="hidden sm:inline">Hub Criar</span>
+          </Button>
+
           <div className="w-11 h-11 rounded-2xl bg-purple-600/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shadow-xs">
             <Sparkles className="w-6 h-6" />
           </div>
@@ -548,9 +618,18 @@ export default function CreatePost() {
               <Textarea
                 placeholder="Ex: 5 erros fatais ao criar conteúdo que você precisa parar hoje..."
                 value={content}
+                onBlur={() => setTouchedFields((prev) => ({ ...prev, content: true }))}
                 onChange={(e) => setContent(e.target.value)}
-                className="min-h-[85px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
+                className={cn(
+                  'min-h-[85px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs',
+                  contentError && 'border-rose-500 focus:border-rose-500',
+                )}
               />
+              {contentError && (
+                <p className="text-[11px] font-semibold text-rose-500 animate-fade-in">
+                  {contentError}
+                </p>
+              )}
             </div>
 
             {/* Linha 3: Legenda com Assistente IA & Hashtags */}

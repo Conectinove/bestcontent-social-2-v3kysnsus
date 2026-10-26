@@ -82,3 +82,22 @@ export async function createPostFromTrend(
 
   return record
 }
+
+export async function bulkUpdatePostsStatus(
+  ids: string[],
+  status: 'draft' | 'scheduled' | 'published' | 'approved',
+) {
+  return Promise.all(ids.map((id) => pb.collection('posts').update(id, { status })))
+}
+
+export async function bulkTogglePostsArchived(ids: string[], is_archived: boolean) {
+  return Promise.all(ids.map((id) => pb.collection('posts').update(id, { is_archived })))
+}
+
+export async function bulkTogglePostsFavorite(ids: string[], is_favorite: boolean) {
+  return Promise.all(ids.map((id) => pb.collection('posts').update(id, { is_favorite })))
+}
+
+export async function bulkDeletePosts(ids: string[]) {
+  return Promise.all(ids.map((id) => pb.collection('posts').delete(id)))
+}

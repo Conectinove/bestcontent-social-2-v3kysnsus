@@ -40,7 +40,15 @@ import {
   Tag,
   Maximize2,
 } from 'lucide-react'
-import { togglePostFavorite, togglePostArchived } from '@/services/posts'
+import {
+  togglePostFavorite,
+  togglePostArchived,
+  bulkUpdatePostsStatus,
+  bulkTogglePostsArchived,
+  bulkTogglePostsFavorite,
+  bulkDeletePosts,
+} from '@/services/posts'
+import { pb } from '@/lib/pocketbase/client'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -72,6 +80,7 @@ import {
 import { ImageBankModal } from '@/components/ImageBankModal'
 import { toast } from '@/hooks/use-toast'
 import { sharePost } from '@/lib/share'
+import { cn } from '@/lib/utils'
 import type { Post, SocialPlatform } from '@/types'
 
 function formatRelativeTime(dateStr?: string) {
@@ -192,6 +201,16 @@ export default function Library() {
   const [viewPost, setViewPost] = useState<Post | null>(null)
   const [deleteCandidate, setDeleteCandidate] = useState<Post | null>(null)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+
+  // Seleção múltipla & ações em lote
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkActionLoading, setBulkActionLoading] = useState(false)
+
+  // Painel lateral de detalhes / edição rápida do post selecionado
+  const [detailsDrawerPost, setDetailsDrawerPost] = useState<Post | null>(null)
+  const [editingTags, setEditingTags] = useState('')
+  const [savingDrawer, setSavingDrawer] = useState(false)
 
   // Current active brand from top organization selector
   const activeBrand = useMemo(() => {
@@ -458,6 +477,91 @@ export default function Library() {
   return (
     <div className="space-y-6 pb-14 animate-fade-in text-foreground">
       {/* =========================================================================
+          ESTATÍSTICAS RÁPIDAS NO TOPO DA BIBLIOTECA
+          ========================================================================= */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Total Geral
+            </p>
+            <p className="text-xl font-black text-foreground mt-0.5">{counts.all}</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <BookOpen className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Publicados
+            </p>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+              {counts.published}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Agendados
+            </p>
+            <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5">
+              {counts.scheduled}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <Clock className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Aprovados
+            </p>
+            <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5">
+              {counts.approved}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <Check className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Rascunhos
+            </p>
+            <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
+              {counts.drafts}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <FileText className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Favoritos
+            </p>
+            <p className="text-xl font-black text-amber-500 mt-0.5">{counts.favorites}</p>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+            <Star className="w-4 h-4 fill-amber-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
           CABEÇALHO REFINADO
           ========================================================================= */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/80 pb-5">
@@ -683,6 +787,129 @@ export default function Library() {
           </Button>
         </div>
       </div>
+
+      {/* =========================================================================
+          BARRA DE AÇÕES EM LOTE (SELEÇÃO MÚLTIPLA)
+          ========================================================================= */}
+      {selectedIds.length > 0 && (
+        <div className="p-3.5 px-4 rounded-2xl bg-purple-600/10 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <Badge className="bg-purple-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full">
+              {selectedIds.length} selecionado{selectedIds.length > 1 ? 's' : ''}
+            </Badge>
+            <span className="text-xs text-foreground font-semibold">
+              Ações em lote disponíveis:
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select
+              onValueChange={async (status: 'draft' | 'scheduled' | 'published' | 'approved') => {
+                setBulkActionLoading(true)
+                try {
+                  await bulkUpdatePostsStatus(selectedIds, status)
+                  toast({
+                    title: 'Status atualizado em lote',
+                    description: `${selectedIds.length} posts movidos para ${status}.`,
+                  })
+                  refreshPosts()
+                  setSelectedIds([])
+                } catch {
+                  toast({
+                    title: 'Erro na atualização em lote',
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setBulkActionLoading(false)
+                }
+              }}
+              disabled={bulkActionLoading}
+            >
+              <SelectTrigger className="h-8 text-xs rounded-xl bg-card border-border w-36">
+                <SelectValue placeholder="Mudar Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Mover para Rascunho</SelectItem>
+                <SelectItem value="scheduled">Mover para Agendado</SelectItem>
+                <SelectItem value="approved">Marcar como Aprovado</SelectItem>
+                <SelectItem value="published">Marcar como Publicado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulkActionLoading}
+              onClick={async () => {
+                setBulkActionLoading(true)
+                try {
+                  await bulkTogglePostsFavorite(selectedIds, true)
+                  toast({
+                    title: 'Favoritados em lote',
+                    description: `${selectedIds.length} posts marcados com estrela.`,
+                  })
+                  refreshPosts()
+                  setSelectedIds([])
+                } catch {
+                  toast({ title: 'Erro ao favoritar', variant: 'destructive' })
+                } finally {
+                  setBulkActionLoading(false)
+                }
+              }}
+              className="h-8 text-xs font-semibold rounded-xl gap-1.5"
+            >
+              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <span>Favoritar</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulkActionLoading}
+              onClick={async () => {
+                setBulkActionLoading(true)
+                try {
+                  await bulkTogglePostsArchived(selectedIds, true)
+                  toast({
+                    title: 'Arquivados em lote',
+                    description: `${selectedIds.length} posts movidos para o arquivo.`,
+                  })
+                  refreshPosts()
+                  setSelectedIds([])
+                } catch {
+                  toast({ title: 'Erro ao arquivar', variant: 'destructive' })
+                } finally {
+                  setBulkActionLoading(false)
+                }
+              }}
+              className="h-8 text-xs font-semibold rounded-xl gap-1.5"
+            >
+              <Archive className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Arquivar</span>
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={bulkActionLoading}
+              onClick={() => setBulkDeleteOpen(true)}
+              className="h-8 text-xs font-semibold rounded-xl gap-1.5 shadow-xs"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Excluir</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           BARRA DE PESQUISA & FILTROS ATIVOS
@@ -941,6 +1168,29 @@ export default function Library() {
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40 pointer-events-none" />
 
+                  {/* Checkbox de seleção múltipla (canto superior esquerdo) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedIds((prev) =>
+                        prev.includes(post.id)
+                          ? prev.filter((id) => id !== post.id)
+                          : [...prev, post.id],
+                      )
+                    }}
+                    title={selectedIds.includes(post.id) ? 'Desmarcar seleção' : 'Selecionar post'}
+                    className={cn(
+                      'absolute top-3 left-3 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shadow-md backdrop-blur-xs',
+                      selectedIds.includes(post.id)
+                        ? 'bg-purple-600 border-purple-600 text-white'
+                        : 'bg-black/60 border-white/40 text-transparent hover:border-white hover:bg-black/80',
+                      brand && 'top-11',
+                    )}
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+
                   {/* Top-Right Badge: Platform + Format Type + Favorite Star */}
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     <button
@@ -1083,13 +1333,27 @@ export default function Library() {
                     </Button>
 
                     <div className="flex items-center gap-1">
+                      {/* Painel lateral de detalhes ricos */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setDetailsDrawerPost(post)
+                          setEditingTags(Array.isArray(post.tags) ? post.tags.join(', ') : '')
+                        }}
+                        className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg"
+                        title="Painel de Detalhes"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                      </Button>
+
                       {/* View details */}
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setViewPost(post)}
                         className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
-                        title="Visualizar Detalhes"
+                        title="Visualizar Modal"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </Button>
@@ -1190,6 +1454,28 @@ export default function Library() {
                 className="overflow-hidden rounded-2xl border border-border/80 bg-card hover:shadow-md hover:border-purple-500/40 transition-all p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  {/* Checkbox de seleção múltipla */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedIds((prev) =>
+                        prev.includes(post.id)
+                          ? prev.filter((id) => id !== post.id)
+                          : [...prev, post.id],
+                      )
+                    }}
+                    title={selectedIds.includes(post.id) ? 'Desmarcar seleção' : 'Selecionar post'}
+                    className={cn(
+                      'w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0',
+                      selectedIds.includes(post.id)
+                        ? 'bg-purple-600 border-purple-600 text-white'
+                        : 'border-border text-transparent hover:border-purple-500 hover:bg-muted',
+                    )}
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+
                   {/* Thumbnail */}
                   <div
                     onClick={() => setViewPost(post)}
@@ -1484,6 +1770,240 @@ export default function Library() {
                 </div>
               )
             })()}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* =========================================================================
+          PAINEL LATERAL DE DETALHES RICOS E EDIÇÃO RÁPIDA
+          ========================================================================= */}
+      {detailsDrawerPost && (
+        <Dialog open={!!detailsDrawerPost} onOpenChange={() => setDetailsDrawerPost(null)}>
+          <DialogContent className="max-w-xl p-6 rounded-2xl max-h-[90vh] overflow-y-auto space-y-4">
+            <DialogHeader>
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                  <SlidersHorizontal className="w-5 h-5 text-purple-600" />
+                  Painel de Detalhes da Criação
+                </DialogTitle>
+                <Badge
+                  className={
+                    statusBadgeConfig[detailsDrawerPost.status]?.badgeClass ||
+                    statusBadgeConfig.draft.badgeClass
+                  }
+                >
+                  {statusBadgeConfig[detailsDrawerPost.status]?.label || detailsDrawerPost.status}
+                </Badge>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4 text-xs">
+              {/* Dimensões, Redes & Nível de Aprovação */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-muted/40 p-3.5 rounded-xl border border-border/60">
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                    Dimensões
+                  </span>
+                  <span className="font-bold text-foreground font-mono">
+                    {detailsDrawerPost.width && detailsDrawerPost.height
+                      ? `${detailsDrawerPost.width}x${detailsDrawerPost.height} px`
+                      : '1080x1350 px'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                    Nível de Aprovação
+                  </span>
+                  <span className="font-bold text-purple-600 dark:text-purple-400">
+                    {detailsDrawerPost.approvalLevel || 'Nível 1 (Em Revisão)'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                    Revisões
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {detailsDrawerPost.revisionCount || 1}ª versão
+                  </span>
+                </div>
+              </div>
+
+              {/* Redes de Destino */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Redes de Destino Configuradas
+                </label>
+                <div className="flex items-center gap-2 flex-wrap p-2.5 bg-card border border-border/70 rounded-xl">
+                  {(Array.isArray(detailsDrawerPost.targetNetworks) &&
+                  detailsDrawerPost.targetNetworks.length > 0
+                    ? detailsDrawerPost.targetNetworks
+                    : [detailsDrawerPost.platform]
+                  ).map((net, i) => (
+                    <Badge
+                      key={i}
+                      variant="secondary"
+                      className="capitalize font-bold text-[11px] px-2.5 py-0.5 rounded-lg border border-purple-500/20 bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                    >
+                      {net}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags Editáveis */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                  <span>Tags / Etiquetas (separadas por vírgula)</span>
+                  <span className="text-purple-600 font-semibold">Editável</span>
+                </label>
+                <Input
+                  value={editingTags}
+                  onChange={(e) => setEditingTags(e.target.value)}
+                  placeholder="ex: promocao, lancamento, feed, blackfriday"
+                  className="h-9 text-xs rounded-xl bg-card border-border"
+                />
+              </div>
+
+              {/* Histórico do Post & Metadados */}
+              <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+                  Histórico de Status & Registro
+                </span>
+                <div className="space-y-1.5 text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between">
+                    <span>Criado no sistema:</span>
+                    <span className="font-mono text-foreground">
+                      {new Date(detailsDrawerPost._raw?.created || Date.now()).toLocaleString(
+                        'pt-BR',
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Última atualização:</span>
+                    <span className="font-mono text-foreground">
+                      {new Date(detailsDrawerPost._raw?.updated || Date.now()).toLocaleString(
+                        'pt-BR',
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Status Atual:</span>
+                    <Badge
+                      className={
+                        statusBadgeConfig[detailsDrawerPost.status]?.badgeClass ||
+                        statusBadgeConfig.draft.badgeClass
+                      }
+                    >
+                      {statusBadgeConfig[detailsDrawerPost.status]?.label ||
+                        detailsDrawerPost.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDetailsDrawerPost(null)}
+                className="rounded-xl text-xs"
+              >
+                Fechar
+              </Button>
+              <Button
+                size="sm"
+                disabled={savingDrawer}
+                onClick={async () => {
+                  setSavingDrawer(true)
+                  try {
+                    const parsedTags = editingTags
+                      .split(',')
+                      .map((t) => t.trim().replace(/^#/, ''))
+                      .filter(Boolean)
+                    await pb.collection('posts').update(detailsDrawerPost.id, {
+                      tags: parsedTags,
+                    })
+                    toast({
+                      title: 'Tags atualizadas com sucesso!',
+                      description: 'As novas tags foram salvas no PocketBase.',
+                    })
+                    refreshPosts()
+                    setDetailsDrawerPost(null)
+                  } catch {
+                    toast({
+                      title: 'Erro ao salvar tags',
+                      variant: 'destructive',
+                    })
+                  } finally {
+                    setSavingDrawer(false)
+                  }
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs"
+              >
+                Salvar Alterações
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* =========================================================================
+          MODAL DE CONFIRMAÇÃO DE EXCLUSÃO EM LOTE
+          ========================================================================= */}
+      {bulkDeleteOpen && (
+        <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+          <DialogContent className="max-w-md p-6 rounded-2xl space-y-4">
+            <DialogHeader>
+              <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mb-1">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <DialogTitle className="text-base font-bold">
+                Excluir {selectedIds.length} criações selecionadas?
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                Esta ação removerá permanentemente todos os posts selecionados do PocketBase. Esta
+                operação não poderá ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBulkDeleteOpen(false)}
+                className="text-xs rounded-xl"
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                disabled={bulkActionLoading}
+                onClick={async () => {
+                  setBulkActionLoading(true)
+                  try {
+                    await bulkDeletePosts(selectedIds)
+                    toast({
+                      title: 'Criações excluídas em lote',
+                      description: `${selectedIds.length} posts foram removidos da biblioteca.`,
+                    })
+                    refreshPosts()
+                    setSelectedIds([])
+                    setBulkDeleteOpen(false)
+                  } catch {
+                    toast({
+                      title: 'Erro ao excluir em lote',
+                      variant: 'destructive',
+                    })
+                  } finally {
+                    setBulkActionLoading(false)
+                  }
+                }}
+                className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-xs"
+              >
+                Confirmar e Excluir Todos
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

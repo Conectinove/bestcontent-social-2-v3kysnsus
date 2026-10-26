@@ -14,6 +14,12 @@ export const PLATFORM_TO_DB: Record<string, string> = {
   facebook: 'Facebook',
   linkedin: 'LinkedIn',
   twitter: 'Twitter/X',
+  threads: 'Instagram',
+  pinterest: 'Instagram',
+  whatsapp: 'Instagram',
+  telegram: 'Instagram',
+  kwai: 'TikTok',
+  reddit: 'Twitter/X',
 }
 
 export const PLATFORM_FROM_DB: Record<string, string> = {

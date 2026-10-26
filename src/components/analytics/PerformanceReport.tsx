@@ -52,11 +52,33 @@ export function PerformanceReport({
   const [selectedBrandId, setSelectedBrandId] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30d')
 
-  // Filtro de posts por marca selecionada
+  // Período real: 7/30/90 dias ou tudo — filtra pela data de criação do post
+  const periodDays =
+    selectedPeriod === '7d'
+      ? 7
+      : selectedPeriod === '30d'
+        ? 30
+        : selectedPeriod === '90d'
+          ? 90
+          : null
+  const periodCutoff = useMemo(() => {
+    if (!periodDays) return null
+    return Date.now() - periodDays * 24 * 60 * 60 * 1000
+  }, [periodDays])
+
+  // Filtro de posts por marca selecionada + período
   const filteredPosts = useMemo(() => {
-    if (selectedBrandId === 'all') return posts
-    return posts.filter((p) => p.brandId === selectedBrandId)
-  }, [posts, selectedBrandId])
+    let list = posts
+    if (selectedBrandId !== 'all') list = list.filter((p) => p.brandId === selectedBrandId)
+    if (periodCutoff) {
+      list = list.filter((p) => {
+        const created = new Date(p._raw?.created || p.scheduledDate || 0).getTime()
+        if (!created) return true
+        return created >= periodCutoff
+      })
+    }
+    return list
+  }, [posts, selectedBrandId, periodCutoff])
 
   // Desempenho por status geral
   const statusStats = useMemo(() => {
@@ -71,29 +93,87 @@ export function PerformanceReport({
     return { published, scheduled, draft, approved, total, approvalRate }
   }, [filteredPosts])
 
-  // Desempenho por Marca
-  const brandMetrics = useMemo(() => {
-    return brands.map((b) => {
-      const bPosts = posts.filter((p) => p.brandId === b.id)
-      const pub = bPosts.filter((p) => p.status === 'published').length
-      const sch = bPosts.filter((p) => p.status === 'scheduled').length
-      const dft = bPosts.filter((p) => p.status === 'draft').length
-      const app = bPosts.filter((p) => p.status === 'approved').length
-      const total = bPosts.length
-      const approvalRate = total > 0 ? Math.round(((pub + app) / total) * 100) : 0
-      return {
-        id: b.id,
-        name: b.name,
-        color: b.color_theme || '#9333EA',
-        total,
-        published: pub,
-        scheduled: sch,
-        draft: dft,
-        approved: app,
-        approvalRate,
+  // Tempo médio de aprovação: diferença entre created e updated nos posts
+  // que chegaram ao estado aprovado/publicado (só quando há amostra suficiente)
+  const approvalTiming = useMemo(() => {
+    const done = filteredPosts.filter((p) => p.status === 'approved' || p.status === 'published')
+    const samples: number[] = []
+    done.forEach((p) => {
+      const created = new Date(p._raw?.created || 0).getTime()
+      const updated = new Date(p._raw?.updated || 0).getTime()
+      if (created && updated && updated >= created) {
+        samples.push((updated - created) / (1000 * 60 * 60)) // horas
       }
     })
-  }, [brands, posts])
+    if (samples.length === 0) return { avgHours: null, sampleSize: 0 }
+    const avgHours = samples.reduce((a, b) => a + b, 0) / samples.length
+    return { avgHours, sampleSize: samples.length }
+  }, [filteredPosts])
+
+  // Top tags e formatos mais usados na biblioteca (dentro do período)
+  const topTagsAndFormats = useMemo(() => {
+    const tagCount: Record<string, number> = {}
+    const formatCount: Record<string, number> = {}
+
+    filteredPosts.forEach((p) => {
+      if (Array.isArray(p.tags)) {
+        p.tags.forEach((t) => {
+          const tag = String(t).trim().toLowerCase()
+          if (tag) tagCount[tag] = (tagCount[tag] || 0) + 1
+        })
+      }
+      // Formato via script_json (FLYER / VÍDEO / POST / CARROSSEL)
+      let typeLabel = (p.platform || 'POST').toUpperCase()
+      try {
+        const meta =
+          typeof p._raw?.script_json === 'string'
+            ? JSON.parse(p._raw.script_json)
+            : p._raw?.script_json
+        if (meta?.type) typeLabel = String(meta.type).toUpperCase()
+        else if (p._raw?.duration > 0) typeLabel = 'VÍDEO'
+      } catch {
+        /* ignore */
+      }
+      formatCount[typeLabel] = (formatCount[typeLabel] || 0) + 1
+    })
+
+    const topTags = Object.entries(tagCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([tag, count]) => ({ tag, count }))
+    const topFormats = Object.entries(formatCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([format, count]) => ({ format, count }))
+
+    return { topTags, topFormats }
+  }, [filteredPosts])
+
+  // Desempenho por Marca (respeitando o período selecionado)
+  const brandMetrics = useMemo(() => {
+    return brands
+      .map((b) => {
+        const bPosts = filteredPosts.filter((p) => p.brandId === b.id)
+        const pub = bPosts.filter((p) => p.status === 'published').length
+        const sch = bPosts.filter((p) => p.status === 'scheduled').length
+        const dft = bPosts.filter((p) => p.status === 'draft').length
+        const app = bPosts.filter((p) => p.status === 'approved').length
+        const total = bPosts.length
+        const approvalRate = total > 0 ? Math.round(((pub + app) / total) * 100) : 0
+        return {
+          id: b.id,
+          name: b.name,
+          color: b.color_theme || '#9333EA',
+          total,
+          published: pub,
+          scheduled: sch,
+          draft: dft,
+          approved: app,
+          approvalRate,
+        }
+      })
+      .sort((a, b) => b.total - a.total)
+  }, [brands, filteredPosts])
 
   // Desempenho por Rede Social
   const networkMetrics = useMemo(() => {
@@ -217,18 +297,36 @@ export function PerformanceReport({
       '',
     ])
 
+    const topTagsHeader = ['\n--- TOP TAGS MAIS USADAS ---', '', '', '', '', '', '']
+    const topTagsRows = topTagsAndFormats.topTags.map((t) => [
+      `"#${t.tag}"`,
+      t.count,
+      '',
+      '',
+      '',
+      '',
+      '',
+    ])
+
     const csvContent =
       '\uFEFF' + // UTF-8 BOM
       [
         ['RELATÓRIO CONSOLIDADO DE PERFORMANCE - BESTCONTENT SOCIAL 2'],
         [`Gerado em: ${new Date().toLocaleString('pt-BR')}`],
         [`Usuário: ${userName}`],
+        [`Período Selecionado: ${selectedPeriod}`],
+        [`Taxa Média de Aprovação Geral: ${statusStats.approvalRate}%`],
+        [
+          `Tempo Médio Estimado de Aprovação: ${approvalTiming.avgHours !== null ? `${approvalTiming.avgHours.toFixed(1)}h` : 'N/D'}`,
+        ],
         [''],
         headers,
         ...rows,
         summaryHeader,
         networkHeaders,
         ...networkRows,
+        topTagsHeader,
+        ...topTagsRows,
         abHeader,
         abHeaders,
         ...abRows,
@@ -460,18 +558,21 @@ export function PerformanceReport({
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
             <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="h-8 text-xs rounded-xl w-36">
+              <SelectTrigger className="h-8 text-xs rounded-xl w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="7d" className="text-xs">
+                  Últimos 7 dias
+                </SelectItem>
                 <SelectItem value="30d" className="text-xs">
                   Últimos 30 dias
                 </SelectItem>
-                <SelectItem value="60d" className="text-xs">
-                  Últimos 60 dias
+                <SelectItem value="90d" className="text-xs">
+                  Últimos 90 dias
                 </SelectItem>
                 <SelectItem value="all" className="text-xs">
-                  Todo o Período
+                  Todo o Período Histórico
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -542,13 +643,79 @@ export function PerformanceReport({
 
         <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-amber-500/10 via-card to-card p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Taxa de Aprovação</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              Taxa de Aprovação Média
+            </span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl font-black text-foreground mt-2">{statusStats.approvalRate}%</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Fluxo de revisão e cliente</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {approvalTiming.avgHours !== null
+              ? `Tempo médio: ~${approvalTiming.avgHours < 1 ? '< 1h' : `${Math.round(approvalTiming.avgHours)}h`}`
+              : 'Fluxo em revisão'}
+          </p>
+        </Card>
+      </div>
+
+      {/* Top Tags & Formatos mais usados na biblioteca */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="rounded-2xl border-border bg-card p-4 shadow-xs">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/60">
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              Top Tags Mais Usadas ({selectedPeriod})
+            </h4>
+            <span className="text-[10px] text-muted-foreground font-mono">Frequência</span>
+          </div>
+          {topTagsAndFormats.topTags.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">
+              Nenhuma tag cadastrada nos posts do período.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {topTagsAndFormats.topTags.map((item) => (
+                <Badge
+                  key={item.tag}
+                  variant="secondary"
+                  className="bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold text-xs px-2.5 py-1 rounded-xl border border-purple-500/20"
+                >
+                  #{item.tag}
+                  <span className="ml-1.5 bg-purple-600/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                    {item.count}
+                  </span>
+                </Badge>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card className="rounded-2xl border-border bg-card p-4 shadow-xs">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/60">
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-purple-600" />
+              Top Formatos na Biblioteca
+            </h4>
+            <span className="text-[10px] text-muted-foreground font-mono">Criações</span>
+          </div>
+          {topTagsAndFormats.topFormats.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">Nenhum formato encontrado.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {topTagsAndFormats.topFormats.map((f) => (
+                <div
+                  key={f.format}
+                  className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-muted/40"
+                >
+                  <span className="font-semibold text-foreground">{f.format}</span>
+                  <Badge variant="outline" className="font-mono text-[10px]">
+                    {f.count} {f.count === 1 ? 'post' : 'posts'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
