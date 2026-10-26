@@ -32,6 +32,7 @@ import ReferralPage from './pages/ReferralPage'
 import Analytics from './pages/Analytics'
 import TemplatesPage from './pages/TemplatesPage'
 import { BrandKitPage } from './pages/BrandKitPage'
+import { LabsPage } from './pages/LabsPage'
 import PagesFunis from './pages/PagesFunis'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
@@ -80,6 +81,7 @@ const App = () => (
                 <Route path="/app/analytics" element={<Analytics />} />
                 <Route path="/app/templates" element={<TemplatesPage />} />
                 <Route path="/app/brand-kit" element={<BrandKitPage />} />
+                <Route path="/app/labs" element={<LabsPage />} />
                 <Route path="/app/seo" element={<SeoTools />} />
                 <Route path="/app/ads" element={<AdsPage />} />
                 <Route path="/app/anuncios" element={<AdsPage />} />

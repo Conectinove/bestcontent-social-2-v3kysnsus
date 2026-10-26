@@ -33,6 +33,7 @@ import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
 import { ImageBankModal } from '@/components/ImageBankModal'
 import { PostSeoWidget } from '@/components/seo/PostSeoWidget'
+import { useLabsFeatures } from '@/hooks/use-labs-features'
 import {
   ContentDraftWidget,
   CaptionWidget,
@@ -64,6 +65,7 @@ export default function PostEditor() {
   const { user } = useAuth()
   const { brands } = useSocial()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { isEnabled: isLabEnabled } = useLabsFeatures()
   const canvasRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -316,16 +318,18 @@ export default function PostEditor() {
               currentPlatform={platform}
               onPlatformChange={(net) => setPlatform(net)}
             />
-            <PostSeoWidget
-              caption={caption || content}
-              network={platform || 'instagram'}
-              niche={selectedBrand?.niche || selectedBrand?.name}
-              tone={captionTone}
-              onApplyImprovement={(improved) => {
-                setCaption(improved)
-                setContent(improved)
-              }}
-            />
+            {isLabEnabled('seo-social-widget') && (
+              <PostSeoWidget
+                caption={caption || content}
+                network={platform || 'instagram'}
+                niche={selectedBrand?.niche || selectedBrand?.name}
+                tone={captionTone}
+                onApplyImprovement={(improved) => {
+                  setCaption(improved)
+                  setContent(improved)
+                }}
+              />
+            )}
           </div>
         )
       case 'media':
@@ -571,15 +575,31 @@ export default function PostEditor() {
           </p>
         )}
 
-        {/* Painel de Edição Avançada de Personalização & Melhores Práticas */}
-        <AdvancedCustomizationPanel
-          customization={customization}
-          onChange={setCustomization}
-          onReset={() => setCustomization(DEFAULT_CUSTOMIZATION)}
-          platform={platform}
-          caption={caption || content}
-          hasMedia={Boolean(mediaPreview)}
-        />
+        {/* Painel de Edição Avançada de Personalização & Melhores Práticas (Controlado via Labs) */}
+        {isLabEnabled('canvas-advanced-customization') ? (
+          <AdvancedCustomizationPanel
+            customization={customization}
+            onChange={setCustomization}
+            onReset={() => setCustomization(DEFAULT_CUSTOMIZATION)}
+            platform={platform}
+            caption={caption || content}
+            hasMedia={Boolean(mediaPreview)}
+          />
+        ) : (
+          <div className="p-3.5 rounded-2xl border border-dashed border-border/80 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              💡 <strong>Edição Avançada do Canvas</strong> está recolhida nas preferências.
+            </span>
+            <Button
+              variant="link"
+              size="sm"
+              onClick={() => navigate('/app/labs')}
+              className="text-xs text-purple-600 p-0 h-auto font-bold"
+            >
+              Ativar no Labs →
+            </Button>
+          </div>
+        )}
       </div>
     </WorkspaceLayout>
   )

@@ -22,6 +22,7 @@ import {
   Search,
   Megaphone,
   Palette,
+  FlaskConical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -355,6 +356,29 @@ export function Sidebar({
             )}
           </Link>
 
+          {/* MidiaViva Labs (Edição Avançada & Inovação Editorial) */}
+          <Link
+            to="/app/labs"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/labs'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'MidiaViva Labs (Edição Avançada)' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <FlaskConical className="w-4 h-4 shrink-0 text-pink-500" />
+              {!collapsed && <span>Labs</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-pink-600 dark:text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                EXP
+              </span>
+            )}
+          </Link>
+
           {/* Analytics */}
           <Link
             to="/app/analytics"
@@ -467,7 +491,22 @@ export function Sidebar({
                     <BarChart2 className="w-3.5 h-3.5 shrink-0 opacity-80" />
                     <span>Testes A/B</span>
                   </div>
-                  <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 py-0.2 rounded uppercase">
+                </Link>
+                <Link
+                  to="/app/labs"
+                  onClick={onMobileClose}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    location.pathname === '/app/labs'
+                      ? 'bg-purple-500/10 text-primary font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FlaskConical className="w-3.5 h-3.5 shrink-0 text-pink-500 opacity-90" />
+                    <span>Edição Avançada</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-pink-500 bg-pink-500/10 px-1 py-0.2 rounded uppercase">
                     LABS
                   </span>
                 </Link>

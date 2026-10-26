@@ -16,6 +16,7 @@ import {
   Gift,
   LayoutGrid,
   Globe,
+  FlaskConical,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCustomization } from '@/context/CustomizationContext'
@@ -78,6 +79,7 @@ export default function Layout() {
               { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
               { label: 'Calendário', href: '/app/calendar', icon: Calendar },
               { label: 'Templates', href: '/app/templates', icon: LayoutGrid },
+              { label: 'Labs', href: '/app/labs', icon: FlaskConical },
               { label: 'Páginas/Funis', href: '/app/pages', icon: Globe },
               { label: 'Indique e Ganhe', href: '/app/indicar', icon: Gift },
               { label: 'Assinatura', href: '/app/subscription', icon: CreditCard },

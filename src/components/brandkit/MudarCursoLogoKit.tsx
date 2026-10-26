@@ -52,6 +52,7 @@ import { buildMudarCursoContrastMatrix, type ContrastMatrixRow } from '@/service
 import { createSimpleZip, type ZipFileEntry } from '@/services/simple-zip'
 import { AdvancedLogoEditorModal } from '@/components/brandkit/AdvancedLogoEditorModal'
 import { RevisedPromptsModal } from '@/components/brandkit/RevisedPromptsModal'
+import { isLabFeatureEnabled } from '@/services/labs-features'
 
 interface LogEntry {
   id: string
@@ -1086,16 +1087,26 @@ export function MudarCursoLogoKit() {
                       </p>
                     </div>
 
-                    {/* Botão de Edição Avançada */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingKind(kind)}
-                      className="rounded-xl border-purple-500/40 text-purple-600 dark:text-purple-300 hover:bg-purple-500/10 text-xs font-bold gap-1.5 shrink-0"
-                    >
-                      <Sliders className="w-3.5 h-3.5" />
-                      <span>Editar</span>
-                    </Button>
+                    {/* Botão de Edição Avançada (Controlado pelos Labs) */}
+                    {isLabFeatureEnabled('brand-kit-logo-editor', true) ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingKind(kind)}
+                        className="rounded-xl border-purple-500/40 text-purple-600 dark:text-purple-300 hover:bg-purple-500/10 text-xs font-bold gap-1.5 shrink-0"
+                      >
+                        <Sliders className="w-3.5 h-3.5" />
+                        <span>Editar</span>
+                      </Button>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-muted-foreground border-border/80"
+                        title="Habilite a Edição Avançada na aba Labs"
+                      >
+                        Padrão MudarCurso
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{cfg.description}</p>
                 </div>

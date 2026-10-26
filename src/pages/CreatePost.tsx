@@ -35,6 +35,7 @@ import { generateCaption, generateHashtags, improveText } from '@/services/ai'
 import { sharePost } from '@/lib/share'
 import { NetworkHashtagGenerator } from '@/components/NetworkHashtagGenerator'
 import { PostSeoWidget } from '@/components/seo/PostSeoWidget'
+import { useLabsFeatures } from '@/hooks/use-labs-features'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -118,6 +119,7 @@ const PLATFORMS_META: PlatformMeta[] = [
 export default function CreatePost() {
   const { brands, addPost } = useSocial()
   const { user } = useAuth()
+  const { isEnabled: isLabEnabled } = useLabsFeatures()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -674,29 +676,33 @@ export default function CreatePost() {
                 <span className="font-mono">{caption.length} caracteres</span>
               </div>
 
-              {/* Gerador de Hashtags com chips por rede social */}
-              <NetworkHashtagGenerator
-                contentSource={`${content} ${caption}`.trim()}
-                selectedNetwork={platform}
-                onNetworkChange={() => {}}
-                onApplyHashtags={(tags) => {
-                  setCaption((prev) => (prev ? `${prev}\n\n${tags}` : tags))
-                }}
-                currentHashtags={caption}
-              />
+              {/* Gerador de Hashtags com chips por rede social (Controlado por Labs) */}
+              {isLabEnabled('network-hashtag-generator') && (
+                <NetworkHashtagGenerator
+                  contentSource={`${content} ${caption}`.trim()}
+                  selectedNetwork={platform}
+                  onNetworkChange={() => {}}
+                  onApplyHashtags={(tags) => {
+                    setCaption((prev) => (prev ? `${prev}\n\n${tags}` : tags))
+                  }}
+                  currentHashtags={caption}
+                />
+              )}
 
-              {/* Widget de SEO Social em tempo real */}
-              <PostSeoWidget
-                caption={caption || content}
-                network={platform}
-                niche={(selectedBrand as any)?.niche || selectedBrand?.name}
-                tone={(selectedBrand as any)?.tone || 'Profissional'}
-                onApplyImprovement={(improved) => {
-                  setCaption(improved)
-                  setContent(improved)
-                }}
-                className="mt-3"
-              />
+              {/* Widget de SEO Social em tempo real (Controlado por Labs) */}
+              {isLabEnabled('seo-social-widget') && (
+                <PostSeoWidget
+                  caption={caption || content}
+                  network={platform}
+                  niche={(selectedBrand as any)?.niche || selectedBrand?.name}
+                  tone={(selectedBrand as any)?.tone || 'Profissional'}
+                  onApplyImprovement={(improved) => {
+                    setCaption(improved)
+                    setContent(improved)
+                  }}
+                  className="mt-3"
+                />
+              )}
             </div>
 
             {/* Linha 4: Mídia com Upload e Preview imediato */}
