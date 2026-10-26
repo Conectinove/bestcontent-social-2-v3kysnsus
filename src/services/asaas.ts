@@ -31,17 +31,28 @@ export interface AsaasPaymentResult {
   }
 }
 
-export async function getAsaasConfigStatus(): Promise<{
+export interface AsaasConfigStatus {
   configured: boolean
-  environment: string
-}> {
+  environment: 'production' | 'sandbox'
+  mode: 'production' | 'sandbox' | 'not_configured'
+  canSimulate: boolean
+  keyPrefix?: string | null
+}
+
+export async function getAsaasConfigStatus(): Promise<AsaasConfigStatus> {
   try {
     const res = await pb.send('/backend/v1/asaas/status', {
       method: 'GET',
     })
-    return res
+    return res as AsaasConfigStatus
   } catch {
-    return { configured: false, environment: 'sandbox' }
+    return {
+      configured: false,
+      environment: 'sandbox',
+      mode: 'not_configured',
+      canSimulate: true,
+      keyPrefix: null,
+    }
   }
 }
 

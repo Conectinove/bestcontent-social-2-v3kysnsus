@@ -5,23 +5,41 @@ export type SocialNetwork = 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | 'f
 export interface SeoAnalysisResult {
   score: number // 0 a 100
   breakdown: {
-    hook: { score: number; status: 'good' | 'warning' | 'bad'; feedback: string }
+    hook: {
+      score: number
+      status: 'good' | 'warning' | 'bad'
+      feedback: string
+      suggestedAlternatives?: string[]
+    }
     length: {
       score: number
       status: 'good' | 'warning' | 'bad'
       feedback: string
       charCount: number
       wordCount: number
+      recommendedRange: string
     }
-    cta: { score: number; status: 'good' | 'warning' | 'bad'; feedback: string }
+    cta: {
+      score: number
+      status: 'good' | 'warning' | 'bad'
+      feedback: string
+      suggestedCtas?: string[]
+    }
     readability: { score: number; status: 'good' | 'warning' | 'bad'; feedback: string }
-    hashtags: { score: number; status: 'good' | 'warning' | 'bad'; feedback: string; count: number }
+    hashtags: {
+      score: number
+      status: 'good' | 'warning' | 'bad'
+      feedback: string
+      count: number
+      nicheSuggestions?: string[]
+    }
   }
   recommendations: string[]
   suggestedKeywords: Array<{
     keyword: string
     volume: string
     difficulty: 'Fácil' | 'Médio' | 'Alto'
+    intent?: string
   }>
 }
 
@@ -225,17 +243,18 @@ export const NETWORK_CHECKLISTS: Record<SocialNetwork, NetworkOptimizationCheckl
 export function analyzeCaptionSeo(
   caption: string,
   network: SocialNetwork = 'instagram',
+  niche?: string,
 ): SeoAnalysisResult {
   const text = (caption || '').trim()
   const charCount = text.length
   const words = text ? text.split(/\s+/).filter(Boolean) : []
   const wordCount = words.length
 
-  // Hashtags
+  // Hashtags existentes
   const hashtagMatches = text.match(/#[a-zA-Z0-9_\u00C0-\u017F]+/g) || []
   const hashtagCount = hashtagMatches.length
 
-  // Análise de Hook (Primeira linha / Primeiras palavras)
+  // Análise de Hook (Primeira linha)
   const firstLine = text.split('\n')[0] || ''
   const hookWords = firstLine.split(/\s+/).filter(Boolean).length
   const hasHookTrigger =
@@ -243,88 +262,140 @@ export function analyzeCaptionSeo(
       firstLine,
     )
 
-  let hookScore = 50
-  let hookFeedback = 'Adicione uma pergunta instigante ou promessa clara logo na 1ª linha.'
-  if (hookWords >= 4 && hookWords <= 12 && hasHookTrigger) {
+  // Alternativas concretas para a primeira linha
+  const baseKeyword = words[0] || niche || 'Conteúdo'
+  const suggestedAlternatives = [
+    `Pare de cometer esse erro com ${baseKeyword}: o segredo que ninguém te conta.`,
+    `Você sabia que 90% das pessoas erram em ${baseKeyword}? Veja como resolver:`,
+    `3 passos práticos para dominar ${baseKeyword} ainda hoje (salve para não esquecer).`,
+  ]
+
+  let hookScore = 45
+  let hookFeedback = '1ª linha fraca. Adicione uma pergunta instigante ou promessa clara.'
+  if (hookWords >= 4 && hookWords <= 14 && hasHookTrigger) {
     hookScore = 100
-    hookFeedback = 'Gancho excelente! Estimula o leitor a clicar em "...mais".'
+    hookFeedback = 'Gancho magnético! Estimula o leitor a clicar em "...mais" antes do corte.'
   } else if (hasHookTrigger || hookWords >= 4) {
     hookScore = 75
-    hookFeedback = 'Bom gancho inicial. Considere torná-lo ainda mais específico.'
+    hookFeedback = 'Bom gancho inicial. Torne-o mais específico e prometa um benefício imediato.'
   }
 
   // Análise de Tamanho por Rede
   let lengthScore = 50
   let lengthFeedback = 'Tamanho razoável.'
+  let recommendedRange = '150 - 1.200 caracteres'
   if (network === 'instagram') {
+    recommendedRange = '150 - 1.200 caracteres'
     if (charCount >= 150 && charCount <= 1200) {
       lengthScore = 100
-      lengthFeedback = 'Extensão perfeita para engajamento e retenção no feed/Reels.'
+      lengthFeedback = `Extensão ideal (${charCount} carac.). Otimizado para retenção no feed/Reels.`
     } else if (charCount < 80) {
-      lengthScore = 45
-      lengthFeedback =
-        'Legenda muito curta. O algoritmo se beneficia de mais contexto e palavras-chave.'
+      lengthScore = 40
+      lengthFeedback = `Muito curta (${charCount} carac.). Adicione mais contexto e termos de busca.`
     } else {
       lengthScore = 70
-      lengthFeedback =
-        'Texto longo. Divida em parágrafos curtos para facilitar a leitura no mobile.'
+      lengthFeedback = `Extensa (${charCount} carac.). Quebre em blocos curtos para leitura mobile.`
     }
   } else if (network === 'tiktok') {
+    recommendedRange = '100 - 500 caracteres'
     if (charCount >= 100 && charCount <= 500) {
       lengthScore = 100
-      lengthFeedback = 'Ideal para a barra de busca do TikTok (100 a 500 caracteres).'
+      lengthFeedback = `Ideal para a barra de busca do TikTok (${charCount} carac.).`
     } else {
       lengthScore = 65
-      lengthFeedback =
-        'Para TikTok SEO, prefira entre 100 e 500 caracteres ricos em termos de busca.'
+      lengthFeedback = `Para TikTok SEO, prefira entre 100 e 500 carac. (atual: ${charCount}).`
+    }
+  } else if (network === 'linkedin') {
+    recommendedRange = '500 - 1.800 caracteres'
+    if (charCount >= 400 && charCount <= 1800) {
+      lengthScore = 100
+      lengthFeedback = `Perfeito para o algoritmo do LinkedIn (${charCount} carac.).`
+    } else {
+      lengthScore = 65
+      lengthFeedback = `No LinkedIn, textos aprofundados (400-1800 carac.) têm maior alcance.`
+    }
+  } else if (network === 'twitter') {
+    recommendedRange = '70 - 280 caracteres'
+    if (charCount >= 70 && charCount <= 280) {
+      lengthScore = 100
+      lengthFeedback = `Tamanho perfeito para tweet único (${charCount}/280 carac.).`
+    } else if (charCount > 280) {
+      lengthScore = 70
+      lengthFeedback = `Passou de 280 caracteres (${charCount}). Converta em thread.`
+    } else {
+      lengthScore = 60
+      lengthFeedback = `Muito curto (${charCount} carac.). Adicione mais substância.`
     }
   } else {
+    recommendedRange = '100 - 800 caracteres'
     lengthScore = charCount >= 80 ? 90 : 60
-    lengthFeedback = 'Tamanho adequado para a rede.'
+    lengthFeedback = 'Extensão adequada para a rede selecionada.'
   }
 
   // Análise de CTA (Chamada para Ação)
   const hasCta =
-    /comente|salve|compartilhe|clique no link|link na bio|me conta|qual sua opinião|deixe seu|salva esse|marca|envie|comenta/i.test(
+    /comente|salve|compartilhe|clique no link|link na bio|me conta|qual sua opinião|deixe seu|salva esse|marca|envie|comenta|cadastre-se|garanta sua/i.test(
       text,
     )
-  let ctaScore = hasCta ? 100 : 40
-  let ctaFeedback = hasCta
-    ? 'CTA identificada com clareza no texto!'
-    : 'Falta uma Chamada para Ação direta (ex: "Salve para consultar", "Comente o que achou").'
+  const suggestedCtas = [
+    '📌 Salve este post para consultar no seu próximo planejamento!',
+    '💬 Qual foi o maior insight para você? Comente aqui embaixo!',
+    '🚀 Compartilhe no direct com um amigo que precisa ver isso hoje.',
+    '🔗 Acesse o link oficial na bio para garantir sua vaga.',
+  ]
 
-  // Análise de Legibilidade (parágrafos, quebras de linha, emojis moderados)
+  let ctaScore = hasCta ? 100 : 35
+  let ctaFeedback = hasCta
+    ? 'CTA clara identificada com sucesso!'
+    : 'Falta uma Chamada para Ação (CTA). O algoritmo valoriza posts que geram salvamento e compartilhamento.'
+
+  // Análise de Legibilidade (parágrafos e quebras)
   const lineBreaks = (text.match(/\n/g) || []).length
   let readabilityScore = 70
   let readabilityFeedback = 'Boa formatação visual.'
   if (charCount > 200 && lineBreaks < 2) {
-    readabilityScore = 50
-    readabilityFeedback = 'Adicione quebras de parágrafo para não formar um bloco denso de texto.'
+    readabilityScore = 45
+    readabilityFeedback = 'Adicione linhas em branco entre ideias para não formar bloco denso.'
   } else if (lineBreaks >= 2) {
     readabilityScore = 100
-    readabilityFeedback = 'Ótima distribuição de parágrafos e respiro visual.'
+    readabilityFeedback = 'Excelente respiro visual e divisão por parágrafos no mobile.'
   }
 
-  // Análise de Hashtags
+  // Análise de Hashtags com sugestões por nicho
+  const cleanNiche = (niche || 'conteudo').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const nicheSuggestions = [
+    `#${cleanNiche}`,
+    `#${cleanNiche}brasil`,
+    `#dicasde${cleanNiche}`,
+    '#estrategiadigital',
+    '#criacaodeconteudo',
+  ]
+
   let hashtagScore = 70
   let hashtagFeedback = 'Número adequado.'
   if (network === 'instagram' || network === 'tiktok') {
     if (hashtagCount >= 3 && hashtagCount <= 6) {
       hashtagScore = 100
-      hashtagFeedback = `Perfeito: ${hashtagCount} hashtags focadas no nicho (evita penalidade de spam).`
+      hashtagFeedback = `Perfeito: ${hashtagCount} tags focadas no nicho (sem risco de shadowban).`
     } else if (hashtagCount === 0) {
-      hashtagScore = 40
-      hashtagFeedback = 'Inclua de 3 a 5 hashtags com temas específicos do seu nicho.'
-    } else if (hashtagCount > 10) {
+      hashtagScore = 35
+      hashtagFeedback = 'Nenhuma hashtag detectada. Adicione de 3 a 5 tags nichadas.'
+    } else if (hashtagCount > 8) {
       hashtagScore = 55
-      hashtagFeedback = 'Muitas hashtags podem diluir o foco semântico do post perante o algoritmo.'
+      hashtagFeedback = `Muitas tags (${hashtagCount}). O algoritmo atual prefere 3 a 5 específicas.`
     }
+  } else if (network === 'twitter') {
+    hashtagScore = hashtagCount <= 2 ? 100 : 50
+    hashtagFeedback =
+      hashtagCount <= 2
+        ? 'Hashtags moderadas ideais para X.'
+        : 'Excesso de tags no X reduz alcance.'
   } else {
-    hashtagScore = hashtagCount <= 3 ? 90 : 60
-    hashtagFeedback = 'Hashtags moderadas conforme recomendado na rede.'
+    hashtagScore = hashtagCount <= 4 ? 90 : 65
+    hashtagFeedback = 'Quantidade de tags dentro do padrão da rede.'
   }
 
-  // Score consolidado ponderado (0 a 100)
+  // Score ponderado consolidado
   const totalScore = Math.round(
     hookScore * 0.25 +
       lengthScore * 0.2 +
@@ -334,42 +405,48 @@ export function analyzeCaptionSeo(
   )
 
   const recommendations: string[] = []
-  if (hookScore < 80)
+  if (hookScore < 80) {
     recommendations.push(
-      'Fortaleça a 1ª linha com um benefício imediato ou pergunta que gere curiosidade.',
+      'Troque a 1ª linha por um gancho magnético com pergunta ou promessa direta.',
     )
-  if (ctaScore < 80)
+  }
+  if (ctaScore < 80) {
     recommendations.push(
-      'Finalize convidando a audiência a salvar a publicação ou deixar uma opinião nos comentários.',
+      'Inclua um CTA claro no final incentivando a salvar ou compartilhar a publicação.',
     )
-  if (readabilityScore < 80)
-    recommendations.push('Dê mais respiro entre ideias usando linhas em branco.')
-  if (hashtagCount < 3)
-    recommendations.push(
-      'Adicione 3 hashtags específicas que o seu cliente ideal costuma pesquisar.',
-    )
+  }
+  if (readabilityScore < 80) {
+    recommendations.push('Dê mais respiro inserindo linhas em branco entre os parágrafos.')
+  }
+  if (hashtagCount < 3) {
+    recommendations.push(`Adicione 3 a 5 hashtags focadas em seu nicho (${cleanNiche}).`)
+  }
 
-  // Sugestões de palavras-chave locais/estimadas
+  // Palavras-chave sugeridas com volume e intenção
   const suggestedKeywords = [
     {
-      keyword: words[0] ? `#${words[0].toLowerCase().replace(/[^a-z0-9]/g, '')}` : '#dicasdigitais',
-      volume: '18.4k buscas/mês',
+      keyword: `#${cleanNiche}`,
+      volume: '84.5k buscas/mês',
       difficulty: 'Médio' as const,
+      intent: 'Autoridade & Nicho',
     },
     {
-      keyword: words[1] ? `${words[1].toLowerCase()} prático` : 'estratégia de conteúdo',
-      volume: '34.2k buscas/mês',
+      keyword: `como fazer ${cleanNiche}`,
+      volume: '52.1k buscas/mês',
       difficulty: 'Fácil' as const,
+      intent: 'Educacional',
     },
     {
-      keyword: 'como crescer no instagram',
-      volume: '62.0k buscas/mês',
-      difficulty: 'Alto' as const,
+      keyword: `estratégia de ${cleanNiche}`,
+      volume: '29.3k buscas/mês',
+      difficulty: 'Fácil' as const,
+      intent: 'Profissional',
     },
     {
       keyword: 'criação de conteúdo com ia',
-      volume: '22.8k buscas/mês',
-      difficulty: 'Fácil' as const,
+      volume: '63.8k buscas/mês',
+      difficulty: 'Médio' as const,
+      intent: 'Tecnologia',
     },
   ]
 
@@ -380,6 +457,7 @@ export function analyzeCaptionSeo(
         score: hookScore,
         status: hookScore >= 80 ? 'good' : hookScore >= 60 ? 'warning' : 'bad',
         feedback: hookFeedback,
+        suggestedAlternatives,
       },
       length: {
         score: lengthScore,
@@ -387,11 +465,13 @@ export function analyzeCaptionSeo(
         feedback: lengthFeedback,
         charCount,
         wordCount,
+        recommendedRange,
       },
       cta: {
         score: ctaScore,
         status: ctaScore >= 80 ? 'good' : ctaScore >= 60 ? 'warning' : 'bad',
         feedback: ctaFeedback,
+        suggestedCtas,
       },
       readability: {
         score: readabilityScore,
@@ -403,6 +483,7 @@ export function analyzeCaptionSeo(
         status: hashtagScore >= 80 ? 'good' : hashtagScore >= 60 ? 'warning' : 'bad',
         feedback: hashtagFeedback,
         count: hashtagCount,
+        nicheSuggestions,
       },
     },
     recommendations,

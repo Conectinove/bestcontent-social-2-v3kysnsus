@@ -6,11 +6,22 @@
  */
 
 routerAdd('GET', '/backend/v1/asaas/status', (e) => {
-  const apiKey = $os.getenv('ASAAS_API_KEY') || ''
-  const env = $os.getenv('ASAAS_ENV') || 'sandbox'
+  const apiKey = ($os.getenv('ASAAS_API_KEY') || '').trim()
+  const envRaw = ($os.getenv('ASAAS_ENV') || '').trim().toLowerCase()
+  const isPrd =
+    envRaw === 'production' ||
+    envRaw === 'prd' ||
+    envRaw === 'live' ||
+    apiKey.startsWith('$aact_prod_')
+  const environment = isPrd ? 'production' : 'sandbox'
+  const isConfigured = Boolean(apiKey && apiKey.length > 5)
+
   return e.json(200, {
-    configured: Boolean(apiKey && apiKey.trim().length > 5),
-    environment: env,
+    configured: isConfigured,
+    environment: environment,
+    mode: isConfigured ? (isPrd ? 'production' : 'sandbox') : 'not_configured',
+    canSimulate: !isConfigured || !isPrd,
+    keyPrefix: isConfigured ? apiKey.slice(0, 6) + '...' : null,
   })
 })
 
@@ -37,8 +48,12 @@ routerAdd(
     }
 
     const apiKey = ($os.getenv('ASAAS_API_KEY') || '').trim()
-    const asaasEnv = ($os.getenv('ASAAS_ENV') || 'sandbox').trim()
-    const isLive = asaasEnv === 'production' || asaasEnv === 'prd'
+    const asaasEnv = ($os.getenv('ASAAS_ENV') || '').trim().toLowerCase()
+    const isLive =
+      asaasEnv === 'production' ||
+      asaasEnv === 'prd' ||
+      asaasEnv === 'live' ||
+      apiKey.startsWith('$aact_prod_')
     const asaasBaseUrl = isLive ? 'https://api.asaas.com/v3' : 'https://sandbox.asaas.com/api/v3'
 
     const paymentsCol = e.app.findCollectionByNameOrId('payments')
@@ -75,15 +90,16 @@ routerAdd(
       return e.json(200, {
         success: true,
         mockMode: true,
+        environment: 'sandbox',
         paymentId: localPayment.id,
         status: 'pending',
-        message: 'Checkout pronto e aguardando chave oficial do Asaas.',
+        message:
+          'Checkout em modo de configuração/demonstração. Insira a chave ASAAS_API_KEY no painel do Skip Cloud para ativar pagamentos reais.',
         details: {
           billingType,
           amount,
           itemTitle:
             itemTitle || (type === 'plan' ? `Plano ${itemId}` : `${creditsAmount} Créditos Extras`),
-          // Dados de demonstração enquanto a chave não é informada
           pix:
             billingType === 'PIX'
               ? {
@@ -223,6 +239,8 @@ routerAdd(
 
       return e.json(200, {
         success: true,
+        mockMode: false,
+        environment: isLive ? 'production' : 'sandbox',
         paymentId: newPayment.id,
         asaasId: asaasId,
         status: 'pending',

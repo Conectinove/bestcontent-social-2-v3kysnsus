@@ -38,7 +38,16 @@ import {
   CAMPAIGN_FORMATS,
   createMultiFormatCampaign,
   type CampaignFormatOption,
+  type CampaignFormatId,
 } from '@/services/campaigns'
+import {
+  Youtube,
+  Twitter,
+  FileText as FileTextIcon,
+  Pin,
+  MessageCircle,
+  BookOpen,
+} from 'lucide-react'
 
 export const CAMPAIGN_TONES = [
   { id: 'profissional', label: 'Profissional', emoji: '💼' },
@@ -74,10 +83,14 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
   const [targetUrl, setTargetUrl] = useState('')
   const [cta, setCta] = useState('')
 
-  // Formatos selecionados (padrão: todos marcados para entrega multi-formato completa)
-  const [selectedFormats, setSelectedFormats] = useState<
-    Array<'reels' | 'story' | 'feed' | 'carousel' | 'flyer'>
-  >(['reels', 'story', 'feed', 'carousel', 'flyer'])
+  // Formatos selecionados (padrão: formatos essenciais marcados para entrega inicial equilibrada)
+  const [selectedFormats, setSelectedFormats] = useState<CampaignFormatId[]>([
+    'reels',
+    'story',
+    'feed',
+    'carousel',
+    'flyer',
+  ])
 
   // Modal de confirmação de créditos
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -100,7 +113,7 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
   }, [selectedFormats])
 
   // Alternar formato
-  const toggleFormat = (formatId: 'reels' | 'story' | 'feed' | 'carousel' | 'flyer') => {
+  const toggleFormat = (formatId: CampaignFormatId) => {
     setSelectedFormats((prev) =>
       prev.includes(formatId) ? prev.filter((id) => id !== formatId) : [...prev, formatId],
     )
@@ -205,6 +218,18 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
         return <Layers className="w-4 h-4 text-amber-500" />
       case 'flyer':
         return <Megaphone className="w-4 h-4 text-emerald-500" />
+      case 'youtube':
+        return <Youtube className="w-4 h-4 text-red-500" />
+      case 'thread':
+        return <Twitter className="w-4 h-4 text-sky-500" />
+      case 'newsletter':
+        return <FileText className="w-4 h-4 text-indigo-500" />
+      case 'pinterest':
+        return <Pin className="w-4 h-4 text-rose-600" />
+      case 'whatsapp':
+        return <MessageCircle className="w-4 h-4 text-emerald-600" />
+      case 'carrossel_10':
+        return <BookOpen className="w-4 h-4 text-purple-600" />
       default:
         return <FileText className="w-4 h-4 text-muted-foreground" />
     }
@@ -227,12 +252,12 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
                       Nova Campanha Multi-formato
                     </DialogTitle>
                     <Badge className="bg-white/20 hover:bg-white/20 text-white text-[10px] font-bold px-2 py-0 border-white/30 uppercase">
-                      5-em-1
+                      Multi-formato
                     </Badge>
                   </div>
                   <DialogDescription className="text-xs sm:text-sm text-purple-100 mt-0.5">
-                    Gere reels, story, feed, carrossel e flyer de uma vez só a partir de um único
-                    briefing.
+                    Gere múltiplos formatos (Reels, Story, Feed, Carrosséis, YouTube, Thread,
+                    Newsletter, Pins, WhatsApp) de uma vez só a partir de um único briefing.
                   </DialogDescription>
                 </div>
               </div>
@@ -468,7 +493,7 @@ export function CreateCampaignModal({ open, onOpenChange, onSuccess }: CreateCam
                       setSelectedFormats(
                         selectedFormats.length === CAMPAIGN_FORMATS.length
                           ? []
-                          : ['reels', 'story', 'feed', 'carousel', 'flyer'],
+                          : (CAMPAIGN_FORMATS.map((f) => f.id) as CampaignFormatId[]),
                       )
                     }
                     className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-semibold"

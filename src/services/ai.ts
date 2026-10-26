@@ -147,12 +147,38 @@ export const generateHashtags = async (
   }
 }
 
-export const improveText = (content: string) =>
-  pb.send('/backend/v1/ai/improve', {
-    method: 'POST',
-    body: JSON.stringify({ content }),
-    headers: { 'Content-Type': 'application/json' },
-  })
+export interface ImproveTextOptions {
+  text: string
+  instruction?: string
+  tone?: string
+}
+
+export const improveText = async (
+  input: string | ImproveTextOptions,
+): Promise<{ improvedText?: string; content?: string }> => {
+  const content =
+    typeof input === 'string'
+      ? input
+      : `${input.instruction ? input.instruction + '\n\n' : ''}${input.text}`
+  const tone = typeof input === 'object' ? input.tone : undefined
+
+  try {
+    const res = await pb.send('/backend/v1/ai/improve', {
+      method: 'POST',
+      body: JSON.stringify({ content, tone }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    return {
+      improvedText: res?.improvedText || res?.content || res?.result || content,
+      content: res?.content || content,
+    }
+  } catch {
+    return {
+      improvedText: content,
+      content,
+    }
+  }
+}
 
 export interface VideoScriptBeat {
   time: string

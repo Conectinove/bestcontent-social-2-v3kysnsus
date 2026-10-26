@@ -4,12 +4,33 @@ export type { CampaignRecord } from '@/types'
 import { generateMultiFormatContent, generateHashtags, generateCaption } from '@/services/ai'
 import { suggestTemplates } from '@/services/post-templates'
 
+export type CampaignFormatId =
+  | 'reels'
+  | 'story'
+  | 'feed'
+  | 'carousel'
+  | 'flyer'
+  | 'youtube'
+  | 'thread'
+  | 'newsletter'
+  | 'pinterest'
+  | 'whatsapp'
+  | 'carrossel_10'
+
 export interface CampaignFormatOption {
-  id: 'reels' | 'story' | 'feed' | 'carousel' | 'flyer'
+  id: CampaignFormatId
   name: string
   label: string
   description: string
-  platform: 'Instagram' | 'TikTok' | 'YouTube' | 'Facebook' | 'LinkedIn'
+  platform:
+    | 'Instagram'
+    | 'TikTok'
+    | 'YouTube'
+    | 'Facebook'
+    | 'LinkedIn'
+    | 'Twitter'
+    | 'Pinterest'
+    | 'WhatsApp'
   aspectRatio: string
   credits: number
   badge: string
@@ -66,6 +87,68 @@ export const CAMPAIGN_FORMATS: CampaignFormatOption[] = [
     credits: 20,
     badge: 'Flyer Promo',
   },
+  {
+    id: 'youtube',
+    name: 'Vídeo YouTube / Shorts',
+    label: 'YouTube / Shorts',
+    description:
+      'Roteiro completo com título magnético para busca, introdução e marcações de tempo.',
+    platform: 'YouTube',
+    aspectRatio: '16:9',
+    credits: 30,
+    badge: 'YouTube 30cr',
+  },
+  {
+    id: 'thread',
+    name: 'Thread X / Twitter',
+    label: 'Thread X (5 tweets)',
+    description: 'Fio narrativo com gancho irresistível e formatação em tweets numerados.',
+    platform: 'Twitter',
+    aspectRatio: '16:9',
+    credits: 15,
+    badge: 'Thread 15cr',
+  },
+  {
+    id: 'newsletter',
+    name: 'Newsletter / Artigo LinkedIn',
+    label: 'Artigo LinkedIn',
+    description: 'Conteúdo estruturado com tópicos executivos e tom de autoridade profissional.',
+    platform: 'LinkedIn',
+    aspectRatio: '1.91:1',
+    credits: 25,
+    badge: 'LinkedIn 25cr',
+  },
+  {
+    id: 'pinterest',
+    name: 'Pin Pinterest',
+    label: 'Pin Estratégico',
+    description: 'Título otimizado para mecanismo de busca visual, descrição rica e tags de nicho.',
+    platform: 'Pinterest',
+    aspectRatio: '2:3',
+    credits: 10,
+    badge: 'Pin 10cr',
+  },
+  {
+    id: 'whatsapp',
+    name: 'Banner & Copy WhatsApp',
+    label: 'Copy WhatsApp',
+    description:
+      'Mensagem de transmissão ou status para engajamento e conversão rápida no WhatsApp.',
+    platform: 'WhatsApp',
+    aspectRatio: '1:1',
+    credits: 10,
+    badge: 'WhatsApp 10cr',
+  },
+  {
+    id: 'carrossel_10',
+    name: 'Carrossel Super Guia (10 slides)',
+    label: 'Carrossel 10 slides',
+    description: 'Manual definitivo aprofundado para maximizar salvamento e retenção extrema.',
+    platform: 'Instagram',
+    aspectRatio: '4:5',
+    credits: 55,
+    badge: 'Guia 10 slides (55cr)',
+  },
 ]
 
 export interface CreateCampaignInput {
@@ -78,7 +161,7 @@ export interface CreateCampaignInput {
   briefing: string
   targetUrl?: string
   cta?: string
-  selectedFormats: Array<'reels' | 'story' | 'feed' | 'carousel' | 'flyer'>
+  selectedFormats: CampaignFormatId[]
   onProgress?: (formatId: string, status: 'generating' | 'done' | 'error') => void
 }
 
@@ -202,7 +285,7 @@ export async function createMultiFormatCampaign(
 }
 
 async function generatePostForFormat(params: {
-  formatId: 'reels' | 'story' | 'feed' | 'carousel' | 'flyer'
+  formatId: CampaignFormatId
   briefing: string
   name: string
   objective: 'engajar' | 'vender' | 'awareness'
@@ -439,6 +522,268 @@ async function generatePostForFormat(params: {
       }),
       tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'flyer', 'promocao'],
       target_networks: ['facebook', 'instagram', 'whatsapp'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'youtube') {
+    const aiScript = await generateMultiFormatContent({
+      topic: `${name}: ${briefing}`,
+      format: 'video_script',
+      brandName,
+      tone: brandVoice,
+    })
+
+    const script = aiScript.video_script || {
+      hook: `Neste vídeo: ${name}. Como aplicar passo a passo.`,
+      development: briefing,
+      cta: effectiveCta,
+      beats: [
+        {
+          time: '0:00 - 0:15',
+          title: 'Intro & Promessa',
+          narration: `Bem-vindo! Hoje vamos falar sobre ${name}.`,
+          visual: 'Abertura dinâmica',
+        },
+        {
+          time: '0:15 - 3:00',
+          title: 'Tópico 1 & Contexto',
+          narration: briefing,
+          visual: 'Slides explicativos',
+        },
+        {
+          time: '3:00 - 4:00',
+          title: 'Conclusão & CTA',
+          narration: effectiveCta,
+          visual: 'Card final com link',
+        },
+      ],
+    }
+
+    const fullCaption = `📺 ROTEIRO YOUTUBE / SHORTS: ${name}\n\n[TÍTULO SUGERIDO]\n${name} — O Guia Definitivo\n\n[TIMESTAMPS]\n00:00 Introdução\n00:45 Estratégia Prática\n02:30 Conclusão e Próximos Passos\n\n[DESCRIÇÃO]\n${briefing}\n\n👉 ${effectiveCta}${effectiveUrl}\n\n#youtube #shorts #${brandName.toLowerCase().replace(/\s+/g, '')}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Vídeo YouTube / Shorts`,
+      caption: fullCaption,
+      platform: 'YouTube',
+      status: 'draft',
+      duration: 60,
+      width: 1920,
+      height: 1080,
+      template_id: 'tpl-youtube-guide',
+      script_json: JSON.stringify(script),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'youtube', 'shorts'],
+      target_networks: ['youtube'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'thread') {
+    const aiThread = await generateMultiFormatContent({
+      topic: `${name}: ${briefing}`,
+      format: 'twitter_thread',
+      brandName,
+      tone: brandVoice,
+    })
+
+    const threadTweets = aiThread.twitter_thread?.tweets || [
+      `1/5 🧵 O que a maioria das pessoas não entende sobre ${name}:`,
+      `2/5 O principal obstáculo: ${briefing.slice(0, 150)}...`,
+      `3/5 A virada de chave está em alinhar consistência e método comprovado.`,
+      `4/5 Dica prática: comece hoje mesmo aplicando o primeiro princípio.`,
+      `5/5 Se gostou, dê RT no tweet 1 e siga para mais insights! 👉 ${effectiveCta}`,
+    ]
+
+    const fullCaption = `🧵 THREAD NO X / TWITTER: ${name}\n\n${threadTweets.join('\n\n')}${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Thread X / Twitter`,
+      caption: fullCaption,
+      platform: 'Twitter',
+      status: 'draft',
+      duration: 0,
+      width: 1200,
+      height: 675,
+      template_id: 'tpl-twitter-thread',
+      script_json: JSON.stringify({ tweets: threadTweets }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'twitter', 'thread'],
+      target_networks: ['twitter'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'newsletter') {
+    const newsletterCaption = `📰 ARTIGO / NEWSLETTER LINKEDIN: ${name.toUpperCase()}\n\nCaro leitor,\n\n${briefing}\n\n📌 3 LIÇÕES ESTRATÉGICAS:\n1. Posicionamento claro supera ruído no feed.\n2. Dados e processos consistentes sustentam escala.\n3. O próximo passo prático é agir.\n\n👉 ${effectiveCta}${effectiveUrl}\n\n#linkedin #artigo #lideranca #estrategia`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Newsletter / Artigo LinkedIn`,
+      caption: newsletterCaption,
+      platform: 'LinkedIn',
+      status: 'draft',
+      duration: 0,
+      width: 1200,
+      height: 628,
+      template_id: 'tpl-linkedin-article',
+      script_json: JSON.stringify({
+        title: name,
+        body: briefing,
+        cta: effectiveCta,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'linkedin', 'newsletter'],
+      target_networks: ['linkedin'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'pinterest') {
+    const pinCaption = `📌 PIN ESTRATÉGICO: ${name}\n\n${briefing}\n\n💡 Salve este Pin na sua pasta de inspirações e acesse o link para saber mais!\n\n👉 ${effectiveCta}${effectiveUrl}\n\n#pinterestbrasil #ideias #dicas #inspiracao`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Pin Pinterest`,
+      caption: pinCaption,
+      platform: 'Pinterest',
+      status: 'draft',
+      duration: 0,
+      width: 1000,
+      height: 1500,
+      template_id: 'tpl-pinterest-pin',
+      script_json: JSON.stringify({
+        title: name,
+        description: briefing,
+        destination: targetUrl || '',
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'pinterest', 'pin'],
+      target_networks: ['pinterest'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'whatsapp') {
+    const whatsCaption = `💬 MENSAGEM / STATUS WHATSAPP\n\nOlá! Passando para compartilhar uma novidade sobre *${name}*:\n\n${briefing}\n\n👉 *Próximo passo:* ${effectiveCta}${effectiveUrl}\n\n_Responda esta mensagem para tirar dúvidas diretamente conosco._`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Copy & Banner WhatsApp`,
+      caption: whatsCaption,
+      platform: 'WhatsApp',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1080,
+      template_id: 'tpl-whatsapp-broadcast',
+      script_json: JSON.stringify({
+        headline: name,
+        message: whatsCaption,
+        cta: effectiveCta,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'whatsapp', 'direto'],
+      target_networks: ['whatsapp'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  if (formatId === 'carrossel_10') {
+    const slides10 = [
+      { slide_number: 1, title: `Capa: O Guia Definitivo de ${name}`, text: briefing },
+      {
+        slide_number: 2,
+        title: 'Por que isso importa agora?',
+        text: 'Entenda o cenário atual e por que os modelos antigos falham.',
+      },
+      {
+        slide_number: 3,
+        title: 'Princípio 1: Fundação Sólida',
+        text: 'Estruturação inicial com visão de longo prazo.',
+      },
+      {
+        slide_number: 4,
+        title: 'Princípio 2: Automação Inteligente',
+        text: 'Como usar IA para acelerar a execução sem perder alma.',
+      },
+      {
+        slide_number: 5,
+        title: 'Princípio 3: Distribuição Eficaz',
+        text: 'Estratégia omnicanal adaptada a cada rede.',
+      },
+      {
+        slide_number: 6,
+        title: 'Exemplo Real de Aplicação',
+        text: 'Estudo de caso e benchmark prático.',
+      },
+      {
+        slide_number: 7,
+        title: 'Os 3 Erros Mais Comuns',
+        text: 'Evite essas armadilhas que diminuem o alcance.',
+      },
+      {
+        slide_number: 8,
+        title: 'Plano de Ação para os Próximos 7 Dias',
+        text: 'Cronograma passo a passo de implementação.',
+      },
+      {
+        slide_number: 9,
+        title: 'Recapitulando os Pontos Chave',
+        text: 'Resumo visual para fixar o aprendizado.',
+      },
+      { slide_number: 10, title: 'Conclusão & Próximo Nível', text: effectiveCta },
+    ]
+
+    const slidesSummary = slides10
+      .map((s) => `• Slide ${s.slide_number}: ${s.title}\n  ${s.text}`)
+      .join('\n\n')
+
+    const fullCaption = `📚 CARROSSEL SUPER GUIA (10 SLIDES): ${name}\n\nSalve este manual completo para consultar sempre que precisar! 👉\n\n${slidesSummary}\n\n👉 ${effectiveCta}${effectiveUrl}\n\n#carrossel #manual #guiadefinitivo #estrategia`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Carrossel Super Guia (10 Slides)`,
+      caption: fullCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1350,
+      template_id: 'tpl-carousel-super-guide',
+      script_json: JSON.stringify({
+        cover_title: `O Guia Definitivo de ${name}`,
+        slides: slides10,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'carrossel-10', 'super-guia'],
+      target_networks: ['instagram', 'linkedin'],
       revision_count: 1,
       approval_level: 'Nível 1 (Em Revisão)',
       is_favorite: false,

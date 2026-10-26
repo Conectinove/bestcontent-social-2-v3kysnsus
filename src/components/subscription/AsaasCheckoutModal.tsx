@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,11 +19,14 @@ import {
   Sparkles,
   ShieldCheck,
   AlertCircle,
+  Key,
 } from 'lucide-react'
 import {
   createAsaasPayment,
   simulateConfirmPayment,
+  getAsaasConfigStatus,
   type AsaasPaymentResult,
+  type AsaasConfigStatus,
 } from '@/services/asaas'
 import { toast } from '@/hooks/use-toast'
 
@@ -53,6 +56,13 @@ export function AsaasCheckoutModal({
   const [confirming, setConfirming] = useState(false)
   const [result, setResult] = useState<AsaasPaymentResult | null>(null)
   const [copied, setCopied] = useState(false)
+  const [configStatus, setConfigStatus] = useState<AsaasConfigStatus | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      getAsaasConfigStatus().then(setConfigStatus)
+    }
+  }, [open])
 
   if (!item) return null
 
@@ -137,12 +147,25 @@ export function AsaasCheckoutModal({
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-primary" /> Checkout Asaas
             </span>
-            <Badge
-              variant="outline"
-              className="text-[10px] font-mono border-purple-500/30 text-primary"
-            >
-              100% Seguro
-            </Badge>
+            {configStatus?.configured ? (
+              <Badge
+                variant="outline"
+                className={`text-[10px] font-bold ${
+                  configStatus.environment === 'production'
+                    ? 'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
+                    : 'border-amber-500/40 text-amber-600 bg-amber-500/5'
+                }`}
+              >
+                {configStatus.environment === 'production' ? '● Modo Produção' : '● Modo Sandbox'}
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-[10px] font-mono border-purple-500/30 text-purple-600 dark:text-purple-300 bg-purple-500/5"
+              >
+                Em Configuração
+              </Badge>
+            )}
           </div>
           <DialogTitle className="text-xl font-extrabold text-foreground">{item.title}</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -159,12 +182,32 @@ export function AsaasCheckoutModal({
             <div className="text-2xl font-black text-foreground">{item.price}</div>
           </div>
           <div className="text-right">
-            <span className="text-[11px] text-muted-foreground">Processado por</span>
+            <span className="text-[11px] text-muted-foreground">Processamento</span>
             <div className="text-xs font-bold text-foreground flex items-center gap-1 justify-end">
               <span>Asaas Payments</span>
             </div>
+            {configStatus?.keyPrefix && (
+              <span className="text-[9px] font-mono text-muted-foreground block">
+                Chave: {configStatus.keyPrefix}
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Indicador de Status do Gateway */}
+        {!configStatus?.configured && !result && (
+          <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-purple-700 dark:text-purple-300">
+              <Key className="w-3.5 h-3.5" />
+              <span>Chave ASAAS_API_KEY aguardada</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              O checkout funcionará em modo demonstração/homologação até a chave oficial ser
+              adicionada no painel Skip Cloud. Ao adicionar o segredo, o modo real é ativado em
+              tempo de execução sem necessidade de rebuild.
+            </p>
+          </div>
+        )}
 
         {/* Seleção do método quando ainda não gerou cobrança */}
         {!result && (

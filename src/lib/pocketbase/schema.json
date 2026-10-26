@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T16:07:22.606Z",
+  "generatedAt": "2026-10-26T20:16:04.331Z",
   "collections": [
     {
       "name": "users",
@@ -2424,6 +2424,106 @@
       "indexes": [
         "CREATE INDEX idx_seo_audits_user ON seo_audits (user)",
         "CREATE INDEX idx_seo_audits_brand ON seo_audits (brand)"
+      ]
+    },
+    {
+      "name": "ads_metrics",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": "@request.auth.id != \"\"",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "campaign",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "ad_campaigns"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "impressions",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "reach",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "clicks",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ctr",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cpc",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "spent",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "conversions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_simulated",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_ads_metrics_camp ON ads_metrics (campaign)",
+        "CREATE INDEX idx_ads_metrics_user ON ads_metrics (user)",
+        "CREATE INDEX idx_ads_metrics_date ON ads_metrics (date)"
       ]
     }
   ]

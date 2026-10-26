@@ -6,6 +6,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Search,
   Sparkles,
   TrendingUp,
@@ -18,6 +25,9 @@ import {
   Layers,
   ArrowRight,
   Save,
+  Wand2,
+  Loader2,
+  ChevronRight,
 } from 'lucide-react'
 import {
   analyzeCaptionSeo,
@@ -25,13 +35,26 @@ import {
   saveSeoAudit,
   type SocialNetwork,
 } from '@/services/seo'
+import { improveText } from '@/services/ai'
 import { useSocial } from '@/context/SocialContext'
 import { toast } from '@/hooks/use-toast'
+
+const SEO_TONES = [
+  'Profissional',
+  'Persuasivo',
+  'Descontraído',
+  'Educativo',
+  'Inspiracional',
+  'Urgente',
+  'Storytelling',
+]
 
 export function SeoTools() {
   const { brands } = useSocial()
   const [selectedNetwork, setSelectedNetwork] = useState<SocialNetwork>('instagram')
   const [selectedBrandId, setSelectedBrandId] = useState<string>(brands[0]?.id || '')
+  const [selectedTone, setSelectedTone] = useState<string>('Profissional')
+  const [improvingWithAi, setImprovingWithAi] = useState(false)
   const [captionInput, setCaptionInput] = useState<string>(
     'Descubra 3 estratégias práticas para triplicar o engajamento orgânico do seu perfil em 30 dias.\n\nVocê já sentiu que seus posts não alcançam as pessoas certas? O algoritmo premia quem foca em retenção e valor real.\n\nSalve este conteúdo para aplicar na sua próxima semana de planejamento e compartilhe com um amigo que precisa ver isso!\n\n#socialmedia #marketingdigital #estrategiadeconteudo #engajamento #crescimentodigital',
   )
@@ -85,8 +108,55 @@ export function SeoTools() {
     },
   ])
 
-  const analysis = analyzeCaptionSeo(captionInput, selectedNetwork)
+  const analysis = analyzeCaptionSeo(captionInput, selectedNetwork, nicheInput)
   const activeChecklist = NETWORK_CHECKLISTS[selectedNetwork]
+
+  const handleApplyAiOptimization = async () => {
+    if (!captionInput.trim()) {
+      toast({ title: 'Insira um texto primeiro', variant: 'destructive' })
+      return
+    }
+
+    setImprovingWithAi(true)
+    try {
+      const res = await improveText({
+        text: captionInput,
+        instruction: `Reescreva e otimize esta legenda para SEO da rede ${selectedNetwork} com tom ${selectedTone}.
+Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais', organize o corpo em parágrafos dinâmicos e legíveis, adicione uma chamada para ação clara (CTA para salvar ou comentar) e termine com 3 a 5 hashtags estratégicas para o nicho "${nicheInput}".`,
+        tone: selectedTone,
+      })
+
+      if (res?.improvedText) {
+        setCaptionInput(res.improvedText)
+        toast({
+          title: 'Legenda otimizada com IA!',
+          description: `Score aprimorado no tom ${selectedTone} com gancho e CTA estratégico.`,
+        })
+      }
+    } catch {
+      const altHook =
+        analysis.breakdown.hook.suggestedAlternatives?.[0] || 'Atenção para esta oportunidade:'
+      const altCta =
+        analysis.breakdown.cta.suggestedCtas?.[0] || '📌 Salve agora para consultar depois!'
+      const altTags = (analysis.breakdown.hashtags.nicheSuggestions || []).slice(0, 4).join(' ')
+      setCaptionInput(`${altHook}\n\n${captionInput}\n\n${altCta}\n\n${altTags}`)
+      toast({ title: 'Sugestões de gancho, CTA e tags aplicadas!' })
+    } finally {
+      setImprovingWithAi(false)
+    }
+  }
+
+  const handleApplyAlternativeHook = (alt: string) => {
+    const lines = captionInput.split('\n')
+    lines[0] = alt
+    setCaptionInput(lines.join('\n'))
+    toast({ title: 'Gancho atualizado na 1ª linha!' })
+  }
+
+  const handleApplyCta = (cta: string) => {
+    setCaptionInput(`${captionInput.trim()}\n\n${cta}`)
+    toast({ title: 'CTA adicionada ao final da legenda!' })
+  }
 
   const handleCopyText = (txt: string, msg: string) => {
     navigator.clipboard.writeText(txt)
@@ -302,14 +372,44 @@ export function SeoTools() {
                   </div>
                 </div>
 
-                <div className="pt-2 flex justify-end">
+                <div className="pt-3 border-t border-border/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Select value={selectedTone} onValueChange={setSelectedTone}>
+                      <SelectTrigger className="h-9 text-xs w-[140px] rounded-xl bg-card">
+                        <SelectValue placeholder="Tom de voz" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SEO_TONES.map((t) => (
+                          <SelectItem key={t} value={t} className="text-xs">
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      type="button"
+                      onClick={handleApplyAiOptimization}
+                      disabled={improvingWithAi || !captionInput.trim()}
+                      className="rounded-xl text-xs h-9 px-3 bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5 shadow-xs"
+                    >
+                      {improvingWithAi ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>Aplicar Sugestão com IA</span>
+                    </Button>
+                  </div>
+
                   <Button
                     onClick={handleSaveAudit}
                     disabled={savingAudit || !captionInput.trim()}
-                    className="rounded-xl text-xs h-9 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5"
+                    variant="outline"
+                    className="rounded-xl text-xs h-9 px-4 font-bold gap-1.5"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    <span>{savingAudit ? 'Salvando...' : 'Salvar Auditoria de SEO'}</span>
+                    <span>{savingAudit ? 'Salvando...' : 'Salvar Auditoria'}</span>
                   </Button>
                 </div>
               </Card>
@@ -346,7 +446,7 @@ export function SeoTools() {
                 {/* Critérios pontuados */}
                 <div className="space-y-3">
                   {/* Hook */}
-                  <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
+                  <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Gancho da 1ª Linha
@@ -366,10 +466,31 @@ export function SeoTools() {
                     <p className="text-xs text-muted-foreground">
                       {analysis.breakdown.hook.feedback}
                     </p>
+
+                    {/* Alternativas sugeridas */}
+                    {analysis.breakdown.hook.suggestedAlternatives && (
+                      <div className="pt-1 space-y-1">
+                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block">
+                          Alternativas sugeridas para a 1ª linha:
+                        </span>
+                        {analysis.breakdown.hook.suggestedAlternatives.map((alt, i) => (
+                          <div
+                            key={i}
+                            onClick={() => handleApplyAlternativeHook(alt)}
+                            className="p-1.5 rounded-xl bg-card border border-border/70 hover:border-purple-500/40 text-[11px] text-foreground cursor-pointer flex items-center justify-between transition-colors"
+                          >
+                            <span className="truncate">"{alt}"</span>
+                            <span className="text-purple-600 font-bold text-[10px] shrink-0 ml-1">
+                              Usar
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* CTA */}
-                  <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
+                  <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                         <Bookmark className="w-3.5 h-3.5 text-purple-600" /> Chamada para Ação (CTA)
@@ -388,6 +509,27 @@ export function SeoTools() {
                     <p className="text-xs text-muted-foreground">
                       {analysis.breakdown.cta.feedback}
                     </p>
+
+                    {/* CTAs sugeridas */}
+                    {analysis.breakdown.cta.suggestedCtas && (
+                      <div className="pt-1 space-y-1">
+                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block">
+                          Exemplos de alta conversão:
+                        </span>
+                        {analysis.breakdown.cta.suggestedCtas.slice(0, 2).map((ctaEx, i) => (
+                          <div
+                            key={i}
+                            onClick={() => handleApplyCta(ctaEx)}
+                            className="p-1.5 rounded-xl bg-card border border-border/70 hover:border-purple-500/40 text-[11px] text-foreground cursor-pointer flex items-center justify-between transition-colors"
+                          >
+                            <span className="truncate">{ctaEx}</span>
+                            <span className="text-purple-600 font-bold text-[10px] shrink-0 ml-1">
+                              Inserir
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Legibilidade & Parágrafos */}

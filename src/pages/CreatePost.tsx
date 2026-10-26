@@ -686,7 +686,17 @@ export default function CreatePost() {
               />
 
               {/* Widget de SEO Social em tempo real */}
-              <PostSeoWidget caption={caption || content} network={platform} className="mt-3" />
+              <PostSeoWidget
+                caption={caption || content}
+                network={platform}
+                niche={(selectedBrand as any)?.niche || selectedBrand?.name}
+                tone={(selectedBrand as any)?.tone || 'Profissional'}
+                onApplyImprovement={(improved) => {
+                  setCaption(improved)
+                  setContent(improved)
+                }}
+                className="mt-3"
+              />
             </div>
 
             {/* Linha 4: Mídia com Upload e Preview imediato */}

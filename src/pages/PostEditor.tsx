@@ -316,7 +316,16 @@ export default function PostEditor() {
               currentPlatform={platform}
               onPlatformChange={(net) => setPlatform(net)}
             />
-            <PostSeoWidget caption={caption || content} network={platform || 'instagram'} />
+            <PostSeoWidget
+              caption={caption || content}
+              network={platform || 'instagram'}
+              niche={selectedBrand?.niche || selectedBrand?.name}
+              tone={captionTone}
+              onApplyImprovement={(improved) => {
+                setCaption(improved)
+                setContent(improved)
+              }}
+            />
           </div>
         )
       case 'media':

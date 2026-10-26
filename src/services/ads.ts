@@ -29,6 +29,22 @@ export interface AdProjections {
   ctr: number // em %
 }
 
+export interface AdDailyMetric {
+  id: string
+  campaign: string
+  user: string
+  date: string
+  impressions: number
+  reach: number
+  clicks: number
+  ctr: number
+  cpc: number
+  spent: number
+  conversions?: number
+  is_simulated?: boolean
+  created?: string
+}
+
 export interface AdCampaignRecord {
   id: string
   user: string
@@ -47,6 +63,7 @@ export interface AdCampaignRecord {
   destination_url?: string
   created: string
   updated: string
+  metrics?: AdDailyMetric[]
   expand?: {
     brand?: {
       id: string
@@ -167,4 +184,101 @@ export async function updateAdCampaign(
 
 export async function deleteAdCampaign(id: string): Promise<boolean> {
   return await pb.collection('ad_campaigns').delete(id)
+}
+
+export async function getCampaignMetrics(campaignId: string): Promise<AdDailyMetric[]> {
+  try {
+    return await pb.collection('ads_metrics').getFullList<AdDailyMetric>({
+      filter: `campaign = "${campaignId}"`,
+      sort: 'date',
+    })
+  } catch {
+    return []
+  }
+}
+
+export async function getAllAdsMetrics(): Promise<AdDailyMetric[]> {
+  try {
+    return await pb.collection('ads_metrics').getFullList<AdDailyMetric>({
+      sort: 'date',
+    })
+  } catch {
+    return []
+  }
+}
+
+export function generateDailyMetricsForCampaign(
+  campaign: AdCampaignRecord,
+  days = 7,
+): AdDailyMetric[] {
+  const dailyBudget = campaign.daily_budget || 30
+  const isPaused = campaign.status === 'pausada'
+  const isDraft = campaign.status === 'rascunho'
+  const multiplier = isPaused ? 0.3 : isDraft ? 0.1 : 1.0
+
+  const results: AdDailyMetric[] = []
+  const now = new Date()
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000)
+    const factor = (0.85 + (7 - i) * 0.05 + Math.sin(i) * 0.08) * multiplier
+    const spent = Number(Math.max(0, dailyBudget * factor).toFixed(2))
+    const baseCpm =
+      campaign.objective === 'vendas' ? 22 : campaign.objective === 'leads' ? 20 : 14.5
+    const impressions = Math.round((spent / baseCpm) * 1000)
+    const reach = Math.round(impressions * 0.78)
+    const baseCtr = campaign.objective === 'vendas' ? 1.2 : 1.5
+    const clicks = Math.round(impressions * (baseCtr / 100))
+    const cpc = clicks > 0 ? Number((spent / clicks).toFixed(2)) : 1.1
+    const conversions =
+      campaign.objective === 'vendas' || campaign.objective === 'leads'
+        ? Math.max(0, Math.round(clicks * 0.08))
+        : Math.max(0, Math.round(clicks * 0.03))
+
+    results.push({
+      id: `sim-${campaign.id}-${i}`,
+      campaign: campaign.id,
+      user: campaign.user,
+      date: d.toISOString().split('T')[0],
+      impressions,
+      reach,
+      clicks,
+      ctr: Number(baseCtr.toFixed(2)),
+      cpc,
+      spent,
+      conversions,
+      is_simulated: true,
+    })
+  }
+
+  return results
+}
+
+export async function seedMetricsIfMissing(campaign: AdCampaignRecord): Promise<AdDailyMetric[]> {
+  try {
+    const existing = await getCampaignMetrics(campaign.id)
+    if (existing.length > 0) return existing
+
+    const generated = generateDailyMetricsForCampaign(campaign, 7)
+    const authId = pb.authStore.record?.id || campaign.user
+    for (const m of generated) {
+      await pb.collection('ads_metrics').create({
+        user: authId,
+        campaign: campaign.id,
+        date: `${m.date} 12:00:00.000Z`,
+        impressions: m.impressions,
+        reach: m.reach,
+        clicks: m.clicks,
+        ctr: m.ctr,
+        cpc: m.cpc,
+        spent: m.spent,
+        conversions: m.conversions || 0,
+        is_simulated: true,
+      })
+    }
+    return await getCampaignMetrics(campaign.id)
+  } catch (err) {
+    console.warn('Fallback para métricas em memória da campanha:', err)
+    return generateDailyMetricsForCampaign(campaign, 7)
+  }
 }

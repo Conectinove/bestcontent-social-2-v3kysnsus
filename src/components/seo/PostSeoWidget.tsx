@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import {
   Sparkles,
@@ -10,20 +11,33 @@ import {
   Hash,
   MessageSquare,
   HelpCircle,
+  Wand2,
+  Loader2,
+  Check,
+  ChevronRight,
 } from 'lucide-react'
 import { analyzeCaptionSeo, type SocialNetwork } from '@/services/seo'
+import { improveText } from '@/services/ai'
+import { toast } from '@/hooks/use-toast'
 
 interface PostSeoWidgetProps {
   caption: string
   network?: string
+  niche?: string
+  tone?: string
+  onApplyImprovement?: (newCaption: string) => void
   className?: string
 }
 
 export function PostSeoWidget({
   caption,
   network = 'instagram',
+  niche,
+  tone = 'Profissional',
+  onApplyImprovement,
   className = '',
 }: PostSeoWidgetProps) {
+  const [improving, setImproving] = useState(false)
   const normNetwork = (
     ['instagram', 'tiktok', 'youtube', 'linkedin', 'facebook', 'twitter'].includes(
       network.toLowerCase(),
@@ -33,8 +47,68 @@ export function PostSeoWidget({
   ) as SocialNetwork
 
   const analysis = useMemo(() => {
-    return analyzeCaptionSeo(caption, normNetwork)
-  }, [caption, normNetwork])
+    return analyzeCaptionSeo(caption, normNetwork, niche)
+  }, [caption, normNetwork, niche])
+
+  const handleApplyAiRewrite = async () => {
+    if (!caption.trim()) {
+      toast({ title: 'Escreva um texto primeiro', variant: 'destructive' })
+      return
+    }
+
+    setImproving(true)
+    try {
+      const res = await improveText({
+        text: caption,
+        instruction: `Otimize esta legenda para SEO da rede ${normNetwork} com tom de voz ${tone}. 
+Adicione um gancho forte na primeira linha antes de "...mais", melhore a legibilidade com respiro de parágrafos, adicione uma chamada para ação clara (CTA para salvar/comentar) e inclua 3 a 5 hashtags estratégicas para o nicho ${niche || 'conteúdo'}.`,
+        tone,
+      })
+
+      if (res?.improvedText && onApplyImprovement) {
+        onApplyImprovement(res.improvedText)
+        toast({
+          title: 'Legenda otimizada para SEO!',
+          description: `Reescrita com tom ${tone}, gancho de impacto, CTA e hashtags calibradas.`,
+        })
+      }
+    } catch {
+      // Fallback inteligente caso a IA externa falhe
+      const hookAlt =
+        analysis.breakdown.hook.suggestedAlternatives?.[0] || 'Atenção para esta virada de chave:'
+      const ctaAlt =
+        analysis.breakdown.cta.suggestedCtas?.[0] || '📌 Salve para consultar quando precisar!'
+      const tagsAlt = (analysis.breakdown.hashtags.nicheSuggestions || []).slice(0, 4).join(' ')
+      const fallbackCaption = `${hookAlt}\n\n${caption}\n\n${ctaAlt}\n\n${tagsAlt}`
+
+      if (onApplyImprovement) {
+        onApplyImprovement(fallbackCaption)
+        toast({
+          title: 'Sugestões de SEO aplicadas!',
+          description: 'Gancho inicial, CTA e hashtags inseridos no texto.',
+        })
+      }
+    } finally {
+      setImproving(false)
+    }
+  }
+
+  const handleApplyAlternativeHook = (altHook: string) => {
+    if (!onApplyImprovement) return
+    const lines = caption.split('\n')
+    lines[0] = altHook
+    onApplyImprovement(lines.join('\n'))
+    toast({ title: 'Gancho atualizado na 1ª linha!' })
+  }
+
+  const handleApplyCta = (altCta: string) => {
+    if (!onApplyImprovement) return
+    const updated = `${caption.trim()}\n\n${altCta}`
+    onApplyImprovement(updated)
+    toast({ title: 'CTA adicionada à legenda!' })
+  }
+
+  const handleApplyRewriteWithTone = handleApplyAiRewrite
 
   const scoreColor =
     analysis.score >= 80
@@ -142,13 +216,60 @@ export function PostSeoWidget({
         </div>
       </div>
 
+      {/* Sugestões Rápidas de Gancho */}
+      {analysis.breakdown.hook.suggestedAlternatives &&
+        analysis.breakdown.hook.suggestedAlternatives.length > 0 &&
+        analysis.score < 85 && (
+          <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-purple-600" /> Alternativas para a 1ª Linha
+              (Gancho):
+            </span>
+            <div className="space-y-1">
+              {analysis.breakdown.hook.suggestedAlternatives.slice(0, 2).map((alt, i) => (
+                <div
+                  key={i}
+                  onClick={() => handleApplyAlternativeHook(alt)}
+                  className="p-1.5 rounded-lg bg-card/80 border border-border/60 hover:border-purple-500/50 cursor-pointer flex items-center justify-between gap-1 text-[11px] transition-colors"
+                >
+                  <span className="truncate text-foreground/90 font-medium">"{alt}"</span>
+                  <span className="text-purple-600 font-bold text-[10px] shrink-0 flex items-center">
+                    <span>Usar</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      {/* Botão de Aplicação com IA no Tom de Voz */}
+      {onApplyImprovement && (
+        <div className="pt-1">
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleApplyRewriteWithTone}
+            disabled={improving || !caption.trim()}
+            className="w-full h-8 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs gap-1.5 shadow-xs"
+          >
+            {improving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="w-3.5 h-3.5" />
+            )}
+            <span>Otimizar Legenda com IA (Tom: {tone})</span>
+          </Button>
+        </div>
+      )}
+
       {/* Dicas acionáveis se score < 80 */}
       {analysis.recommendations.length > 0 && (
-        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1">
-            <AlertTriangle className="w-3 h-3 text-amber-500" /> Sugestões para Subir o Score:
+        <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 text-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 text-amber-500" /> Recomendações:
           </span>
-          <ul className="space-y-0.5 text-[11px] text-foreground/90">
+          <ul className="space-y-0.5 text-[11px] text-foreground/80">
             {analysis.recommendations.slice(0, 2).map((rec, i) => (
               <li key={i} className="flex items-start gap-1">
                 <span className="text-purple-600 font-bold">•</span>
