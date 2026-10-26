@@ -1,17 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  Users,
-  TrendingUp,
-  Award,
-  AlertCircle,
-  Sparkles,
-  Info,
-  CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
-  ShieldAlert,
-  Flame,
   BarChart2,
+  Trophy,
+  Crown,
+  Info,
+  Layers,
+  Sparkles,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +25,32 @@ interface CompetitorAnalysisBlockProps {
   className?: string
 }
 
+const NETWORK_BUTTONS: { key: string; label: string }[] = [
+  { key: 'all', label: 'Todas as Redes' },
+  { key: 'instagram', label: 'Instagram' },
+  { key: 'facebook', label: 'Facebook' },
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'tiktok', label: 'TikTok' },
+  { key: 'whatsapp', label: 'WhatsApp' },
+  { key: 'youtube', label: 'YouTube' },
+  { key: 'twitter', label: 'Twitter / X' },
+]
+
+// Baseline estimada da marca do usuário em cada rede para comparação transparente
+const BRAND_METRICS_BY_NETWORK: Record<
+  string,
+  { followers: number; engagement: number; posts: number }
+> = {
+  all: { followers: 18400, engagement: 5.4, posts: 198 },
+  instagram: { followers: 18400, engagement: 5.4, posts: 124 },
+  facebook: { followers: 14200, engagement: 3.9, posts: 86 },
+  linkedin: { followers: 23800, engagement: 5.8, posts: 74 },
+  tiktok: { followers: 31200, engagement: 7.9, posts: 112 },
+  whatsapp: { followers: 9200, engagement: 15.1, posts: 140 },
+  youtube: { followers: 19800, engagement: 6.3, posts: 68 },
+  twitter: { followers: 15600, engagement: 5.9, posts: 215 },
+}
+
 export function CompetitorAnalysisBlock({
   brandId,
   brandName = 'Sua Marca',
@@ -42,7 +64,7 @@ export function CompetitorAnalysisBlock({
 
   useEffect(() => {
     setLoading(true)
-    getCompetitorsByBrand(brandId)
+    getCompetitorsByBrand(brandId, selectedNetwork === 'all' ? undefined : selectedNetwork)
       .then((data) => {
         setCompetitors(data && data.length > 0 ? data : FALLBACK_COMPETITORS)
       })
@@ -52,37 +74,81 @@ export function CompetitorAnalysisBlock({
       .finally(() => {
         setLoading(false)
       })
-  }, [brandId])
+  }, [brandId, selectedNetwork])
 
   const filteredCompetitors = useMemo(() => {
     if (selectedNetwork === 'all') return competitors
     return competitors.filter((c) => c.network === selectedNetwork)
   }, [competitors, selectedNetwork])
 
+  // Métricas comparativas da marca para a rede ativa
+  const currentBrandMetric = useMemo(() => {
+    const net = BRAND_METRICS_BY_NETWORK[selectedNetwork] || BRAND_METRICS_BY_NETWORK.all
+    return {
+      followers: selectedNetwork === 'all' ? myFollowers : net.followers,
+      engagement: selectedNetwork === 'all' ? myEngagementRate : net.engagement,
+      posts: net.posts,
+    }
+  }, [selectedNetwork, myFollowers, myEngagementRate])
+
   // Médias do mercado / concorrentes
   const marketAverages = useMemo(() => {
     if (filteredCompetitors.length === 0) {
-      return { avgFollowers: 25000, avgEngagement: 5.0, avgGrowth: 6.5 }
+      return { avgFollowers: 25000, avgEngagement: 5.0, avgGrowth: 6.5, avgPosts: 160 }
     }
     const sumFollowers = filteredCompetitors.reduce((acc, c) => acc + c.estimated_followers, 0)
     const sumEng = filteredCompetitors.reduce((acc, c) => acc + c.estimated_engagement_rate, 0)
     const sumGrowth = filteredCompetitors.reduce((acc, c) => acc + c.estimated_growth_rate, 0)
+    const sumPosts = filteredCompetitors.reduce((acc, c) => acc + (c.posts_count || 120), 0)
     return {
       avgFollowers: Math.round(sumFollowers / filteredCompetitors.length),
       avgEngagement: Number((sumEng / filteredCompetitors.length).toFixed(1)),
       avgGrowth: Number((sumGrowth / filteredCompetitors.length).toFixed(1)),
+      avgPosts: Math.round(sumPosts / filteredCompetitors.length),
     }
   }, [filteredCompetitors])
 
+  // Identificar quem lidera na rede (Engajamento e Seguidores)
+  const ranking = useMemo(() => {
+    const list = [
+      {
+        name: `${brandName} (Sua Marca)`,
+        isMe: true,
+        network: selectedNetwork,
+        followers: currentBrandMetric.followers,
+        engagement: currentBrandMetric.engagement,
+        posts: currentBrandMetric.posts,
+      },
+      ...filteredCompetitors.map((c) => ({
+        name: c.name,
+        isMe: false,
+        network: c.network,
+        followers: c.estimated_followers,
+        engagement: c.estimated_engagement_rate,
+        posts: c.posts_count || 140,
+      })),
+    ]
+
+    const leaderEng = [...list].sort((a, b) => b.engagement - a.engagement)[0]
+    const leaderFollowers = [...list].sort((a, b) => b.followers - a.followers)[0]
+
+    return {
+      leaderEng,
+      leaderFollowers,
+    }
+  }, [brandName, currentBrandMetric, filteredCompetitors, selectedNetwork])
+
   // Análise de liderança da marca vs concorrentes
   const leadershipHighlights = useMemo(() => {
-    const leadsEngagement = myEngagementRate >= marketAverages.avgEngagement
-    const leadsFollowers = myFollowers >= marketAverages.avgFollowers
+    const leadsEngagement = currentBrandMetric.engagement >= marketAverages.avgEngagement
+    const leadsFollowers = currentBrandMetric.followers >= marketAverages.avgFollowers
 
-    const diffEng = (myEngagementRate - marketAverages.avgEngagement).toFixed(1)
+    const diffEng = (currentBrandMetric.engagement - marketAverages.avgEngagement).toFixed(1)
     const pctDiffEng = Math.abs(
       Math.round(
-        ((myEngagementRate - marketAverages.avgEngagement) / marketAverages.avgEngagement) * 100,
+        ((currentBrandMetric.engagement - marketAverages.avgEngagement) /
+          marketAverages.avgEngagement) *
+          100,
       ),
     )
 
@@ -92,7 +158,7 @@ export function CompetitorAnalysisBlock({
       diffEng,
       pctDiffEng,
     }
-  }, [myEngagementRate, myFollowers, marketAverages])
+  }, [currentBrandMetric, marketAverages])
 
   return (
     <Card
@@ -131,9 +197,30 @@ export function CompetitorAnalysisBlock({
             variant="outline"
             className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 py-0"
           >
-            Estimativa
+            Estimativa Baseline
           </Badge>
         </div>
+      </div>
+
+      {/* Seletor de Redes Sociais */}
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
+        {NETWORK_BUTTONS.map((btn) => {
+          const active = selectedNetwork === btn.key
+          return (
+            <button
+              key={btn.key}
+              type="button"
+              onClick={() => setSelectedNetwork(btn.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                active
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              {btn.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Destaques de Liderança / Onde a marca ganha ou perde */}
@@ -151,20 +238,24 @@ export function CompetitorAnalysisBlock({
           <div className="flex items-baseline justify-between pt-1">
             <div>
               <p className="text-xl font-black text-foreground">
-                {myFollowers.toLocaleString('pt-BR')}
+                {currentBrandMetric.followers.toLocaleString('pt-BR')}
               </p>
-              <p className="text-[10px] text-muted-foreground">Base consolidada</p>
+              <p className="text-[10px] text-muted-foreground">
+                {selectedNetwork === 'all'
+                  ? 'Base consolidada'
+                  : `Seguidores no ${selectedNetwork}`}
+              </p>
             </div>
             <div className="text-right">
               <p className="text-xl font-black text-purple-600 dark:text-purple-400">
-                {myEngagementRate}%
+                {currentBrandMetric.engagement}%
               </p>
               <p className="text-[10px] text-muted-foreground">Taxa de engajamento</p>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Onde você Lidera */}
+        {/* Card 2: Onde você Lidera & Destaque de Líder */}
         <div
           className={`p-4 rounded-xl border space-y-2 ${
             leadershipHighlights.leadsEngagement
@@ -174,15 +265,23 @@ export function CompetitorAnalysisBlock({
         >
           <div className="flex items-center justify-between">
             <span
-              className={`text-[11px] font-bold uppercase tracking-wider ${
+              className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
                 leadershipHighlights.leadsEngagement
                   ? 'text-emerald-700 dark:text-emerald-300'
                   : 'text-amber-700 dark:text-amber-300'
               }`}
             >
-              {leadershipHighlights.leadsEngagement
-                ? '🔥 Liderança em Engajamento'
-                : '⚡ Oportunidade'}
+              {leadershipHighlights.leadsEngagement ? (
+                <>
+                  <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>Você Lidera em Engajamento</span>
+                </>
+              ) : (
+                <>
+                  <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Líder da Rede: {ranking.leaderEng?.name.split(' ')[0]}</span>
+                </>
+              )}
             </span>
             {leadershipHighlights.leadsEngagement ? (
               <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -192,13 +291,13 @@ export function CompetitorAnalysisBlock({
           </div>
           <p className="text-xs text-foreground font-medium pt-1">
             {leadershipHighlights.leadsEngagement
-              ? `Sua taxa de resposta está ${leadershipHighlights.diffEng}% acima da média dos concorrentes (${marketAverages.avgEngagement}%).`
-              : `Sua taxa de resposta está ${Math.abs(Number(leadershipHighlights.diffEng))}% abaixo da média de mercado (${marketAverages.avgEngagement}%).`}
+              ? `Sua taxa de resposta (${currentBrandMetric.engagement}%) supera em +${leadershipHighlights.diffEng}% a média dos concorrentes (${marketAverages.avgEngagement}%).`
+              : `Líder em engajamento é ${ranking.leaderEng?.name} com ${ranking.leaderEng?.engagement}%. Sua taxa é ${currentBrandMetric.engagement}%.`}
           </p>
           <p className="text-[10px] text-muted-foreground">
             {leadershipHighlights.leadsEngagement
-              ? 'Audiência mais ativa, fiel e propensa a conversão.'
-              : 'Intensifique chamadas para ação e enquetes para elevar a retenção.'}
+              ? 'Conteúdo com maior ressonância e retenção que os rivais mapeados.'
+              : 'Adote testes A/B de títulos e chamadas nos primeiros 3 segundos para ultrapassar o líder.'}
           </p>
         </div>
 
@@ -234,6 +333,7 @@ export function CompetitorAnalysisBlock({
               <th className="p-3 text-center">Rede</th>
               <th className="p-3 text-right">Seguidores Estimados</th>
               <th className="p-3 text-right">Taxa Engajamento</th>
+              <th className="p-3 text-center">Posts / Período</th>
               <th className="p-3 text-center">Frequência</th>
               <th className="p-3 text-right">Crescimento</th>
               <th className="p-3">Pontos Fortes Mapeados</th>
@@ -248,15 +348,23 @@ export function CompetitorAnalysisBlock({
                 <Badge className="bg-purple-600/15 text-purple-700 dark:text-purple-300 text-[9px] py-0 px-1 border-0">
                   Referência
                 </Badge>
+                {ranking.leaderEng.isMe && (
+                  <Badge className="bg-amber-500 text-white text-[9px] py-0 px-1 border-0 gap-0.5">
+                    <Crown className="w-2.5 h-2.5" /> Líder Eng.
+                  </Badge>
+                )}
               </td>
               <td className="p-3 text-center uppercase text-[10px] text-purple-600 dark:text-purple-400 font-bold">
-                Multi-rede
+                {selectedNetwork === 'all' ? 'Multi-rede' : selectedNetwork}
               </td>
               <td className="p-3 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
-                {myFollowers.toLocaleString('pt-BR')}
+                {currentBrandMetric.followers.toLocaleString('pt-BR')}
               </td>
               <td className="p-3 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
-                {myEngagementRate}%
+                {currentBrandMetric.engagement}%
+              </td>
+              <td className="p-3 text-center font-mono font-bold text-foreground">
+                {currentBrandMetric.posts}
               </td>
               <td className="p-3 text-center text-muted-foreground">Constante diária</td>
               <td className="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-bold">
@@ -269,13 +377,30 @@ export function CompetitorAnalysisBlock({
 
             {/* Linhas dos Concorrentes */}
             {filteredCompetitors.map((c) => {
-              const engHigherThanBrand = c.estimated_engagement_rate > myEngagementRate
-              const followersHigherThanBrand = c.estimated_followers > myFollowers
+              const engHigherThanBrand = c.estimated_engagement_rate > currentBrandMetric.engagement
+              const followersHigherThanBrand = c.estimated_followers > currentBrandMetric.followers
+              const isLeaderEng = ranking.leaderEng.name === c.name
+              const isLeaderFollowers = ranking.leaderFollowers.name === c.name
 
               return (
                 <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                   <td className="p-3">
-                    <p className="font-bold text-foreground">{c.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-bold text-foreground">{c.name}</p>
+                      {isLeaderEng && (
+                        <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[9px] py-0 px-1">
+                          👑 Líder Eng.
+                        </Badge>
+                      )}
+                      {isLeaderFollowers && !isLeaderEng && (
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] py-0 px-1 border-purple-500/30 text-purple-600"
+                        >
+                          Top Base
+                        </Badge>
+                      )}
+                    </div>
                     {c.handle && (
                       <span className="text-[10px] text-muted-foreground font-mono">
                         {c.handle}
@@ -291,8 +416,13 @@ export function CompetitorAnalysisBlock({
                     {c.estimated_followers.toLocaleString('pt-BR')}
                     {followersHigherThanBrand && (
                       <span className="ml-1 text-[9px] text-muted-foreground block">
-                        +{(((c.estimated_followers - myFollowers) / myFollowers) * 100).toFixed(0)}%
-                        vs você
+                        +
+                        {(
+                          ((c.estimated_followers - currentBrandMetric.followers) /
+                            currentBrandMetric.followers) *
+                          100
+                        ).toFixed(0)}
+                        % vs você
                       </span>
                     )}
                   </td>
@@ -306,6 +436,9 @@ export function CompetitorAnalysisBlock({
                     >
                       {c.estimated_engagement_rate}%
                     </span>
+                  </td>
+                  <td className="p-3 text-center font-mono text-foreground">
+                    {c.posts_count || '—'}
                   </td>
                   <td className="p-3 text-center text-muted-foreground">{c.post_frequency}</td>
                   <td className="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400">

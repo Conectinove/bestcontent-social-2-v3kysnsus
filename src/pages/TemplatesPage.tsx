@@ -16,7 +16,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { TemplateSelector, NETWORKS_CONFIG, CATEGORIES_CONFIG } from '@/components/TemplateSelector'
-import { suggestTemplates, type PostTemplate } from '@/services/post-templates'
+import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
+import { suggestTemplates, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
 import { useSocial } from '@/context/SocialContext'
 import { useEffect } from 'react'
 
@@ -24,6 +25,7 @@ export default function TemplatesPage() {
   const navigate = useNavigate()
   const { activeBrand } = useSocial()
   const [selectorOpen, setSelectorOpen] = useState(false)
+  const [whatToPostOpen, setWhatToPostOpen] = useState(false)
   const [activeNetwork, setActiveNetwork] = useState('all')
   const [featuredAiTemplates, setFeaturedAiTemplates] = useState<PostTemplate[]>([])
   const [loadingAi, setLoadingAi] = useState(false)
@@ -83,13 +85,23 @@ export default function TemplatesPage() {
           </div>
         </div>
 
-        <Button
-          onClick={() => setSelectorOpen(true)}
-          className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 px-4 gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>Abrir Catálogo Completo</span>
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Button
+            onClick={() => setWhatToPostOpen(true)}
+            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+          >
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            <span>O que postar hoje?</span>
+          </Button>
+
+          <Button
+            onClick={() => setSelectorOpen(true)}
+            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 px-4 gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Abrir Catálogo Completo</span>
+          </Button>
+        </div>
       </div>
 
       {/* Banner de Sugestões de IA para a Marca */}
@@ -204,6 +216,27 @@ export default function TemplatesPage() {
         onOpenChange={setSelectorOpen}
         onSelect={handleSelectTemplate}
         initialNetwork={activeNetwork}
+      />
+
+      {/* Modal 'O que postar hoje?' */}
+      <WhatToPostTodayModal
+        open={whatToPostOpen}
+        onOpenChange={setWhatToPostOpen}
+        brandName={activeBrand?.name || 'Sua Marca'}
+        brandNiche={(activeBrand as any)?.niche || (activeBrand as any)?.segment || 'Geral'}
+        brandTone={
+          (activeBrand as any)?.tone ||
+          (activeBrand as any)?.voice_tone ||
+          'Profissional e dinâmico'
+        }
+        network="Instagram"
+        onApplyIdea={(idea: TodayPostIdea) => {
+          navigate('/app/content/new', {
+            state: {
+              caption: `${idea.title}\n\n${idea.caption}\n\n${idea.hashtags.join(' ')}`,
+            },
+          })
+        }}
       />
     </div>
   )

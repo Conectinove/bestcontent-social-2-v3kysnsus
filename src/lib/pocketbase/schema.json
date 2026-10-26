@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T13:53:27.599Z",
+  "generatedAt": "2026-10-26T14:31:57.676Z",
   "collections": [
     {
       "name": "users",
@@ -1901,6 +1901,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "posts_count",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

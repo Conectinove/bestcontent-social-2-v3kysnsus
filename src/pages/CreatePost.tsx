@@ -41,7 +41,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { AIAssistantModal } from '@/components/AIAssistantModal'
 import { TemplateSelector } from '@/components/TemplateSelector'
-import type { PostTemplate } from '@/services/post-templates'
+import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
+import type { PostTemplate, TodayPostIdea } from '@/services/post-templates'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
@@ -137,6 +138,7 @@ export default function CreatePost() {
   const [aiModalOpen, setAiModalOpen] = useState(false)
   const [publishedPostId, setPublishedPostId] = useState<string | null>(null)
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [whatToPostOpen, setWhatToPostOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(initialTemplate)
   // Validação inline
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
@@ -453,8 +455,17 @@ export default function CreatePost() {
           </div>
         </div>
 
-        {/* Botão de seleção de template */}
-        <div className="flex items-center gap-2">
+        {/* Botão O que postar hoje? e seleção de template */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Button
+            type="button"
+            onClick={() => setWhatToPostOpen(true)}
+            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+          >
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            <span>O que postar hoje?</span>
+          </Button>
+
           <Button
             onClick={() => setTemplateOpen(true)}
             className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 px-4 gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
@@ -961,6 +972,28 @@ export default function CreatePost() {
         onOpenChange={setTemplateOpen}
         onSelect={handleTemplateSelect}
         initialNetwork={currentPlatformMeta.networkKey}
+      />
+
+      {/* Modal 'O que postar hoje?' */}
+      <WhatToPostTodayModal
+        open={whatToPostOpen}
+        onOpenChange={setWhatToPostOpen}
+        brandName={selectedBrand?.name || 'Sua Marca'}
+        brandNiche={(selectedBrand as any)?.niche || (selectedBrand as any)?.segment || 'Geral'}
+        brandTone={
+          (selectedBrand as any)?.tone ||
+          (selectedBrand as any)?.voice_tone ||
+          'Profissional e dinâmico'
+        }
+        network={platform}
+        onApplyIdea={(idea: TodayPostIdea) => {
+          setContent(idea.title)
+          setCaption(idea.caption)
+          toast({
+            title: 'Ideia aplicada com sucesso!',
+            description: `Título e legenda preenchidos com a sugestão estratégica da IA.`,
+          })
+        }}
       />
     </div>
   )
