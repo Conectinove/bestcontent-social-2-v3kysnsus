@@ -52,6 +52,30 @@ export function mapBrand(record: any): Brand {
 
 export function mapPost(record: any): Post {
   const mediaUrl = getFileUrl(record, 'media')
+
+  let parsedTags: string[] = []
+  if (record.tags) {
+    try {
+      parsedTags = typeof record.tags === 'string' ? JSON.parse(record.tags) : record.tags
+      if (!Array.isArray(parsedTags)) parsedTags = []
+    } catch {
+      parsedTags = []
+    }
+  }
+
+  let parsedTargetNetworks: string[] = []
+  if (record.target_networks) {
+    try {
+      parsedTargetNetworks =
+        typeof record.target_networks === 'string'
+          ? JSON.parse(record.target_networks)
+          : record.target_networks
+      if (!Array.isArray(parsedTargetNetworks)) parsedTargetNetworks = []
+    } catch {
+      parsedTargetNetworks = []
+    }
+  }
+
   return {
     id: record.id,
     brandId: record.brand || '',
@@ -67,6 +91,15 @@ export function mapPost(record: any): Post {
     hashtags: [],
     trendId: record.trend || undefined,
     templateId: record.template_id || undefined,
+    tags: parsedTags,
+    targetNetworks: parsedTargetNetworks,
+    width: record.width || undefined,
+    height: record.height || undefined,
+    duration: record.duration || undefined,
+    isFavorite: Boolean(record.is_favorite),
+    isArchived: Boolean(record.is_archived),
+    revisionCount: typeof record.revision_count === 'number' ? record.revision_count : 1,
+    approvalLevel: record.approval_level || undefined,
     _raw: record,
   }
 }

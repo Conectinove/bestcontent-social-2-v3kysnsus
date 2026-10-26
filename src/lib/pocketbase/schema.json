@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T10:05:28.857Z",
+  "generatedAt": "2026-10-26T10:32:18.834Z",
   "collections": [
     {
       "name": "users",
@@ -386,13 +386,63 @@
           "required": true,
           "system": false,
           "selectValues": ["draft", "scheduled", "published", "approved"]
+        },
+        {
+          "name": "tags",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_networks",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_favorite",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_archived",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "revision_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "approval_level",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_posts_user ON posts (user)",
         "CREATE INDEX idx_posts_brand ON posts (brand)",
         "CREATE INDEX idx_posts_status ON posts (status)",
-        "CREATE INDEX idx_posts_scheduled_date ON posts (scheduled_date)"
+        "CREATE INDEX idx_posts_scheduled_date ON posts (scheduled_date)",
+        "CREATE INDEX `idx_posts_favorite` ON `posts` (is_favorite)",
+        "CREATE INDEX `idx_posts_archived` ON `posts` (is_archived)"
       ]
     },
     {
@@ -1322,7 +1372,20 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["instagram", "tiktok", "linkedin", "youtube", "facebook"]
+          "selectValues": [
+            "instagram",
+            "tiktok",
+            "linkedin",
+            "youtube",
+            "facebook",
+            "twitter",
+            "threads",
+            "pinterest",
+            "whatsapp",
+            "telegram",
+            "kwai",
+            "reddit"
+          ]
         },
         {
           "name": "connected",

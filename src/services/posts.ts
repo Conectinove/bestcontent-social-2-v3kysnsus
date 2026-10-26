@@ -26,8 +26,24 @@ export async function duplicatePost(postId: string, userId: string) {
     template_id: original.template_id || '',
     duration: original.duration || 0,
     script_json: original.script_json || '',
+    tags: original.tags || '',
+    target_networks: original.target_networks || '',
+    width: original.width || 1080,
+    height: original.height || 1350,
+    is_favorite: false,
+    is_archived: false,
+    revision_count: 1,
+    approval_level: 'Nível 1 (Em Revisão)',
   }
   return pb.collection('posts').create(copyData)
+}
+
+export async function togglePostFavorite(id: string, isFavorite: boolean) {
+  return pb.collection('posts').update(id, { is_favorite: isFavorite })
+}
+
+export async function togglePostArchived(id: string, isArchived: boolean) {
+  return pb.collection('posts').update(id, { is_archived: isArchived })
 }
 
 export async function createPostFromTrend(

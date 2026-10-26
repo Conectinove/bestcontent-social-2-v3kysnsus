@@ -30,6 +30,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { useCustomization } from '@/context/CustomizationContext'
 import { TikTokIcon, YouTubeIcon } from '@/pages/CreateHub'
+import { Twitter, MessageCircle, Pin, Send, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -114,6 +115,13 @@ export default function Settings() {
     linkedin: { connected: true },
     youtube: { connected: false },
     facebook: { connected: false },
+    twitter: { connected: false },
+    threads: { connected: false },
+    pinterest: { connected: false },
+    whatsapp: { connected: false },
+    telegram: { connected: false },
+    kwai: { connected: false },
+    reddit: { connected: false },
   })
   const [loadingIntegrations, setLoadingIntegrations] = useState(false)
   const [actionLoadingNetwork, setActionLoadingNetwork] = useState<IntegrationNetwork | null>(null)
@@ -149,6 +157,13 @@ export default function Settings() {
             linkedin: { connected: false },
             youtube: { connected: false },
             facebook: { connected: false },
+            twitter: { connected: false },
+            threads: { connected: false },
+            pinterest: { connected: false },
+            whatsapp: { connected: false },
+            telegram: { connected: false },
+            kwai: { connected: false },
+            reddit: { connected: false },
           }
 
           records.forEach((rec) => {
@@ -632,6 +647,64 @@ export default function Settings() {
                         subtitle: 'Páginas comerciais, fotos, vídeos e métricas de alcance',
                         iconBg: 'bg-[#1877f2]/15 border-[#1877f2]/20 text-[#1877f2]',
                         renderIcon: () => <Facebook className="w-5 h-5 text-[#1877f2]" />,
+                      },
+                      {
+                        network: 'twitter' as IntegrationNetwork,
+                        name: 'X / Twitter API v2',
+                        subtitle: 'Posts em tempo real, threads longas e cartões de mídia',
+                        iconBg: 'bg-black/15 dark:bg-white/10 border-slate-700/30 text-foreground',
+                        renderIcon: () => <Twitter className="w-5 h-5 text-foreground" />,
+                      },
+                      {
+                        network: 'threads' as IntegrationNetwork,
+                        name: 'Threads API',
+                        subtitle: 'Microblogging Meta, textos rápidos e carrosséis com alta tração',
+                        iconBg:
+                          'bg-neutral-900/15 dark:bg-neutral-100/10 border-neutral-700/30 text-foreground',
+                        renderIcon: () => (
+                          <span className="font-black text-sm tracking-tighter">@</span>
+                        ),
+                      },
+                      {
+                        network: 'pinterest' as IntegrationNetwork,
+                        name: 'Pinterest API',
+                        subtitle: 'Pins verticais, pastas de inspiração e tráfego orgânico perene',
+                        iconBg: 'bg-[#E60023]/15 border-[#E60023]/20 text-[#E60023]',
+                        renderIcon: () => <Pin className="w-5 h-5 text-[#E60023]" />,
+                      },
+                      {
+                        network: 'whatsapp' as IntegrationNetwork,
+                        name: 'WhatsApp Business API',
+                        subtitle:
+                          'Transmissões segmentadas, status dinâmico e catálogos interativos',
+                        iconBg: 'bg-[#25D366]/15 border-[#25D366]/20 text-[#25D366]',
+                        renderIcon: () => <MessageCircle className="w-5 h-5 text-[#25D366]" />,
+                      },
+                      {
+                        network: 'telegram' as IntegrationNetwork,
+                        name: 'Telegram Bot API',
+                        subtitle: 'Canais de transmissão, bots de automação e alertas prioritários',
+                        iconBg: 'bg-[#229ED9]/15 border-[#229ED9]/20 text-[#229ED9]',
+                        renderIcon: () => <Send className="w-5 h-5 text-[#229ED9]" />,
+                      },
+                      {
+                        network: 'kwai' as IntegrationNetwork,
+                        name: 'Kwai Open Platform',
+                        subtitle: 'Vídeos curtos virais, campanhas locais e engajamento em massa',
+                        iconBg: 'bg-[#FF5000]/15 border-[#FF5000]/20 text-[#FF5000]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#FF5000]">KW</span>
+                        ),
+                      },
+                      {
+                        network: 'reddit' as IntegrationNetwork,
+                        name: 'Reddit API',
+                        subtitle:
+                          'Comunidades nichadas, debates autorais e compartilhamento de valor',
+                        iconBg: 'bg-[#FF4500]/15 border-[#FF4500]/20 text-[#FF4500]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#FF4500]">r/</span>
+                        ),
                       },
                     ].map((item) => {
                       const isConnected = Boolean(integrations[item.network]?.connected)

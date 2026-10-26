@@ -36,7 +36,11 @@ import {
   SlidersHorizontal,
   ChevronRight,
   Check,
+  Star,
+  Tag,
+  Maximize2,
 } from 'lucide-react'
+import { togglePostFavorite, togglePostArchived } from '@/services/posts'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -179,6 +183,8 @@ export default function Library() {
   const [selectedBrandFilter, setSelectedBrandFilter] = useState('active') // 'active', 'all', or specific brand ID
   const [selectedPlatform, setSelectedPlatform] = useState('all')
   const [selectedFormat, setSelectedFormat] = useState('all') // 'all', 'flyer', 'video', 'post'
+  const [selectedTag, setSelectedTag] = useState('all')
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -208,9 +214,23 @@ export default function Library() {
     const scheduled = baseList.filter((p: Post) => p.status === 'scheduled').length
     const published = baseList.filter((p: Post) => p.status === 'published').length
     const approved = baseList.filter((p: Post) => p.status === 'approved').length
+    const favorites = baseList.filter((p: Post) => Boolean(p.isFavorite)).length
 
-    return { all, drafts, scheduled, published, approved }
+    return { all, drafts, scheduled, published, approved, favorites }
   }, [posts, selectedBrandFilter, activeBrand])
+
+  // Todas as tags únicas disponíveis para filtro
+  const allAvailableTags = useMemo(() => {
+    const set = new Set<string>()
+    posts.forEach((p) => {
+      if (Array.isArray(p.tags)) {
+        p.tags.forEach((t) => {
+          if (t && typeof t === 'string' && t.trim()) set.add(t.trim().toLowerCase())
+        })
+      }
+    })
+    return Array.from(set).sort()
+  }, [posts])
 
   // Filtered posts list
   const filteredPosts = useMemo(() => {
@@ -242,6 +262,15 @@ export default function Library() {
           if (selectedFormat === 'video' && !parsed.isVideo) return false
           if (selectedFormat === 'post' && (parsed.isVideo || parsed.typeLabel === 'FLYER'))
             return false
+        }
+
+        // Only favorites filter
+        if (onlyFavorites && !post.isFavorite) return false
+
+        // Tag filter
+        if (selectedTag !== 'all') {
+          const postTags = Array.isArray(post.tags) ? post.tags.map((t) => t.toLowerCase()) : []
+          if (!postTags.includes(selectedTag.toLowerCase())) return false
         }
 
         // Search text
@@ -277,6 +306,8 @@ export default function Library() {
     activeBrand,
     selectedPlatform,
     selectedFormat,
+    selectedTag,
+    onlyFavorites,
     search,
     sortOrder,
     brands,
@@ -353,6 +384,49 @@ export default function Library() {
 
   const handleOpenEditor = (postId: string) => {
     navigate(`/app/editor/${postId}`)
+  }
+
+  const handleToggleFavorite = async (post: Post, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const nextVal = !post.isFavorite
+    setActionLoadingId(post.id)
+    try {
+      await togglePostFavorite(post.id, nextVal)
+      toast({
+        title: nextVal ? 'Adicionado aos favoritos!' : 'Removido dos favoritos',
+        description: `O post foi ${nextVal ? 'marcado com estrela' : 'desmarcado'}.`,
+      })
+      refreshPosts()
+    } catch {
+      toast({
+        title: 'Erro ao atualizar favorito',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
+  const handleToggleArchived = async (post: Post) => {
+    const nextVal = !post.isArchived
+    setActionLoadingId(post.id)
+    try {
+      await togglePostArchived(post.id, nextVal)
+      toast({
+        title: nextVal ? 'Criação arquivada' : 'Criação desarquivada',
+        description: nextVal
+          ? 'O conteúdo foi movido para o arquivo.'
+          : 'O conteúdo retornou à biblioteca principal.',
+      })
+      refreshPosts()
+    } catch {
+      toast({
+        title: 'Erro ao arquivar',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoadingId(null)
+    }
   }
 
   const statusBadgeConfig: Record<string, { label: string; badgeClass: string; dotClass: string }> =
@@ -557,6 +631,26 @@ export default function Library() {
               {counts.approved}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setOnlyFavorites((prev) => !prev)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap ${
+              onlyFavorites
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+            }`}
+          >
+            <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-white' : ''}`} />
+            <span>Favoritos</span>
+            <span
+              className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                onlyFavorites ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {counts.favorites}
+            </span>
+          </button>
         </div>
 
         {/* View Mode Switcher (Grid vs List) */}
@@ -689,6 +783,26 @@ export default function Library() {
                     Resetar
                   </button>
                 )}
+              </div>
+
+              {/* Tag Filter */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-muted-foreground">
+                  Etiqueta / Tag
+                </label>
+                <Select value={selectedTag} onValueChange={setSelectedTag}>
+                  <SelectTrigger aria-label="Selecionar Tag" className="h-8 text-xs rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as tags</SelectItem>
+                    {allAvailableTags.map((tag) => (
+                      <SelectItem key={tag} value={tag} className="capitalize">
+                        #{tag}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Format Filter */}
@@ -827,8 +941,20 @@ export default function Library() {
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40 pointer-events-none" />
 
-                  {/* Top-Right Badge: Platform + Format Type */}
+                  {/* Top-Right Badge: Platform + Format Type + Favorite Star */}
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleFavorite(post, e)}
+                      title={post.isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
+                      className="p-1.5 rounded-md bg-black/60 hover:bg-black/90 backdrop-blur-xs text-white transition-all shadow-xs"
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 ${
+                          post.isFavorite ? 'text-amber-400 fill-amber-400' : 'text-white'
+                        }`}
+                      />
+                    </button>
                     <span className="inline-flex items-center gap-1 bg-white/95 text-slate-900 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider backdrop-blur-xs">
                       {isVideo && <Film className="w-3 h-3 text-slate-900" />}
                       {typeLabel}
@@ -914,10 +1040,34 @@ export default function Library() {
                       <span className="truncate">{relativeTime}</span>
                     </div>
 
-                    <span className="text-[10px] font-mono text-muted-foreground/80 shrink-0">
-                      {ratio}
-                    </span>
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/80 shrink-0">
+                      {post.width && post.height && (
+                        <span>
+                          {post.width}x{post.height}
+                        </span>
+                      )}
+                      <span>({ratio})</span>
+                    </div>
                   </div>
+
+                  {/* Tags Pill List */}
+                  {Array.isArray(post.tags) && post.tags.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                      {post.tags.slice(0, 3).map((tag, tIdx) => (
+                        <span
+                          key={tIdx}
+                          className="text-[9px] bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium px-1.5 py-0.2 rounded-md"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                      {post.tags.length > 3 && (
+                        <span className="text-[9px] text-muted-foreground font-medium">
+                          +{post.tags.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Actions row */}
                   <div className="flex items-center justify-between gap-1 pt-1">
@@ -1001,6 +1151,13 @@ export default function Library() {
                             <span>Marcar como Publicado</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleToggleArchived(post)}
+                            className="text-xs gap-2"
+                          >
+                            <Archive className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span>{post.isArchived ? 'Desarquivar' : 'Arquivar'}</span>
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeleteCandidate(post)}
                             className="text-xs gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
@@ -1186,8 +1343,8 @@ export default function Library() {
                     </div>
                   </div>
 
-                  {/* Brand & Timing & Template */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-muted/40 p-3.5 rounded-xl border border-border/60">
+                  {/* Brand & Timing & Template & Approval */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-muted/40 p-3.5 rounded-xl border border-border/60">
                     <div>
                       <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
                         Marca
@@ -1198,23 +1355,71 @@ export default function Library() {
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
-                        Criado em
+                        Dimensões / Resolução
                       </span>
                       <span className="font-bold text-foreground">
-                        {viewPost._raw?.created
-                          ? new Date(viewPost._raw.created).toLocaleString('pt-BR')
-                          : 'Recentemente'}
+                        {viewPost.width && viewPost.height
+                          ? `${viewPost.width}x${viewPost.height} px`
+                          : ratio}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
-                        Modelo Aplicado
+                        Nível de Aprovação
                       </span>
                       <span className="font-bold text-purple-600 dark:text-purple-400">
-                        {viewPost.templateId || viewPost._raw?.template_id
-                          ? 'Sim (Vinculado)'
-                          : 'Personalizado'}
+                        {viewPost.approvalLevel ||
+                          (viewPost.status === 'approved'
+                            ? 'Nível 2 (Aprovado)'
+                            : 'Nível 1 (Em Revisão)')}
                       </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
+                        Revisões Registradas
+                      </span>
+                      <span className="font-bold text-foreground">
+                        {viewPost.revisionCount || 1}ª versão
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tags e Redes de Destino */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-card border border-border/70 rounded-xl text-xs">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Tag className="w-3.5 h-3.5 text-purple-600" />
+                      <span className="font-semibold text-muted-foreground text-[11px]">Tags:</span>
+                      {Array.isArray(viewPost.tags) && viewPost.tags.length > 0 ? (
+                        viewPost.tags.map((t, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-[10px] px-2 py-0">
+                            #{t}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground text-[11px]">Nenhuma tag</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-muted-foreground text-[11px]">
+                        Redes de Destino:
+                      </span>
+                      {Array.isArray(viewPost.targetNetworks) &&
+                      viewPost.targetNetworks.length > 0 ? (
+                        viewPost.targetNetworks.map((net, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="text-[10px] capitalize px-2 py-0 border-purple-500/30"
+                          >
+                            {net}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {viewPost.platform}
+                        </Badge>
+                      )}
                     </div>
                   </div>
 

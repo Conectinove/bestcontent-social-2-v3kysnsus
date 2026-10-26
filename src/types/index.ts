@@ -49,6 +49,15 @@ export interface Post {
   hashtags: string[]
   trendId?: string
   templateId?: string
+  tags?: string[]
+  targetNetworks?: string[]
+  width?: number
+  height?: number
+  duration?: number
+  isFavorite?: boolean
+  isArchived?: boolean
+  revisionCount?: number
+  approvalLevel?: string
   _raw?: any
 }
 
@@ -183,7 +192,19 @@ export interface PostTemplateRecord {
   updated: string
 }
 
-export type IntegrationNetwork = 'instagram' | 'tiktok' | 'linkedin' | 'youtube' | 'facebook'
+export type IntegrationNetwork =
+  | 'instagram'
+  | 'tiktok'
+  | 'linkedin'
+  | 'youtube'
+  | 'facebook'
+  | 'twitter'
+  | 'threads'
+  | 'pinterest'
+  | 'whatsapp'
+  | 'telegram'
+  | 'kwai'
+  | 'reddit'
 
 export interface UserIntegrationRecord {
   id: string

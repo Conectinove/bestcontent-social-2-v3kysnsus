@@ -115,6 +115,15 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       template_id: raw?.template_id || '',
       duration: raw?.duration || 0,
       script_json: raw?.script_json || '',
+      tags: raw?.tags || JSON.stringify(original?.tags || ['geral']),
+      target_networks:
+        raw?.target_networks || JSON.stringify(original?.targetNetworks || ['instagram']),
+      width: original?.width || 1080,
+      height: original?.height || 1350,
+      is_favorite: false,
+      is_archived: false,
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
     }
     const created = await svcCreatePost(copyData)
     loadAll()
