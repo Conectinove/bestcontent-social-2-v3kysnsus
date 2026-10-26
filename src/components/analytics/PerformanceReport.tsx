@@ -75,7 +75,8 @@ export function PerformanceReport({
   // Para compatibilidade com componentes que recebem um único brandId
   const primaryBrandId =
     selectedBrandIds.includes('all') || selectedBrandIds.length === 0 ? 'all' : selectedBrandIds[0]
-  const currentBrandObj = brands.find((b) => b.id === primaryBrandId)
+  const currentBrandObj =
+    primaryBrandId === 'all' ? brands[0] : brands.find((b) => b.id === primaryBrandId)
   const currentBrandName = currentBrandObj?.name || 'Sua Marca'
 
   // Período real: 7/30/90 dias ou tudo — filtra pela data de criação do post
@@ -177,9 +178,14 @@ export function PerformanceReport({
     return { topTags, topFormats }
   }, [filteredPosts])
 
-  // Desempenho por Marca (respeitando o período selecionado)
+  // Desempenho por Marca (respeitando as marcas selecionadas e o período)
   const brandMetrics = useMemo(() => {
-    return brands
+    const targetBrands =
+      selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+        ? brands
+        : brands.filter((b) => selectedBrandIds.includes(b.id))
+
+    return targetBrands
       .map((b) => {
         const bPosts = filteredPosts.filter((p) => p.brandId === b.id)
         const pub = bPosts.filter((p) => p.status === 'published').length
@@ -488,10 +494,33 @@ export function PerformanceReport({
         String(b.approved),
         `${b.approvalRate}%`,
       ])
+      csvParts.push(['--- DESEMPENHO POR MARCA ---', '', '', '', '', '', ''], headers, ...rows, [
+        '',
+      ])
+    }
+
+    if (reportSections.competitors) {
       csvParts.push(
-        ['--- DESEMPENHO POR MARCA ---', '', '', '', '', '', ''],
-        headers,
-        ...rows,
+        ['--- ANÁLISE DE CONCORRENTES & MERCADO ---', '', '', '', '', '', ''],
+        ['Aviso: Dados de concorrentes são estimativas baseline até conexão de API oficial'],
+        [
+          'Marca Analisada (Você)',
+          currentBrandName,
+          'Base: 18.400 seguidores (est)',
+          'Engajamento: 5.4%',
+          '',
+          '',
+          '',
+        ],
+        [''],
+      )
+    }
+
+    if (reportSections.audience) {
+      csvParts.push(
+        ['--- ANÁLISE DE AUDIÊNCIA & DEMOGRAFIA ---', '', '', '', '', '', ''],
+        ['Aviso: Projeções demográficas baseline até autorização de credenciais oficiais'],
+        ['Escopo Audiência', currentBrandName, `Período: ${selectedPeriod}`, '', '', '', ''],
         [''],
       )
     }
@@ -575,7 +604,11 @@ export function PerformanceReport({
       const abHeaders = ['Experimento ID', 'Status', 'Objetivo', 'Vencedor', '', '', '']
       const abRows = abTests.map((t, idx) => [
         `"Teste #${idx + 1}"`,
-        t.status === 'running' ? 'Em andamento' : t.status === 'completed' ? 'Concluído' : 'Rascunho',
+        t.status === 'running'
+          ? 'Em andamento'
+          : t.status === 'completed'
+            ? 'Concluído'
+            : 'Rascunho',
         t.goal === 'clicks' ? 'Cliques' : 'Conversões',
         t.winner ? 'Vencedor Definido' : 'Pendente',
         '',
@@ -587,9 +620,7 @@ export function PerformanceReport({
 
     const csvContent =
       '\uFEFF' + // UTF-8 BOM
-      csvParts
-        .map((e) => e.join(';'))
-        .join('\n')
+      csvParts.map((e) => e.join(';')).join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -787,9 +818,30 @@ export function PerformanceReport({
         </p>
         <p style="font-size: 12px; color: #475569; margin: 4px 0;">
           <strong>Top Formatos:</strong> ${
-            topTagsAndFormats.topFormats.map((f) => `${f.format} (${f.count})`).join(', ') || 'Nenhum'
+            topTagsAndFormats.topFormats.map((f) => `${f.format} (${f.count})`).join(', ') ||
+            'Nenhum'
           }
         </p>`
+      : ''
+
+    const competitorsSectionHtml = reportSections.competitors
+      ? `<h2>Análise de Concorrentes & Inteligência Competitiva</h2>
+        <p style="font-size: 12px; color: #475569; margin: 4px 0 8px;">
+          <strong>Marca de Referência:</strong> ${currentBrandName} · Comparativo com principais players do segmento.
+        </p>
+        <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 10px; font-size: 11px; color: #6b21a8; margin-bottom: 12px;">
+          <strong>Aviso de Estimativa:</strong> Dados de concorrentes são estimativas baseline calibradas por inteligência de mercado até conexão direta de APIs sociais oficiais.
+        </div>`
+      : ''
+
+    const audienceSectionHtml = reportSections.audience
+      ? `<h2>Análise Demográfica & Comportamento de Audiência</h2>
+        <p style="font-size: 12px; color: #475569; margin: 4px 0 8px;">
+          <strong>Escopo de Audiência:</strong> ${currentBrandName} · Período: ${selectedPeriod}
+        </p>
+        <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 10px; font-size: 11px; color: #6b21a8; margin-bottom: 12px;">
+          <strong>Aviso de Estimativa:</strong> Indicadores de audiência (faixa etária, gênero, cidades e horários de pico) são projeções baseline calculadas por inteligência artificial até conexão das APIs de servidor.
+        </div>`
       : ''
 
     const html = `<!DOCTYPE html>
@@ -829,6 +881,8 @@ export function PerformanceReport({
 
   ${kpiSectionHtml}
   ${brandsSectionHtml}
+  ${competitorsSectionHtml}
+  ${audienceSectionHtml}
   ${networksSectionHtml}
   ${topPostsSectionHtml}
   ${tagsFormatsSectionHtml}
@@ -970,482 +1024,487 @@ export function PerformanceReport({
 
       {/* Resumo Executivo / KPIs Consolidados */}
       {reportSections.kpis && (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Total de Criações</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <Layers className="w-4 h-4" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card p-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground">Total de Criações</span>
+              <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <Layers className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <p className="text-2xl font-black text-foreground mt-2">{statusStats.total}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Posts e mídias no escopo</p>
-        </Card>
+            <p className="text-2xl font-black text-foreground mt-2">{statusStats.total}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Posts e mídias no escopo</p>
+          </Card>
 
-        <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-emerald-500/10 via-card to-card p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Publicados & Ativos</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
+          <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-emerald-500/10 via-card to-card p-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Publicados & Ativos
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <p className="text-2xl font-black text-foreground mt-2">{statusStats.published}</p>
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">
-            Entregues na ponta final
-          </p>
-        </Card>
+            <p className="text-2xl font-black text-foreground mt-2">{statusStats.published}</p>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">
+              Entregues na ponta final
+            </p>
+          </Card>
 
-        <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-blue-500/10 via-card to-card p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">
-              Agendados no Calendário
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
+          <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-blue-500/10 via-card to-card p-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Agendados no Calendário
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Clock className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <p className="text-2xl font-black text-foreground mt-2">{statusStats.scheduled}</p>
-          <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-0.5 font-medium">
-            Prontos para publicação
-          </p>
-        </Card>
+            <p className="text-2xl font-black text-foreground mt-2">{statusStats.scheduled}</p>
+            <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-0.5 font-medium">
+              Prontos para publicação
+            </p>
+          </Card>
 
-        <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-amber-500/10 via-card to-card p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">
-              Taxa de Aprovação Média
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
+          <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-amber-500/10 via-card to-card p-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Taxa de Aprovação Média
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <p className="text-2xl font-black text-foreground mt-2">{statusStats.approvalRate}%</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {approvalTiming.avgHours !== null
-              ? `Tempo médio: ~${approvalTiming.avgHours < 1 ? '< 1h' : `${Math.round(approvalTiming.avgHours)}h`}`
-              : 'Fluxo em revisão'}
-          </p>
-        </Card>
-      </div>
+            <p className="text-2xl font-black text-foreground mt-2">{statusStats.approvalRate}%</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {approvalTiming.avgHours !== null
+                ? `Tempo médio: ~${approvalTiming.avgHours < 1 ? '< 1h' : `${Math.round(approvalTiming.avgHours)}h`}`
+                : 'Fluxo em revisão'}
+            </p>
+          </Card>
+        </div>
       )}
 
       {/* Top Tags & Formatos mais usados na biblioteca */}
       {reportSections.tagsFormats && (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="rounded-2xl border-border bg-card p-4 shadow-xs">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/60">
-            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-              Top Tags Mais Usadas ({selectedPeriod})
-            </h4>
-            <span className="text-[10px] text-muted-foreground font-mono">Frequência</span>
-          </div>
-          {topTagsAndFormats.topTags.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">
-              Nenhuma tag cadastrada nos posts do período.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {topTagsAndFormats.topTags.map((item) => (
-                <Badge
-                  key={item.tag}
-                  variant="secondary"
-                  className="bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold text-xs px-2.5 py-1 rounded-xl border border-purple-500/20"
-                >
-                  #{item.tag}
-                  <span className="ml-1.5 bg-purple-600/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">
-                    {item.count}
-                  </span>
-                </Badge>
-              ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="rounded-2xl border-border bg-card p-4 shadow-xs">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/60">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                Top Tags Mais Usadas ({selectedPeriod})
+              </h4>
+              <span className="text-[10px] text-muted-foreground font-mono">Frequência</span>
             </div>
-          )}
-        </Card>
-
-        <Card className="rounded-2xl border-border bg-card p-4 shadow-xs">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/60">
-            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-purple-600" />
-              Top Formatos na Biblioteca
-            </h4>
-            <span className="text-[10px] text-muted-foreground font-mono">Criações</span>
-          </div>
-          {topTagsAndFormats.topFormats.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">Nenhum formato encontrado.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {topTagsAndFormats.topFormats.map((f) => (
-                <div
-                  key={f.format}
-                  className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-muted/40"
-                >
-                  <span className="font-semibold text-foreground">{f.format}</span>
-                  <Badge variant="outline" className="font-mono text-[10px]">
-                    {f.count} {f.count === 1 ? 'post' : 'posts'}
+            {topTagsAndFormats.topTags.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">
+                Nenhuma tag cadastrada nos posts do período.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {topTagsAndFormats.topTags.map((item) => (
+                  <Badge
+                    key={item.tag}
+                    variant="secondary"
+                    className="bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold text-xs px-2.5 py-1 rounded-xl border border-purple-500/20"
+                  >
+                    #{item.tag}
+                    <span className="ml-1.5 bg-purple-600/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                      {item.count}
+                    </span>
                   </Badge>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="rounded-2xl border-border bg-card p-4 shadow-xs">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/60">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-purple-600" />
+                Top Formatos na Biblioteca
+              </h4>
+              <span className="text-[10px] text-muted-foreground font-mono">Criações</span>
             </div>
-          )}
-        </Card>
-      </div>
+            {topTagsAndFormats.topFormats.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">Nenhum formato encontrado.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {topTagsAndFormats.topFormats.map((f) => (
+                  <div
+                    key={f.format}
+                    className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-muted/40"
+                  >
+                    <span className="font-semibold text-foreground">{f.format}</span>
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      {f.count} {f.count === 1 ? 'post' : 'posts'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
       )}
 
       {/* Grid de 2 Colunas: Desempenho por Marca & Evolução Temporal */}
-      {reportSections.brands && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Desempenho por Marca */}
-        <Card className="rounded-2xl border-border bg-card p-5 shadow-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <h3 className="text-sm font-bold text-foreground">Desempenho por Marca</h3>
-            </div>
-            <Badge variant="outline" className="text-[10px]">
-              {brandMetrics.length} marcas
-            </Badge>
-          </div>
+      {(reportSections.brands || reportSections.timeline) && (
+        <div
+          className={`grid grid-cols-1 ${reportSections.brands && reportSections.timeline ? 'lg:grid-cols-2' : ''} gap-6`}
+        >
+          {/* Desempenho por Marca */}
+          {reportSections.brands && (
+            <Card className="rounded-2xl border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <h3 className="text-sm font-bold text-foreground">Desempenho por Marca</h3>
+                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  {brandMetrics.length} marcas
+                </Badge>
+              </div>
 
-          <div className="space-y-3.5">
-            {brandMetrics.map((b) => (
-              <div
-                key={b.id}
-                className="p-3.5 rounded-xl bg-muted/30 border border-border/60 hover:border-purple-500/30 transition-all space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: b.color }}
-                    />
-                    <span className="text-xs font-bold text-foreground">{b.name}</span>
+              <div className="space-y-3.5">
+                {brandMetrics.map((b) => (
+                  <div
+                    key={b.id}
+                    className="p-3.5 rounded-xl bg-muted/30 border border-border/60 hover:border-purple-500/30 transition-all space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: b.color }}
+                        />
+                        <span className="text-xs font-bold text-foreground">{b.name}</span>
+                      </div>
+                      <Badge className="bg-purple-600/15 text-purple-700 dark:text-purple-300 border-0 text-[10px] font-bold">
+                        {b.approvalRate}% aprovado
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2 text-center pt-1 text-[11px]">
+                      <div className="bg-card p-1.5 rounded-lg border border-border/40">
+                        <p className="text-muted-foreground text-[10px]">Total</p>
+                        <p className="font-bold text-foreground">{b.total}</p>
+                      </div>
+                      <div className="bg-card p-1.5 rounded-lg border border-border/40">
+                        <p className="text-emerald-600 dark:text-emerald-400 text-[10px]">
+                          Publicados
+                        </p>
+                        <p className="font-bold text-foreground">{b.published}</p>
+                      </div>
+                      <div className="bg-card p-1.5 rounded-lg border border-border/40">
+                        <p className="text-blue-600 dark:text-blue-400 text-[10px]">Agendados</p>
+                        <p className="font-bold text-foreground">{b.scheduled}</p>
+                      </div>
+                      <div className="bg-card p-1.5 rounded-lg border border-border/40">
+                        <p className="text-amber-600 dark:text-amber-400 text-[10px]">Rascunhos</p>
+                        <p className="font-bold text-foreground">{b.draft}</p>
+                      </div>
+                    </div>
                   </div>
-                  <Badge className="bg-purple-600/15 text-purple-700 dark:text-purple-300 border-0 text-[10px] font-bold">
-                    {b.approvalRate}% aprovado
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Evolução no Tempo (Últimos 30 dias) */}
+          {reportSections.timeline && (
+            <Card className="rounded-2xl border-border bg-card p-5 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <h3 className="text-sm font-bold text-foreground">
+                      Evolução no Tempo ({selectedPeriod === 'all' ? 'Histórico' : selectedPeriod})
+                    </h3>
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] bg-purple-500/10 text-purple-600"
+                  >
+                    Semanal
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 text-center pt-1 text-[11px]">
-                  <div className="bg-card p-1.5 rounded-lg border border-border/40">
-                    <p className="text-muted-foreground text-[10px]">Total</p>
-                    <p className="font-bold text-foreground">{b.total}</p>
-                  </div>
-                  <div className="bg-card p-1.5 rounded-lg border border-border/40">
-                    <p className="text-emerald-600 dark:text-emerald-400 text-[10px]">Publicados</p>
-                    <p className="font-bold text-foreground">{b.published}</p>
-                  </div>
-                  <div className="bg-card p-1.5 rounded-lg border border-border/40">
-                    <p className="text-blue-600 dark:text-blue-400 text-[10px]">Agendados</p>
-                    <p className="font-bold text-foreground">{b.scheduled}</p>
-                  </div>
-                  <div className="bg-card p-1.5 rounded-lg border border-border/40">
-                    <p className="text-amber-600 dark:text-amber-400 text-[10px]">Rascunhos</p>
-                    <p className="font-bold text-foreground">{b.draft}</p>
-                  </div>
+                <div className="space-y-4 pt-1">
+                  {timelineData.map((bucket, idx) => {
+                    const maxCount = Math.max(...timelineData.map((d) => d.count), 1)
+                    const pct = Math.round((bucket.count / maxCount) * 100)
+                    return (
+                      <div key={idx} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-foreground">{bucket.label}</span>
+                          <span className="text-muted-foreground text-[11px]">
+                            {bucket.count} posts ({bucket.published} publicados, {bucket.scheduled}{' '}
+                            agendados)
+                          </span>
+                        </div>
+                        <div className="w-full h-3 rounded-full bg-muted overflow-hidden flex">
+                          <div
+                            className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.max(pct, 6)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
-            ))}
-          </div>
-        </Card>
 
-        {/* Evolução no Tempo (Últimos 30 dias) */}
-        <Card className="rounded-2xl border-border bg-card p-5 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <h3 className="text-sm font-bold text-foreground">
-                  Evolução no Tempo (Últimos 30 dias)
-                </h3>
+              <div className="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20 text-xs text-muted-foreground mt-4">
+                <p className="font-semibold text-foreground text-[11px] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Ritmo de Publicação Saudável
+                </p>
+                <p className="text-[11px] mt-0.5">
+                  A média semanal de conteúdos criados e agendados garante consistência nos
+                  algoritmos e mantém o engajamento orgânico contínuo.
+                </p>
               </div>
-              <Badge variant="secondary" className="text-[10px] bg-purple-500/10 text-purple-600">
-                Semanal
-              </Badge>
-            </div>
-
-            <div className="space-y-4 pt-1">
-              {timelineData.map((bucket, idx) => {
-                const maxCount = Math.max(...timelineData.map((d) => d.count), 1)
-                const pct = Math.round((bucket.count / maxCount) * 100)
-                return (
-                  <div key={idx} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-foreground">{bucket.label}</span>
-                      <span className="text-muted-foreground text-[11px]">
-                        {bucket.count} posts ({bucket.published} publicados, {bucket.scheduled}{' '}
-                        agendados)
-                      </span>
-                    </div>
-                    <div className="w-full h-3 rounded-full bg-muted overflow-hidden flex">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(pct, 6)}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20 text-xs text-muted-foreground mt-4">
-            <p className="font-semibold text-foreground text-[11px] flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Ritmo de Publicação Saudável
-            </p>
-            <p className="text-[11px] mt-0.5">
-              A média semanal de conteúdos criados e agendados garante consistência nos algoritmos e
-              mantém o engajamento orgânico contínuo.
-            </p>
-          </div>
-        </Card>
-      </div>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Bloco de Análise de Concorrentes: Comparativo Marca vs Concorrentes */}
       {reportSections.competitors && (
         <CompetitorAnalysisBlock
-          brandId={
-            selectedBrandIds.includes('all') || selectedBrandIds.length === 0
-              ? (brands[0]?.id || '')
-              : selectedBrandIds[0]
-          }
-          brandName={
-            selectedBrandIds.includes('all') || selectedBrandIds.length === 0
-              ? (brands[0]?.name || 'Marca Principal')
-              : (brands.find((b) => b.id === selectedBrandIds[0])?.name || 'Sua Marca')
-          }
+          brandId={primaryBrandId === 'all' ? brands[0]?.id || '' : primaryBrandId}
+          brandName={currentBrandName}
         />
       )}
 
       {/* Bloco 3: Análise de Audiência e Demografia com Seletor de Rede e Painéis */}
       {reportSections.audience && (
-        <AudienceAnalysisBlock
-          brandId={
-            selectedBrandIds.includes('all') || selectedBrandIds.length === 0
-              ? 'all'
-              : selectedBrandIds[0]
-          }
-          selectedPeriod={selectedPeriod}
-        />
+        <AudienceAnalysisBlock brandId={primaryBrandId} selectedPeriod={selectedPeriod} />
       )}
-
       {/* Top Posts Ranking por Engajamento Estimado */}
       {reportSections.topPosts && (
-      <Card className="rounded-2xl border-border bg-card p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/80">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-              <Trophy className="w-4 h-4 text-amber-500" />
+        <Card className="rounded-2xl border-border bg-card p-5 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/80">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                <Trophy className="w-4 h-4 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <span>Top Posts: Melhores Desempenhos</span>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] bg-purple-500/10 text-purple-600"
+                  >
+                    Ranking por Engajamento
+                  </Badge>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Posts com maior retenção e taxa de resposta no período filtrado (
+                  {selectedPeriod === 'all' ? 'Todo o histórico' : selectedPeriod}).
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <span>Top Posts: Melhores Desempenhos</span>
-                <Badge variant="secondary" className="text-[10px] bg-purple-500/10 text-purple-600">
-                  Ranking por Engajamento
-                </Badge>
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Posts com maior retenção e taxa de resposta no período filtrado (
-                {selectedPeriod === 'all' ? 'Todo o histórico' : selectedPeriod}).
+            <span className="text-[11px] text-muted-foreground font-mono">
+              {topPostsRanking.length} em destaque
+            </span>
+          </div>
+
+          {topPostsRanking.length === 0 ? (
+            <div className="py-8 text-center text-xs text-muted-foreground space-y-1">
+              <p>Nenhum post publicado com métricas para este filtro.</p>
+              <p className="text-[11px]">
+                Publique conteúdos ou altere o filtro de período para visualizar o ranking.
               </p>
             </div>
-          </div>
-          <span className="text-[11px] text-muted-foreground font-mono">
-            {topPostsRanking.length} em destaque
-          </span>
-        </div>
-
-        {topPostsRanking.length === 0 ? (
-          <div className="py-8 text-center text-xs text-muted-foreground space-y-1">
-            <p>Nenhum post publicado com métricas para este filtro.</p>
-            <p className="text-[11px]">
-              Publique conteúdos ou altere o filtro de período para visualizar o ranking.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {topPostsRanking.map(({ post, metric }, idx) => (
-              <div
-                key={post.id}
-                className="p-3.5 rounded-xl bg-muted/30 border border-border/70 hover:border-purple-500/40 hover:bg-muted/50 transition-all flex flex-col justify-between space-y-3"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shadow-2xs">
-                      #{idx + 1}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] capitalize">
-                      {post.platform || 'Instagram'}
-                    </Badge>
-                  </div>
-                  <h4 className="text-xs font-bold text-foreground line-clamp-2">
-                    {post.content || post.caption || 'Sem título'}
-                  </h4>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-border/50">
-                  <div className="grid grid-cols-3 gap-1 text-center">
-                    <div className="p-1 rounded bg-card border border-border/40">
-                      <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
-                        <Eye className="w-2.5 h-2.5 text-purple-500" /> Alcance
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {topPostsRanking.map(({ post, metric }, idx) => (
+                <div
+                  key={post.id}
+                  className="p-3.5 rounded-xl bg-muted/30 border border-border/70 hover:border-purple-500/40 hover:bg-muted/50 transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shadow-2xs">
+                        #{idx + 1}
                       </span>
-                      <span className="text-xs font-bold text-foreground">
-                        {metric.alcance >= 1000
-                          ? `${(metric.alcance / 1000).toFixed(1)}k`
-                          : metric.alcance}
-                      </span>
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {post.platform || 'Instagram'}
+                      </Badge>
                     </div>
-
-                    <div className="p-1 rounded bg-card border border-border/40">
-                      <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
-                        <Heart className="w-2.5 h-2.5 text-emerald-500" /> Interações
-                      </span>
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        {metric.engajamento}
-                      </span>
-                    </div>
-
-                    <div className="p-1 rounded bg-card border border-border/40">
-                      <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
-                        <Bookmark className="w-2.5 h-2.5 text-pink-500" /> Salvos
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        {metric.salvamentos}
-                      </span>
-                    </div>
+                    <h4 className="text-xs font-bold text-foreground line-clamp-2">
+                      {post.content || post.caption || 'Sem título'}
+                    </h4>
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-purple-600 dark:text-purple-400">
-                      Taxa: {metric.taxa_engajamento}%
-                    </span>
-                    {metric.is_simulated && (
-                      <span className="text-[9px] text-muted-foreground uppercase">
-                        Estimativa Baseline
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <div className="grid grid-cols-3 gap-1 text-center">
+                      <div className="p-1 rounded bg-card border border-border/40">
+                        <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
+                          <Eye className="w-2.5 h-2.5 text-purple-500" /> Alcance
+                        </span>
+                        <span className="text-xs font-bold text-foreground">
+                          {metric.alcance >= 1000
+                            ? `${(metric.alcance / 1000).toFixed(1)}k`
+                            : metric.alcance}
+                        </span>
+                      </div>
+
+                      <div className="p-1 rounded bg-card border border-border/40">
+                        <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
+                          <Heart className="w-2.5 h-2.5 text-emerald-500" /> Interações
+                        </span>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          {metric.engajamento}
+                        </span>
+                      </div>
+
+                      <div className="p-1 rounded bg-card border border-border/40">
+                        <span className="text-[9px] text-muted-foreground block flex items-center justify-center gap-0.5">
+                          <Bookmark className="w-2.5 h-2.5 text-pink-500" /> Salvos
+                        </span>
+                        <span className="text-xs font-bold text-foreground">
+                          {metric.salvamentos}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="font-bold text-purple-600 dark:text-purple-400">
+                        Taxa: {metric.taxa_engajamento}%
                       </span>
-                    )}
+                      {metric.is_simulated && (
+                        <span className="text-[9px] text-muted-foreground uppercase">
+                          Estimativa Baseline
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      </Card>
+              ))}
+            </div>
+          )}
+        </Card>
       )}
 
       {/* Desempenho por Rede Social & Testes A/B */}
       {(reportSections.networks || reportSections.abTests) && (
-      <div className={`grid grid-cols-1 ${reportSections.networks && reportSections.abTests ? 'lg:grid-cols-2' : ''} gap-6`}>
-        {/* Desempenho por Rede Social */}
-        {reportSections.networks && (
-        <Card className="rounded-2xl border-border bg-card p-5 shadow-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
-            <div className="flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <h3 className="text-sm font-bold text-foreground">Desempenho por Rede Social</h3>
-            </div>
-            <span className="text-xs text-muted-foreground">Distribuição</span>
-          </div>
-
-          <div className="space-y-2.5">
-            {networkMetrics.map((item) => (
-              <div
-                key={item.name}
-                className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/60 hover:bg-muted/70 transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs font-bold text-foreground">{item.name}</span>
+        <div
+          className={`grid grid-cols-1 ${reportSections.networks && reportSections.abTests ? 'lg:grid-cols-2' : ''} gap-6`}
+        >
+          {/* Desempenho por Rede Social */}
+          {reportSections.networks && (
+            <Card className="rounded-2xl border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+                <div className="flex items-center gap-2">
+                  <Share2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <h3 className="text-sm font-bold text-foreground">Desempenho por Rede Social</h3>
                 </div>
-
-                <div className="flex items-center gap-2.5 text-xs">
-                  <span className="text-muted-foreground hidden sm:inline">
-                    <strong className="text-foreground">{item.count}</strong> total
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] text-emerald-600 dark:text-emerald-400"
-                  >
-                    {item.published} pub
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px] text-blue-600 dark:text-blue-400">
-                    {item.scheduled} agend
-                  </Badge>
-                  <span className="font-mono font-bold text-purple-600 dark:text-purple-400 text-[11px] bg-purple-500/10 px-2 py-0.5 rounded-md">
-                    {item.avgRate}% engaj.
-                  </span>
-                </div>
+                <span className="text-xs text-muted-foreground">Distribuição</span>
               </div>
-            ))}
-          </div>
-        </Card>
-        )}
 
-        {/* Resultados dos Testes A/B */}
-        {reportSections.abTests && (
-        <Card className="rounded-2xl border-border bg-card p-5 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-amber-500" />
-                <h3 className="text-sm font-bold text-foreground">Resultados dos Testes A/B</h3>
-              </div>
-              <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-600">
-                {abTests.length} experimentos
-              </Badge>
-            </div>
-
-            {abTests.length === 0 ? (
-              <div className="text-center py-8 text-xs text-muted-foreground space-y-2">
-                <p>Nenhum teste A/B cadastrado no momento.</p>
-                <p className="text-[11px]">
-                  Crie um experimento no Dashboard para comparar variações.
-                </p>
-              </div>
-            ) : (
               <div className="space-y-2.5">
-                {abTests.map((test, idx) => (
+                {networkMetrics.map((item) => (
                   <div
-                    key={test.id}
-                    className="p-3 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between text-xs"
+                    key={item.name}
+                    className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/60 hover:bg-muted/70 transition-colors"
                   >
-                    <div>
-                      <p className="font-bold text-foreground">Experimento #{idx + 1}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Meta: {test.goal === 'clicks' ? 'Cliques' : 'Conversões'} ·{' '}
-                        {test.status === 'running'
-                          ? 'Em andamento'
-                          : test.status === 'completed'
-                            ? 'Concluído'
-                            : 'Rascunho'}
-                      </p>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs font-bold text-foreground">{item.name}</span>
                     </div>
 
-                    <div>
-                      {test.winner ? (
-                        <Badge className="bg-amber-500 text-white text-[10px] gap-1 border-0">
-                          <Trophy className="w-3 h-3" /> Vencedor Definido
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                          Em avaliação
-                        </Badge>
-                      )}
+                    <div className="flex items-center gap-2.5 text-xs">
+                      <span className="text-muted-foreground hidden sm:inline">
+                        <strong className="text-foreground">{item.count}</strong> total
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-emerald-600 dark:text-emerald-400"
+                      >
+                        {item.published} pub
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-blue-600 dark:text-blue-400"
+                      >
+                        {item.scheduled} agend
+                      </Badge>
+                      <span className="font-mono font-bold text-purple-600 dark:text-purple-400 text-[11px] bg-purple-500/10 px-2 py-0.5 rounded-md">
+                        {item.avgRate}% engaj.
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </Card>
+          )}
 
-          <div className="mt-4 pt-3 border-t border-border/80 text-[11px] text-muted-foreground flex items-center justify-between">
-            <span>Metodologia: Comparação pareada com controle de métricas</span>
-            <span className="font-semibold text-purple-600 dark:text-purple-400">IA Otimizada</span>
-          </div>
-        </Card>
-        )}
-      </div>
+          {/* Resultados dos Testes A/B */}
+          {reportSections.abTests && (
+            <Card className="rounded-2xl border-border bg-card p-5 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-500" />
+                    <h3 className="text-sm font-bold text-foreground">Resultados dos Testes A/B</h3>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-600">
+                    {abTests.length} experimentos
+                  </Badge>
+                </div>
+
+                {abTests.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-muted-foreground space-y-2">
+                    <p>Nenhum teste A/B cadastrado no momento.</p>
+                    <p className="text-[11px]">
+                      Crie um experimento no Dashboard para comparar variações.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {abTests.map((test, idx) => (
+                      <div
+                        key={test.id}
+                        className="p-3 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <p className="font-bold text-foreground">Experimento #{idx + 1}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Meta: {test.goal === 'clicks' ? 'Cliques' : 'Conversões'} ·{' '}
+                            {test.status === 'running'
+                              ? 'Em andamento'
+                              : test.status === 'completed'
+                                ? 'Concluído'
+                                : 'Rascunho'}
+                          </p>
+                        </div>
+
+                        <div>
+                          {test.winner ? (
+                            <Badge className="bg-amber-500 text-white text-[10px] gap-1 border-0">
+                              <Trophy className="w-3 h-3" /> Vencedor Definido
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                              Em avaliação
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-border/80 text-[11px] text-muted-foreground flex items-center justify-between">
+                <span>Metodologia: Comparação pareada com controle de métricas</span>
+                <span className="font-semibold text-purple-600 dark:text-purple-400">
+                  IA Otimizada
+                </span>
+              </div>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Modal de Personalização do Relatório */}
@@ -1453,12 +1512,14 @@ export function PerformanceReport({
         open={isCustomizeModalOpen}
         onOpenChange={setIsCustomizeModalOpen}
         sections={reportSections}
-        onSectionsChange={setReportSections}
+        onChangeSections={setReportSections}
         brands={brands}
         selectedBrandIds={selectedBrandIds}
-        onBrandIdsChange={setSelectedBrandIds}
+        onChangeBrandIds={setSelectedBrandIds}
         selectedPeriod={selectedPeriod}
-        onPeriodChange={setSelectedPeriod}
+        onChangePeriod={setSelectedPeriod}
+        onApplyAndExportPDF={handleExportPDF}
+        onApplyAndExportCSV={handleExportCSV}
       />
     </div>
   )

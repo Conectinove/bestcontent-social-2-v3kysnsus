@@ -737,7 +737,7 @@ export default function ClientPortal() {
             Privacidade
           </Link>
           <span>·</span>
-          <span className="font-mono text-muted-foreground/70">v0.0.55</span>
+          <span className="font-mono text-muted-foreground/70">v0.0.56</span>
         </div>
       </div>
 
