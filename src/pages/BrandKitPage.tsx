@@ -26,6 +26,7 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSocial } from '@/context/SocialContext'
 import { toast } from '@/hooks/use-toast'
+import { MudarCursoLogoKit } from '@/components/brandkit/MudarCursoLogoKit'
 
 export interface BrandAsset {
   id: string
@@ -392,321 +393,349 @@ export function BrandKitPage() {
   }
 
   return (
-    <div className="space-y-8 pb-16">
-      {/* HEADER HERO ESTILO MUDARCURSO */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F0B1F] via-[#1B0A4D] to-[#2B0A8A] text-white p-6 sm:p-10 border border-purple-500/30 shadow-2xl">
-        {/* Glow de fundo */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#C44BFF]/20 blur-3xl pointer-events-none rounded-full" />
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#5B1FE0]/30 blur-3xl pointer-events-none rounded-full" />
+    <div className="space-y-12 pb-20">
+      {/* SEÇÃO PRINCIPAL NO TOPO: LOGO KIT COMPLETO DA MUDARCURSO */}
+      <MudarCursoLogoKit />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <Badge className="bg-gradient-to-r from-[#5B1FE0] to-[#C44BFF] text-white font-extrabold tracking-wide uppercase px-3 py-1 border-0">
-                Visual Identity System
-              </Badge>
-              <Badge variant="outline" className="border-purple-400/40 text-purple-200 text-xs">
-                {activeBrandName}
-              </Badge>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-              Visual Identity <span className="italic text-[#C44BFF]">System</span>
-            </h1>
-
-            <p className="text-purple-200/90 text-sm sm:text-base leading-relaxed">
-              Curadoria técnica da identidade{' '}
-              <strong className="text-white">{activeBrandName}</strong> em diferentes superfícies —
-              o violeta elétrico mantém a consistência em cada ponto de contato.
+      {/* SEÇÃO SECUNDÁRIA: ACERVO VISUAL & MODELOS DE POST EXISTENTES */}
+      <div className="pt-8 border-t border-border/80 space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-foreground">
+              Acervo de Aplicações & Modelos de Post
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Fotografia, mockups e diretrizes de layout mantendo a identidade visual do portal
+              MudarCurso em cada superfície.
             </p>
-
-            <div className="flex items-center gap-4 pt-2 text-xs text-purple-200/70">
-              <span className="flex items-center gap-1.5">
-                <Palette className="w-3.5 h-3.5 text-[#C44BFF]" />
-                Paleta Ativa: {activeBrandColor}
-              </span>
-              <span>•</span>
-              <span>{baseAssets.length} Assets Curados</span>
-              <span>•</span>
-              <span className="text-emerald-400 font-semibold">● Sincronizado</span>
-            </div>
           </div>
+          <Badge
+            variant="outline"
+            className="text-xs font-mono border-purple-500/40 text-purple-600"
+          >
+            {baseAssets.length} Assets Curados
+          </Badge>
+        </div>
 
-          <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
-            <Button
-              onClick={handleDownloadFullKit}
-              className="h-12 px-6 rounded-2xl bg-gradient-to-r from-[#5B1FE0] via-[#7C3AED] to-[#C44BFF] hover:brightness-110 text-white font-bold text-sm shadow-lg shadow-purple-950/40 gap-2 uppercase tracking-wider"
-            >
-              <Download className="w-4 h-4" />
-              <span>Baixar Kit Completo ↓</span>
-            </Button>
-            <div className="flex items-center gap-2 text-[11px] text-purple-200/80 justify-center">
-              <span>Proporções: 9:16 · 1:1 · 16:9 · 4:5</span>
+        {/* HEADER HERO ESTILO MUDARCURSO */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F0B1F] via-[#1B0A4D] to-[#2B0A8A] text-white p-6 sm:p-10 border border-purple-500/30 shadow-2xl">
+          {/* Glow de fundo */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#C44BFF]/20 blur-3xl pointer-events-none rounded-full" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#5B1FE0]/30 blur-3xl pointer-events-none rounded-full" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-gradient-to-r from-[#5B1FE0] to-[#C44BFF] text-white font-extrabold tracking-wide uppercase px-3 py-1 border-0">
+                  Visual Identity System
+                </Badge>
+                <Badge variant="outline" className="border-purple-400/40 text-purple-200 text-xs">
+                  {activeBrandName}
+                </Badge>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
+                Visual Identity <span className="italic text-[#C44BFF]">System</span>
+              </h1>
+
+              <p className="text-purple-200/90 text-sm sm:text-base leading-relaxed">
+                Curadoria técnica da identidade{' '}
+                <strong className="text-white">{activeBrandName}</strong> em diferentes superfícies
+                — o violeta elétrico mantém a consistência em cada ponto de contato.
+              </p>
+
+              <div className="flex items-center gap-4 pt-2 text-xs text-purple-200/70">
+                <span className="flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-[#C44BFF]" />
+                  Paleta Ativa: {activeBrandColor}
+                </span>
+                <span>•</span>
+                <span>{baseAssets.length} Assets Curados</span>
+                <span>•</span>
+                <span className="text-emerald-400 font-semibold">● Sincronizado</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
+              <Button
+                onClick={handleDownloadFullKit}
+                className="h-12 px-6 rounded-2xl bg-gradient-to-r from-[#5B1FE0] via-[#7C3AED] to-[#C44BFF] hover:brightness-110 text-white font-bold text-sm shadow-lg shadow-purple-950/40 gap-2 uppercase tracking-wider"
+              >
+                <Download className="w-4 h-4" />
+                <span>Baixar Kit Completo ↓</span>
+              </Button>
+              <div className="flex items-center gap-2 text-[11px] text-purple-200/80 justify-center">
+                <span>Proporções: 9:16 · 1:1 · 16:9 · 4:5</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* BARRA DE FILTROS & BUSCA */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Input
-              type="text"
-              placeholder="Buscar peça por título, formato ou objetivo..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-11 pl-4 pr-10 rounded-2xl bg-card border-border/70 text-sm shadow-sm"
-            />
-            {searchQuery && (
+        {/* BARRA DE FILTROS & BUSCA */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Input
+                type="text"
+                placeholder="Buscar peça por título, formato ou objetivo..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-11 pl-4 pr-10 rounded-2xl bg-card border-border/70 text-sm shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Filter className="w-3.5 h-3.5 text-purple-600" />
+              <span>
+                Exibindo <strong>{filteredAssets.length}</strong> de {baseAssets.length} assets
+              </span>
+            </div>
+          </div>
+
+          {/* CHIPS DE CATEGORIA ESTILO MUDARCURSO */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {categories.map((cat) => {
+              const isSelected = activeCategory === cat.id
+              const Icon = cat.icon
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-[#5B1FE0] to-[#7C3AED] text-white shadow-md shadow-purple-900/30'
+                      : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{cat.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      isSelected
+                        ? 'bg-white/20 text-white'
+                        : 'bg-background/80 text-muted-foreground'
+                    }`}
+                  >
+                    {String(cat.count).padStart(2, '0')}
+                  </span>
+                </button>
+              )
+            })}
+            {activeCategory !== 'all' && (
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setActiveCategory('all')
+                  setSearchQuery('')
+                }}
+                className="text-xs text-purple-600 hover:underline px-2 shrink-0 font-semibold"
               >
-                Limpar
+                Limpar Filtros
               </button>
             )}
           </div>
-
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Filter className="w-3.5 h-3.5 text-purple-600" />
-            <span>
-              Exibindo <strong>{filteredAssets.length}</strong> de {baseAssets.length} assets
-            </span>
-          </div>
         </div>
 
-        {/* CHIPS DE CATEGORIA ESTILO MUDARCURSO */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {categories.map((cat) => {
-            const isSelected = activeCategory === cat.id
-            const Icon = cat.icon
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-[#5B1FE0] to-[#7C3AED] text-white shadow-md shadow-purple-900/30'
-                    : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{cat.label}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-background/80 text-muted-foreground'
-                  }`}
-                >
-                  {String(cat.count).padStart(2, '0')}
-                </span>
-              </button>
-            )
-          })}
-          {activeCategory !== 'all' && (
-            <button
+        {/* GRID DE ASSETS ESTILO MUDARCURSO */}
+        {filteredAssets.length === 0 ? (
+          <Card className="p-12 text-center rounded-3xl border-dashed border-border/80 space-y-3">
+            <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto" />
+            <h3 className="font-bold text-foreground">Nenhum asset encontrado</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Não encontramos peças com os filtros selecionados. Tente limpar os filtros para ver
+              todo o acervo.
+            </p>
+            <Button
+              variant="outline"
               onClick={() => {
                 setActiveCategory('all')
                 setSearchQuery('')
               }}
-              className="text-xs text-purple-600 hover:underline px-2 shrink-0 font-semibold"
+              className="rounded-xl text-xs"
             >
-              Limpar Filtros
-            </button>
-          )}
-        </div>
-      </div>
+              Ver Todos os Assets
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredAssets.map((asset) => {
+              const isFav = Boolean(favorites[asset.id])
+              const isCopied = copiedId === asset.id
+              const isReels = asset.aspectRatio === '9:16'
+              const isBanner = asset.aspectRatio === '16:9'
 
-      {/* GRID DE ASSETS ESTILO MUDARCURSO */}
-      {filteredAssets.length === 0 ? (
-        <Card className="p-12 text-center rounded-3xl border-dashed border-border/80 space-y-3">
-          <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto" />
-          <h3 className="font-bold text-foreground">Nenhum asset encontrado</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Não encontramos peças com os filtros selecionados. Tente limpar os filtros para ver todo
-            o acervo.
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setActiveCategory('all')
-              setSearchQuery('')
-            }}
-            className="rounded-xl text-xs"
-          >
-            Ver Todos os Assets
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAssets.map((asset) => {
-            const isFav = Boolean(favorites[asset.id])
-            const isCopied = copiedId === asset.id
-            const isReels = asset.aspectRatio === '9:16'
-            const isBanner = asset.aspectRatio === '16:9'
-
-            return (
-              <div
-                key={asset.id}
-                onClick={() => setSelectedAsset(asset)}
-                className="group relative rounded-3xl overflow-hidden bg-card border border-border/70 hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-900/20 transition-all cursor-pointer flex flex-col justify-between"
-              >
-                {/* Visual Preview com Overlay Violeta e Badge de Proporção */}
+              return (
                 <div
-                  className={`relative w-full overflow-hidden bg-[#0F0B1F] ${
-                    isReels ? 'aspect-[9/16]' : isBanner ? 'aspect-[16/9]' : 'aspect-square'
-                  }`}
+                  key={asset.id}
+                  onClick={() => setSelectedAsset(asset)}
+                  className="group relative rounded-3xl overflow-hidden bg-card border border-border/70 hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-900/20 transition-all cursor-pointer flex flex-col justify-between"
                 >
-                  <img
-                    src={asset.imageUrl}
-                    alt={asset.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-
-                  {/* Gradient Overlay Roxo no Rodapé */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0F0B1F] via-[#0F0B1F]/30 to-transparent pointer-events-none" />
-
-                  {/* Botão de Favorito no Canto Superior Direito */}
-                  <button
-                    onClick={(e) => toggleFavorite(asset.id, e)}
-                    className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:scale-110 transition-transform"
-                    aria-label="Favoritar asset"
+                  {/* Visual Preview com Overlay Violeta e Badge de Proporção */}
+                  <div
+                    className={`relative w-full overflow-hidden bg-[#0F0B1F] ${
+                      isReels ? 'aspect-[9/16]' : isBanner ? 'aspect-[16/9]' : 'aspect-square'
+                    }`}
                   >
-                    <Heart
-                      className={`w-4 h-4 ${
-                        isFav ? 'fill-rose-500 text-rose-500' : 'text-white/80'
-                      }`}
+                    <img
+                      src={asset.imageUrl}
+                      alt={asset.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
                     />
-                  </button>
 
-                  {/* Marca da Marca no Canto Inferior Esquerdo */}
-                  <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-purple-500/30">
-                    <div className="w-2 h-2 rounded-full bg-[#C44BFF] animate-pulse" />
-                    <span className="text-[10px] font-black tracking-wider uppercase text-white">
-                      {activeBrandName}
-                    </span>
-                  </div>
+                    {/* Gradient Overlay Roxo no Rodapé */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0F0B1F] via-[#0F0B1F]/30 to-transparent pointer-events-none" />
 
-                  {/* Proporção no Canto Inferior Direito */}
-                  <div className="absolute bottom-4 right-4 z-20">
-                    <Badge className="bg-black/70 backdrop-blur-md border border-white/10 text-white font-mono text-[9px]">
-                      {asset.ratioLabel}
-                    </Badge>
-                  </div>
-                </div>
+                    {/* Botão de Favorito no Canto Superior Direito */}
+                    <button
+                      onClick={(e) => toggleFavorite(asset.id, e)}
+                      className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:scale-110 transition-transform"
+                      aria-label="Favoritar asset"
+                    >
+                      <Heart
+                        className={`w-4 h-4 ${
+                          isFav ? 'fill-rose-500 text-rose-500' : 'text-white/80'
+                        }`}
+                      />
+                    </button>
 
-                {/* Bloco de Informações & Ações Rápidas */}
-                <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-300 border-purple-500/30"
-                      >
-                        {asset.categoryLabel}
-                      </Badge>
-                      <span className="text-[10px] font-mono text-muted-foreground">
-                        {asset.aspectRatio}
+                    {/* Marca da Marca no Canto Inferior Esquerdo */}
+                    <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-purple-500/30">
+                      <div className="w-2 h-2 rounded-full bg-[#C44BFF] animate-pulse" />
+                      <span className="text-[10px] font-black tracking-wider uppercase text-white">
+                        {activeBrandName}
                       </span>
                     </div>
 
-                    <h3 className="font-bold text-foreground text-sm line-clamp-1 group-hover:text-purple-600 transition-colors">
-                      {asset.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {asset.headline}
-                    </p>
+                    {/* Proporção no Canto Inferior Direito */}
+                    <div className="absolute bottom-4 right-4 z-20">
+                      <Badge className="bg-black/70 backdrop-blur-md border border-white/10 text-white font-mono text-[9px]">
+                        {asset.ratioLabel}
+                      </Badge>
+                    </div>
                   </div>
 
-                  {/* Ações de Download e Compartilhamento */}
-                  <div className="space-y-2 pt-2 border-t border-border/60">
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDownload(asset, 'original')
-                        }}
-                        className="flex-1 h-9 rounded-xl bg-gradient-to-r from-[#5B1FE0] to-[#7C3AED] hover:brightness-110 text-white font-bold text-xs gap-1.5 shadow-sm"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Baixar Original</span>
-                      </Button>
+                  {/* Bloco de Informações & Ações Rápidas */}
+                  <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-300 border-purple-500/30"
+                        >
+                          {asset.categoryLabel}
+                        </Badge>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {asset.aspectRatio}
+                        </span>
+                      </div>
 
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleCopyLink(asset)
-                        }}
-                        className="h-9 px-2.5 rounded-xl border-border/80 text-foreground hover:bg-muted text-xs"
-                        title="Copiar Link"
-                      >
-                        {isCopied ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleShare(asset)
-                        }}
-                        className="h-9 px-2.5 rounded-xl border-border/80 text-foreground hover:bg-muted text-xs"
-                        title="Compartilhar"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <h3 className="font-bold text-foreground text-sm line-clamp-1 group-hover:text-purple-600 transition-colors">
+                        {asset.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        {asset.headline}
+                      </p>
                     </div>
 
-                    {/* Variações de Tamanho */}
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
-                      <span>Variações:</span>
+                    {/* Ações de Download e Compartilhamento */}
+                    <div className="space-y-2 pt-2 border-t border-border/60">
                       <div className="flex items-center gap-1.5">
-                        <button
+                        <Button
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDownload(asset, 'thumb')
+                            handleDownload(asset, 'original')
                           }}
-                          className="hover:text-purple-600 underline font-medium"
+                          className="flex-1 h-9 rounded-xl bg-gradient-to-r from-[#5B1FE0] to-[#7C3AED] hover:brightness-110 text-white font-bold text-xs gap-1.5 shadow-sm"
                         >
-                          Thumb
-                        </button>
-                        <span>·</span>
-                        <button
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Baixar Original</span>
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDownload(asset, 'social')
+                            handleCopyLink(asset)
                           }}
-                          className="hover:text-purple-600 underline font-medium"
+                          className="h-9 px-2.5 rounded-xl border-border/80 text-foreground hover:bg-muted text-xs"
+                          title="Copiar Link"
                         >
-                          Social
-                        </button>
-                        <span>·</span>
-                        <button
+                          {isCopied ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDownload(asset, 'banner')
+                            handleShare(asset)
                           }}
-                          className="hover:text-purple-600 underline font-medium"
+                          className="h-9 px-2.5 rounded-xl border-border/80 text-foreground hover:bg-muted text-xs"
+                          title="Compartilhar"
                         >
-                          Banner
-                        </button>
+                          <Share2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+
+                      {/* Variações de Tamanho */}
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
+                        <span>Variações:</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownload(asset, 'thumb')
+                            }}
+                            className="hover:text-purple-600 underline font-medium"
+                          >
+                            Thumb
+                          </button>
+                          <span>·</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownload(asset, 'social')
+                            }}
+                            className="hover:text-purple-600 underline font-medium"
+                          >
+                            Social
+                          </button>
+                          <span>·</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownload(asset, 'banner')
+                            }}
+                            className="hover:text-purple-600 underline font-medium"
+                          >
+                            Banner
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )}
+
+        {/* Fechamento da seção secundária */}
+      </div>
 
       {/* MODAL DETALHE DO ASSET (INSPIRADO NA REFERÊNCIA DO LOVABLE) */}
       {selectedAsset && (
