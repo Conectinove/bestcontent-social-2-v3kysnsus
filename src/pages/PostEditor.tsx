@@ -32,6 +32,7 @@ import { useWorkspace, type WidgetType } from '@/hooks/use-workspace'
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
 import { ImageBankModal } from '@/components/ImageBankModal'
+import { PostSeoWidget } from '@/components/seo/PostSeoWidget'
 import {
   ContentDraftWidget,
   CaptionWidget,
@@ -298,22 +299,25 @@ export default function PostEditor() {
         return <MetricsWidget />
       case 'caption':
         return (
-          <CaptionWidget
-            caption={caption}
-            setCaption={setCaption}
-            onImprove={handleImproveCaption}
-            improving={improving}
-            onGenerateVariations={handleGenerateVariations}
-            variations={captionVariations}
-            onSelectVariation={(chosen) => {
-              setCaption(chosen)
-              toast({ title: 'Opção aplicada!', description: 'Legenda do post atualizada.' })
-            }}
-            currentTone={captionTone}
-            onToneChange={(tone) => setCaptionTone(tone)}
-            currentPlatform={platform}
-            onPlatformChange={(net) => setPlatform(net)}
-          />
+          <div className="space-y-4">
+            <CaptionWidget
+              caption={caption}
+              setCaption={setCaption}
+              onImprove={handleImproveCaption}
+              improving={improving}
+              onGenerateVariations={handleGenerateVariations}
+              variations={captionVariations}
+              onSelectVariation={(chosen) => {
+                setCaption(chosen)
+                toast({ title: 'Opção aplicada!', description: 'Legenda do post atualizada.' })
+              }}
+              currentTone={captionTone}
+              onToneChange={(tone) => setCaptionTone(tone)}
+              currentPlatform={platform}
+              onPlatformChange={(net) => setPlatform(net)}
+            />
+            <PostSeoWidget caption={caption || content} network={platform || 'instagram'} />
+          </div>
         )
       case 'media':
         return (

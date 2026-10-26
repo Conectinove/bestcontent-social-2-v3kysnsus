@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BuyCreditsModal } from '@/components/subscription/BuyCreditsModal'
+import { AsaasCheckoutModal } from '@/components/subscription/AsaasCheckoutModal'
 import { toast } from '@/hooks/use-toast'
 
 interface PlanTier {
@@ -114,6 +115,16 @@ const PLANS: PlanTier[] = [
 export default function Subscription() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [checkoutItem, setCheckoutItem] = useState<{
+    type: 'plan' | 'credits'
+    id: string
+    title: string
+    price: string
+    numericAmount: number
+    creditsAmount?: number
+    cycle?: 'monthly' | 'annual'
+  } | null>(null)
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
 
   // Real or fallback credit numbers matching reference screenshot:
   // Total: 3400 | Plan: 1800/1800 | Extra: 1600 | Used: 0
@@ -137,7 +148,7 @@ export default function Subscription() {
   const handleManageStripe = () => {
     toast({
       title: 'Portal de Pagamentos',
-      description: 'Redirecionando para o portal seguro do Stripe / Asaas...',
+      description: 'Gerenciamento de faturas integrado com Asaas.',
     })
   }
 
@@ -150,10 +161,29 @@ export default function Subscription() {
       })
       return
     }
-    toast({
-      title: `Alterar plano para ${plan.name}`,
-      description: `Iniciando transição para o plano ${plan.name} (${billingCycle === 'annual' ? 'Anual' : 'Mensal'}).`,
+
+    // Preços exatos: Pro R$ 69,90/mês (ou R$ 48,23 * 12 = R$ 578,76 anual), Max R$ 129,90/mês
+    const numeric =
+      plan.id === 'pro'
+        ? billingCycle === 'annual'
+          ? 578.76
+          : 69.9
+        : billingCycle === 'annual'
+          ? 1075.56
+          : 129.9
+
+    const priceLabel =
+      billingCycle === 'annual' ? `${plan.annualPrice}/mês (anual)` : `${plan.monthlyPrice}/mês`
+
+    setCheckoutItem({
+      type: 'plan',
+      id: plan.id,
+      title: `Plano ${plan.name}`,
+      price: priceLabel,
+      numericAmount: numeric,
+      cycle: billingCycle,
     })
+    setIsCheckoutOpen(true)
   }
 
   return (
@@ -490,6 +520,19 @@ export default function Subscription() {
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         onBuyCredits={handleBuyCredits}
+      />
+
+      {/* Asaas Checkout Modal para Planos */}
+      <AsaasCheckoutModal
+        open={isCheckoutOpen}
+        onOpenChange={setIsCheckoutOpen}
+        item={checkoutItem}
+        onPaymentSuccess={() => {
+          toast({
+            title: 'Plano atualizado com sucesso!',
+            description: 'Sua conta agora tem acesso a todos os recursos contratados.',
+          })
+        }}
       />
     </div>
   )

@@ -19,6 +19,8 @@ import {
   Check,
   Crown,
   Layers,
+  Search,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -443,6 +445,42 @@ export function Sidebar({
                   </div>
                   <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 py-0.2 rounded uppercase">
                     LABS
+                  </span>
+                </Link>
+                <Link
+                  to="/app/seo"
+                  onClick={onMobileClose}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    location.pathname === '/app/seo'
+                      ? 'bg-purple-500/10 text-primary font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Search className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                    <span>SEO Social</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1 py-0.2 rounded uppercase">
+                    NOVO
+                  </span>
+                </Link>
+                <Link
+                  to="/app/ads"
+                  onClick={onMobileClose}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    location.pathname === '/app/ads' || location.pathname === '/app/anuncios'
+                      ? 'bg-purple-500/10 text-primary font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Megaphone className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                    <span>Anúncios</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1 py-0.2 rounded uppercase">
+                    NOVO
                   </span>
                 </Link>
                 <Link

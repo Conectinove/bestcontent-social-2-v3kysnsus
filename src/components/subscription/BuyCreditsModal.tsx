@@ -1,7 +1,9 @@
 import React from 'react'
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Shield, Sparkles, Zap, MessageSquare, Volume2, Check } from 'lucide-react'
+import { AsaasCheckoutModal } from '@/components/subscription/AsaasCheckoutModal'
 import { toast } from '@/hooks/use-toast'
 
 export interface CreditPackage {
@@ -262,212 +264,245 @@ interface BuyCreditsModalProps {
 }
 
 export function BuyCreditsModal({ open, onOpenChange, onBuyCredits }: BuyCreditsModalProps) {
+  const [checkoutItem, setCheckoutItem] = useState<{
+    type: 'plan' | 'credits'
+    id: string
+    title: string
+    price: string
+    numericAmount: number
+    creditsAmount: number
+  } | null>(null)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+
+  // Mapeia preço em string ("R$ 22,90") para número puro (22.90)
+  const parsePrice = (priceStr: string) => {
+    const clean = priceStr.replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.')
+    return parseFloat(clean) || 0
+  }
+
   const handleBuy = (pkg: CreditPackage) => {
-    if (onBuyCredits) {
-      onBuyCredits(pkg.credits)
-    }
-    toast({
-      title: 'Pedido iniciado!',
-      description: `Você selecionou ${pkg.formattedCredits} créditos por ${pkg.price}. Redirecionando para o checkout seguro...`,
+    setCheckoutItem({
+      type: 'credits',
+      id: pkg.id,
+      title: `Pacote ${pkg.formattedCredits} Créditos`,
+      price: pkg.price,
+      numericAmount: parsePrice(pkg.price),
+      creditsAmount: pkg.credits,
     })
+    setCheckoutOpen(true)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 rounded-3xl bg-background border border-border/80 shadow-2xl">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
-          <div>
-            <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-              Impulsione sua produtividade
-            </DialogTitle>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-              <span>✨</span>
-              <span>Mais barato que pagar alguém, mais rápido que fazer sozinho.</span>
-            </p>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 rounded-3xl bg-background border border-border/80 shadow-2xl">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
+            <div>
+              <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                Impulsione sua produtividade
+              </DialogTitle>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                <span>✨</span>
+                <span>Mais barato que pagar alguém, mais rápido que fazer sozinho.</span>
+              </p>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
+              <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Compra 100% segura</span>
+            </div>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
-            <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Compra 100% segura</span>
-          </div>
-        </div>
+          {/* 3x2 Packages Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+            {PACKAGES.map((pkg) => {
+              const isPopular = pkg.isPopular
+              const isKing = pkg.isKing
 
-        {/* 3x2 Packages Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-          {PACKAGES.map((pkg) => {
-            const isPopular = pkg.isPopular
-            const isKing = pkg.isKing
-
-            return (
-              <div
-                key={pkg.id}
-                className={`relative rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 border bg-card ${
-                  isPopular
-                    ? 'border-purple-500 shadow-md ring-1 ring-purple-500/30'
-                    : isKing
-                      ? 'border-amber-400/90 shadow-md ring-1 ring-amber-400/30'
-                      : 'border-border/80 hover:border-primary/40 shadow-xs'
-                }`}
-              >
-                {/* Top Badge (Mais Barato / Mais Popular / Rei dos Créditos) */}
-                {pkg.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
-                    <span
-                      className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide shadow-sm ${
-                        pkg.badge.variant === 'dark'
-                          ? 'bg-neutral-800 text-white'
-                          : pkg.badge.variant === 'purple'
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950'
-                      }`}
-                    >
-                      {pkg.badge.text}
-                    </span>
-                  </div>
-                )}
-
-                {/* Top card content: Coin + Credits info */}
-                <div className="flex items-center justify-between gap-2 pt-2">
-                  <CoinIllustration
-                    coinsCount={pkg.coinsCount}
-                    pedestalColor={pkg.pedestalColor}
-                    isKing={isKing}
-                  />
-
-                  <div className="flex-1 flex flex-col items-end text-right">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-                        {pkg.formattedCredits}
-                      </span>
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                        CRÉDITOS
-                      </span>
-                    </div>
-
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[11px] font-medium text-muted-foreground mt-1">
-                      <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                      <span>~{pkg.postsCount} posts</span>
-                    </div>
-
-                    {pkg.discountPill && (
+              return (
+                <div
+                  key={pkg.id}
+                  className={`relative rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 border bg-card ${
+                    isPopular
+                      ? 'border-purple-500 shadow-md ring-1 ring-purple-500/30'
+                      : isKing
+                        ? 'border-amber-400/90 shadow-md ring-1 ring-amber-400/30'
+                        : 'border-border/80 hover:border-primary/40 shadow-xs'
+                  }`}
+                >
+                  {/* Top Badge (Mais Barato / Mais Popular / Rei dos Créditos) */}
+                  {pkg.badge && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mt-1.5 ${
-                          pkg.discountPill.variant === 'blue'
-                            ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300'
-                            : pkg.discountPill.variant === 'purple'
-                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                              : pkg.discountPill.variant === 'green'
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                : pkg.discountPill.variant === 'orange'
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                  : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                        className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide shadow-sm ${
+                          pkg.badge.variant === 'dark'
+                            ? 'bg-neutral-800 text-white'
+                            : pkg.badge.variant === 'purple'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950'
                         }`}
                       >
-                        {pkg.discountPill.text}
+                        {pkg.badge.text}
                       </span>
-                    )}
+                    </div>
+                  )}
+
+                  {/* Top card content: Coin + Credits info */}
+                  <div className="flex items-center justify-between gap-2 pt-2">
+                    <CoinIllustration
+                      coinsCount={pkg.coinsCount}
+                      pedestalColor={pkg.pedestalColor}
+                      isKing={isKing}
+                    />
+
+                    <div className="flex-1 flex flex-col items-end text-right">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                          {pkg.formattedCredits}
+                        </span>
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                          CRÉDITOS
+                        </span>
+                      </div>
+
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[11px] font-medium text-muted-foreground mt-1">
+                        <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                        <span>~{pkg.postsCount} posts</span>
+                      </div>
+
+                      {pkg.discountPill && (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mt-1.5 ${
+                            pkg.discountPill.variant === 'blue'
+                              ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300'
+                              : pkg.discountPill.variant === 'purple'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                                : pkg.discountPill.variant === 'green'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : pkg.discountPill.variant === 'orange'
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                          }`}
+                        >
+                          {pkg.discountPill.text}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom line: Price + Buy Button */}
+                  <div className="flex items-center justify-between pt-4 mt-3 border-t border-border/40">
+                    <span className="text-lg sm:text-xl font-black text-foreground">
+                      {pkg.price}
+                    </span>
+
+                    <Button
+                      size="sm"
+                      onClick={() => handleBuy(pkg)}
+                      className={`font-bold text-xs h-9 px-4 rounded-xl shadow-xs transition-all ${
+                        isKing
+                          ? 'bg-amber-500 hover:bg-amber-600 text-amber-950 font-black'
+                          : isPopular
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
+                    >
+                      {pkg.buttonText || 'Comprar'}
+                    </Button>
                   </div>
                 </div>
+              )
+            })}
+          </div>
 
-                {/* Bottom line: Price + Buy Button */}
-                <div className="flex items-center justify-between pt-4 mt-3 border-t border-border/40">
-                  <span className="text-lg sm:text-xl font-black text-foreground">{pkg.price}</span>
+          {/* Bottom Trust/Benefits Strip */}
+          <div className="mt-6 pt-5 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <Zap className="w-4 h-4 fill-amber-500/20" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">Cada post consome</p>
+                <p className="text-[11px] text-muted-foreground">~10 créditos</p>
+              </div>
+            </div>
 
-                  <Button
-                    size="sm"
-                    onClick={() => handleBuy(pkg)}
-                    className={`font-bold text-xs h-9 px-4 rounded-xl shadow-xs transition-all ${
-                      isKing
-                        ? 'bg-amber-500 hover:bg-amber-600 text-amber-950 font-black'
-                        : isPopular
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                          : 'bg-purple-600 hover:bg-purple-700 text-white'
-                    }`}
-                  >
-                    {pkg.buttonText || 'Comprar'}
-                  </Button>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">Sem mensalidades</p>
+                <p className="text-[11px] text-muted-foreground">Pague apenas pelo que usar.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+                <Volume2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">Use como quiser</p>
+                <p className="text-[11px] text-muted-foreground">Posts, artigos, imagens e +</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              {/* Overlapping avatars */}
+              <div className="flex -space-x-2 shrink-0">
+                <img
+                  src="https://img.usecurling.com/ppl/thumbnail?gender=female&seed=21"
+                  alt="Usuário"
+                  className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
+                />
+                <img
+                  src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=44"
+                  alt="Usuário"
+                  className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
+                />
+                <img
+                  src="https://img.usecurling.com/ppl/thumbnail?gender=female&seed=88"
+                  alt="Usuário"
+                  className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
+                />
+                <div className="w-7 h-7 rounded-full bg-primary/20 text-primary font-bold text-[9px] flex items-center justify-center ring-2 ring-background">
+                  +
                 </div>
               </div>
-            )
-          })}
-        </div>
-
-        {/* Bottom Trust/Benefits Strip */}
-        <div className="mt-6 pt-5 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-              <Zap className="w-4 h-4 fill-amber-500/20" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-foreground">Cada post consome</p>
-              <p className="text-[11px] text-muted-foreground">~10 créditos</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-              <Shield className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-foreground">Sem mensalidades</p>
-              <p className="text-[11px] text-muted-foreground">Pague apenas pelo que usar.</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
-              <Volume2 className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-foreground">Use como quiser</p>
-              <p className="text-[11px] text-muted-foreground">Posts, artigos, imagens e +</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            {/* Overlapping avatars */}
-            <div className="flex -space-x-2 shrink-0">
-              <img
-                src="https://img.usecurling.com/ppl/thumbnail?gender=female&seed=21"
-                alt="Usuário"
-                className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
-              />
-              <img
-                src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=44"
-                alt="Usuário"
-                className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
-              />
-              <img
-                src="https://img.usecurling.com/ppl/thumbnail?gender=female&seed=88"
-                alt="Usuário"
-                className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
-              />
-              <div className="w-7 h-7 rounded-full bg-primary/20 text-primary font-bold text-[9px] flex items-center justify-center ring-2 ring-background">
-                +
+              <div>
+                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <span>+326 pessoas</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                </p>
+                <p className="text-[11px] text-muted-foreground">nas últimas 24h</p>
               </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <span>+326 pessoas</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              </p>
-              <p className="text-[11px] text-muted-foreground">nas últimas 24h</p>
-            </div>
           </div>
-        </div>
 
-        {/* Modal Close Button */}
-        <div className="pt-4 flex justify-center">
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            className="text-xs text-muted-foreground hover:text-foreground font-semibold px-6"
-          >
-            Fechar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          {/* Modal Close Button */}
+          <div className="pt-4 flex justify-center">
+            <Button
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="text-xs text-muted-foreground hover:text-foreground font-semibold px-6"
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AsaasCheckoutModal
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        item={checkoutItem}
+        onPaymentSuccess={(amount) => {
+          if (amount && onBuyCredits) {
+            onBuyCredits(amount)
+          }
+        }}
+      />
+    </>
   )
 }

@@ -34,6 +34,8 @@ import TemplatesPage from './pages/TemplatesPage'
 import PagesFunis from './pages/PagesFunis'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
+import { SeoTools } from './pages/SeoTools'
+import { AdsPage } from './pages/AdsPage'
 
 import Onboarding from './pages/Onboarding'
 import Login from './pages/auth/Login'
@@ -76,6 +78,9 @@ const App = () => (
                 <Route path="/app/dashboard" element={<Dashboard />} />
                 <Route path="/app/analytics" element={<Analytics />} />
                 <Route path="/app/templates" element={<TemplatesPage />} />
+                <Route path="/app/seo" element={<SeoTools />} />
+                <Route path="/app/ads" element={<AdsPage />} />
+                <Route path="/app/anuncios" element={<AdsPage />} />
                 <Route path="/app/pages" element={<PagesFunis />} />
                 <Route path="/app/discover" element={<Discover />} />
                 <Route path="/app/settings" element={<Settings />} />

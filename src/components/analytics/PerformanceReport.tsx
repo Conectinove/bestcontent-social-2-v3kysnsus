@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { SlidersHorizontal } from 'lucide-react'
+import { ClientReportModal } from './ClientReportModal'
 import type { Post, Brand } from '@/types'
 import type { ABTest } from '@/services/ab-tests'
 
@@ -67,6 +68,7 @@ export function PerformanceReport({
   const [reportSections, setReportSections] =
     useState<ReportSectionsConfig>(DEFAULT_REPORT_SECTIONS)
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false)
+  const [isClientReportModalOpen, setIsClientReportModalOpen] = useState(false)
 
   useEffect(() => {
     getAllPostMetrics().then((data) => setAllMetrics(data))
@@ -996,11 +998,19 @@ export function PerformanceReport({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setIsClientReportModalOpen(true)}
+            className="rounded-xl text-xs h-8 px-3 gap-1.5 border-purple-600/60 bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold shadow-xs"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <span>Relatório do Cliente (White-Label)</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsCustomizeModalOpen(true)}
             className="rounded-xl text-xs h-8 px-3 gap-1.5 border-purple-500/40 hover:bg-purple-500/10 text-purple-700 dark:text-purple-300"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-            <span>Personalizar Relatório</span>
+            <span>Personalizar</span>
           </Button>
           <Button
             variant="outline"
@@ -1701,6 +1711,20 @@ export function PerformanceReport({
             })()}
         </div>
       )}
+
+      {/* Modal de Relatório White-Label do Cliente */}
+      <ClientReportModal
+        open={isClientReportModalOpen}
+        onOpenChange={setIsClientReportModalOpen}
+        brand={
+          primaryBrandId === 'all'
+            ? brands[0] || null
+            : brands.find((b) => b.id === primaryBrandId) || brands[0] || null
+        }
+        posts={filteredPosts}
+        period={selectedPeriod}
+        sections={reportSections}
+      />
 
       {/* Modal de Personalização do Relatório */}
       <CustomizeReportModal
