@@ -34,6 +34,9 @@ routerAdd(
 
       const matches = templates.filter((t) => {
         const tNet = t.getString('network').toLowerCase()
+        if (normNet === 'twitter' || normNet === 'x') {
+          return tNet === 'twitter' || tNet === 'all' || tNet === 'todas'
+        }
         return tNet === normNet || tNet === 'all' || tNet === 'todas'
       })
 

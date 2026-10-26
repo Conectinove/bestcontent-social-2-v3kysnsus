@@ -429,94 +429,165 @@ export function PerformanceReport({
     return buckets
   }, [filteredPosts])
 
-  // Exportação CSV real com UTF-8 BOM
+  // Exportação CSV real com UTF-8 BOM respeitando as seções personalizadas
   const handleExportCSV = () => {
-    const headers = [
-      'Marca',
-      'Total Posts',
-      'Publicados',
-      'Agendados',
-      'Rascunhos',
-      'Aprovados Nível',
-      'Taxa de Aprovação (%)',
+    const csvParts: string[][] = [
+      ['RELATÓRIO CONSOLIDADO DE PERFORMANCE - BESTCONTENT SOCIAL 2'],
+      [`Gerado em: ${new Date().toLocaleString('pt-BR')}`],
+      [`Usuário: ${userName}`],
+      [`Período Selecionado: ${selectedPeriod}`],
+      [
+        `Marcas no Escopo: ${
+          selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+            ? 'Todas as Marcas'
+            : brands
+                .filter((b) => selectedBrandIds.includes(b.id))
+                .map((b) => b.name)
+                .join(', ') || 'N/D'
+        }`,
+      ],
+      [''],
     ]
 
-    const rows = brandMetrics.map((b) => [
-      `"${b.name.replace(/"/g, '""')}"`,
-      b.total,
-      b.published,
-      b.scheduled,
-      b.draft,
-      b.approved,
-      `${b.approvalRate}%`,
-    ])
+    if (reportSections.kpis) {
+      csvParts.push(
+        ['--- RESUMO EXECUTIVO (KPIS) ---', '', '', '', '', '', ''],
+        ['Total Criações', String(statusStats.total), '', '', '', '', ''],
+        ['Publicados', String(statusStats.published), '', '', '', '', ''],
+        ['Agendados', String(statusStats.scheduled), '', '', '', '', ''],
+        ['Taxa Média de Aprovação', `${statusStats.approvalRate}%`, '', '', '', '', ''],
+        [
+          'Tempo Médio de Aprovação',
+          approvalTiming.avgHours !== null ? `${approvalTiming.avgHours.toFixed(1)}h` : 'N/D',
+          '',
+          '',
+          '',
+          '',
+          '',
+        ],
+        [''],
+      )
+    }
 
-    const summaryHeader = ['\n--- DESEMPENHO POR REDE SOCIAL ---', '', '', '', '', '', '']
-    const networkHeaders = [
-      'Rede Social',
-      'Total',
-      'Publicados',
-      'Agendados',
-      'Rascunhos',
-      'Aprovados',
-      '',
-    ]
-    const networkRows = networkMetrics.map((n) => [
-      `"${n.name}"`,
-      n.count,
-      n.published,
-      n.scheduled,
-      n.draft,
-      n.approved,
-      '',
-    ])
+    if (reportSections.brands) {
+      const headers = [
+        'Marca',
+        'Total Posts',
+        'Publicados',
+        'Agendados',
+        'Rascunhos',
+        'Aprovados Nível',
+        'Taxa de Aprovação (%)',
+      ]
+      const rows = brandMetrics.map((b) => [
+        `"${b.name.replace(/"/g, '""')}"`,
+        String(b.total),
+        String(b.published),
+        String(b.scheduled),
+        String(b.draft),
+        String(b.approved),
+        `${b.approvalRate}%`,
+      ])
+      csvParts.push(
+        ['--- DESEMPENHO POR MARCA ---', '', '', '', '', '', ''],
+        headers,
+        ...rows,
+        [''],
+      )
+    }
 
-    const abHeader = ['\n--- TESTES A/B CONSOLIDADOS ---', '', '', '', '', '', '']
-    const abHeaders = ['Experimento ID', 'Status', 'Objetivo', 'Vencedor', '', '', '']
-    const abRows = abTests.map((t, idx) => [
-      `"Teste #${idx + 1}"`,
-      t.status === 'running' ? 'Em andamento' : t.status === 'completed' ? 'Concluído' : 'Rascunho',
-      t.goal === 'clicks' ? 'Cliques' : 'Conversões',
-      t.winner ? 'Vencedor Definido' : 'Pendente',
-      '',
-      '',
-      '',
-    ])
+    if (reportSections.networks) {
+      const networkHeaders = [
+        'Rede Social',
+        'Total',
+        'Publicados',
+        'Agendados',
+        'Rascunhos',
+        'Aprovados',
+        'Engajamento Médio (%)',
+      ]
+      const networkRows = networkMetrics.map((n) => [
+        `"${n.name}"`,
+        String(n.count),
+        String(n.published),
+        String(n.scheduled),
+        String(n.draft),
+        String(n.approved),
+        `${n.avgRate}%`,
+      ])
+      csvParts.push(
+        ['--- DESEMPENHO POR REDE SOCIAL ---', '', '', '', '', '', ''],
+        networkHeaders,
+        ...networkRows,
+        [''],
+      )
+    }
 
-    const topTagsHeader = ['\n--- TOP TAGS MAIS USADAS ---', '', '', '', '', '', '']
-    const topTagsRows = topTagsAndFormats.topTags.map((t) => [
-      `"#${t.tag}"`,
-      t.count,
-      '',
-      '',
-      '',
-      '',
-      '',
-    ])
+    if (reportSections.tagsFormats) {
+      const topTagsHeader = ['--- TOP TAGS MAIS USADAS ---', '', '', '', '', '', '']
+      const topTagsRows = topTagsAndFormats.topTags.map((t) => [
+        `"#${t.tag}"`,
+        String(t.count),
+        '',
+        '',
+        '',
+        '',
+        '',
+      ])
+      const topFormatsHeader = ['--- TOP FORMATOS ---', '', '', '', '', '', '']
+      const topFormatsRows = topTagsAndFormats.topFormats.map((f) => [
+        `"${f.format}"`,
+        String(f.count),
+        '',
+        '',
+        '',
+        '',
+        '',
+      ])
+      csvParts.push(topTagsHeader, ...topTagsRows, [''], topFormatsHeader, ...topFormatsRows, [''])
+    }
+
+    if (reportSections.topPosts && topPostsRanking.length > 0) {
+      const topPostsHeader = ['--- TOP POSTS RANKING ---', '', '', '', '', '', '']
+      const topPostsCols = [
+        'Posição',
+        'Rede',
+        'Conteúdo / Título',
+        'Alcance Estimado',
+        'Interações',
+        'Salvos',
+        'Taxa de Engajamento (%)',
+      ]
+      const topPostsRows = topPostsRanking.map(({ post, metric }, idx) => [
+        `#${idx + 1}`,
+        `"${post.platform || 'Instagram'}"`,
+        `"${(post.content || post.caption || 'Sem título').replace(/"/g, '""').slice(0, 80)}"`,
+        String(metric.alcance),
+        String(metric.engajamento),
+        String(metric.salvamentos),
+        `${metric.taxa_engajamento}%`,
+      ])
+      csvParts.push(topPostsHeader, topPostsCols, ...topPostsRows, [''])
+    }
+
+    if (reportSections.abTests && abTests.length > 0) {
+      const abHeader = ['--- TESTES A/B CONSOLIDADOS ---', '', '', '', '', '', '']
+      const abHeaders = ['Experimento ID', 'Status', 'Objetivo', 'Vencedor', '', '', '']
+      const abRows = abTests.map((t, idx) => [
+        `"Teste #${idx + 1}"`,
+        t.status === 'running' ? 'Em andamento' : t.status === 'completed' ? 'Concluído' : 'Rascunho',
+        t.goal === 'clicks' ? 'Cliques' : 'Conversões',
+        t.winner ? 'Vencedor Definido' : 'Pendente',
+        '',
+        '',
+        '',
+      ])
+      csvParts.push(abHeader, abHeaders, ...abRows, [''])
+    }
 
     const csvContent =
       '\uFEFF' + // UTF-8 BOM
-      [
-        ['RELATÓRIO CONSOLIDADO DE PERFORMANCE - BESTCONTENT SOCIAL 2'],
-        [`Gerado em: ${new Date().toLocaleString('pt-BR')}`],
-        [`Usuário: ${userName}`],
-        [`Período Selecionado: ${selectedPeriod}`],
-        [`Taxa Média de Aprovação Geral: ${statusStats.approvalRate}%`],
-        [
-          `Tempo Médio Estimado de Aprovação: ${approvalTiming.avgHours !== null ? `${approvalTiming.avgHours.toFixed(1)}h` : 'N/D'}`,
-        ],
-        [''],
-        headers,
-        ...rows,
-        summaryHeader,
-        networkHeaders,
-        ...networkRows,
-        topTagsHeader,
-        ...topTagsRows,
-        abHeader,
-        abHeaders,
-        ...abRows,
-      ]
+      csvParts
         .map((e) => e.join(';'))
         .join('\n')
 
@@ -539,7 +610,7 @@ export function PerformanceReport({
     })
   }
 
-  // Exportação PDF via window.print() no mesmo padrão do app
+  // Exportação PDF via window.print() respeitando as seções selecionadas
   const handleExportPDF = () => {
     const printWindow = window.open('', '_blank')
     const nowFormatted = new Date().toLocaleDateString('pt-BR', {
@@ -549,6 +620,35 @@ export function PerformanceReport({
       hour: '2-digit',
       minute: '2-digit',
     })
+
+    const brandNames =
+      selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+        ? 'Todas as Marcas'
+        : brands
+            .filter((b) => selectedBrandIds.includes(b.id))
+            .map((b) => b.name)
+            .join(', ') || 'N/D'
+
+    const kpiSectionHtml = reportSections.kpis
+      ? `<div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-title">Total de Conteúdos</div>
+            <div class="kpi-val">${statusStats.total}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Publicados</div>
+            <div class="kpi-val">${statusStats.published}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Agendados</div>
+            <div class="kpi-val">${statusStats.scheduled}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Taxa de Aprovação</div>
+            <div class="kpi-val">${statusStats.approvalRate}%</div>
+          </div>
+        </div>`
+      : ''
 
     const brandRowsHtml = brandMetrics
       .map(
@@ -565,6 +665,24 @@ export function PerformanceReport({
       )
       .join('')
 
+    const brandsSectionHtml = reportSections.brands
+      ? `<h2>Desempenho por Marca & Fluxo de Aprovação</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Marca</th>
+              <th style="text-align: center;">Total</th>
+              <th style="text-align: center;">Publicados</th>
+              <th style="text-align: center;">Agendados</th>
+              <th style="text-align: center;">Rascunhos</th>
+              <th style="text-align: center;">Aprovados</th>
+              <th style="text-align: center;">Taxa Aprovação</th>
+            </tr>
+          </thead>
+          <tbody>${brandRowsHtml}</tbody>
+        </table>`
+      : ''
+
     const networkRowsHtml = networkMetrics
       .map(
         (n) =>
@@ -574,9 +692,61 @@ export function PerformanceReport({
             <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;">${n.published}</td>
             <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;">${n.scheduled}</td>
             <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;">${n.approved}</td>
+            <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center; font-weight: bold; color: #7c3aed;">${n.avgRate}%</td>
           </tr>`,
       )
       .join('')
+
+    const networksSectionHtml = reportSections.networks
+      ? `<h2>Desempenho por Rede Social</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Rede Social</th>
+              <th style="text-align: center;">Total Posts</th>
+              <th style="text-align: center;">Publicados</th>
+              <th style="text-align: center;">Agendados</th>
+              <th style="text-align: center;">Aprovados</th>
+              <th style="text-align: center;">Engajamento Médio</th>
+            </tr>
+          </thead>
+          <tbody>${networkRowsHtml}</tbody>
+        </table>`
+      : ''
+
+    const topPostsRowsHtml = topPostsRanking
+      .map(
+        ({ post, metric }, idx) =>
+          `<tr>
+            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: bold;">#${idx + 1}</td>
+            <td style="padding: 8px; border: 1px solid #e2e8f0;">${post.platform || 'Instagram'}</td>
+            <td style="padding: 8px; border: 1px solid #e2e8f0;">${(post.content || post.caption || 'Sem título').slice(0, 60)}</td>
+            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${metric.alcance}</td>
+            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 600;">${metric.engajamento}</td>
+            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${metric.salvamentos}</td>
+            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: bold; color: #7c3aed;">${metric.taxa_engajamento}%</td>
+          </tr>`,
+      )
+      .join('')
+
+    const topPostsSectionHtml =
+      reportSections.topPosts && topPostsRanking.length > 0
+        ? `<h2>Top Posts: Ranking por Engajamento</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: center;">#</th>
+                <th>Rede</th>
+                <th>Conteúdo</th>
+                <th style="text-align: center;">Alcance</th>
+                <th style="text-align: center;">Interações</th>
+                <th style="text-align: center;">Salvos</th>
+                <th style="text-align: center;">Taxa</th>
+              </tr>
+            </thead>
+            <tbody>${topPostsRowsHtml}</tbody>
+          </table>`
+        : ''
 
     const abRowsHtml =
       abTests.length > 0
@@ -592,6 +762,35 @@ export function PerformanceReport({
             )
             .join('')
         : '<tr><td colspan="4" style="padding: 12px; text-align: center; color: #64748b; border: 1px solid #e2e8f0;">Nenhum teste A/B no período.</td></tr>'
+
+    const abSectionHtml = reportSections.abTests
+      ? `<h2>Resultados dos Testes A/B</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Experimento</th>
+              <th>Status</th>
+              <th>Objetivo</th>
+              <th>Resultado</th>
+            </tr>
+          </thead>
+          <tbody>${abRowsHtml}</tbody>
+        </table>`
+      : ''
+
+    const tagsFormatsSectionHtml = reportSections.tagsFormats
+      ? `<h2>Tags e Formatos em Destaque</h2>
+        <p style="font-size: 12px; color: #475569; margin: 4px 0 10px;">
+          <strong>Top Tags:</strong> ${
+            topTagsAndFormats.topTags.map((t) => `#${t.tag} (${t.count})`).join(', ') || 'Nenhuma'
+          }
+        </p>
+        <p style="font-size: 12px; color: #475569; margin: 4px 0;">
+          <strong>Top Formatos:</strong> ${
+            topTagsAndFormats.topFormats.map((f) => `${f.format} (${f.count})`).join(', ') || 'Nenhum'
+          }
+        </p>`
+      : ''
 
     const html = `<!DOCTYPE html>
 <html>
@@ -621,73 +820,19 @@ export function PerformanceReport({
     <div>
       <h1>BestContent Social 2 — Relatório Consolidado de Performance</h1>
       <p class="meta">Gerado em ${nowFormatted} · Gestor: ${userName}</p>
+      <p class="meta" style="margin-top: 4px;"><strong>Escopo:</strong> ${brandNames} · <strong>Período:</strong> ${selectedPeriod}</p>
     </div>
     <div style="text-align: right; font-size: 12px; font-weight: bold; color: #7c3aed;">
       PLATAFORMA SOCIAL 2 MAX
     </div>
   </div>
 
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-title">Total de Conteúdos</div>
-      <div class="kpi-val">${statusStats.total}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">Publicados</div>
-      <div class="kpi-val">${statusStats.published}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">Agendados</div>
-      <div class="kpi-val">${statusStats.scheduled}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">Taxa de Aprovação</div>
-      <div class="kpi-val">${statusStats.approvalRate}%</div>
-    </div>
-  </div>
-
-  <h2>1. Desempenho por Marca & Fluxo de Aprovação</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Marca</th>
-        <th style="text-align: center;">Total</th>
-        <th style="text-align: center;">Publicados</th>
-        <th style="text-align: center;">Agendados</th>
-        <th style="text-align: center;">Rascunhos</th>
-        <th style="text-align: center;">Aprovados</th>
-        <th style="text-align: center;">Taxa Aprovação</th>
-      </tr>
-    </thead>
-    <tbody>${brandRowsHtml}</tbody>
-  </table>
-
-  <h2>2. Desempenho por Rede Social</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Rede Social</th>
-        <th style="text-align: center;">Total Posts</th>
-        <th style="text-align: center;">Publicados</th>
-        <th style="text-align: center;">Agendados</th>
-        <th style="text-align: center;">Aprovados</th>
-      </tr>
-    </thead>
-    <tbody>${networkRowsHtml}</tbody>
-  </table>
-
-  <h2>3. Resultados dos Testes A/B</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Experimento</th>
-        <th>Status</th>
-        <th>Objetivo</th>
-        <th>Resultado</th>
-      </tr>
-    </thead>
-    <tbody>${abRowsHtml}</tbody>
-  </table>
+  ${kpiSectionHtml}
+  ${brandsSectionHtml}
+  ${networksSectionHtml}
+  ${topPostsSectionHtml}
+  ${tagsFormatsSectionHtml}
+  ${abSectionHtml}
 
   <div class="footer">
     BestContent Social 2 · Documento de Prestação de Contas & Performance Estratégica
@@ -724,9 +869,32 @@ export function PerformanceReport({
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             <span className="text-xs font-bold text-foreground">Marca:</span>
-            <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
+            <Select
+              value={
+                selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+                  ? 'all'
+                  : selectedBrandIds.length === 1
+                    ? selectedBrandIds[0]
+                    : 'custom'
+              }
+              onValueChange={(val) => {
+                if (val === 'all') {
+                  setSelectedBrandIds(['all'])
+                } else if (val === 'custom') {
+                  setIsCustomizeModalOpen(true)
+                } else {
+                  setSelectedBrandIds([val])
+                }
+              }}
+            >
               <SelectTrigger className="h-8 text-xs rounded-xl w-44">
-                <SelectValue placeholder="Todas as Marcas" />
+                <SelectValue placeholder="Todas as Marcas">
+                  {selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+                    ? `Todas as Marcas (${brands.length})`
+                    : selectedBrandIds.length === 1
+                      ? brands.find((b) => b.id === selectedBrandIds[0])?.name || '1 marca'
+                      : `${selectedBrandIds.length} marcas selecionadas`}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-xs">
@@ -737,6 +905,11 @@ export function PerformanceReport({
                     {b.name}
                   </SelectItem>
                 ))}
+                {selectedBrandIds.length > 1 && !selectedBrandIds.includes('all') && (
+                  <SelectItem value="custom" className="text-xs font-semibold text-purple-600">
+                    Personalizado ({selectedBrandIds.length} marcas)
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -765,7 +938,16 @@ export function PerformanceReport({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCustomizeModalOpen(true)}
+            className="rounded-xl text-xs h-8 px-3 gap-1.5 border-purple-500/40 hover:bg-purple-500/10 text-purple-700 dark:text-purple-300"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <span>Personalizar Relatório</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -787,6 +969,7 @@ export function PerformanceReport({
       </div>
 
       {/* Resumo Executivo / KPIs Consolidados */}
+      {reportSections.kpis && (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card p-4 shadow-xs">
           <div className="flex items-center justify-between">
@@ -844,8 +1027,10 @@ export function PerformanceReport({
           </p>
         </Card>
       </div>
+      )}
 
       {/* Top Tags & Formatos mais usados na biblioteca */}
+      {reportSections.tagsFormats && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="rounded-2xl border-border bg-card p-4 shadow-xs">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/60">
@@ -904,8 +1089,10 @@ export function PerformanceReport({
           )}
         </Card>
       </div>
+      )}
 
       {/* Grid de 2 Colunas: Desempenho por Marca & Evolução Temporal */}
+      {reportSections.brands && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Desempenho por Marca */}
         <Card className="rounded-2xl border-border bg-card p-5 shadow-xs">
@@ -1012,11 +1199,38 @@ export function PerformanceReport({
           </div>
         </Card>
       </div>
+      )}
 
-      {/* Bloco 3: Análise de Audiência e Demografia */}
-      <AudienceAnalysisBlock brandId={selectedBrandId} selectedPeriod={selectedPeriod} />
+      {/* Bloco de Análise de Concorrentes: Comparativo Marca vs Concorrentes */}
+      {reportSections.competitors && (
+        <CompetitorAnalysisBlock
+          brandId={
+            selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+              ? (brands[0]?.id || '')
+              : selectedBrandIds[0]
+          }
+          brandName={
+            selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+              ? (brands[0]?.name || 'Marca Principal')
+              : (brands.find((b) => b.id === selectedBrandIds[0])?.name || 'Sua Marca')
+          }
+        />
+      )}
+
+      {/* Bloco 3: Análise de Audiência e Demografia com Seletor de Rede e Painéis */}
+      {reportSections.audience && (
+        <AudienceAnalysisBlock
+          brandId={
+            selectedBrandIds.includes('all') || selectedBrandIds.length === 0
+              ? 'all'
+              : selectedBrandIds[0]
+          }
+          selectedPeriod={selectedPeriod}
+        />
+      )}
 
       {/* Top Posts Ranking por Engajamento Estimado */}
+      {reportSections.topPosts && (
       <Card className="rounded-2xl border-border bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/80">
           <div className="flex items-center gap-2">
@@ -1118,111 +1332,14 @@ export function PerformanceReport({
         )}
       </Card>
 
-      {/* Top Posts Ranking por Engajamento Estimado */}
-      <Card className="rounded-2xl border-border bg-card p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/80">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-              <Trophy className="w-4 h-4 text-amber-500" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <span>Top Posts: Ranking de Performance</span>
-                <Badge variant="secondary" className="text-[10px] bg-purple-500/10 text-purple-600">
-                  Mais Engajados
-                </Badge>
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Criações publicadas com maior volume de reações, comentários e salvamentos no
-                período filtrado.
-              </p>
-            </div>
-          </div>
-          <span className="text-[11px] text-muted-foreground font-mono">
-            {topPostsRanking.length} em destaque
-          </span>
-        </div>
-
-        {topPostsRanking.length === 0 ? (
-          <div className="py-8 text-center text-xs text-muted-foreground space-y-1">
-            <p>Nenhum post publicado com métricas para os filtros selecionados.</p>
-            <p className="text-[11px]">
-              Publique conteúdos ou altere o filtro de período para visualizar o ranking.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {topPostsRanking.map(({ post, metric }, idx) => (
-              <div
-                key={post.id}
-                className="p-3.5 rounded-xl bg-muted/30 border border-border/70 hover:border-purple-500/40 hover:bg-muted/50 transition-all flex flex-col justify-between space-y-3"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shadow-2xs">
-                      #{idx + 1}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] capitalize">
-                      {post.platform || 'Instagram'}
-                    </Badge>
-                  </div>
-                  <h4 className="text-xs font-bold text-foreground line-clamp-2">
-                    {post.content || post.caption || 'Sem título'}
-                  </h4>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-border/50">
-                  <div className="grid grid-cols-3 gap-1 text-center">
-                    <div className="p-1 rounded bg-card border border-border/40">
-                      <span className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
-                        <Eye className="w-2.5 h-2.5 text-purple-500" /> Alcance
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        {metric.alcance >= 1000
-                          ? `${(metric.alcance / 1000).toFixed(1)}k`
-                          : metric.alcance}
-                      </span>
-                    </div>
-
-                    <div className="p-1 rounded bg-card border border-border/40">
-                      <span className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
-                        <Heart className="w-2.5 h-2.5 text-emerald-500" /> Interações
-                      </span>
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        {metric.engajamento}
-                      </span>
-                    </div>
-
-                    <div className="p-1 rounded bg-card border border-border/40">
-                      <span className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
-                        <Bookmark className="w-2.5 h-2.5 text-pink-500" /> Salvos
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        {metric.salvamentos}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-purple-600 dark:text-purple-400">
-                      Taxa: {metric.taxa_engajamento}%
-                    </span>
-                    {metric.is_simulated && (
-                      <span className="text-[9px] text-muted-foreground uppercase">
-                        Estimativa Baseline
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </Card>
+      )}
 
       {/* Desempenho por Rede Social & Testes A/B */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {(reportSections.networks || reportSections.abTests) && (
+      <div className={`grid grid-cols-1 ${reportSections.networks && reportSections.abTests ? 'lg:grid-cols-2' : ''} gap-6`}>
         {/* Desempenho por Rede Social */}
+        {reportSections.networks && (
         <Card className="rounded-2xl border-border bg-card p-5 shadow-xs">
           <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
             <div className="flex items-center gap-2">
@@ -1263,8 +1380,10 @@ export function PerformanceReport({
             ))}
           </div>
         </Card>
+        )}
 
         {/* Resultados dos Testes A/B */}
+        {reportSections.abTests && (
         <Card className="rounded-2xl border-border bg-card p-5 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
@@ -1325,7 +1444,22 @@ export function PerformanceReport({
             <span className="font-semibold text-purple-600 dark:text-purple-400">IA Otimizada</span>
           </div>
         </Card>
+        )}
       </div>
+      )}
+
+      {/* Modal de Personalização do Relatório */}
+      <CustomizeReportModal
+        open={isCustomizeModalOpen}
+        onOpenChange={setIsCustomizeModalOpen}
+        sections={reportSections}
+        onSectionsChange={setReportSections}
+        brands={brands}
+        selectedBrandIds={selectedBrandIds}
+        onBrandIdsChange={setSelectedBrandIds}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={setSelectedPeriod}
+      />
     </div>
   )
 }
