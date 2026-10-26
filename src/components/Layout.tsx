@@ -17,6 +17,7 @@ import {
   LayoutGrid,
   Globe,
   FlaskConical,
+  BarChart3,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCustomization } from '@/context/CustomizationContext'
