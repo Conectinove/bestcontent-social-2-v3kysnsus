@@ -19,11 +19,13 @@ export interface BrandKitMaterialItem {
   id: string
   title: string
   subtitle: string
+  description?: string
   category: BrandMaterialCategory
   kindSlug: string
   fileNameCustom: string
   primaryColor: string
   secondaryColor: string
+  accentColor?: string
   monoColor: string
   symbolSize: number
   logoPosition: 'left' | 'center' | 'right'
@@ -105,7 +107,7 @@ export async function getBrandKitMaterials(userId?: string): Promise<BrandKitMat
  * Cria ou atualiza um material customizado
  */
 export async function saveBrandKitMaterial(
-  material: Omit<BrandKitMaterialItem, 'id'> & { id?: string },
+  material: Omit<BrandKitMaterialItem, 'id'> & { id?: string; userId?: string },
   userId?: string,
   uploadedFile?: File,
 ): Promise<BrandKitMaterialItem> {
@@ -131,8 +133,9 @@ export async function saveBrandKitMaterial(
     config_json: material.configJson || {},
   }
 
-  if (userId) {
-    payload.user = userId
+  const targetUserId = userId || material.userId
+  if (targetUserId) {
+    payload.user = targetUserId
   }
 
   try {
@@ -292,6 +295,7 @@ export function generateMaterialSvg(
     background?: 'light' | 'dark' | 'violet' | 'transparent'
     width?: number
     height?: number
+    forceWatermark?: boolean
   },
 ): string {
   // Se for um SVG customizado colado pelo usuário diretamente
@@ -323,6 +327,7 @@ export function generateMaterialSvg(
   const symbolScale = (item.symbolSize || 100) / 100
   const titleText = item.customText || item.title || 'MudarCurso'
   const taglineText = item.tagline || item.subtitle || 'TRANSFORMAÇÃO CONTÍNUA'
+  const showWatermark = Boolean(item.draftWatermark || opts?.forceWatermark)
 
   // LAYOUT 1: BADGE CIRCULAR (Selo Oficial)
   if (item.layoutType === 'badge-round') {
@@ -358,7 +363,7 @@ export function generateMaterialSvg(
     <textPath href="#textCircleBottom" startOffset="50%" text-anchor="middle">★ ${taglineText.toUpperCase()} ★</textPath>
   </text>
   
-  ${item.draftWatermark ? `<text x="300" y="320" font-family="'Archivo Black', sans-serif" font-size="44" font-weight="900" fill="#EF4444" opacity="0.35" text-anchor="middle" transform="rotate(-30 300 300)">RASCUNHO</text>` : ''}
+  ${showWatermark ? `<text x="300" y="320" font-family="'Archivo Black', sans-serif" font-size="44" font-weight="900" fill="#EF4444" opacity="0.35" text-anchor="middle" transform="rotate(-30 300 300)">RASCUNHO</text>` : ''}
 </svg>`
   }
 
@@ -392,7 +397,7 @@ export function generateMaterialSvg(
     </text>
   </g>
 
-  ${item.draftWatermark ? `<text x="600" y="240" font-family="'Archivo Black', sans-serif" font-size="70" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-15 600 200)">RASCUNHO OFICIAL</text>` : ''}
+  ${showWatermark ? `<text x="600" y="240" font-family="'Archivo Black', sans-serif" font-size="70" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-15 600 200)">RASCUNHO OFICIAL</text>` : ''}
 </svg>`
   }
 
@@ -425,7 +430,7 @@ export function generateMaterialSvg(
     </text>
   </g>
 
-  ${item.draftWatermark ? `<text x="400" y="320" font-family="'Archivo Black', sans-serif" font-size="64" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-25 400 300)">RASCUNHO</text>` : ''}
+  ${showWatermark ? `<text x="400" y="320" font-family="'Archivo Black', sans-serif" font-size="64" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-25 400 300)">RASCUNHO</text>` : ''}
 </svg>`
   }
 
@@ -446,7 +451,7 @@ export function generateMaterialSvg(
     <polygon points="-10,-40 30,-40 60,0 30,40 -10,40" fill="${secondaryCol}" />
   </g>
 
-  ${item.draftWatermark ? `<text x="300" y="320" font-family="'Archivo Black', sans-serif" font-size="60" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-30 300 300)">RASCUNHO</text>` : ''}
+  ${showWatermark ? `<text x="300" y="320" font-family="'Archivo Black', sans-serif" font-size="60" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-30 300 300)">RASCUNHO</text>` : ''}
 </svg>`
   }
 
@@ -488,7 +493,7 @@ export function generateMaterialSvg(
     </text>
   </g>
 
-  ${item.draftWatermark ? `<text x="600" y="210" font-family="'Archivo Black', sans-serif" font-size="70" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-15 600 180)">RASCUNHO</text>` : ''}
+  ${showWatermark ? `<text x="600" y="210" font-family="'Archivo Black', sans-serif" font-size="70" font-weight="900" fill="#EF4444" opacity="0.25" text-anchor="middle" transform="rotate(-15 600 180)">RASCUNHO</text>` : ''}
 </svg>`
 }
 

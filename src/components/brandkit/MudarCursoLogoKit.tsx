@@ -859,7 +859,11 @@ export function MudarCursoLogoKit() {
         triggerFileDownload(blob, fileName)
         addLog('Página', `Download SVG concluído: ${fileName}`, 'ok')
       } else if (format === 'png' || format === 'draft') {
-        const isIconOrMark = material.category === 'simbolo' || material.category === 'icone'
+        const isIconOrMark =
+          material.layoutType === 'symbol-only' ||
+          material.layoutType === 'badge-round' ||
+          (material.category as string) === 'simbolo' ||
+          (material.category as string) === 'icone'
         const h = isIconOrMark ? size : Math.round(size * (360 / 1200))
         const canvas = await renderSvgToCanvas(svgCode, size, h, 'transparent')
         canvas.toBlob((blob) => {
@@ -870,7 +874,11 @@ export function MudarCursoLogoKit() {
           }
         }, 'image/png')
       } else if (format === 'jpg') {
-        const isIconOrMark = material.category === 'simbolo' || material.category === 'icone'
+        const isIconOrMark =
+          material.layoutType === 'symbol-only' ||
+          material.layoutType === 'badge-round' ||
+          (material.category as string) === 'simbolo' ||
+          (material.category as string) === 'icone'
         const h = isIconOrMark ? size : Math.round(size * (360 / 1200))
         const canvas = await renderSvgToCanvas(svgCode, size, h, '#FFFFFF')
         canvas.toBlob(
@@ -1011,12 +1019,19 @@ export function MudarCursoLogoKit() {
   }
 
   // SALVAR MATERIAL (CRIADO OU EDITADO)
-  const handleSaveMaterial = async (data: Partial<BrandKitMaterialItem>) => {
+  const handleSaveMaterial = async (
+    data: Omit<BrandKitMaterialItem, 'id'> & { id?: string },
+    file?: File,
+  ) => {
     try {
-      const saved = await saveBrandKitMaterial({
-        ...data,
-        userId: user?.id,
-      })
+      const saved = await saveBrandKitMaterial(
+        {
+          ...data,
+          userId: user?.id,
+        },
+        user?.id,
+        file,
+      )
       setCustomMaterials((prev) => {
         const idx = prev.findIndex((m) => m.id === saved.id)
         if (idx >= 0) {
