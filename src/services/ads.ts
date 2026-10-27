@@ -300,6 +300,32 @@ export interface PlatformOfficialMetricsResult {
   period?: string
 }
 
+export interface MetaAdsStatusResponse {
+  platform: 'meta'
+  name: string
+  configured: boolean
+  status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
+  accountIdPrefix?: string | null
+  requiredSecrets: string[]
+  message?: string
+}
+
+export async function getMetaAdsStatus(): Promise<MetaAdsStatusResponse> {
+  try {
+    const res = await pb.send('/backend/v1/meta/ads/status', { method: 'GET' })
+    return res as MetaAdsStatusResponse
+  } catch {
+    return {
+      platform: 'meta',
+      name: 'Meta Ads (Facebook & Instagram)',
+      configured: false,
+      status: 'not_configured',
+      requiredSecrets: ['META_ADS_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID'],
+      message: 'Estimativa calibrada ativa.',
+    }
+  }
+}
+
 export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> {
   try {
     const res = await pb.send('/backend/v1/ads/status', { method: 'GET' })

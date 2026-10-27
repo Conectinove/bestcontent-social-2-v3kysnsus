@@ -85,6 +85,27 @@ routerAdd('GET', '/backend/v1/ads/status', (e) => {
 })
 
 /**
+ * Rota dedicada para compatibilidade e verificação rápida de Meta Ads
+ * GET /backend/v1/meta/ads/status
+ */
+routerAdd('GET', '/backend/v1/meta/ads/status', (e) => {
+  const token = ($os.getenv('META_ADS_ACCESS_TOKEN') || '').trim()
+  const accountId = ($os.getenv('META_AD_ACCOUNT_ID') || '').trim()
+  const isConf = Boolean(token && token.length > 10)
+
+  return e.json(200, {
+    platform: 'meta',
+    name: 'Meta Ads (Facebook & Instagram)',
+    configured: isConf,
+    status: isConf ? 'connected' : 'not_configured',
+    accountIdPrefix: accountId ? accountId.slice(0, 5) + '...' : null,
+    requiredSecrets: ['META_ADS_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID'],
+    message: isConf
+      ? 'API Oficial Conectada em runtime.'
+      : 'Segredos META_ADS_ACCESS_TOKEN / META_AD_ACCOUNT_ID não detectados. Estimativa calibrada ativa.',
+  })
+})
+/**
  * Meta Ads - Endpoint de Métricas Reais via Graph API
  */
 routerAdd(

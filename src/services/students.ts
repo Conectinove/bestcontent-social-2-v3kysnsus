@@ -32,6 +32,21 @@ export interface StudentFormData {
   notes?: string
 }
 
+export interface StudentAutomationRecord {
+  id: string
+  user?: string
+  rule_key: string
+  name: string
+  description?: string
+  enabled: boolean
+  days_threshold?: number
+  threshold_value?: number
+  action_type?: string
+  config_json?: any
+  created: string
+  updated: string
+}
+
 export interface StudentsDashboardMetrics {
   total: number
   active30d: number
@@ -40,6 +55,35 @@ export interface StudentsDashboardMetrics {
   completedCount: number
   atRiskCount: number
   avgProgress: number
+}
+
+export async function getStudentAutomations(): Promise<StudentAutomationRecord[]> {
+  try {
+    const records = await pb
+      .collection('student_automations')
+      .getFullList<StudentAutomationRecord>({
+        sort: 'created',
+        requestKey: null,
+      })
+    return records
+  } catch (err) {
+    console.warn('Erro ao buscar regras de automação de alunos:', err)
+    return []
+  }
+}
+
+export async function updateStudentAutomation(
+  id: string,
+  data: Partial<StudentAutomationRecord>,
+): Promise<StudentAutomationRecord> {
+  return await pb.collection('student_automations').update<StudentAutomationRecord>(id, data)
+}
+
+export async function toggleStudentAutomation(
+  id: string,
+  enabled: boolean,
+): Promise<StudentAutomationRecord> {
+  return await pb.collection('student_automations').update<StudentAutomationRecord>(id, { enabled })
 }
 
 export async function getStudents(): Promise<StudentRecord[]> {

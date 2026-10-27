@@ -43,10 +43,13 @@ import {
   updateStudent,
   deleteStudent,
   calculateStudentMetrics,
+  getStudentAutomations,
   type StudentRecord,
   type StudentFormData,
   type StudentStatus,
+  type StudentAutomationRecord,
 } from '@/services/students'
+import { StudentAutomationsPanel } from '@/components/students/StudentAutomationsPanel'
 
 const STATUS_CONFIG: Record<
   StudentStatus,
@@ -82,6 +85,7 @@ const STATUS_CONFIG: Record<
 export default function StudentsPage() {
   const { toast } = useToast()
   const [students, setStudents] = useState<StudentRecord[]>([])
+  const [automations, setAutomations] = useState<StudentAutomationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
@@ -109,12 +113,22 @@ export default function StudentsPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const data = await getStudents()
-      setStudents(data)
+      const [studentsData, autoData] = await Promise.all([getStudents(), getStudentAutomations()])
+      setStudents(studentsData)
+      setAutomations(autoData)
     } catch (err) {
-      console.warn('Erro ao carregar alunos:', err)
+      console.warn('Erro ao carregar alunos e automações:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const reloadAutomations = async () => {
+    try {
+      const autoData = await getStudentAutomations()
+      setAutomations(autoData)
+    } catch {
+      /* intentionally ignored */
     }
   }
 
@@ -283,6 +297,15 @@ export default function StudentsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Painel de Automações para Alunos (Regras Persistidas no Banco) */}
+      <StudentAutomationsPanel
+        automations={automations}
+        students={students}
+        completionRate={metrics.completionRate}
+        onRefreshAutomations={reloadAutomations}
+        onRefreshStudents={loadData}
+      />
 
       {/* Grid de 4 KPIs Principais (1 coluna no mobile 360px, 2 colunas sm, 4 colunas lg) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
