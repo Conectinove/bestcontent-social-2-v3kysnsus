@@ -287,12 +287,12 @@ export default function StudentsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
           <Button
             onClick={handleOpenCreate}
-            className="rounded-xl text-xs h-9 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs gap-1.5"
+            className="rounded-xl text-xs h-9 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs gap-1.5 flex-1 sm:flex-initial justify-center"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>Matricular Aluno</span>
           </Button>
         </div>

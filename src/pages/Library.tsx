@@ -704,44 +704,44 @@ export default function Library() {
         </div>
 
         {/* Top actions */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => refreshPosts()}
-            className="rounded-xl border-border bg-card hover:bg-muted text-xs font-semibold h-9 px-3 gap-1.5 shadow-xs"
+            className="rounded-xl border-border bg-card hover:bg-muted text-xs font-semibold h-9 px-2.5 sm:px-3 gap-1.5 shadow-xs flex-1 sm:flex-initial justify-center"
             title="Atualizar lista com PocketBase"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="hidden sm:inline">Sincronizar</span>
+            <RefreshCw className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate">Sincronizar</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
             onClick={() => setImageBankOpen(true)}
-            className="rounded-xl border-border bg-card hover:bg-muted text-xs font-semibold h-9 px-3.5 gap-2 shadow-xs"
+            className="rounded-xl border-border bg-card hover:bg-muted text-xs font-semibold h-9 px-2.5 sm:px-3.5 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
           >
-            <ImageIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span>Banco de Imagens</span>
+            <ImageIcon className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span className="truncate">Banco de Imagens</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => setCampaignModalOpen(true)}
-            className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-xs h-9 px-3.5 gap-2 shadow-xs transition-all"
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold text-xs h-9 px-2.5 sm:px-3.5 gap-1.5 sm:gap-2 shadow-xs transition-all flex-1 sm:flex-initial justify-center"
           >
-            <Megaphone className="w-3.5 h-3.5" />
-            <span>Nova Campanha</span>
+            <Megaphone className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Nova Campanha</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => navigate('/app/content/new')}
-            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-9 px-4 gap-2 shadow-sm transition-all"
+            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-9 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-sm transition-all flex-1 sm:flex-initial justify-center"
           >
-            <PenTool className="w-4 h-4" />
-            <span>Novo Post</span>
+            <PenTool className="w-4 h-4 shrink-0" />
+            <span className="truncate">Novo Post</span>
           </Button>
         </div>
       </div>

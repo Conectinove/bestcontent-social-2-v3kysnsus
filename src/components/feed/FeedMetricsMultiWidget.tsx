@@ -29,20 +29,20 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
   return (
     <div className={`space-y-2.5 ${className}`}>
       {/* Network selector tabs */}
-      <div className="flex items-center justify-between gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/80">
-        <div className="flex items-center gap-1 flex-1">
+      <div className="flex items-center justify-between gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/80 overflow-hidden">
+        <div className="flex items-center gap-1 flex-1 overflow-x-auto scrollbar-none py-0.5">
           <Button
             type="button"
             variant={activeTab === 'instagram' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('instagram')}
-            className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'instagram'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500" />
+            <span className="w-2 h-2 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 shrink-0" />
             <span>Instagram</span>
           </Button>
 
@@ -51,13 +51,13 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             variant={activeTab === 'tiktok' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('tiktok')}
-            className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'tiktok'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
+            <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
             <span>TikTok</span>
           </Button>
 
@@ -66,13 +66,13 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             variant={activeTab === 'youtube' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('youtube')}
-            className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'youtube'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-red-600" />
+            <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
             <span>YouTube</span>
           </Button>
 
@@ -81,13 +81,13 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             variant={activeTab === 'analytics' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('analytics')}
-            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'analytics'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
             <span>GA4</span>
           </Button>
 
@@ -96,13 +96,13 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             variant={activeTab === 'linkedin' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('linkedin')}
-            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'linkedin'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-blue-600" />
+            <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
             <span>LinkedIn</span>
           </Button>
 
@@ -111,13 +111,13 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             variant={activeTab === 'substack' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('substack')}
-            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'substack'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-orange-500" />
+            <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
             <span>Substack</span>
           </Button>
 
@@ -126,13 +126,13 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             variant={activeTab === 'gbp' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('gbp')}
-            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'gbp'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
             <span className="hidden sm:inline">Google Meu Negócio</span>
             <span className="sm:hidden">GBP</span>
           </Button>

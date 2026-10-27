@@ -18,6 +18,7 @@ export default {
       center: true,
       padding: '2rem',
       screens: {
+        xs: '420px',
         sm: '640px',
         md: '768px',
         lg: '1024px',
@@ -26,6 +27,9 @@ export default {
       },
     },
     extend: {
+      screens: {
+        xs: '420px',
+      },
       fontFamily: {
         sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
         display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],

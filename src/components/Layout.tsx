@@ -150,14 +150,14 @@ export default function Layout() {
           </SheetContent>
         </Sheet>
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen max-w-full">
           <Header onOpenMobileMenu={() => setMobileOpen(true)} />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-16">
+          <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-16 min-w-0 overflow-x-hidden">
             <Outlet />
           </main>
-          <footer className="border-t border-border py-4 px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
+          <footer className="border-t border-border py-4 px-4 sm:px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
             <span className="text-center sm:text-left font-medium">
-              MidiaViva — Powered by BestContent AI · v0.0.79
+              MidiaViva — Powered by BestContent AI · v0.0.80
             </span>
             <div className="flex items-center gap-4">
               <button

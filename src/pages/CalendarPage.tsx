@@ -191,25 +191,25 @@ export default function CalendarPage() {
             Arraste para reagendar e organize a grade de publicações de todas as suas marcas.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center bg-muted/80 rounded-2xl border border-border/80 p-1 shadow-xs">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          <div className="flex items-center bg-muted/80 rounded-2xl border border-border/80 p-1 shadow-xs flex-1 sm:flex-initial justify-between sm:justify-start">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-              className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
               aria-label="Mês anterior"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-xs font-bold px-3 min-w-[120px] text-center text-foreground">
+            <span className="text-xs font-bold px-2 sm:px-3 min-w-[100px] sm:min-w-[120px] text-center text-foreground truncate">
               {MONTHS[month]} {year}
             </span>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-              className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
               aria-label="Próximo mês"
             >
               <ChevronRight className="w-4 h-4" />
@@ -218,17 +218,18 @@ export default function CalendarPage() {
           <Button
             variant="outline"
             onClick={() => setSmartPlanOpen(true)}
-            className="border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 text-xs font-bold rounded-2xl h-10 px-4 gap-2 shadow-xs"
+            className="border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 text-xs font-bold rounded-2xl h-10 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
           >
-            <Sparkles className="w-4 h-4 text-pink-500" />
-            <span>Fila Semanal IA</span>
+            <Sparkles className="w-4 h-4 text-pink-500 shrink-0" />
+            <span className="truncate">Fila Semanal IA</span>
           </Button>
 
           <Button
             onClick={() => navigate('/app/content/new')}
-            className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-2xl h-10 px-4 gap-1.5 shadow-xs"
+            className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-2xl h-10 px-3 sm:px-4 gap-1.5 shadow-xs flex-1 sm:flex-initial justify-center"
           >
-            <Plus className="w-4 h-4" /> Agendar Novo Post
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="truncate">Agendar Novo Post</span>
           </Button>
         </div>
       </div>

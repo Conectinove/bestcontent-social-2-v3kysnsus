@@ -79,26 +79,26 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10 px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4">
+    <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10 px-2.5 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-4 max-w-full overflow-hidden">
       {/* Left side: Mobile Hamburger + Brand Filter Selector */}
-      <div className="flex items-center gap-1.5 sm:gap-3">
+      <div className="flex items-center gap-1 sm:gap-3 min-w-0 shrink">
         <Button
           variant="ghost"
           size="icon"
           onClick={onOpenMobileMenu}
-          className="md:hidden text-foreground h-10 w-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl"
+          className="md:hidden text-foreground h-10 w-10 min-h-[44px] min-w-[44px] shrink-0 flex items-center justify-center rounded-xl"
           aria-label="Abrir menu lateral"
         >
           <Menu className="w-5 h-5" />
         </Button>
 
         {/* Brand Selector Dropdown */}
-        <div className="hidden sm:flex items-center gap-2">
-          <Palette className="w-4 h-4 text-primary" />
+        <div className="hidden sm:flex items-center gap-2 min-w-0">
+          <Palette className="w-4 h-4 text-primary shrink-0" />
           <select
             value={selectedBrandId}
             onChange={(e) => setSelectedBrandId(e.target.value)}
-            className="text-sm font-medium bg-muted text-foreground border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+            className="text-sm font-medium bg-muted text-foreground border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary truncate max-w-[150px] lg:max-w-[200px]"
           >
             <option value="all">Todas as Marcas</option>
             {brands.map((brand) => (
@@ -111,48 +111,59 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
       </div>
 
       {/* Middle: Global Search */}
-      <div className="flex-1 max-w-md relative hidden sm:block">
+      <div className="flex-1 max-w-md relative hidden md:block min-w-0">
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="text"
           placeholder="Pesquisar marcas, ideias ou posts..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-9 text-sm bg-muted/50 border-border focus-visible:ring-primary"
+          className="pl-9 h-9 text-sm bg-muted/50 border-border focus-visible:ring-primary w-full"
         />
       </div>
 
       {/* Right side: New Post CTA, Theme Toggle, Notifications & User Avatar */}
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          onClick={handlePublish}
-          disabled={publishLoading}
-          className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs gap-1.5 h-9 rounded-lg aggressive-button"
-        >
-          {publishLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Rocket className="w-4 h-4" />
-          )}
-          <span>{publishLoading ? 'Publicando...' : 'PUBLICAR'}</span>
-        </Button>
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* Compact CTA buttons on mobile/tablet up to desktop */}
+        {/* Under 420px: icon-only buttons (min-w-[44px] touch target). 420px+: icon + short label */}
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            onClick={handlePublish}
+            disabled={publishLoading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs h-9 px-2 sm:px-3 rounded-lg aggressive-button flex items-center justify-center gap-1 shrink-0 whitespace-nowrap"
+            title="Publicar App"
+            aria-label="Publicar App"
+          >
+            {publishLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            ) : (
+              <Rocket className="w-4 h-4 shrink-0" />
+            )}
+            <span className="hidden xs:inline">PUBLICAR</span>
+          </Button>
 
-        <Button
-          size="sm"
-          onClick={() => navigate('/app/content/new')}
-          className="hidden sm:flex bg-primary hover:bg-primary/90 text-white font-black text-xs gap-1 h-9 rounded-lg aggressive-button"
-        >
-          <Plus className="w-4 h-4" />
-          <span>NOVO POST</span>
-        </Button>
+          <Button
+            size="sm"
+            onClick={() => navigate('/app/content/new')}
+            className="bg-primary hover:bg-primary/90 text-white font-black text-xs h-9 px-2 sm:px-3 rounded-lg aggressive-button flex items-center justify-center gap-1 shrink-0 whitespace-nowrap"
+            title="Novo Post"
+            aria-label="Criar novo post"
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">NOVO POST</span>
+            <span className="hidden xs:inline sm:hidden">POST</span>
+          </Button>
+        </div>
+
         {/* Theme Toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground rounded-xl"
+          className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground rounded-xl shrink-0"
           title="Alternar tema"
+          aria-label="Alternar tema"
         >
           {theme === 'dark' ? (
             <Sun className="w-4 h-4 text-yellow-400" />
@@ -167,11 +178,12 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 relative text-muted-foreground hover:text-foreground"
+              className="h-10 w-10 min-h-[44px] min-w-[44px] relative text-muted-foreground hover:text-foreground shrink-0 rounded-xl"
+              aria-label="Notificações"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-pink-500 rounded-full ring-2 ring-background animate-pulse" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-pink-500 rounded-full ring-2 ring-background animate-pulse" />
               )}
             </Button>
           </DropdownMenuTrigger>
@@ -222,21 +234,22 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
         {/* User Profile Avatar Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="p-0 h-10 w-10 min-h-[44px] min-w-[44px] rounded-full ring-2 ring-primary/20 flex items-center justify-center"
+            <button
+              type="button"
+              className="p-0 h-10 w-10 min-h-[44px] min-w-[44px] rounded-full ring-2 ring-primary/20 flex items-center justify-center shrink-0 hover:ring-primary/50 transition-all focus:outline-hidden focus:ring-2 focus:ring-primary"
+              aria-label="Perfil do usuário"
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.avatar} alt={user?.name} />
                 <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || 'BC'}</AvatarFallback>
               </Avatar>
-            </Button>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold leading-none">{user?.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                <p className="text-sm font-semibold leading-none truncate">{user?.name}</p>
+                <p className="text-xs leading-none text-muted-foreground truncate">{user?.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -265,6 +278,22 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
               <span>Configurações</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {/* Quick action for Mobile in Profile menu too */}
+            <DropdownMenuItem
+              onClick={handlePublish}
+              className="sm:hidden text-emerald-600 font-semibold"
+            >
+              <Rocket className="mr-2 h-4 w-4 text-emerald-600" />
+              <span>Publicar App</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/app/content/new')}
+              className="sm:hidden text-primary font-semibold"
+            >
+              <Plus className="mr-2 h-4 w-4 text-primary" />
+              <span>Criar Novo Post</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="sm:hidden" />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair da conta</span>

@@ -674,12 +674,12 @@ export default function Feed() {
           ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Card 1: Criador Dedicado */}
-        <Card className="rounded-2xl border border-border/70 bg-card shadow-xs hover:shadow-md transition-shadow">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+        <Card className="rounded-2xl border border-border/70 bg-card shadow-xs hover:shadow-md transition-shadow overflow-hidden">
+          <CardContent className="p-3.5 sm:p-5 flex items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
               <div className="relative shrink-0">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                  <Trophy className="w-6 h-6 text-primary" />
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-violet-900 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
                   4
@@ -688,8 +688,10 @@ export default function Feed() {
 
               <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-bold text-sm text-foreground truncate">Criador Dedicado</h3>
-                  <span className="text-xs font-semibold text-muted-foreground shrink-0">
+                  <h3 className="font-bold text-xs sm:text-sm text-foreground truncate">
+                    Criador Dedicado
+                  </h3>
+                  <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground shrink-0 whitespace-nowrap">
                     345/600 XP
                   </span>
                 </div>
@@ -702,11 +704,11 @@ export default function Feed() {
               </div>
             </div>
 
-            <div className="pl-4 border-l border-border/60 flex items-center gap-2 shrink-0">
-              <Zap className="w-4 h-4 text-amber-500 fill-amber-500/20 stroke-[2.2]" />
+            <div className="pl-3 sm:pl-4 border-l border-border/60 flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <Zap className="w-4 h-4 text-amber-500 fill-amber-500/20 stroke-[2.2] shrink-0" />
               <div className="text-left">
-                <p className="text-lg font-black leading-none text-foreground">1</p>
-                <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                <p className="text-base sm:text-lg font-black leading-none text-foreground">1</p>
+                <p className="text-[9px] sm:text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                   DIAS
                 </p>
               </div>
@@ -717,25 +719,25 @@ export default function Feed() {
         {/* Card 2: MISSÕES */}
         <Card
           onClick={() => setMissionsModalOpen(true)}
-          className="rounded-2xl border border-border/70 bg-card shadow-xs hover:shadow-md hover:border-primary/40 transition-all cursor-pointer group"
+          className="rounded-2xl border border-border/70 bg-card shadow-xs hover:shadow-md hover:border-primary/40 transition-all cursor-pointer group overflow-hidden"
         >
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Target className="w-6 h-6 text-primary" />
+          <CardContent className="p-3.5 sm:p-5 flex items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Target className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
                   MISSÕES SEMANAIS
                 </p>
-                <p className="text-base font-bold text-foreground">
+                <p className="text-sm sm:text-base font-bold text-foreground truncate">
                   0/8 completas &middot; Ganhe XP
                 </p>
               </div>
             </div>
 
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all">
-              <ArrowRight className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0">
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </CardContent>
         </Card>
@@ -847,7 +849,6 @@ export default function Feed() {
                   <Sparkles className="w-4 h-4 text-primary shrink-0 opacity-70" />
                 </button>
               </div>
-
               {composerOpen && (
                 <form
                   onSubmit={handlePublishPost}
@@ -940,14 +941,13 @@ export default function Feed() {
                   </div>
                 </form>
               )}
-
               {!composerOpen && (
-                <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground flex-wrap gap-2">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setComposerOpen(true)}
-                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium"
+                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-primary" />
                       <span>Nova Ideia</span>
@@ -955,7 +955,7 @@ export default function Feed() {
                     <button
                       type="button"
                       onClick={() => setComposerOpen(true)}
-                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium"
+                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1"
                     >
                       <ImageIcon className="w-3.5 h-3.5 text-purple-500" />
                       <span>Mídia</span>
@@ -964,13 +964,13 @@ export default function Feed() {
 
                   <button
                     type="button"
-                    onClick={() => setComposerOpen(true)}
-                    className="text-xs font-semibold text-primary hover:underline"
+                    onClick={() => navigate('/app/content/new')}
+                    className="text-xs font-semibold text-primary hover:underline py-1"
                   >
                     Abrir editor completo →
                   </button>
                 </div>
-              )}
+              )}{' '}
             </CardContent>
           </Card>
 
@@ -1991,12 +1991,12 @@ export default function Feed() {
       </div>
 
       {/* =========================================================================
-          FOOTER REFINADO v0.0.79
+          FOOTER REFINADO v0.0.80
           ========================================================================= */}
       <div className="pt-8 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
         <p className="text-center sm:text-left">
           MidiaViva — Powered by{' '}
-          <span className="font-semibold text-foreground">BestContent AI</span> · v0.0.79
+          <span className="font-semibold text-foreground">BestContent AI</span> · v0.0.80
         </p>
         <div className="flex items-center gap-3">
           <button

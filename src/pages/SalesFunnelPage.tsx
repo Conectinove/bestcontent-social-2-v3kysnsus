@@ -1135,8 +1135,8 @@ export default function SalesFunnelPage() {
       </div>
 
       {/* Pipeline Kanban com Drag and Drop */}
-      <div className="overflow-x-auto pb-4 scrollbar-thin">
-        <div className="flex gap-4 min-w-[1300px]">
+      <div className="overflow-x-auto pb-4 scrollbar-thin max-w-full">
+        <div className="flex gap-4 min-w-[1100px] sm:min-w-[1300px]">
           {FUNNEL_STAGES.map((stage) => {
             const stageDeals = filteredDeals.filter((d) => d.stage === stage.id)
             const stageTotalValue = stageDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0)

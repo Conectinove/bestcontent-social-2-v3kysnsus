@@ -109,15 +109,15 @@ export default function TemplatesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <Button
             onClick={() => setCampaignModalOpen(true)}
-            className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs h-10 px-4 gap-2 shadow-md hover:shadow-purple-500/20 transition-all"
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs h-10 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-md hover:shadow-purple-500/20 transition-all flex-1 sm:flex-initial justify-center"
           >
-            <Sparkles className="w-4 h-4" />
-            <span>Criar Campanha Multi-formato</span>
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="truncate">Criar Campanha Multi-formato</span>
             {campaignsCount > 0 && (
-              <Badge className="bg-white/20 text-white hover:bg-white/30 text-[10px] px-1.5 py-0">
+              <Badge className="bg-white/20 text-white hover:bg-white/30 text-[10px] px-1.5 py-0 shrink-0">
                 {campaignsCount}
               </Badge>
             )}
@@ -129,28 +129,28 @@ export default function TemplatesPage() {
                 setSelectedReportCampaign(campaignsList[0])
                 setCampaignReportOpen(true)
               }}
-              className="rounded-xl bg-purple-600/15 border border-purple-500/40 text-purple-800 dark:text-purple-200 hover:bg-purple-600/25 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+              className="rounded-xl bg-purple-600/15 border border-purple-500/40 text-purple-800 dark:text-purple-200 hover:bg-purple-600/25 font-bold text-xs h-10 px-3 sm:px-3.5 gap-1.5 sm:gap-2 transition-all shadow-2xs flex-1 sm:flex-initial justify-center"
               title="Abrir relatório analítico de campanha com IA"
             >
-              <BarChart3 className="w-4 h-4 text-purple-600" />
-              <span>Relatório da Campanha</span>
+              <BarChart3 className="w-4 h-4 text-purple-600 shrink-0" />
+              <span className="truncate">Relatório</span>
             </Button>
           )}
 
           <Button
             onClick={() => setWhatToPostOpen(true)}
-            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3 sm:px-3.5 gap-1.5 sm:gap-2 transition-all shadow-2xs flex-1 sm:flex-initial justify-center"
           >
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>O que postar hoje?</span>
+            <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+            <span className="truncate">O que postar hoje?</span>
           </Button>
 
           <Button
             onClick={() => setSelectorOpen(true)}
-            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 px-4 gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
+            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-sm transition-all hover:shadow-purple-500/20 flex-1 sm:flex-initial justify-center"
           >
-            <Sparkles className="w-4 h-4" />
-            <span>Abrir Catálogo Completo</span>
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="truncate">Catálogo Completo</span>
           </Button>
         </div>
       </div>

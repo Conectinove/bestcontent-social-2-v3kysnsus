@@ -349,7 +349,7 @@ export default function Settings() {
 
       <div className="flex flex-col md:flex-row gap-6">
         <aside className="w-full md:w-56 shrink-0">
-          <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible scrollbar-none pb-2 md:pb-0">
+          <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible scrollbar-none pb-2 md:pb-0 -mx-1 px-1">
             {TABS.map((tab) => {
               const Icon = tab.icon
               const active = activeTab === tab.key
@@ -357,7 +357,10 @@ export default function Settings() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={cn('settings-nav-item shrink-0', active && 'settings-nav-item-active')}
+                  className={cn(
+                    'settings-nav-item shrink-0 min-h-[44px] flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all',
+                    active && 'settings-nav-item-active bg-primary/10 text-primary font-bold',
+                  )}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span className="whitespace-nowrap">{tab.label}</span>

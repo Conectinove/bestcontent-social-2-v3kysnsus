@@ -147,7 +147,7 @@ export default function VisaoGeral() {
   }
 
   return (
-    <div className="space-y-6 pb-16 animate-fade-in text-[#0f172a]">
+    <div className="space-y-6 pb-16 animate-fade-in text-foreground">
       {/* =========================================================================
           CABEÇALHO DA VISÃO GERAL
           ========================================================================= */}
@@ -193,7 +193,7 @@ export default function VisaoGeral() {
         </div>
 
         {/* Ações no canto superior direito */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={() => {
@@ -227,20 +227,20 @@ export default function VisaoGeral() {
                 description: 'Download do arquivo CSV concluído com sucesso.',
               })
             }}
-            className="rounded-xl border-border bg-card hover:bg-muted font-medium text-xs sm:text-sm h-10 px-3.5 gap-2 shadow-xs"
+            className="rounded-xl border-border bg-card hover:bg-muted font-medium text-xs sm:text-sm h-10 px-3 sm:px-3.5 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
             title="Exportar métricas da Central Operacional em CSV"
           >
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span>Exportar Relatório</span>
+            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+            <span className="truncate">Exportar Relatório</span>
           </Button>
 
           <Button
             variant="outline"
             onClick={() => navigate('/app/calendar')}
-            className="rounded-xl border-border bg-card hover:bg-muted font-medium text-xs sm:text-sm h-10 px-4 gap-2 shadow-xs"
+            className="rounded-xl border-border bg-card hover:bg-muted font-medium text-xs sm:text-sm h-10 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
           >
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <span>Calendário geral</span>
+            <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="truncate">Calendário geral</span>
           </Button>
         </div>
       </div>
@@ -399,10 +399,10 @@ export default function VisaoGeral() {
           {brandPerformances.map((brand) => (
             <div
               key={brand.id}
-              className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-muted/30 transition-colors"
+              className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 hover:bg-muted/30 transition-colors"
             >
               {/* Lado esquerdo: Avatar + Nome + Info */}
-              <div className="flex items-center gap-3.5 min-w-0">
+              <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
                 <div className="relative shrink-0">
                   <div
                     className={`w-10 h-10 rounded-xl ${brand.avatarBg} text-white flex items-center justify-center font-black text-sm shadow-xs`}
@@ -422,9 +422,9 @@ export default function VisaoGeral() {
               </div>
 
               {/* Lado direito: Sparkline + Conecte para ver engajamento + 0 / 7 DIAS */}
-              <div className="flex items-center justify-between md:justify-end gap-6 md:gap-8">
+              <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-6 md:gap-8 flex-wrap">
                 {/* Mini sparkline em barras tracejadas roxas */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <span className="w-3.5 h-1 rounded-full bg-purple-400/80 inline-block" />
                   <span className="w-3.5 h-1 rounded-full bg-purple-400/80 inline-block" />
                   <span className="w-3.5 h-1 rounded-full bg-purple-400/80 inline-block" />
@@ -434,13 +434,13 @@ export default function VisaoGeral() {
                 <button
                   type="button"
                   onClick={() => navigate('/app/settings')}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer truncate max-w-[180px] sm:max-w-none text-left sm:text-right"
                 >
                   Conecte para ver engajamento
                 </button>
 
                 {/* Extrema direita: 0 e label 7 DIAS */}
-                <div className="text-right shrink-0 min-w-[50px]">
+                <div className="text-right shrink-0 min-w-[45px]">
                   <p className="text-base font-black leading-none text-foreground">0</p>
                   <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase mt-0.5">
                     7 DIAS

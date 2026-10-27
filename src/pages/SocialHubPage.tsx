@@ -91,26 +91,26 @@ export function SocialHubPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={loadData}
             disabled={loading}
-            className="rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 gap-2 h-9 text-xs font-semibold"
+            className="rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 gap-1.5 sm:gap-2 h-9 text-xs font-semibold flex-1 sm:flex-initial justify-center"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Atualizar Métricas</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''} shrink-0`} />
+            <span className="truncate">Atualizar Métricas</span>
           </Button>
 
           <Button
             asChild
             size="sm"
-            className="rounded-xl bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold gap-2 h-9 text-xs shadow-md shadow-purple-500/20"
+            className="rounded-xl bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold gap-1.5 sm:gap-2 h-9 text-xs shadow-md shadow-purple-500/20 flex-1 sm:flex-initial justify-center"
           >
             <Link to="/app/settings?tab=integrations">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Gerenciar Conexões</span>
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span className="truncate">Gerenciar Conexões</span>
             </Link>
           </Button>
         </div>
