@@ -350,3 +350,322 @@ routerAdd(
   },
   $apis.requireAuth(),
 )
+
+/**
+ * Endpoint: Listar Comentários do Instagram (Oficiais via Graph API ou Banco/Estimativa Calibrada)
+ * GET /backend/v1/instagram/comments
+ */
+routerAdd(
+  'GET',
+  '/backend/v1/instagram/comments',
+  (e) => {
+    const token = (
+      $os.getenv('INSTAGRAM_ACCESS_TOKEN') ||
+      $os.getenv('META_ACCESS_TOKEN') ||
+      $os.getenv('META_ADS_ACCESS_TOKEN') ||
+      ''
+    ).trim()
+    const businessId = (
+      $os.getenv('INSTAGRAM_BUSINESS_ACCOUNT_ID') ||
+      $os.getenv('INSTAGRAM_ACCOUNT_ID') ||
+      ''
+    ).trim()
+    const apiBase = ($os.getenv('INSTAGRAM_GRAPH_API_BASE') || 'https://graph.facebook.com/v19.0')
+      .trim()
+      .replace(/\/$/, '')
+
+    let isOfficial = Boolean(token && token.length > 10)
+    let officialComments = []
+
+    // Se as credenciais estiverem ativas, tenta buscar comentários oficiais mais recentes via Graph API
+    if (isOfficial) {
+      try {
+        let targetAccountId = businessId
+        if (!targetAccountId) {
+          const accountsRes = $http.send({
+            url: `${apiBase}/me/accounts?fields=instagram_business_account{id}&access_token=${encodeURIComponent(token)}`,
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 10,
+          })
+          if (accountsRes.statusCode >= 200 && accountsRes.statusCode < 300) {
+            const accData = JSON.parse(accountsRes.raw)
+            const pages = accData.data || []
+            for (let i = 0; i < pages.length; i++) {
+              if (pages[i].instagram_business_account?.id) {
+                targetAccountId = pages[i].instagram_business_account.id
+                break
+              }
+            }
+          }
+        }
+
+        if (targetAccountId) {
+          // Buscar mídias recentes
+          const mediaListRes = $http.send({
+            url: `${apiBase}/${targetAccountId}/media?fields=id,caption,media_type,permalink,thumbnail_url,media_url,comments{id,text,username,timestamp,like_count}&limit=6&access_token=${encodeURIComponent(token)}`,
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 12,
+          })
+
+          if (mediaListRes.statusCode >= 200 && mediaListRes.statusCode < 300) {
+            const mediaJson = JSON.parse(mediaListRes.raw)
+            const mediaItems = mediaJson.data || []
+            mediaItems.forEach((m) => {
+              const comms = m.comments?.data || []
+              comms.forEach((c) => {
+                officialComments.push({
+                  id: `ig_live_${c.id}`,
+                  ig_comment_id: c.id,
+                  author_handle: c.username || 'usuario_instagram',
+                  author_name: c.username || 'Usuário Instagram',
+                  author_avatar: `https://img.usecurling.com/i?q=instagram&color=rose`,
+                  text: c.text || '',
+                  post_title: m.caption ? m.caption.slice(0, 48) + '...' : 'Post do Instagram',
+                  post_thumbnail:
+                    m.thumbnail_url ||
+                    m.media_url ||
+                    'https://img.usecurling.com/p/300/300?q=post&color=purple',
+                  post_permalink: m.permalink || 'https://instagram.com',
+                  status: 'novo',
+                  likes_count: Number(c.like_count || 0),
+                  is_official: true,
+                  commented_at: c.timestamp || new Date().toISOString(),
+                })
+              })
+            })
+          }
+        }
+      } catch (err) {
+        $app
+          .logger()
+          .warn('Erro ao buscar comentários ao vivo do Instagram Graph API', 'error', String(err))
+      }
+    }
+
+    // Carregar comentários persistidos no banco local (respostas, status, seeds)
+    let dbComments = []
+    try {
+      const records = $app.findRecordsByFilter('instagram_comments', '', '-commented_at', 50, 0)
+      if (records && records.length > 0) {
+        dbComments = records.map((r) => ({
+          id: r.id,
+          ig_comment_id: r.getString('ig_comment_id'),
+          author_handle: r.getString('author_handle'),
+          author_name: r.getString('author_name') || r.getString('author_handle'),
+          author_avatar:
+            r.getString('author_avatar') || 'https://img.usecurling.com/ppl/medium?seed=12',
+          text: r.getString('text'),
+          post_title: r.getString('post_title') || 'Post Instagram',
+          post_thumbnail:
+            r.getString('post_thumbnail') ||
+            'https://img.usecurling.com/p/300/300?q=post&color=purple',
+          post_permalink: r.getString('post_permalink') || 'https://instagram.com',
+          status: r.getString('status') || 'novo',
+          reply_text: r.getString('reply_text') || '',
+          replied_at: r.getString('replied_at') || null,
+          likes_count: r.getInt('likes_count') || 0,
+          is_official: r.getBool('is_official'),
+          commented_at: r.getString('commented_at') || r.getString('created'),
+          created: r.getString('created'),
+          updated: r.getString('updated'),
+        }))
+      }
+    } catch (_) {}
+
+    // Mesclar comentários: banco de dados sempre tem prioridade de estado local (respostas gravadas)
+    const mergedMap = {}
+    dbComments.forEach((c) => {
+      mergedMap[c.ig_comment_id || c.id] = c
+    })
+    officialComments.forEach((oc) => {
+      if (!mergedMap[oc.ig_comment_id]) {
+        mergedMap[oc.ig_comment_id] = oc
+      }
+    })
+
+    const finalComments = Object.values(mergedMap)
+    finalComments.sort((a, b) => {
+      const tA = new Date(a.commented_at || a.created || 0).getTime()
+      const tB = new Date(b.commented_at || b.created || 0).getTime()
+      return tB - tA
+    })
+
+    const pendingCount = finalComments.filter((c) => c.status === 'novo').length
+
+    return e.json(200, {
+      success: true,
+      is_official: isOfficial && officialComments.length > 0,
+      badge_label:
+        isOfficial && officialComments.length > 0 ? 'Dados Oficiais' : 'Estimativa Calibrada',
+      pending_count: pendingCount,
+      total_count: finalComments.length,
+      comments: finalComments,
+    })
+  },
+  $apis.requireAuth(),
+)
+
+/**
+ * Endpoint: Responder a um comentário do Instagram
+ * POST /backend/v1/instagram/comments/reply
+ * Body: { commentId: string, replyText: string }
+ */
+routerAdd(
+  'POST',
+  '/backend/v1/instagram/comments/reply',
+  (e) => {
+    const body = e.requestInfo().body || {}
+    const commentId = (body.commentId || '').trim()
+    const replyText = (body.replyText || '').trim()
+
+    if (!commentId || !replyText) {
+      return e.json(400, { error: 'commentId e replyText são obrigatórios.' })
+    }
+
+    const token = (
+      $os.getenv('INSTAGRAM_ACCESS_TOKEN') ||
+      $os.getenv('META_ACCESS_TOKEN') ||
+      $os.getenv('META_ADS_ACCESS_TOKEN') ||
+      ''
+    ).trim()
+    const apiBase = ($os.getenv('INSTAGRAM_GRAPH_API_BASE') || 'https://graph.facebook.com/v19.0')
+      .trim()
+      .replace(/\/$/, '')
+
+    let sentViaGraphApi = false
+    let graphApiError = null
+
+    // Se houver token oficial e o comentário for um ID de comentário da Graph API
+    if (token && token.length > 10) {
+      try {
+        let realIgCommentId = commentId
+        if (realIgCommentId.startsWith('ig_live_')) {
+          realIgCommentId = realIgCommentId.replace('ig_live_', '')
+        }
+
+        // Tentar enviar resposta via POST /{comment-id}/replies
+        const postRes = $http.send({
+          url: `${apiBase}/${realIgCommentId}/replies?message=${encodeURIComponent(replyText)}&access_token=${encodeURIComponent(token)}`,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 10,
+        })
+
+        if (postRes.statusCode >= 200 && postRes.statusCode < 300) {
+          sentViaGraphApi = true
+        } else {
+          graphApiError = `Graph API status ${postRes.statusCode}`
+        }
+      } catch (err) {
+        graphApiError = String(err)
+      }
+    }
+
+    // Persistir / atualizar o registro no banco local
+    const nowIso = new Date().toISOString()
+    let savedRecord = null
+
+    try {
+      const col = $app.findCollectionByNameOrId('instagram_comments')
+      let rec = null
+
+      // Tentar encontrar pelo id do PocketBase ou pelo ig_comment_id
+      try {
+        rec = $app.findRecordById('instagram_comments', commentId)
+      } catch (_) {
+        try {
+          rec = $app.findFirstRecordByFilter('instagram_comments', `ig_comment_id = "${commentId}"`)
+        } catch (_) {}
+      }
+
+      if (rec) {
+        rec.set('status', 'respondido')
+        rec.set('reply_text', replyText)
+        rec.set('replied_at', nowIso)
+        $app.save(rec)
+        savedRecord = rec
+      } else {
+        // Criar registro para manter o histórico
+        const newRec = new Record(col, {
+          ig_comment_id: commentId,
+          author_handle: body.authorHandle || 'instagram_user',
+          text: body.originalText || 'Comentário original',
+          status: 'respondido',
+          reply_text: replyText,
+          replied_at: nowIso,
+          is_official: sentViaGraphApi,
+          commented_at: nowIso,
+        })
+        $app.save(newRec)
+        savedRecord = newRec
+      }
+    } catch (saveErr) {
+      $app.logger().warn('Erro ao persistir resposta no banco', 'error', String(saveErr))
+    }
+
+    return e.json(200, {
+      success: true,
+      message: sentViaGraphApi
+        ? 'Resposta enviada oficialmente ao Instagram via Graph API e salva no sistema.'
+        : 'Resposta registrada com sucesso no sistema (simulado/calibrado).',
+      sent_via_graph_api: sentViaGraphApi,
+      graph_api_error: graphApiError,
+      replied_at: nowIso,
+      record_id: savedRecord ? savedRecord.id : commentId,
+    })
+  },
+  $apis.requireAuth(),
+)
+
+/**
+ * Endpoint: Alternar status do comentário (marcar como ignorado / novo / respondido)
+ * POST /backend/v1/instagram/comments/status
+ * Body: { commentId: string, status: 'novo' | 'respondido' | 'ignorado' }
+ */
+routerAdd(
+  'POST',
+  '/backend/v1/instagram/comments/status',
+  (e) => {
+    const body = e.requestInfo().body || {}
+    const commentId = (body.commentId || '').trim()
+    const status = (body.status || 'novo').trim()
+
+    if (!commentId) {
+      return e.json(400, { error: 'commentId é obrigatório.' })
+    }
+
+    try {
+      let rec = null
+      try {
+        rec = $app.findRecordById('instagram_comments', commentId)
+      } catch (_) {
+        try {
+          rec = $app.findFirstRecordByFilter('instagram_comments', `ig_comment_id = "${commentId}"`)
+        } catch (_) {}
+      }
+
+      if (rec) {
+        rec.set('status', status)
+        $app.save(rec)
+        return e.json(200, { success: true, status: status, id: rec.id })
+      } else {
+        // Criar se não existir
+        const col = $app.findCollectionByNameOrId('instagram_comments')
+        const newRec = new Record(col, {
+          ig_comment_id: commentId,
+          author_handle: body.authorHandle || 'instagram_user',
+          text: body.originalText || 'Comentário',
+          status: status,
+          commented_at: new Date().toISOString(),
+        })
+        $app.save(newRec)
+        return e.json(200, { success: true, status: status, id: newRec.id })
+      }
+    } catch (err) {
+      return e.json(500, { error: String(err) })
+    }
+  },
+  $apis.requireAuth(),
+)

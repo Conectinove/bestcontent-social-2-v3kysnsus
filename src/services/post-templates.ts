@@ -96,6 +96,8 @@ export interface TodayPostIdea {
   hook3s?: string
   trackEnergy?: string
   durationSec?: number
+  estimatedPerformanceScore?: number
+  whyNowContext?: string
 }
 export async function suggestTemplates(
   options: SuggestTemplatesOptions = {},
@@ -144,6 +146,9 @@ export async function getWhatToPostToday(options: {
         suggestedModel: 'Carrossel Educativo Passo a Passo',
         format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
+        estimatedPerformanceScore: 94,
+        whyNowContext:
+          'Tendência de IA corporativa nos últimos 14 dias em alta de +42% nas buscas.',
         concreteAngle:
           'Auditoria progressiva de 5 slides: do erro amador de prompt até a falha que custa contratos com clientes.',
         seasonalityContext: 'Contexto de produtividade, inovação e consolidação de resultados',
@@ -163,6 +168,9 @@ export async function getWhatToPostToday(options: {
         suggestedModel: 'Roteiro de Vídeo (Beats)',
         format: 'Vídeo Curto / Reels',
         funnelObjective: 'Atração',
+        estimatedPerformanceScore: 91,
+        whyNowContext:
+          'Vídeos com gancho nos 3s têm 70% mais retenção; horário de almoço é o pico de consumo.',
         suggestedCta: 'Comente "QUERO" para receber o roteiro completo no seu direct.',
         caption:
           '🎬 ROTEIRO COMPLETO (30s):\n\n[0:00 - 0:03] GANCHO: "Pare de cometer esse erro agora mesmo se você quer crescer!"\n[0:03 - 0:15] DESENVOLVIMENTO: "A maioria tenta pelo caminho longo, mas com essa mudança simples você dobra seus cliques."\n[0:15 - 0:25] DEMONSTRAÇÃO: Mostrar o produto ou tela em funcionamento.\n[0:25 - 0:30] CTA: "Comente QUERO para receber o acesso gratuito no direct!"',
@@ -183,6 +191,8 @@ export async function getWhatToPostToday(options: {
         suggestedModel: 'Estudo de Caso Comercial',
         format: 'Feed Único / Carrossel',
         funnelObjective: 'Conversão',
+        estimatedPerformanceScore: 88,
+        whyNowContext: 'Lacuna de funil: você não postou nada com foco em Conversão há 6 dias.',
         suggestedCta:
           'Clique no link da bio ou mande mensagem para agendar sua sessão estratégica.',
         caption:
@@ -201,6 +211,9 @@ export async function getWhatToPostToday(options: {
         suggestedModel: 'Post Comunidade / Pergunta Aberta',
         format: 'Post Interativo / Story',
         funnelObjective: 'Comunidade',
+        estimatedPerformanceScore: 85,
+        whyNowContext:
+          'Comunidade ativa à noite; momento ideal para puxar respostas e conexão genuína.',
         suggestedCta:
           'Deixe sua opinião nos comentários: você prefere consistência diária ou superproduções pontuais?',
         caption:

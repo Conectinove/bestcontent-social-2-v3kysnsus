@@ -50,6 +50,9 @@ import {
   updateDealStage,
   deleteFunnelDeal,
   calculateFunnelKpis,
+  exportDealsToCSV,
+  exportDealsToJSON,
+  generateFunnelExecutiveSummary,
   FUNNEL_STAGES,
   SOURCES_OPTIONS,
   type FunnelDeal,
@@ -765,6 +768,121 @@ export default function SalesFunnelPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Botões de Exportação Segura com Try/Catch e Toast */}
+          <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-2xl border border-border/80">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                try {
+                  exportDealsToCSV(
+                    filteredDeals,
+                    `funil_deals_${selectedSource !== 'all' ? selectedSource.toLowerCase().replace(/\s+/g, '_') : 'todos'}_${new Date().toISOString().slice(0, 10)}.csv`,
+                  )
+                  toast({
+                    title: 'Exportação CSV Concluída!',
+                    description: `${filteredDeals.length} oportunidades exportadas com sucesso.`,
+                  })
+                } catch (err) {
+                  console.error('Erro na exportação CSV:', err)
+                  toast({
+                    title: 'Falha na exportação CSV',
+                    description: 'Não foi possível gerar a planilha no momento.',
+                    variant: 'destructive',
+                  })
+                }
+              }}
+              className="rounded-xl text-xs h-9 px-3 gap-1.5 text-foreground hover:bg-card min-h-[36px]"
+              title="Exportar dados filtrados em formato CSV (Excel)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="font-semibold">Exportar CSV</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                try {
+                  exportDealsToJSON(
+                    filteredDeals,
+                    `funil_deals_${selectedSource !== 'all' ? selectedSource.toLowerCase().replace(/\s+/g, '_') : 'todos'}_${new Date().toISOString().slice(0, 10)}.json`,
+                  )
+                  toast({
+                    title: 'Exportação JSON Concluída!',
+                    description: `${filteredDeals.length} registros exportados em JSON estruturado.`,
+                  })
+                } catch (err) {
+                  console.error('Erro na exportação JSON:', err)
+                  toast({
+                    title: 'Falha na exportação JSON',
+                    description: 'Não foi possível gerar o arquivo JSON.',
+                    variant: 'destructive',
+                  })
+                }
+              }}
+              className="rounded-xl text-xs h-9 px-3 gap-1.5 text-foreground hover:bg-card min-h-[36px]"
+              title="Exportar dados filtrados em formato JSON"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold">Exportar JSON</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                try {
+                  const summaryText = generateFunnelExecutiveSummary(
+                    filteredDeals,
+                    {
+                      totalPipelineValue: kpis.totalPipelineValue,
+                      inNegotiationValue: kpis.inNegotiationValue,
+                      conversionRate: kpis.conversionRate,
+                      averageTicket: kpis.averageTicket,
+                      wonThisMonthValue: kpis.wonThisMonthValue,
+                      totalDeals: kpis.totalDeals,
+                      wonCount: kpis.wonCount,
+                      lostCount: kpis.lostCount,
+                      openDealsCount: kpis.totalDeals - (kpis.wonCount + kpis.lostCount),
+                    },
+                    selectedSource !== 'all' ? `Canal: ${selectedSource}` : 'Todas as Origens',
+                  )
+
+                  const blob = new Blob([summaryText], { type: 'text/markdown;charset=utf-8;' })
+                  const url = URL.createObjectURL(blob)
+                  const link = document.createElement('a')
+                  link.href = url
+                  link.setAttribute(
+                    'download',
+                    `relatorio_executivo_funil_${new Date().toISOString().slice(0, 10)}.txt`,
+                  )
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                  URL.revokeObjectURL(url)
+
+                  toast({
+                    title: 'Relatório Executivo Gerado!',
+                    description: 'Download do resumo do funil e canais de Ads iniciado.',
+                  })
+                } catch (err) {
+                  console.error('Erro na geração do relatório:', err)
+                  toast({
+                    title: 'Falha ao gerar relatório',
+                    description: 'Não foi possível compilar o resumo executivo.',
+                    variant: 'destructive',
+                  })
+                }
+              }}
+              className="rounded-xl text-xs h-9 px-3 gap-1.5 text-purple-700 dark:text-purple-300 hover:bg-card min-h-[36px]"
+              title="Exportar Resumo Executivo Completo do Funil"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
+              <span className="font-semibold">Exportar Relatório</span>
+            </Button>
+          </div>
+
           <Button
             onClick={() => handleOpenCreateModal('lead_captado')}
             className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-10 px-4 gap-2 shadow-xs transition-all hover:shadow-purple-500/20 min-h-[44px]"

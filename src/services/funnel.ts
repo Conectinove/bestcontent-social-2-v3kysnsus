@@ -291,3 +291,177 @@ export function calculateFunnelKpis(deals: FunnelDeal[]): FunnelKpis {
     openDealsCount,
   }
 }
+
+/**
+ * Exporta a lista de oportunidades do funil em formato CSV (UTF-8 com BOM para Excel)
+ */
+export function exportDealsToCSV(deals: FunnelDeal[], filename?: string): void {
+  const stageLabels: Record<string, string> = {
+    novo_lead: 'Novo Lead',
+    qualificacao: 'Qualificação',
+    reuniao_agendada: 'Reunião Agendada',
+    proposta_enviada: 'Proposta Enviada',
+    negociacao: 'Negociação',
+    fechado_ganho: 'Fechado Ganho',
+    fechado_perdido: 'Fechado Perdido',
+  }
+
+  const sourceLabels: Record<string, string> = {
+    meta_ads: 'Meta Ads (Instagram/FB)',
+    google_ads: 'Google Ads',
+    tiktok_ads: 'TikTok Ads',
+    linkedin_ads: 'LinkedIn Ads',
+    youtube_ads: 'YouTube Ads',
+    organico: 'Orgânico Social',
+    indicacao: 'Indicação',
+    outbound: 'Outbound / Prospecção',
+    outro: 'Outro',
+  }
+
+  const headers = [
+    'ID',
+    'Nome / Oportunidade',
+    'Empresa',
+    'Estágio',
+    'Valor (R$)',
+    'Origem / Canal',
+    'Responsável',
+    'Data Prevista',
+    'Notas',
+    'Criado em',
+    'Atualizado em',
+  ]
+
+  const rows = deals.map((d) => [
+    `"${d.id || ''}"`,
+    `"${(d.title || '').replace(/"/g, '""')}"`,
+    `"${(d.company || '').replace(/"/g, '""')}"`,
+    `"${stageLabels[d.stage] || d.stage}"`,
+    d.value || 0,
+    `"${sourceLabels[d.source] || d.source}"`,
+    `"${(d.contact_name || '').replace(/"/g, '""')}"`,
+    d.expected_close_date || '',
+    `"${(d.notes || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+    d.created || '',
+    d.updated || '',
+  ])
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute(
+    'download',
+    filename || `funil_oportunidades_${new Date().toISOString().slice(0, 10)}.csv`,
+  )
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Exporta a lista de oportunidades do funil em formato JSON formatado
+ */
+export function exportDealsToJSON(deals: FunnelDeal[], filename?: string): void {
+  const jsonContent = JSON.stringify(
+    {
+      export_date: new Date().toISOString(),
+      total_deals: deals.length,
+      deals: deals,
+    },
+    null,
+    2,
+  )
+  const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute(
+    'download',
+    filename || `funil_oportunidades_${new Date().toISOString().slice(0, 10)}.json`,
+  )
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Exporta Relatório Resumo Executivo do Funil em formato textual/Markdown para download ou visualização
+ */
+export function generateFunnelExecutiveSummary(
+  deals: FunnelDeal[],
+  metrics: ReturnType<typeof calculateFunnelMetrics>,
+  selectedBrandName?: string,
+): string {
+  const stageLabels: Record<string, string> = {
+    novo_lead: 'Novo Lead',
+    qualificacao: 'Qualificação',
+    reuniao_agendada: 'Reunião Agendada',
+    proposta_enviada: 'Proposta Enviada',
+    negociacao: 'Negociação',
+    fechado_ganho: 'Fechado Ganho',
+    fechado_perdido: 'Fechado Perdido',
+  }
+
+  // Agrupamento por estágio
+  const stageStats: Record<string, { count: number; totalValue: number }> = {}
+  Object.keys(stageLabels).forEach((st) => {
+    stageStats[st] = { count: 0, totalValue: 0 }
+  })
+
+  // Agrupamento por canal de Ads / origem
+  const sourceStats: Record<string, { count: number; totalValue: number; wonCount: number }> = {}
+
+  deals.forEach((d) => {
+    const val = Number(d.value) || 0
+    if (!stageStats[d.stage]) {
+      stageStats[d.stage] = { count: 0, totalValue: 0 }
+    }
+    stageStats[d.stage].count += 1
+    stageStats[d.stage].totalValue += val
+
+    const src = d.source || 'outro'
+    if (!sourceStats[src]) {
+      sourceStats[src] = { count: 0, totalValue: 0, wonCount: 0 }
+    }
+    sourceStats[src].count += 1
+    sourceStats[src].totalValue += val
+    if (d.stage === 'fechado_ganho') {
+      sourceStats[src].wonCount += 1
+    }
+  })
+
+  const lines = [
+    `# RELATÓRIO EXECUTIVO DO FUNIL DE VENDAS`,
+    `Marca / Escopo: ${selectedBrandName || 'Todas as Marcas'}`,
+    `Data de Emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`,
+    `------------------------------------------------------------`,
+    `## 1. INDICADORES PRINCIPAIS (KPIs)`,
+    `- Pipeline Total em Carteira: R$ ${metrics.totalPipelineValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    `- Valor em Negociação Avançada: R$ ${metrics.inNegotiationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    `- Receita Fechada no Mês: R$ ${metrics.wonThisMonthValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    `- Taxa Global de Conversão: ${metrics.conversionRate}%`,
+    `- Ticket Médio Fechado: R$ ${metrics.averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    `- Total de Oportunidades: ${metrics.totalDeals} (Abertas: ${metrics.openDealsCount} | Ganhas: ${metrics.wonCount} | Perdidas: ${metrics.lostCount})`,
+    ``,
+    `## 2. DISTRIBUIÇÃO POR ESTÁGIO DO FUNIL`,
+    ...Object.entries(stageStats).map(
+      ([st, data]) =>
+        `- ${stageLabels[st] || st}: ${data.count} oportunidades | R$ ${data.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    ),
+    ``,
+    `## 3. COMPARATIVO DE ORIGENS E CANAIS DE ADS`,
+    ...Object.entries(sourceStats).map(([src, data]) => {
+      const conv = data.count > 0 ? ((data.wonCount / data.count) * 100).toFixed(1) : '0'
+      return `- Canal: ${src.toUpperCase()} | ${data.count} deals | R$ ${data.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Fechados: ${data.wonCount} (Conv: ${conv}%)`
+    }),
+    ``,
+    `------------------------------------------------------------`,
+    `MidiaViva — Powered by BestContent AI | Gestão Integrada de Tráfego & Vendas`,
+  ]
+
+  return lines.join('\n')
+}

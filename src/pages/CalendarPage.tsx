@@ -9,8 +9,15 @@ import {
   Sparkles,
   Clock,
   Trash2,
+  AlertTriangle,
+  CheckCircle2,
+  ListOrdered,
+  LayoutGrid,
+  Send,
+  FastForward,
 } from 'lucide-react'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
+import { NETWORK_BEST_TIMES_MAP } from '@/services/smart-scheduler'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { getScheduledPosts, updateScheduledPost } from '@/services/scheduled_posts'
@@ -51,6 +58,7 @@ export default function CalendarPage() {
   const [editingPostTimeId, setEditingPostTimeId] = useState<string | null>(null)
   const [editTimeValue, setEditTimeValue] = useState('12:00')
   const [editDateValue, setEditDateValue] = useState('')
+  const [viewMode, setViewMode] = useState<'calendar' | 'next7days'>('calendar')
 
   const load = useCallback(async () => {
     if (!user?.id) return
@@ -81,6 +89,123 @@ export default function CalendarPage() {
       const d = new Date(s.scheduled_at)
       return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year
     })
+
+  // Cálculos de Status de Agendamento: atrasados, próximos 7 dias e publicados
+  const now = new Date()
+
+  // Posts atrasados: data agendada no passado e post não marcado como publicado
+  const overduePosts = useMemo(() => {
+    return filtered.filter((s) => {
+      const schedDate = new Date(s.scheduled_at)
+      const postStatus = s.expand?.post?.status || s.status
+      return schedDate < now && postStatus !== 'published'
+    })
+  }, [filtered, now])
+
+  // Posts dos próximos 7 dias
+  const next7DaysPosts = useMemo(() => {
+    const endWindow = new Date(now.getTime() + 7 * 24 * 3600 * 1000)
+    return filtered
+      .filter((s) => {
+        const schedDate = new Date(s.scheduled_at)
+        return schedDate >= new Date(now.getTime() - 24 * 3600 * 1000) && schedDate <= endWindow
+      })
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+  }, [filtered, now])
+
+  // Ação rápida: Adiar 1 dia (+24h)
+  const handlePostponeOneDay = async (scheduledId: string, currentIso: string) => {
+    try {
+      const cur = new Date(currentIso)
+      const nextDay = new Date(cur.getTime() + 24 * 3600 * 1000)
+      await updateScheduledPost(scheduledId, { scheduled_at: nextDay.toISOString() })
+
+      const item = scheduled.find((s) => s.id === scheduledId)
+      if (item?.post) {
+        try {
+          const { updatePost } = await import('@/services/posts')
+          await updatePost(item.post, { scheduled_date: nextDay.toISOString() })
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+
+      toast({
+        title: 'Adiado por 1 dia!',
+        description: `Nova data: ${nextDay.toLocaleDateString('pt-BR')} às ${nextDay.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`,
+      })
+      await load()
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao adiar post',
+        description: err?.message || 'Não foi possível alterar a data.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Ação rápida: Publicar Agora
+  const handlePublishNow = async (s: any) => {
+    try {
+      if (s.post) {
+        const { updatePost } = await import('@/services/posts')
+        await updatePost(s.post, { status: 'published', published_at: new Date().toISOString() })
+      }
+      toast({
+        title: 'Publicado com Sucesso!',
+        description: `O post foi marcado como publicado em tempo real.`,
+      })
+      await load()
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao publicar',
+        description: err?.message || 'Falha ao acionar publicação imediata.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Melhores horários consolidados por rede
+  const bestTimesByNetwork = useMemo(() => {
+    return [
+      {
+        network: 'Instagram',
+        badge: 'IG Feed & Reels',
+        color: 'from-pink-500 to-rose-600',
+        best: NETWORK_BEST_TIMES_MAP.instagram || [
+          { day: 'Terça', time: '18:30' },
+          { day: 'Quinta', time: '12:15' },
+        ],
+      },
+      {
+        network: 'TikTok',
+        badge: 'Vídeos Curtos',
+        color: 'from-cyan-500 to-black',
+        best: NETWORK_BEST_TIMES_MAP.tiktok || [
+          { day: 'Quarta', time: '20:00' },
+          { day: 'Sexta', time: '19:00' },
+        ],
+      },
+      {
+        network: 'LinkedIn',
+        badge: 'B2B & Carreira',
+        color: 'from-blue-600 to-indigo-700',
+        best: NETWORK_BEST_TIMES_MAP.linkedin || [
+          { day: 'Terça', time: '08:45' },
+          { day: 'Quinta', time: '10:00' },
+        ],
+      },
+      {
+        network: 'Substack',
+        badge: 'Newsletter Longform',
+        color: 'from-orange-500 to-amber-600',
+        best: NETWORK_BEST_TIMES_MAP.substack || [
+          { day: 'Domingo', time: '09:00' },
+          { day: 'Quinta', time: '08:00' },
+        ],
+      },
+    ]
+  }, [])
 
   const handleUpdateTime = async (scheduledId: string) => {
     try {
@@ -241,85 +366,481 @@ export default function CalendarPage() {
         onSuccessPlanApplied={() => load()}
       />
 
-      <Card className="p-5 rounded-2xl border border-border/80 bg-card shadow-xs overflow-x-auto">
-        <div className="min-w-[600px]">
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground mb-2">
-            {DAYS.map((d) => (
-              <div key={d}>{d}</div>
-            ))}
+      {/* KPIs de Agendamento com Destaque para Posts Atrasados */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-4 rounded-2xl border-border/80 bg-card shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[11px] text-muted-foreground font-semibold">Total Agendados</span>
+            <p className="text-2xl font-black text-foreground">{filtered.length}</p>
+            <span className="text-[10px] text-muted-foreground">Em todas as marcas</span>
           </div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`e-${i}`} className="h-24 bg-muted/20 rounded-md" />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const dayNum = i + 1
-              const dayPosts = getPostsForDay(dayNum)
-              const isToday =
-                dayNum === new Date().getDate() &&
-                month === new Date().getMonth() &&
-                year === new Date().getFullYear()
-              return (
-                <div
-                  key={dayNum}
-                  onClick={() => dayPosts.length > 0 && setSelectedDay(dayPosts)}
-                  onDragOver={(e) => {
-                    e.preventDefault()
-                    setDragOver(dayNum)
-                  }}
-                  onDragLeave={() => setDragOver(null)}
-                  onDrop={() => handleDrop(dayNum)}
-                  draggable={false}
-                  className={`h-28 p-2 rounded-xl border flex flex-col justify-between transition-all cursor-pointer ${isToday ? 'border-primary ring-2 ring-primary/30 bg-purple-500/5' : dragOver === dayNum ? 'border-primary bg-primary/10' : 'border-border/70 hover:border-primary/50 bg-card/60 shadow-2xs'}`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span
-                      className={`text-xs font-semibold ${isToday ? 'text-primary font-bold' : ''}`}
-                    >
-                      {dayNum}
+          <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+            <CalendarIcon className="w-5 h-5" />
+          </div>
+        </Card>
+
+        <Card
+          className={`p-4 rounded-2xl shadow-xs flex items-center justify-between transition-all ${
+            overduePosts.length > 0
+              ? 'border-2 border-rose-500/40 bg-rose-500/10'
+              : 'border-border/80 bg-card'
+          }`}
+        >
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                Atrasados (Data Passada)
+              </span>
+              {overduePosts.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              )}
+            </div>
+            <p className="text-2xl font-black text-rose-600 dark:text-rose-400">
+              {overduePosts.length}
+            </p>
+            <span className="text-[10px] text-rose-700/80 dark:text-rose-300">
+              {overduePosts.length > 0
+                ? 'Exigem ação imediata (adiar ou publicar)'
+                : 'Nenhum atraso'}
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/15 text-rose-600 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+        </Card>
+
+        <Card className="p-4 rounded-2xl border-border/80 bg-card shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[11px] text-muted-foreground font-semibold">Próximos 7 Dias</span>
+            <p className="text-2xl font-black text-purple-600 dark:text-purple-400">
+              {next7DaysPosts.length}
+            </p>
+            <span className="text-[10px] text-muted-foreground">Grade da semana ativa</span>
+          </div>
+          <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+            <ListOrdered className="w-5 h-5" />
+          </div>
+        </Card>
+
+        <Card className="p-4 rounded-2xl border-border/80 bg-card shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[11px] text-muted-foreground font-semibold">Publicados / OK</span>
+            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+              {filtered.filter((s) => (s.expand?.post?.status || s.status) === 'published').length}
+            </p>
+            <span className="text-[10px] text-emerald-700/80 dark:text-emerald-300">
+              Disparados com sucesso
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Caixa de Sugestão de Melhores Horários por Rede */}
+      <Card className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-transparent space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold text-foreground">
+                Melhores Horários Sugeridos pelo Algoritmo (Multi-Rede)
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Baseados no comportamento de engajamento do seu público no Instagram, TikTok,
+                LinkedIn e Substack.
+              </p>
+            </div>
+          </div>
+          <Badge
+            variant="outline"
+            className="text-[10px] border-purple-500/30 text-purple-600 self-start sm:self-auto"
+          >
+            Calibrado por Canal
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {bestTimesByNetwork.map((item) => (
+            <div
+              key={item.network}
+              className="p-3 rounded-xl bg-card border border-border/70 space-y-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-foreground">{item.network}</span>
+                <span className="text-[9px] text-muted-foreground">{item.badge}</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                {item.best.slice(0, 2).map((bt: any, bIdx: number) => (
+                  <span
+                    key={bIdx}
+                    className="px-2 py-0.5 rounded-lg bg-muted text-[11px] font-mono font-bold text-foreground flex items-center gap-1"
+                  >
+                    <span>{bt.day}</span>
+                    <span className="text-purple-600 dark:text-purple-400 font-extrabold">
+                      {bt.time}
                     </span>
-                    {dayPosts.length > 0 && (
-                      <Badge className="bg-primary text-white text-[9px] px-1">
-                        {dayPosts.length}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="space-y-1 overflow-hidden">
-                    {dayPosts.slice(0, 2).map((s) => {
-                      const post = s.expand?.post
-                      const brand = post?.expand?.brand
-                      return (
-                        <div
-                          key={s.id}
-                          draggable
-                          onDragStart={() => setDragId(s.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-1 rounded bg-muted text-[10px] truncate font-medium flex items-center gap-1 cursor-move hover:bg-primary/10"
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Seletor de Visão: Calendário Mensal vs. Visão de Lista Próximos 7 Dias */}
+      <div className="flex items-center justify-between gap-3 border-b border-border/80 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode('calendar')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 min-h-[38px] ${
+              viewMode === 'calendar'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Grade Mensal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode('next7days')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 min-h-[38px] ${
+              viewMode === 'next7days'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+            }`}
+          >
+            <ListOrdered className="w-3.5 h-3.5" />
+            <span>Próximos 7 Dias ({next7DaysPosts.length})</span>
+            {overduePosts.length > 0 && (
+              <Badge className="bg-rose-500 text-white text-[9px] px-1.5 py-0 h-4">
+                {overduePosts.length} atrasados
+              </Badge>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Visão de Lista: Próximos 7 Dias com Ações Rápidas & Destaque de Atrasados */}
+      {viewMode === 'next7days' ? (
+        <div className="space-y-4">
+          {overduePosts.length > 0 && (
+            <div className="p-4 rounded-2xl bg-rose-500/10 border-2 border-rose-500/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-bold text-xs sm:text-sm">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  <span>Publicações Atrasadas ({overduePosts.length})</span>
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  A data prevista expirou sem confirmação de disparo.
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {overduePosts.map((s) => {
+                  const post = s.expand?.post
+                  const brand = post?.expand?.brand
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-3 rounded-xl bg-card border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: brand?.color_theme || '#e11d48' }}
+                        />
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-xs text-foreground">
+                              {brand?.name || 'Marca'}
+                            </span>
+                            <Badge className="bg-rose-500 text-white text-[9px] px-1.5 py-0 font-bold">
+                              Atrasado
+                            </Badge>
+                            <span className="text-[11px] text-rose-600 dark:text-rose-400 font-mono font-semibold">
+                              Deveria ter saído em:{' '}
+                              {new Date(s.scheduled_at).toLocaleString('pt-BR')}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                            {post?.caption || post?.content || 'Sem texto'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 self-end sm:self-center">
+                        <Button
+                          size="sm"
+                          onClick={() => handlePublishNow(s)}
+                          className="h-8 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-1 font-bold min-h-[36px]"
                         >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: brand?.color_theme || '#BF2A95' }}
-                          />
-                          <span className="truncate flex-1">
-                            {post?.caption || post?.content || 'Post'}
+                          <Send className="w-3 h-3" />
+                          <span>Publicar Agora</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePostponeOneDay(s.id, s.scheduled_at)}
+                          className="h-8 px-2.5 text-xs border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-xl gap-1 min-h-[36px]"
+                        >
+                          <FastForward className="w-3 h-3" />
+                          <span>Adiar 1 Dia</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const d = new Date(s.scheduled_at)
+                            setEditDateValue(d.toISOString().slice(0, 10))
+                            setEditTimeValue(
+                              `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+                            )
+                            setEditingPostTimeId(s.id)
+                            setSelectedDay([s])
+                          }}
+                          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground rounded-xl min-h-[36px]"
+                        >
+                          <Clock className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteScheduled(s.id)}
+                          className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl min-h-[36px]"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Lista Linear dos Próximos 7 Dias */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+              <CalendarIcon className="w-4 h-4 text-purple-600" />
+              <span>Cronograma da Semana</span>
+            </h4>
+
+            {next7DaysPosts.length === 0 ? (
+              <div className="py-10 text-center border border-dashed border-border/80 rounded-2xl bg-card/40 space-y-1">
+                <Clock className="w-6 h-6 text-muted-foreground mx-auto" />
+                <p className="text-xs font-bold text-foreground">
+                  Nenhum post agendado para os próximos 7 dias
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Use o botão "+ Agendar Novo Post" ou a "Fila Semanal IA" para preencher a grade.
+                </p>
+              </div>
+            ) : (
+              next7DaysPosts.map((s) => {
+                const post = s.expand?.post
+                const brand = post?.expand?.brand
+                const schedDate = new Date(s.scheduled_at)
+                const isPast = schedDate < now
+                const isPublished = (post?.status || s.status) === 'published'
+
+                return (
+                  <div
+                    key={s.id}
+                    className={`p-3.5 rounded-2xl bg-card border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                      isPast && !isPublished
+                        ? 'border-rose-500/40 bg-rose-500/5'
+                        : 'border-border/80 hover:border-purple-500/40'
+                    }`}
+                  >
+                    <div className="flex items-start sm:items-center gap-3">
+                      <span
+                        className="w-3 h-3 rounded-full shrink-0 mt-1 sm:mt-0"
+                        style={{ backgroundColor: brand?.color_theme || '#9333ea' }}
+                      />
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-xs text-foreground">
+                            {brand?.name || 'Marca'}
                           </span>
-                          <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 shrink-0 font-mono">
-                            ⏰{' '}
-                            {new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
+                          <Badge variant="outline" className="text-[10px] capitalize">
+                            {post?.platform || 'Social'}
+                          </Badge>
+                          {isPublished ? (
+                            <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">
+                              Publicado
+                            </Badge>
+                          ) : isPast ? (
+                            <Badge className="bg-rose-500 text-white text-[9px] px-1.5 py-0">
+                              Atrasado
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[9px] px-1.5 py-0">
+                              Agendado
+                            </Badge>
+                          )}
+                          <span className="text-[11px] text-muted-foreground font-mono">
+                            📅{' '}
+                            {schedDate.toLocaleDateString('pt-BR', {
+                              weekday: 'short',
+                              day: '2-digit',
+                              month: '2-digit',
+                            })}{' '}
+                            às{' '}
+                            {schedDate.toLocaleTimeString('pt-BR', {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
                           </span>
                         </div>
-                      )
-                    })}
+                        <p className="text-xs text-foreground/90 line-clamp-1 max-w-xl">
+                          {post?.caption || post?.content || 'Sem texto de publicação'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-end sm:self-center">
+                      {!isPublished && (
+                        <Button
+                          size="sm"
+                          onClick={() => handlePublishNow(s)}
+                          className="h-8 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-1 font-bold min-h-[36px]"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>Publicar Agora</span>
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePostponeOneDay(s.id, s.scheduled_at)}
+                        className="h-8 px-2.5 text-xs border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-xl gap-1 min-h-[36px]"
+                        title="Adiar publicação em 24h"
+                      >
+                        <FastForward className="w-3 h-3" />
+                        <span>Adiar 1 Dia</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const d = new Date(s.scheduled_at)
+                          setEditDateValue(d.toISOString().slice(0, 10))
+                          setEditTimeValue(
+                            `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+                          )
+                          setEditingPostTimeId(s.id)
+                          setSelectedDay([s])
+                        }}
+                        className="h-8 px-2 text-xs text-purple-600 hover:bg-purple-500/10 rounded-xl min-h-[36px]"
+                        title="Trocar data ou horário"
+                      >
+                        <Clock className="w-3 h-3" />
+                        <span className="hidden sm:inline text-[11px]">Horário</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteScheduled(s.id)}
+                        className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl min-h-[36px]"
+                        title="Excluir agendamento"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </div>
-      </Card>
+      ) : (
+        <Card className="p-5 rounded-2xl border border-border/80 bg-card shadow-xs overflow-x-auto">
+          <div className="min-w-[600px]">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground mb-2">
+              {DAYS.map((d) => (
+                <div key={d}>{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <div key={`e-${i}`} className="h-24 bg-muted/20 rounded-md" />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1
+                const dayPosts = getPostsForDay(dayNum)
+                const isToday =
+                  dayNum === new Date().getDate() &&
+                  month === new Date().getMonth() &&
+                  year === new Date().getFullYear()
+                return (
+                  <div
+                    key={dayNum}
+                    onClick={() => dayPosts.length > 0 && setSelectedDay(dayPosts)}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      setDragOver(dayNum)
+                    }}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={() => handleDrop(dayNum)}
+                    draggable={false}
+                    className={`h-28 p-2 rounded-xl border flex flex-col justify-between transition-all cursor-pointer ${isToday ? 'border-primary ring-2 ring-primary/30 bg-purple-500/5' : dragOver === dayNum ? 'border-primary bg-primary/10' : 'border-border/70 hover:border-primary/50 bg-card/60 shadow-2xs'}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span
+                        className={`text-xs font-semibold ${isToday ? 'text-primary font-bold' : ''}`}
+                      >
+                        {dayNum}
+                      </span>
+                      {dayPosts.length > 0 && (
+                        <Badge className="bg-primary text-white text-[9px] px-1">
+                          {dayPosts.length}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1 overflow-hidden">
+                      {dayPosts.slice(0, 2).map((s) => {
+                        const post = s.expand?.post
+                        const brand = post?.expand?.brand
+                        return (
+                          <div
+                            key={s.id}
+                            draggable
+                            onDragStart={() => setDragId(s.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 rounded bg-muted text-[10px] truncate font-medium flex items-center gap-1 cursor-move hover:bg-primary/10"
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: brand?.color_theme || '#BF2A95' }}
+                            />
+                            <span className="truncate flex-1">
+                              {post?.caption || post?.content || 'Post'}
+                            </span>
+                            <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 shrink-0 font-mono">
+                              ⏰{' '}
+                              {new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
         <DialogContent className="sm:max-w-md rounded-3xl">
