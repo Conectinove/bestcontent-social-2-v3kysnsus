@@ -96,6 +96,30 @@ export const generateCaption = async (
   const objective = (payload.objective || payload.funnelObjective || 'engajamento').toLowerCase()
   const tone = payload.tone || 'profissional'
 
+  // Ajuste fino por rede social no fallback cliente
+  let networkBody = ''
+  let networkTags = ['#estrategia', '#conteudointeligente']
+  let recommendedChars = 950
+
+  if (plat.includes('link')) {
+    recommendedChars = 1350
+    networkBody = `Análise prática para tomada de decisão em ${topic}:\n\n• Diagnóstico: A maioria das operações falha na retenção inicial por depender de improviso.\n• Framework: Estruture 3 pilares — clareza de proposta, consistência de publicação e mensuração real de conversão.\n• Execução: Teste hipóteses com dados concretos antes de escalar volume.\n\nQual tem sido o maior gargalo na sua organização hoje?`
+    networkTags = ['#lideranca', '#gestaoestrategica', '#produtividade', '#carreira']
+  } else if (plat.includes('tik')) {
+    recommendedChars = 380
+    networkBody = `O segredo rápido que ninguém te conta sobre ${topic} em menos de 30 segundos! 👇\n\nSe você ajustar só esse detalhe hoje, seu alcance e retenção dobram na mesma hora. Faz o teste e me conta nos comentários!`
+    networkTags = ['#dicasrapidas', '#aprendanotiktok', '#estrategia', '#rotina']
+  } else {
+    recommendedChars = 950
+    networkBody = `Quando a maioria tenta avançar com ${topic}, foca no volume bruto de postagens. Mas quem realmente domina a retenção sabe: clareza e intenção batem qualquer quantidade sem estratégia.\n\n3 pontos essenciais para aplicar a partir de hoje:\n1. Elimine o ruído e foque no gancho dos primeiros segundos.\n2. Fale com a dor real de quem decide, não com o público genérico.\n3. Transforme cada publicação em um ativo de autoridade da sua marca.`
+    networkTags = [
+      '#estrategia',
+      '#conteudointeligente',
+      '#altaperformance',
+      `#${plat.replace(/[^a-z0-9]/g, '')}`,
+    ]
+  }
+
   let fallbackCta =
     payload.suggestedCta || 'Salva este post para consultar sempre que for produzir conteúdo!'
   if (!payload.suggestedCta) {
@@ -118,16 +142,11 @@ export const generateCaption = async (
 
   const fallbackCaption = `${fallbackHooks[0]}
 
-Quando a maioria tenta avançar, foca no volume bruto de postagens. Mas quem realmente domina a retenção sabe: clareza e intenção batem qualquer quantidade sem estratégia.
-
-3 pontos essenciais para aplicar a partir de hoje:
-1. Elimine o ruído e foque no gancho dos primeiros segundos.
-2. Fale com a dor real de quem decide, não com o público genérico.
-3. Transforme cada publicação em um ativo de autoridade da sua marca.
+${networkBody}
 
 ${fallbackCta}
 
-#estrategia #conteudointeligente #${plat.replace(/[^a-z0-9]/g, '')} #altaperformance`
+${networkTags.join(' ')}`
 
   return {
     success: true,
@@ -139,7 +158,7 @@ ${fallbackCta}
       { type: 'Micro-História / Cena', hook: fallbackHooks[3] },
     ],
     cta: fallbackCta,
-    hashtags: ['#estrategia', '#conteudointeligente', `#${plat.replace(/[^a-z0-9]/g, '')}`],
+    hashtags: networkTags,
     seo_score: 92,
     hook_strength_score: 95,
     readability_score: 90,
@@ -147,10 +166,10 @@ ${fallbackCta}
     tone_applied: tone,
     funnel_objective:
       payload.funnelObjective || (objective.includes('conver') ? 'Conversão' : 'Autoridade'),
-    reason:
+    historical_insight:
       payload.historicalInsight ||
-      'Calibrado com base em retenção histórica de formatos e horários ideais da sua audiência.',
-    recommended_chars: 950,
+      'Baseado no histórico de posts com maior engajamento (~5.8% de taxa média) e gancho de alto impacto nos primeiros caracteres.',
+    recommended_chars: recommendedChars,
     notice: 'Legenda gerada via motor de alta conversão.',
   }
 }
@@ -174,22 +193,22 @@ export const NETWORK_HASHTAG_SPECS: Record<string, NetworkHashtagConfig> = {
   instagram: {
     id: 'instagram',
     name: 'Instagram',
-    range: '8–12 tags',
-    styleDescription: 'Nicho + termos locais/comunidade para alcance orgânico',
-    suggestedCount: 10,
+    range: '5–8 tags',
+    styleDescription: 'Mix balanceado de tema amplo + nicho específico para alcance orgânico',
+    suggestedCount: 6,
   },
   tiktok: {
     id: 'tiktok',
     name: 'TikTok',
     range: '4–6 tags',
-    styleDescription: 'Trends virais, desafios e termos de busca rápida',
+    styleDescription: 'Gancho curto, busca dinâmica (SEO) e nicho do conteúdo',
     suggestedCount: 5,
   },
   linkedin: {
     id: 'linkedin',
     name: 'LinkedIn',
     range: '3–5 tags',
-    styleDescription: 'Foco profissional, B2B, liderança e carreira',
+    styleDescription: 'Foco analítico, B2B, liderança e inovação corporativa',
     suggestedCount: 4,
   },
   twitter: {
@@ -262,8 +281,8 @@ export const generateHashtags = async (
       return { hashtags: Array.from(new Set(tags)).slice(0, 3), platform: 'facebook' }
     }
 
-    tags = [...tags, '#marketingdigital', '#conteudo', '#estrategia', '#brasil']
-    return { hashtags: Array.from(new Set(tags)).slice(0, 10), platform: 'instagram' }
+    tags = [...tags, '#marketingdigital', '#conteudo', '#estrategia']
+    return { hashtags: Array.from(new Set(tags)).slice(0, 6), platform: 'instagram' }
   }
 }
 
@@ -313,6 +332,9 @@ export interface VideoScriptResult {
   development: string
   cta: string
   beats: VideoScriptBeat[]
+  trackSuggestion?: string
+  hook3s?: string
+  brandVisualNote?: string
 }
 
 export interface TwitterThreadResult {
@@ -357,8 +379,13 @@ export const generateVideoScript = (data: {
   duration: number
   brandName?: string
   objective?: string
+  format?: string
+  visualStyle?: string
+  brandVoice?: string
+  brandColors?: string
+  trackEnergy?: string
 }) =>
-  pb.send('/backend/v1/ai/script', {
+  pb.send('/backend/v1/ai/generate-script', {
     method: 'POST',
     body: JSON.stringify(data),
     headers: { 'Content-Type': 'application/json' },
@@ -392,28 +419,32 @@ export const generateMultiFormatContent = async (params: {
         hook: `Pare de cometer esse erro com ${topic}! Você provavelmente está perdendo tempo sem saber.`,
         development: `A maioria das pessoas foca no método tradicional, mas na verdade o segredo está em 3 etapas práticas que aceleram os seus resultados com consistência e menor esforço.`,
         cta: `Comente "EU QUERO" para receber o nosso guia completo no direct e salve para consultar depois!`,
+        trackSuggestion: 'Batida moderna lo-fi / synthwave acelerado com punch',
+        hook3s: `Pare tudo nos próximos 3 segundos se você quer dominar ${topic.slice(0, 30)}!`,
+        brandVisualNote: `Identidade da ${brandName}: paleta violeta, ritmo acelerado a cada 3s e texto em caixa alta.`,
         beats: [
           {
             time: '0:00 - 0:03',
-            title: 'Gancho Magnético (Stop Scrolling)',
+            title: 'Gancho Magnético (Stop Scrolling 3s)',
             narration: `Se você trabalha com ${topic}, pare tudo o que você está fazendo agora por 20 segundos!`,
             visual:
-              'Pessoa olhando fixo para a câmera com texto em caixa alta na tela e corte rápido.',
-            tip: 'Mantenha o olhar direto na lente nos primeiros 2 segundos.',
+              'Pessoa olhando fixo para a câmera com texto violeta em caixa alta na tela e aproximação rápida.',
+            tip: 'Mantenha o olhar cravado na lente nos primeiros 2 segundos.',
           },
           {
             time: '0:03 - 0:15',
             title: 'Desenvolvimento: O Problema & A Virada',
             narration: `Todo mundo tenta resolver ${topic} pelo caminho mais longo. Mas existe um atalho validado que economiza horas da sua rotina diária.`,
-            visual: 'Demonstração em tela dividida: Erro comum vs Solução inteligente.',
+            visual:
+              'Demonstração em tela dividida: Erro comum vs Solução inteligente com cortes a cada 3s.',
             tip: 'Insira um efeito sonoro de "ding" ao revelar a solução.',
           },
           {
             time: '0:15 - 0:25',
             title: 'Aplicação Prática com a Marca',
             narration: `É exatamente isso que aplicamos aqui na ${brandName}: automação, clareza e resultados mensuráveis.`,
-            visual: 'Corte b-roll mostrando a plataforma em funcionamento ou o produto.',
-            tip: 'Adicione legendas dinâmicas coloridas.',
+            visual: 'Corte b-roll com a paleta da marca e iluminação em destaque.',
+            tip: 'Adicione legendas dinâmicas com palavras-chave destacadas.',
           },
           {
             time: '0:25 - 0:30',

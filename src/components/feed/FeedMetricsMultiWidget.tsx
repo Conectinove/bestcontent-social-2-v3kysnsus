@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { InstagramFeedWidget } from './InstagramFeedWidget'
 import { TikTokFeedWidget } from './TikTokFeedWidget'
 import { YouTubeFeedWidget } from './YouTubeFeedWidget'
-import { ChevronDown, ChevronUp, Layers } from 'lucide-react'
+import { GoogleAnalyticsFeedWidget } from './GoogleAnalyticsFeedWidget'
+import { ChevronDown, ChevronUp, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export type FeedWidgetNetwork = 'instagram' | 'tiktok' | 'youtube'
+export type FeedWidgetNetwork = 'instagram' | 'tiktok' | 'youtube' | 'analytics'
 
 interface FeedMetricsMultiWidgetProps {
   className?: string
@@ -64,6 +65,22 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             <span className="w-2 h-2 rounded-full bg-red-600" />
             <span>YouTube</span>
           </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'analytics' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('analytics')}
+            className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'analytics'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="hidden sm:inline">Google Analytics</span>
+            <span className="sm:hidden">GA4</span>
+          </Button>
         </div>
 
         {/* Mobile toggle button */}
@@ -88,6 +105,7 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
         {activeTab === 'instagram' && <InstagramFeedWidget />}
         {activeTab === 'tiktok' && <TikTokFeedWidget />}
         {activeTab === 'youtube' && <YouTubeFeedWidget />}
+        {activeTab === 'analytics' && <GoogleAnalyticsFeedWidget />}
       </div>
     </div>
   )

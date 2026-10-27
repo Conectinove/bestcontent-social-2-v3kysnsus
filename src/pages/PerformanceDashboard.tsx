@@ -16,6 +16,10 @@ import {
   Database,
   Download,
   FileText,
+  Plus,
+  Calendar,
+  Clock,
+  Trash2,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Card } from '@/components/ui/card'
@@ -25,6 +29,12 @@ import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { PerformanceReport } from '@/components/analytics/PerformanceReport'
 import { PerformanceDeepAnalytics } from '@/components/analytics/PerformanceDeepAnalytics'
+import { CreatePerformanceReportModal } from '@/components/analytics/CreatePerformanceReportModal'
+import {
+  getPerformanceReports,
+  deletePerformanceReport,
+  type PerformanceReportRecord,
+} from '@/services/performance-reports'
 import { getABTests, type ABTest } from '@/services/ab-tests'
 import { getAllPostMetrics, type PostMetric } from '@/services/post-metrics'
 import {
@@ -45,21 +55,25 @@ export default function PerformanceDashboard() {
   const [allMetrics, setAllMetrics] = useState<PostMetric[]>([])
   const [hubData, setHubData] = useState<ConsolidatedSocialHubData | null>(null)
   const [audienceData, setAudienceData] = useState<NetworkAudienceComparison[]>([])
+  const [savedReports, setSavedReports] = useState<PerformanceReportRecord[]>([])
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [testsData, metricsData, hubRes, audienceRes] = await Promise.allSettled([
+        const [testsData, metricsData, hubRes, audienceRes, reportsRes] = await Promise.allSettled([
           user?.id ? getABTests(user.id) : Promise.resolve([] as ABTest[]),
           getAllPostMetrics(),
           getConsolidatedSocialHubData(user?.id),
           getNetworkAudienceComparisons(),
+          getPerformanceReports(user?.id),
         ])
         setAbTests(testsData.status === 'fulfilled' ? testsData.value : [])
         setAllMetrics(metricsData.status === 'fulfilled' ? metricsData.value : [])
         setHubData(hubRes.status === 'fulfilled' ? hubRes.value : null)
         setAudienceData(audienceRes.status === 'fulfilled' ? audienceRes.value : [])
+        setSavedReports(reportsRes.status === 'fulfilled' ? reportsRes.value : [])
       } catch (err) {
         console.warn('Erro ao carregar dados do dashboard de performance:', err)
       } finally {
@@ -208,6 +222,38 @@ export default function PerformanceDashboard() {
     })
   }
 
+  const handleExportCSV = () => {
+    const rows = [
+      ['Canal / Rede', 'Seguidores', 'Taxa de Engajamento (%)', 'Status'],
+      ...networkComparison.map((net) => [
+        net.name,
+        String(net.followers),
+        `${net.engagementRate}%`,
+        net.engagementRate >= 5 ? 'Acima do Mercado' : 'Padrão',
+      ]),
+    ]
+    const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n')
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', `relatorio-canais-${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast({
+      title: 'Exportado em CSV!',
+      description: 'Arquivo baixado com os dados comparativos de canais.',
+    })
+  }
+
+  const handleDeleteReport = async (reportId: string) => {
+    const ok = await deletePerformanceReport(reportId)
+    if (ok) {
+      setSavedReports((prev) => prev.filter((r) => r.id !== reportId))
+      toast({ title: 'Relatório Removido', description: 'Removido do histórico com sucesso.' })
+    }
+  }
+
   // KPIs calculados
   const totalPosts = posts.length
   const publishedPosts = posts.filter((p) => p.status === 'published').length
@@ -352,13 +398,32 @@ export default function PerformanceDashboard() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <Button
+            size="sm"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="rounded-xl text-xs h-9 px-3.5 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs gap-1.5 min-h-[36px]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Novo Relatório</span>
+          </Button>
+
+          <Button
             variant="outline"
             size="sm"
             onClick={handleExportPDF}
             className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40 font-semibold min-h-[36px]"
           >
             <Download className="w-4 h-4 text-purple-600" />
-            <span>Exportar PDF</span>
+            <span>PDF</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40 font-semibold min-h-[36px]"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>CSV</span>
           </Button>
 
           <Button
@@ -368,7 +433,7 @@ export default function PerformanceDashboard() {
             className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40 font-semibold min-h-[36px]"
           >
             <FileText className="w-4 h-4 text-blue-600" />
-            <span>Exportar JSON</span>
+            <span>JSON</span>
           </Button>
 
           <Button
@@ -380,17 +445,6 @@ export default function PerformanceDashboard() {
             <Link to="/app/social-hub">
               <Instagram className="w-4 h-4 text-pink-600" />
               <span>Hub Social</span>
-            </Link>
-          </Button>
-
-          <Button
-            asChild
-            size="sm"
-            className="rounded-xl text-xs h-9 px-3.5 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs gap-1.5 min-h-[36px]"
-          >
-            <Link to="/app/content/new">
-              <Sparkles className="w-4 h-4" />
-              <span>Novo Conteúdo</span>
             </Link>
           </Button>
         </div>
@@ -710,6 +764,118 @@ export default function PerformanceDashboard() {
       </Card>
 
       {/* ============================================================
+          BLOCO NOVO: Meus Relatórios Agendados & Histórico
+          ============================================================ */}
+      <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+          <div>
+            <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-purple-600" />
+              Meus Relatórios & Agendamentos
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Relatórios consolidados periódicos (semanal/mensal) com resumo executivo de IA
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="text-xs rounded-xl gap-1.5 font-bold border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Novo Relatório</span>
+          </Button>
+        </div>
+
+        {savedReports.length === 0 ? (
+          <div className="text-center py-8 px-4 rounded-2xl bg-muted/20 border border-dashed border-border/80 space-y-3">
+            <BarChart3 className="w-10 h-10 mx-auto text-muted-foreground/60" />
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-foreground">
+                Nenhum relatório agendado ou salvo
+              </p>
+              <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
+                Crie um relatório consolidado com canais sociais e anúncios. Ele ficará disponível
+                aqui com frequência semanal ou mensal.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl"
+            >
+              Criar Primeiro Relatório
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {savedReports.map((rep) => (
+              <div
+                key={rep.id}
+                className="p-4 rounded-2xl border border-border/70 bg-muted/30 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-3"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] capitalize font-bold ${
+                        rep.frequency === 'semanal'
+                          ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
+                          : rep.frequency === 'mensal'
+                            ? 'bg-purple-500/10 text-purple-600 border-purple-500/30'
+                            : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      <Clock className="w-2.5 h-2.5 mr-1" />
+                      {rep.frequency}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                      {rep.period_range || '30 dias'}
+                    </span>
+                  </div>
+
+                  <h4 className="font-bold text-sm text-foreground line-clamp-1">{rep.title}</h4>
+
+                  {rep.executive_summary && (
+                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed bg-background/60 p-2.5 rounded-xl border border-border/40">
+                      {rep.executive_summary}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs">
+                  <span className="text-[10px] text-muted-foreground">
+                    {rep.channels_included?.length || 4} canais inclusos
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleExportPDF()}
+                      className="h-7 w-7 text-purple-600 hover:bg-purple-500/10"
+                      title="Imprimir / Exportar PDF"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => rep.id && handleDeleteReport(rep.id)}
+                      className="h-7 w-7 text-rose-500 hover:bg-rose-500/10"
+                      title="Excluir relatório"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* ============================================================
           BLOCO APROFUNDADO: Tendência Comparativa, Funil, Anomalias de IA & Metas
           ============================================================ */}
       <PerformanceDeepAnalytics posts={posts as Post[]} allMetrics={allMetrics} hubData={hubData} />
@@ -723,6 +889,23 @@ export default function PerformanceDashboard() {
           userName={user?.name || 'Gestor'}
         />
       </div>
+
+      {/* Modal de Criação / Agendamento de Relatório */}
+      <CreatePerformanceReportModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        userId={user?.id}
+        brandId={brands[0]?.id}
+        currentKpis={{
+          totalPosts,
+          totalEngagement,
+          avgEngagementRate,
+          totalReach,
+        }}
+        onReportCreated={(newRep) => {
+          setSavedReports((prev) => [newRep, ...prev])
+        }}
+      />
 
       {/* Blindagem: garante que o estado loading nunca bloqueie a página inteira */}
       {loading && (

@@ -63,7 +63,11 @@ routerAdd(
     const favFormatsStr =
       preferredFormats.length > 0
         ? preferredFormats.join(', ')
-        : 'Carrosséis educativos, Vídeos curtos (Reels/Shorts)'
+        : 'Carrosséis educativos, Vídeos curtos (Reels/Shorts), Talking Head, Audiograma'
+
+    // Diretrizes específicas para formatos de vídeo com retenção nos 3s e Brand Kit
+    const videoGuidelineNote =
+      'Para sugestões em vídeo: duração ideal por rede (Reels/Shorts/TikTok 15-60s, YouTube longo, Stories 15s), gancho forte nos primeiros 3 segundos, estrutura hook -> desenvolvimento -> CTA, sugestão de trilha/energia e estilo visual com cores e tom de voz da marca aplicados.'
 
     // Fallback calibrado cruzando dados reais, preferências de estilo da marca e objetivos de funil
     let defaultIdeas = [
@@ -86,8 +90,13 @@ routerAdd(
       {
         id: 'idea-2',
         title: 'Checklist Definitivo da Semana: 5 Hábitos para Escalar Resultados',
-        suggestedModel: 'Roteiro de Vídeo Curto / Reels',
-        format: 'Vídeo Curto / Reels',
+        suggestedModel: 'Talking Head / Reels Dinâmico (30s)',
+        format: 'Vídeo Curto (Reels / TikTok)',
+        videoFormat: 'talking_head',
+        durationSec: 30,
+        hook3s: 'Pare tudo por 3 segundos se você quer dobrar sua retenção nesta semana!',
+        trackEnergy: 'Batida ritmada lo-fi moderna com punch nos cortes',
+        visualStyleApplied: `${visualStyle || 'Paleta violeta com texto em alto contraste'} | Cortes rápidos a cada 3s com zoom sutil`,
         funnelObjective: 'Atração',
         suggestedCta:
           'Siga o perfil para mais hacks diários de produtividade e compartilhe com um colega.',
@@ -95,14 +104,26 @@ routerAdd(
           'Sua semana pode ser produtiva ou apenas ocupada. Qual dos 5 itens da lista você já aplicou hoje? Deixe nos comentários seu foco principal da semana! 👇🔥',
         hashtags: ['#foco', '#planejamento', '#dicaspraticas', '#altaperformance'],
         bestTime: '20:15 (Maior tempo de tela)',
-        reason: preferredFormats.some(
-          (f) =>
-            f.toLowerCase().includes('vídeo') ||
-            f.toLowerCase().includes('reels') ||
-            f.toLowerCase().includes('shorts'),
-        )
-          ? `Priorizado pelo Estilo da Marca (${brandName}): vídeos curtos estão marcados como preferência no wizard e têm 70% mais alcance de não-seguidores.`
-          : 'Formatos interativos em vídeo com beats rápidos elevam em +42% os compartilhamentos para novos públicos.',
+        reason: `Diretriz de Vídeo da Marca (${brandName}): formato Talking Head (30s) com gancho nos primeiros 3s, cortes rápidos alinhados à identidade violeta e trilha de alta energia.`,
+      },
+      {
+        id: 'idea-video-master',
+        title: 'Masterclass Express: A Virada de Chave que Destrava a Escala',
+        suggestedModel: 'Live com Roteiro Master / Audiograma',
+        format: 'Vídeo Vertical / Audiograma',
+        videoFormat: 'audiograma',
+        durationSec: 45,
+        hook3s: 'Esse é o segredo de bastidores que quase nenhum especialista revela em público.',
+        trackEnergy: 'Trilha envolvente cinematográfica com foco em fala clara',
+        visualStyleApplied:
+          'Waveform de áudio animada nas cores da marca com legendas dinâmicas em destaque',
+        funnelObjective: 'Autoridade',
+        suggestedCta: 'Comente ROTEIRO para receber a estrutura completa no seu direct.',
+        caption:
+          'A virada de chave no conteúdo não é sobre postar mais vezes, mas sobre prender a atenção com intenção cirúrgica nos 3 primeiros segundos. Salve e teste hoje mesmo! 👇\n\nComente ROTEIRO!',
+        hashtags: ['#autoridade', '#estrategia', '#podcastsnippet', '#audiograma'],
+        bestTime: '19:00 (Pico de atenção)',
+        reason: `Priorizado pelo Estilo de Vídeo (${brandName}): Audiograma com legendas dinâmicas e waveform violeta, gerando alta autoridade com retenção prolongada.`,
       },
       {
         id: 'idea-3',
@@ -148,7 +169,8 @@ routerAdd(
         'Cada sugestão deve conter OBRIGATORIAMENTE:\n' +
         '1. Justificativa baseada nos formatos favoritos e estilo da marca ("Priorizado pelo Estilo da Marca [Nome]: formato favorito [Formato] com retenção...")\n' +
         '2. Objetivo de Funil explícito: "Atração", "Autoridade", "Conversão" ou "Comunidade"\n' +
-        '3. CTA sugerido específico e persuasivo'
+        '3. CTA sugerido específico e persuasivo\n' +
+        '4. DIRETRIZES DE VÍDEO (quando o formato for vídeo): incluir hook_3s (gancho nos primeiros 3 segundos), track_energy (energia e estilo da trilha), duration_sec (15-60s) e visual_style_applied (cores e tom da marca).'
 
       const userPrompt =
         `DADOS REAIS DA MARCA & HISTÓRICO:\n` +
@@ -158,23 +180,27 @@ routerAdd(
         `- Rede Principal: ${network}\n` +
         `- FORMATOS FAVORITOS DA MARCA (PRIORIZAR ESTES): ${favFormatsStr}\n` +
         `- DIRETRIZ ESTÉTICA DA MARCA: ${visualStyle || 'Estilo visual moderno com foco em autoridade e clareza'}\n` +
+        `- DIRETRIZ DE VÍDEO: ${videoGuidelineNote}\n` +
         `- Objetivo de Funil Solicitado: ${requestedObjective || 'Equilibrado (Atração / Autoridade / Conversão / Comunidade)'}\n` +
         `- Benchmark e Retenção: ${bestFormatInsight}\n` +
         `- Melhor horário por rede: ${bestNetworkTime}\n` +
         `- Amostra de histórico: ${topPostsSummary}\n\n` +
-        'Gere EXATAMENTE 4 ideias completas de post priorizando os FORMATOS FAVORITOS da marca, cobrindo os objetivos de funil (Atração, Autoridade, Conversão, Comunidade). Retorne EXCLUSIVAMENTE em formato JSON com o seguinte schema:\n' +
+        'Gere EXATAMENTE 4 ideias completas de post priorizando os FORMATOS FAVORITOS da marca (incluindo formatos de vídeo como Talking Head, Reels/Shorts, Audiograma ou Collab Duo), cobrindo os objetivos de funil. Retorne EXCLUSIVAMENTE em formato JSON com o seguinte schema:\n' +
         '{\n' +
         '  "ideas": [\n' +
         '    {\n' +
         '      "title": "Título chamativo do post",\n' +
         '      "suggestedModel": "Nome do modelo sugerido",\n' +
-        '      "format": "Feed / Carrossel / Story / Reels",\n' +
+        '      "format": "Feed / Carrossel / Reels / Talking Head / Audiograma",\n' +
         '      "funnelObjective": "Atração | Autoridade | Conversão | Comunidade",\n' +
         '      "suggestedCta": "Chamada para ação clara e específica",\n' +
         '      "caption": "Legenda completa com gancho, corpo e chamada para ação (CTA)",\n' +
         '      "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4"],\n' +
         '      "bestTime": "Horário recomendado baseado em audiência (ex: 18:30)",\n' +
-        '      "reason": "Justificativa rica cruzando dados de histórico (ex: seus carrosséis engajam 34% mais; sugerimos...)"\n' +
+        '      "reason": "Justificativa rica cruzando dados de histórico e estilo",\n' +
+        '      "hook_3s": "Gancho nos primeiros 3s (quando vídeo)",\n' +
+        '      "track_energy": "Sugestão de estilo/energia da trilha sonora (quando vídeo)",\n' +
+        '      "duration_sec": 30\n' +
         '    }\n' +
         '  ]\n' +
         '}'
@@ -215,6 +241,9 @@ routerAdd(
               reason:
                 item.reason ||
                 `${bestFormatInsight}; sugerimos este formato para maximizar resultados.`,
+              hook3s: item.hook_3s || item.hook3s,
+              trackEnergy: item.track_energy || item.trackEnergy,
+              durationSec: item.duration_sec || item.durationSec || 30,
             })),
           })
         }

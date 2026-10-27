@@ -126,6 +126,70 @@ const DURATIONS = [
 
 const TEMPLATES = [
   {
+    id: 'talking-head',
+    title: 'Talking Head (Criador & Especialista)',
+    desc: 'Pessoa falando para a lente em plano médio com cortes rápidos a cada 3s e gancho magnético imediato',
+    category: 'autoridade',
+    duration: 30,
+    hook: 'Se você trabalha com isso, pare tudo por 20 segundos!',
+    beats: [
+      '0-3s: Gancho Magnético (3s)',
+      '3-12s: Quebra de Senso Comum',
+      '12-24s: O Método Prático',
+      '24-30s: CTA no Direct',
+    ],
+    videoFormatKey: 'talking_head',
+    trackEnergy: 'Batida ritmada suave com clareza total na voz',
+  },
+  {
+    id: 'audiograma-cut',
+    title: 'Audiograma / Podcast Snippet',
+    desc: 'Corte de áudio com waveform animada nas cores da marca e legendas dinâmicas em destaque',
+    category: 'autoridade',
+    duration: 45,
+    hook: 'Essa é a virada de chave que ninguém te conta nos bastidores...',
+    beats: [
+      '0-3s: Frase de Impacto',
+      '3-20s: Insight Filosófico/Prático',
+      '20-38s: Conclusão',
+      '38-45s: Salve & Compartilhe',
+    ],
+    videoFormatKey: 'audiograma',
+    trackEnergy: 'Trilha reflexiva cinematográfica com waveform violeta',
+  },
+  {
+    id: 'collab-duo',
+    title: 'Collab Duo / Réplica Dinâmica',
+    desc: 'Tela dividida ou dinâmica de debate ágil entre dois criadores/especialistas',
+    category: 'engajamento',
+    duration: 35,
+    hook: 'Você concorda com essa opinião polêmica?',
+    beats: [
+      '0-4s: A Pergunta Aberta',
+      '4-18s: Visão do Criador 1',
+      '18-30s: Réplica do Criador 2',
+      '30-35s: Vote nos Comentários',
+    ],
+    videoFormatKey: 'collab_duo',
+    trackEnergy: 'Trilha dinâmica com cortes e sound design pontual',
+  },
+  {
+    id: 'roteiro-master',
+    title: 'Live com Roteiro Master (Modular)',
+    desc: 'Estrutura com abertura explosiva de 3s, 3 blocos de conteúdo retentivo e chamada para oferta/link',
+    category: 'promo',
+    duration: 60,
+    hook: 'Nos próximos 60 segundos você vai entender por que seu resultado travou...',
+    beats: [
+      '0-5s: Abertura Explosiva',
+      '5-25s: Bloco 1 (Diagnóstico)',
+      '25-45s: Bloco 2 (Solução)',
+      '45-60s: Chamada para Ação / Oferta',
+    ],
+    videoFormatKey: 'roteiro_master',
+    trackEnergy: 'Trilha progressiva com clímax de conversão',
+  },
+  {
     id: 'tutorial',
     title: 'Tutorial Rápido (3 Passos)',
     desc: 'Ensine um hack prático em 30s com gancho magnético e retenção alta',
@@ -339,17 +403,40 @@ export default function GuidedCreator() {
     }
     setAiLoading(true)
     try {
+      const currentBrand = brands[0]
+      const currentTemplate = TEMPLATES.find((t) => t.id === template)
       const result = await generateVideoScript({
         prompt,
         duration: Number(duration) || 30,
+        brandName: currentBrand?.name || 'MidiaViva',
         objective: selectedFormat.mainNetwork,
+        format: (currentTemplate as any)?.videoFormatKey || selectedFormat.id,
+        visualStyle: `Paleta ${currentBrand?.primary_color || 'Violeta'} com alto contraste e ritmo de corte a cada 3s`,
+        brandVoice: currentBrand?.tone_of_voice || 'Profissional e magnético',
+        brandColors: currentBrand?.primary_color || 'Violeta Elétrico',
+        trackEnergy: (currentTemplate as any)?.trackEnergy || 'Energia alta / batida moderna',
       })
-      const scriptText =
-        typeof result === 'string'
-          ? result
-          : (result as any)?.script || (result as any)?.content || ''
+      let scriptText = ''
+      if (typeof result === 'string') {
+        scriptText = result
+      } else if ((result as any)?.takes && Array.isArray((result as any).takes)) {
+        const r = result as any
+        const takesBlock = r.takes
+          .map(
+            (t: any) =>
+              `🎬 TAKE ${t.take_number} (${t.duration_sec || 3}s)\n[Visual]: ${t.visual_description}\n[Voz]: "${t.voiceover}"\n[Texto na Tela]: ${t.text_overlay || '-'}`,
+          )
+          .join('\n\n')
+
+        scriptText = `TITULO: ${r.title || prompt}\n\nGANCHO DOS PRIMEIROS 3 SEGUNDOS:\n${r.hook_3s || r.title}\n\nTRILHA / ENERGIA RECOMENDADA:\n${r.track_suggestion || 'Batida moderna com ritmo'}\n\nDIRETRIZ VISUAL DA MARCA:\n${r.brand_visual_note || 'Identidade com paleta da marca'}\n\n${takesBlock}\n\nLEGENDA SUGERIDA:\n${r.caption || ''}\n\nHASHTAGS:\n${Array.isArray(r.hashtags) ? r.hashtags.join(' ') : ''}`
+      } else {
+        scriptText = (result as any)?.script || (result as any)?.content || ''
+      }
       setScript(scriptText || 'Roteiro gerado com sucesso. Edite os ganchos e chamadas para ação.')
-      toast({ title: 'Roteiro gerado!', description: 'Edite conforme necessário.' })
+      toast({
+        title: 'Roteiro de Alta Retenção Gerado!',
+        description: 'Gancho nos 3s e Brand Kit aplicados.',
+      })
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     } finally {
