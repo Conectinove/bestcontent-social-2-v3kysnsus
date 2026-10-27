@@ -64,7 +64,7 @@ import {
   createReply,
 } from '@/services/community'
 import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
-import { InstagramFeedWidget } from '@/components/feed/InstagramFeedWidget'
+import { FeedMetricsMultiWidget } from '@/components/feed/FeedMetricsMultiWidget'
 
 // Community creators carousel data
 interface CommunityCreator {
@@ -975,10 +975,10 @@ export default function Feed() {
           </Card>
 
           {/* =====================================================================
-              WIDGET INSTAGRAM NO MOBILE (acima do stream)
+              WIDGET MULTI-REDE (Instagram, TikTok, YouTube) NO MOBILE (acima do stream)
               ===================================================================== */}
           <div className="block lg:hidden">
-            <InstagramFeedWidget compact />
+            <FeedMetricsMultiWidget />
           </div>
 
           {/* =====================================================================
@@ -1777,12 +1777,12 @@ export default function Feed() {
         </div>
 
         {/* =======================================================================
-            RIGHT COLUMN (4 cols): Instagram Widget, Ranking, Comunidade Links, etc.
+            RIGHT COLUMN (4 cols): Multi-Widget (Instagram, TikTok, YouTube), Ranking, Comunidade Links, etc.
             ======================================================================= */}
         <div className="lg:col-span-4 space-y-4">
-          {/* Widget Instagram no Desktop (fixo no topo da sidebar direita) */}
+          {/* Widget Multi-Rede no Desktop (Instagram, TikTok, YouTube com tabs e atualização em tempo real) */}
           <div className="hidden lg:block">
-            <InstagramFeedWidget />
+            <FeedMetricsMultiWidget />
           </div>
 
           {/* 1. Ranking de Setembro Card */}

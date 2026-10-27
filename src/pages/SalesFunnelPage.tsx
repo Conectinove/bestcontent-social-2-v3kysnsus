@@ -66,6 +66,7 @@ import { TikTokAdsFunnelBlock } from '@/components/ads/TikTokAdsFunnelBlock'
 import { LinkedInAdsFunnelBlock } from '@/components/ads/LinkedInAdsFunnelBlock'
 import { FunnelAutomationsPanel } from '@/components/funnel/FunnelAutomationsPanel'
 import { pb } from '@/lib/pocketbase/client'
+import { getLinkedInOrganicMetrics, LinkedInOrganicData } from '@/services/linkedin-organic'
 import { Download, FileSpreadsheet, Printer, BarChart3, Award, Crown, Share2 } from 'lucide-react'
 
 export default function SalesFunnelPage() {
@@ -1559,19 +1560,26 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
       conversions: 54,
     },
   })
+  const [organicLinkedIn, setOrganicLinkedIn] = useState<LinkedInOrganicData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     async function loadAggregatedMetrics() {
       setIsLoading(true)
       try {
-        const res = await pb.send('/backend/v1/ads/platform-metrics', { method: 'GET' })
+        const [res, orgRes] = await Promise.all([
+          pb.send('/backend/v1/ads/platform-metrics', { method: 'GET' }).catch(() => null),
+          getLinkedInOrganicMetrics().catch(() => null),
+        ])
         if (res && res.platforms) {
           const map: Record<string, any> = {}
           Object.keys(res.platforms).forEach((key) => {
             map[key] = res.platforms[key].metrics
           })
           setPlatformMetrics((prev) => ({ ...prev, ...map }))
+        }
+        if (orgRes) {
+          setOrganicLinkedIn(orgRes)
         }
       } catch (err) {
         console.warn('Fallback no endpoint agregado de métricas de ads:', err)
@@ -1984,6 +1992,38 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
           </tbody>
         </table>
       </div>
+
+      {/* Nota de Integração B2B & Comparativo com LinkedIn Orgânico */}
+      {organicLinkedIn && (
+        <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="space-y-0.5">
+            <span className="font-bold text-foreground flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
+              Sinergia B2B: LinkedIn Orgânico & Suporte ao Funil
+            </span>
+            <p className="text-[11px] text-muted-foreground">
+              Além dos anúncios pagos (
+              {platformMetrics.linkedin?.impressions?.toLocaleString('pt-BR')} imp.), seu
+              perfil/company page gerou{' '}
+              <strong>
+                {organicLinkedIn.metrics.impressions.toLocaleString('pt-BR')} impressões orgânicas
+              </strong>{' '}
+              e{' '}
+              <strong>
+                {organicLinkedIn.metrics.clicks.toLocaleString('pt-BR')} cliques orgânicos
+              </strong>{' '}
+              gratuitos com taxa de engajamento de {organicLinkedIn.metrics.engagement_rate}%.
+            </p>
+          </div>
+          <Badge
+            variant="outline"
+            className="shrink-0 text-[10px] font-bold border-[#0A66C2]/40 text-[#0A66C2] bg-blue-500/5"
+          >
+            {organicLinkedIn.badge_label ||
+              (organicLinkedIn.is_official ? 'Dados Oficiais' : 'Estimativa Calibrada')}
+          </Badge>
+        </div>
+      )}
     </Card>
   )
 }

@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getPlatformOfficialMetrics, getLinkedInAdsStatus } from '@/services/ads'
+import { getLinkedInOrganicMetrics, LinkedInOrganicData } from '@/services/linkedin-organic'
 import { toast } from '@/hooks/use-toast'
 
 export interface LinkedInAdsFunnelBlockProps {
@@ -38,15 +39,21 @@ export function LinkedInAdsFunnelBlock({ onConvertClickToLead }: LinkedInAdsFunn
     cpc: 0.9,
     ctr: 4.1,
   })
+  const [organicData, setOrganicData] = useState<LinkedInOrganicData | null>(null)
   const [converting, setConverting] = useState(false)
 
   const loadLinkedInAdsData = async () => {
     setLoading(true)
     try {
-      const [statusRes, metricsRes] = await Promise.all([
+      const [statusRes, metricsRes, organicRes] = await Promise.all([
         getLinkedInAdsStatus(),
         getPlatformOfficialMetrics('linkedin'),
+        getLinkedInOrganicMetrics().catch(() => null),
       ])
+
+      if (organicRes) {
+        setOrganicData(organicRes)
+      }
 
       const isConfigured = Boolean(statusRes?.configured)
 
@@ -180,7 +187,9 @@ export function LinkedInAdsFunnelBlock({ onConvertClickToLead }: LinkedInAdsFunn
           {/* Impressões */}
           <div className="p-3 rounded-xl bg-card border border-border/80 space-y-1">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-[10px] font-bold uppercase tracking-wider">Impressões</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                Impressões (Ads)
+              </span>
               <Eye className="w-3.5 h-3.5 text-[#0A66C2]" />
             </div>
             <p className="text-base sm:text-lg font-black text-foreground">
@@ -192,7 +201,9 @@ export function LinkedInAdsFunnelBlock({ onConvertClickToLead }: LinkedInAdsFunn
           {/* Cliques */}
           <div className="p-3 rounded-xl bg-card border border-border/80 space-y-1">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-[10px] font-bold uppercase tracking-wider">Cliques B2B</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                Cliques B2B (Ads)
+              </span>
               <MousePointerClick className="w-3.5 h-3.5 text-[#0A66C2]" />
             </div>
             <p className="text-base sm:text-lg font-black text-[#0A66C2] dark:text-blue-400">
@@ -231,6 +242,82 @@ export function LinkedInAdsFunnelBlock({ onConvertClickToLead }: LinkedInAdsFunn
             </p>
           </div>
         </div>
+
+        {/* Linha de Métricas Orgânicas do LinkedIn (Autoridade & Audiência Executiva no Funil) */}
+        {organicData && (
+          <div className="p-3.5 rounded-xl bg-background/60 border border-border/80 space-y-2 mt-1">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
+                  <span>LinkedIn Orgânico & Autoridade Profissional</span>
+                </span>
+                <Badge
+                  variant="outline"
+                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${
+                    organicData.is_official
+                      ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                      : 'border-blue-500/30 text-[#0A66C2] dark:text-blue-400 bg-blue-500/5'
+                  }`}
+                >
+                  {organicData.badge_label ||
+                    (organicData.is_official ? 'Dados Oficiais' : 'Estimativa Calibrada')}
+                </Badge>
+              </div>
+              <span className="text-[10px] text-muted-foreground">
+                Geração orgânica de autoridade para suporte ao funil de vendas
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-center">
+              <div className="p-2 rounded-lg bg-card/70 border border-border/60">
+                <span className="text-[10px] text-muted-foreground block font-medium">
+                  Seguidores / Conexões
+                </span>
+                <span className="text-sm font-extrabold text-foreground">
+                  {organicData.metrics.followers.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 block font-semibold">
+                  +{organicData.metrics.new_followers_30d} novos (30d)
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-card/70 border border-border/60">
+                <span className="text-[10px] text-muted-foreground block font-medium">
+                  Impressões Orgânicas
+                </span>
+                <span className="text-sm font-extrabold text-foreground">
+                  {organicData.metrics.impressions.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[9px] text-muted-foreground block">
+                  {organicData.metrics.reactions} reações
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-card/70 border border-border/60">
+                <span className="text-[10px] text-muted-foreground block font-medium">
+                  Taxa de Engajamento
+                </span>
+                <span className="text-sm font-extrabold text-foreground">
+                  {organicData.metrics.engagement_rate}%
+                </span>
+                <span className="text-[9px] text-muted-foreground block">
+                  {organicData.metrics.comments} comentários
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-card/70 border border-border/60">
+                <span className="text-[10px] text-muted-foreground block font-medium">
+                  Cliques Orgânicos
+                </span>
+                <span className="text-sm font-extrabold text-[#0A66C2] dark:text-blue-400">
+                  {organicData.metrics.clicks.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[9px] text-muted-foreground block">Tráfego qualificado</span>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
