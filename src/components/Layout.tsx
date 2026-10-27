@@ -76,16 +76,16 @@ export default function Layout() {
             {[
               { label: 'Visão Geral', href: '/app/feed', icon: LayoutDashboard },
               { label: 'Hub Social', href: '/app/social-hub', icon: Share2 },
-              { label: 'Feed Criadores', href: '/app/feed-comunidade', icon: Home },
+              { label: 'Performance', href: '/app/performance', icon: BarChart3 },
               { label: 'Portal Cliente', href: '/app/portal-cliente', icon: Users },
               { label: 'Criar', href: '/app/criar', icon: Wand2, highlight: true },
-              { label: 'Performance', href: '/app/performance', icon: BarChart3 },
+              { label: 'Anúncios', href: '/app/ads', icon: LayoutGrid },
+              { label: 'SEO Social', href: '/app/seo', icon: Globe },
+              { label: 'Brand Kit', href: '/app/brand-kit', icon: Palette },
+              { label: 'Labs', href: '/app/labs', icon: FlaskConical },
               { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
               { label: 'Calendário', href: '/app/calendar', icon: Calendar },
-              { label: 'Templates', href: '/app/templates', icon: LayoutGrid },
-              { label: 'Labs', href: '/app/labs', icon: FlaskConical },
-              { label: 'Páginas/Funis', href: '/app/pages', icon: Globe },
-              { label: 'Indique e Ganhe', href: '/app/indicar', icon: Gift },
+              { label: 'Feed Criadores', href: '/app/feed-comunidade', icon: Home },
               { label: 'Assinatura', href: '/app/subscription', icon: CreditCard },
               { label: 'Configurações', href: '/app/settings', icon: Settings },
             ].map((item) => {
@@ -151,7 +151,7 @@ export default function Layout() {
           </main>
           <footer className="border-t border-border py-4 px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
             <span className="text-center sm:text-left font-medium">
-              MidiaViva — Powered by BestContent AI · v0.0.57
+              MidiaViva — Powered by BestContent AI · v0.0.76
             </span>
             <div className="flex items-center gap-4">
               <button

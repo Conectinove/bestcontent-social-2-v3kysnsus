@@ -46,6 +46,7 @@ import Onboarding from './pages/Onboarding'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
+import ClientApprovalPage from './pages/ClientApprovalPage'
 
 const App = () => (
   <BrowserRouter>
@@ -59,6 +60,7 @@ const App = () => (
               {/* Public routes — no auth required */}
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/waitlist" element={<LandingPage />} />
+              <Route path="/review/:slug" element={<ClientApprovalPage />} />
 
               {/* Authenticated routes inside Layout */}
               <Route element={<Layout />}>

@@ -204,10 +204,24 @@ export default function ClientPortal() {
 
   const handleCopyLink = (slug: string) => {
     const fullUrl = `${window.location.origin}/review/${slug}`
-    navigator.clipboard.writeText(fullUrl)
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(fullUrl).catch(() => {})
+    }
     toast({
       title: 'Link copiado!',
-      description: 'URL enviada para a área de transferência.',
+      description: fullUrl,
+    })
+  }
+
+  const handleOpenLink = (slug: string) => {
+    window.open(`/review/${slug}`, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleDeleteLink = (id: string) => {
+    setCreatedLinks((prev) => prev.filter((item) => item.id !== id))
+    toast({
+      title: 'Link removido',
+      description: 'O link do calendário foi excluído do portal.',
     })
   }
 
@@ -480,7 +494,7 @@ export default function ClientPortal() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleCopyLink(link.slug)}
+                      onClick={() => handleOpenLink(link.slug)}
                       className="h-8 text-xs gap-1 text-primary hover:text-primary rounded-xl"
                     >
                       <span>Abrir</span>
@@ -538,11 +552,19 @@ export default function ClientPortal() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleCopyLink(link.slug)}
+                        onClick={() => handleOpenLink(link.slug)}
                         className="h-8 text-xs gap-1.5 rounded-xl hover:bg-muted"
                       >
                         <ExternalLink className="w-3 h-3" /> Ver
                       </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLink(link.id)}
+                        className="text-muted-foreground hover:text-rose-500 transition-colors p-1 text-xs"
+                        title="Remover link"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 </Card>
@@ -718,9 +740,9 @@ export default function ClientPortal() {
             type="button"
             onClick={() =>
               toast({
-                title: 'Novidades v2.6.0',
+                title: 'Novidades v0.0.76',
                 description:
-                  'Novo Portal do Cliente MAX integrado ao seletor de marcas da organização.',
+                  'Portal do Cliente MAX integrado, aprovações dinâmicas, proteção por senha e links compartilháveis em tempo real.',
               })
             }
             className="hover:text-foreground transition-colors flex items-center gap-1"
@@ -737,7 +759,7 @@ export default function ClientPortal() {
             Privacidade
           </Link>
           <span>·</span>
-          <span className="font-mono text-muted-foreground/70">v0.0.56</span>
+          <span className="font-mono text-muted-foreground/70">v0.0.76</span>
         </div>
       </div>
 
