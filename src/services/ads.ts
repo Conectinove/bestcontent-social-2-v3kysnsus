@@ -320,6 +320,32 @@ export interface YouTubeAdsStatusResponse {
   message?: string
 }
 
+export interface TikTokAdsStatusResponse {
+  platform: 'tiktok'
+  name: string
+  configured: boolean
+  status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
+  advertiserIdPrefix?: string | null
+  requiredSecrets: string[]
+  message?: string
+}
+
+export async function getTikTokAdsStatus(): Promise<TikTokAdsStatusResponse> {
+  try {
+    const res = await pb.send('/backend/v1/tiktok/ads/status', { method: 'GET' })
+    return res as TikTokAdsStatusResponse
+  } catch {
+    return {
+      platform: 'tiktok',
+      name: 'TikTok Ads Manager',
+      configured: false,
+      status: 'not_configured',
+      requiredSecrets: ['TIKTOK_ADS_ACCESS_TOKEN', 'TIKTOK_ADS_ADVERTISER_ID'],
+      message: 'Estimativa calibrada ativa.',
+    }
+  }
+}
+
 export async function getYouTubeAdsStatus(): Promise<YouTubeAdsStatusResponse> {
   try {
     const res = await pb.send('/backend/v1/youtube/ads/status', { method: 'GET' })

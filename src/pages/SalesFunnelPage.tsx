@@ -62,6 +62,7 @@ import {
 import { GoogleAdsFunnelBlock } from '@/components/ads/GoogleAdsFunnelBlock'
 import { MetaAdsFunnelBlock } from '@/components/ads/MetaAdsFunnelBlock'
 import { YouTubeAdsFunnelBlock } from '@/components/ads/YouTubeAdsFunnelBlock'
+import { TikTokAdsFunnelBlock } from '@/components/ads/TikTokAdsFunnelBlock'
 import { FunnelAutomationsPanel } from '@/components/funnel/FunnelAutomationsPanel'
 
 export default function SalesFunnelPage() {
@@ -205,15 +206,36 @@ export default function SalesFunnelPage() {
     setDeals((prev) => [created, ...prev])
   }
 
+  // Conversão de clique TikTok Ads em Lead captado
+  const handleConvertTikTokClickToLead = async (leadData: {
+    title: string
+    company: string
+    value: number
+    source: 'TikTok Ads'
+    notes: string
+  }) => {
+    const created = await createFunnelDeal({
+      title: leadData.title,
+      company: leadData.company,
+      value: leadData.value,
+      stage: 'lead_captado',
+      source: 'TikTok Ads',
+      responsible: 'Ronaldo Barreto',
+      notes: leadData.notes,
+      priority: 'alta',
+    })
+    setDeals((prev) => [created, ...prev])
+  }
+
   // Análise de IA Avançada do Funil (BestContent Sales Advisor com dados reais)
-  // Ampliado com: comparativo Google Ads vs Meta Ads vs Orgânico, Projeção do Mês e Próximo Melhor Contato
+  // Ampliado com: comparativo Google Ads vs Meta Ads vs YouTube Ads vs TikTok Ads vs Orgânico
   const aiInsight = useMemo(() => {
     if (deals.length === 0) {
       return {
         stageName: 'Aguardando dados',
         bottleneck: 'Nenhuma oportunidade cadastrada no funil até o momento.',
         prescription:
-          'Cadastre seus primeiros contatos ou converta cliques de Google Ads ou Meta Ads para ativar as prescrições inteligentes de alta conversão.',
+          'Cadastre seus primeiros contatos ou converta cliques de Google Ads, Meta Ads, YouTube Ads ou TikTok Ads para ativar as prescrições inteligentes de alta conversão.',
         action: 'Adicionar Primeiro Lead',
         priorityDeals: [] as FunnelDeal[],
         metricsDetail: 'Pipeline zerado.',
@@ -221,6 +243,7 @@ export default function SalesFunnelPage() {
           google: { count: 0, won: 0, rate: 0, totalVal: 0 },
           meta: { count: 0, won: 0, rate: 0, totalVal: 0 },
           youtube: { count: 0, won: 0, rate: 0, totalVal: 0 },
+          tiktok: { count: 0, won: 0, rate: 0, totalVal: 0 },
           organic: { count: 0, won: 0, rate: 0, totalVal: 0 },
           winner: 'Nenhum canal ativo',
         },
@@ -245,11 +268,12 @@ export default function SalesFunnelPage() {
       fechado_perdido: { count: 0, totalValue: 0 },
     }
 
-    // 2. Comparativo aprofundado por canal: Google Ads vs Meta Ads vs YouTube Ads vs Orgânico
+    // 2. Comparativo aprofundado por canal: Google Ads vs Meta Ads vs YouTube Ads vs TikTok Ads vs Orgânico
     const channelStats = {
       google: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
       meta: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
       youtube: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
+      tiktok: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
       organic: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
     }
 
@@ -290,6 +314,13 @@ export default function SalesFunnelPage() {
         if (d.stage === 'fechado_ganho') {
           channelStats.youtube.won += 1
           channelStats.youtube.wonVal += val
+        }
+      } else if (src === 'TikTok Ads') {
+        channelStats.tiktok.count += 1
+        channelStats.tiktok.totalVal += val
+        if (d.stage === 'fechado_ganho') {
+          channelStats.tiktok.won += 1
+          channelStats.tiktok.wonVal += val
         }
       } else {
         channelStats.organic.count += 1
@@ -352,6 +383,10 @@ export default function SalesFunnelPage() {
       channelStats.youtube.count > 0
         ? (channelStats.youtube.won / channelStats.youtube.count) * 100
         : 0
+    const tiktokRate =
+      channelStats.tiktok.count > 0
+        ? (channelStats.tiktok.won / channelStats.tiktok.count) * 100
+        : 0
     const organicRate =
       channelStats.organic.count > 0
         ? (channelStats.organic.won / channelStats.organic.count) * 100
@@ -361,6 +396,7 @@ export default function SalesFunnelPage() {
     const candidatesRates = [
       { name: 'Meta Ads', rate: metaRate, count: channelStats.meta.count },
       { name: 'Google Ads', rate: googleRate, count: channelStats.google.count },
+      { name: 'TikTok Ads', rate: tiktokRate, count: channelStats.tiktok.count },
       { name: 'YouTube Ads', rate: youtubeRate, count: channelStats.youtube.count },
       { name: 'Orgânico / Social', rate: organicRate, count: channelStats.organic.count },
     ].filter((c) => c.count >= 1 && c.rate > 0)
@@ -368,6 +404,8 @@ export default function SalesFunnelPage() {
     if (candidatesRates.length > 0) {
       candidatesRates.sort((a, b) => b.rate - a.rate)
       channelWinner = `${candidatesRates[0].name} (${candidatesRates[0].rate.toFixed(0)}% conversão)`
+    } else if (channelStats.tiktok.count > 0) {
+      channelWinner = 'TikTok Ads (alta tração em vídeo curto)'
     } else if (channelStats.youtube.count > 0) {
       channelWinner = 'YouTube Ads (vídeo qualificado)'
     }
@@ -390,6 +428,12 @@ export default function SalesFunnelPage() {
         won: channelStats.youtube.won,
         rate: youtubeRate,
         totalVal: channelStats.youtube.totalVal,
+      },
+      tiktok: {
+        count: channelStats.tiktok.count,
+        won: channelStats.tiktok.won,
+        rate: tiktokRate,
+        totalVal: channelStats.tiktok.totalVal,
       },
       organic: {
         count: channelStats.organic.count,
@@ -482,7 +526,7 @@ export default function SalesFunnelPage() {
     return {
       stageName: 'Fluxo Estável & Balanceado',
       bottleneck: `Funil com taxa de conversão de ${kpis.conversionRate}% e projeção de receita de R$ ${projectedRevenue.toLocaleString('pt-BR')} para este ciclo.`,
-      prescription: `Prescrição de escala: O canal "${channelWinner}" demonstra maior maturidade de conversão. Escale investimentos de tráfego pago nos blocos Google Ads e Meta Ads para alimentar o topo do funil com leads de alta intenção.`,
+      prescription: `Prescrição de escala: O canal "${channelWinner}" demonstra maior maturidade de conversão. Escale investimentos de mídia paga nos blocos de Google Ads, Meta Ads, YouTube Ads e TikTok Ads para alimentar o topo do funil com leads qualificados.`,
       action: 'Alimentar Pipeline com Ads',
       priorityDeals: deals
         .filter((d) => d.stage === 'contato_feito' || d.stage === 'negociacao')
@@ -771,11 +815,12 @@ export default function SalesFunnelPage() {
         </Card>
       </div>
 
-      {/* Blocos de Performance de Mídia Paga Integrados (Google Ads + Meta Ads + YouTube Ads lado a lado) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/* Blocos de Performance de Mídia Paga Integrados (Google Ads + Meta Ads + YouTube Ads + TikTok Ads lado a lado) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <GoogleAdsFunnelBlock onConvertClickToLead={handleConvertClickToLead} />
         <MetaAdsFunnelBlock onConvertClickToLead={handleConvertMetaClickToLead} />
         <YouTubeAdsFunnelBlock onConvertClickToLead={handleConvertYouTubeClickToLead} />
+        <TikTokAdsFunnelBlock onConvertClickToLead={handleConvertTikTokClickToLead} />
       </div>
 
       {/* Painel de Automações do Funil (Persistidas no Banco) */}
@@ -819,12 +864,12 @@ export default function SalesFunnelPage() {
 
         {/* 3 Sub-blocos Inteligentes: Comparativo de Canais, Projeção do Mês e Próximo Melhor Contato */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Sub-bloco 1: Comparativo Google Ads vs Meta Ads vs YouTube Ads vs Orgânico */}
+          {/* Sub-bloco 1: Comparativo Google Ads vs Meta Ads vs YouTube Ads vs TikTok Ads vs Orgânico */}
           <div className="p-3.5 rounded-2xl bg-card border border-border/80 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-blue-500" />
-                Google vs Meta vs YouTube vs Orgânico
+                Google vs Meta vs YouTube vs TikTok
               </span>
               <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 Conversão
@@ -850,6 +895,13 @@ export default function SalesFunnelPage() {
                 <span className="font-bold font-mono text-foreground">
                   {aiInsight.channelComparison.youtube?.count || 0} leads ·{' '}
                   {(aiInsight.channelComparison.youtube?.rate || 0).toFixed(0)}% fechados
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">TikTok Ads:</span>
+                <span className="font-bold font-mono text-cyan-600 dark:text-cyan-400">
+                  {aiInsight.channelComparison.tiktok?.count || 0} leads ·{' '}
+                  {(aiInsight.channelComparison.tiktok?.rate || 0).toFixed(0)}% fechados
                 </span>
               </div>
               <div className="flex items-center justify-between">

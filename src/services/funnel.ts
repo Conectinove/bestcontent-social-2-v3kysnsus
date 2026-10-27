@@ -12,6 +12,7 @@ export type DealSource =
   | 'Google Ads'
   | 'Meta Ads'
   | 'YouTube Ads'
+  | 'TikTok Ads'
   | 'Instagram'
   | 'TikTok'
   | 'LinkedIn'
@@ -118,6 +119,7 @@ export const SOURCES_OPTIONS: DealSource[] = [
   'Google Ads',
   'Meta Ads',
   'YouTube Ads',
+  'TikTok Ads',
   'Instagram',
   'TikTok',
   'LinkedIn',
