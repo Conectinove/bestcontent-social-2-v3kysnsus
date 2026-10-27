@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Palette, ArrowRight, Instagram, Globe, Upload, Sparkles } from 'lucide-react'
 import { QuickOnboardingModal } from '@/components/QuickOnboardingModal'
+import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -93,6 +94,13 @@ export default function Brands() {
             <Plus className="w-4 h-4" /> Adicionar Marca
           </Button>
         </div>
+      </div>
+
+      {/* Gestão Unificada & Deduplicação de Marcas */}
+      <OrganizationBrandManager onAddNewBrand={() => setOpen(true)} />
+
+      <div className="pt-4 border-t border-border">
+        <h2 className="text-base font-bold text-foreground mb-3">Cards Visuais de Marcas</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

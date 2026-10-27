@@ -56,15 +56,21 @@ import {
   type DealStage,
   type DealSource,
   type FunnelDealFormData,
+  getFunnelAutomations,
+  type FunnelAutomationRecord,
 } from '@/services/funnel'
+import { GoogleAdsFunnelBlock } from '@/components/ads/GoogleAdsFunnelBlock'
+import { FunnelAutomationsPanel } from '@/components/funnel/FunnelAutomationsPanel'
 
 export default function SalesFunnelPage() {
   const [deals, setDeals] = useState<FunnelDeal[]>([])
+  const [automations, setAutomations] = useState<FunnelAutomationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSource, setSelectedSource] = useState<string>('all')
   const [draggedDealId, setDraggedDealId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null)
+  const [showAutomationsPanel, setShowAutomationsPanel] = useState(true)
 
   // Modal de criação / edição
   const [modalOpen, setModalOpen] = useState(false)
@@ -88,8 +94,9 @@ export default function SalesFunnelPage() {
   // Carregar dados
   const loadDeals = async () => {
     try {
-      const data = await getFunnelDeals()
-      setDeals(data)
+      const [dealsData, autoData] = await Promise.all([getFunnelDeals(), getFunnelAutomations()])
+      setDeals(dealsData)
+      setAutomations(autoData)
     } catch (err) {
       console.warn('Erro ao carregar oportunidades do funil:', err)
       toast({
@@ -99,6 +106,15 @@ export default function SalesFunnelPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const reloadAutomations = async () => {
+    try {
+      const autoData = await getFunnelAutomations()
+      setAutomations(autoData)
+    } catch {
+      /* intentionally ignored */
     }
   }
 
@@ -124,67 +140,141 @@ export default function SalesFunnelPage() {
   // KPIs
   const kpis = useMemo(() => calculateFunnelKpis(deals), [deals])
 
-  // Análise de IA local (resiliente, nunca falha)
+  // Conversão de clique Google Ads em Lead captado
+  const handleConvertClickToLead = async (leadData: {
+    title: string
+    company: string
+    value: number
+    source: 'Google Ads'
+    notes: string
+  }) => {
+    const created = await createFunnelDeal({
+      title: leadData.title,
+      company: leadData.company,
+      value: leadData.value,
+      stage: 'lead_captado',
+      source: 'Google Ads',
+      responsible: 'Ronaldo Barreto',
+      notes: leadData.notes,
+      priority: 'alta',
+    })
+    setDeals((prev) => [created, ...prev])
+  }
+
+  // Análise de IA Avançada do Funil (BestContent Sales Advisor com dados reais)
   const aiInsight = useMemo(() => {
     if (deals.length === 0) {
       return {
         stageName: 'Aguardando dados',
         bottleneck: 'Nenhuma oportunidade cadastrada no funil até o momento.',
-        suggestion:
-          'Cadastre seus primeiros contatos ou propostas para ativar as recomendações estratégicas da IA.',
+        prescription:
+          'Cadastre seus primeiros contatos ou converta cliques do Google Ads para ativar as prescrições de alta conversão da IA.',
         action: 'Adicionar Primeiro Lead',
+        priorityDeals: [] as FunnelDeal[],
+        metricsDetail: 'Pipeline zerado.',
       }
     }
 
-    // Identificar estágio com maior acúmulo de deals não-ganhos/não-perdidos
-    const countsByStage: Record<DealStage, number> = {
-      lead_captado: 0,
-      contato_feito: 0,
-      proposta_enviada: 0,
-      negociacao: 0,
-      fechado_ganho: 0,
-      fechado_perdido: 0,
+    const now = new Date().getTime()
+
+    // 1. Valor por estágio e contagem
+    const stageSummary: Record<DealStage, { count: number; totalValue: number }> = {
+      lead_captado: { count: 0, totalValue: 0 },
+      contato_feito: { count: 0, totalValue: 0 },
+      proposta_enviada: { count: 0, totalValue: 0 },
+      negociacao: { count: 0, totalValue: 0 },
+      fechado_ganho: { count: 0, totalValue: 0 },
+      fechado_perdido: { count: 0, totalValue: 0 },
     }
+
+    // 2. Taxa de conversão por origem
+    const sourceWon: Record<string, { total: number; won: number }> = {}
+
+    // 3. Deals estagnados há mais de 7 dias
+    const staleDeals: Array<{ deal: FunnelDeal; days: number }> = []
+
     deals.forEach((d) => {
-      countsByStage[d.stage] = (countsByStage[d.stage] || 0) + 1
+      const val = Number(d.value) || 0
+      stageSummary[d.stage].count += 1
+      stageSummary[d.stage].totalValue += val
+
+      const src = d.source || 'Outro'
+      if (!sourceWon[src]) sourceWon[src] = { total: 0, won: 0 }
+      sourceWon[src].total += 1
+      if (d.stage === 'fechado_ganho') sourceWon[src].won += 1
+
+      if (d.stage !== 'fechado_ganho' && d.stage !== 'fechado_perdido') {
+        const updatedAt = new Date(d.updated || d.created).getTime()
+        const diffDays = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24))
+        if (diffDays >= 7) {
+          staleDeals.push({ deal: d, days: diffDays })
+        }
+      }
     })
 
-    if (countsByStage.proposta_enviada >= 2) {
+    // Ordenar deals estagnados priorizando por maior valor monetário
+    staleDeals.sort((a, b) => (Number(b.deal.value) || 0) - (Number(a.deal.value) || 0))
+
+    // Melhor origem em conversão
+    let bestSource = 'Instagram'
+    let bestSourceRate = 0
+    Object.entries(sourceWon).forEach(([sName, data]) => {
+      if (data.total >= 1) {
+        const rate = (data.won / data.total) * 100
+        if (rate > bestSourceRate) {
+          bestSourceRate = rate
+          bestSource = sName
+        }
+      }
+    })
+
+    // Caso A: Deals estagnados em Proposta enviada
+    const staleProposals = staleDeals.filter((s) => s.deal.stage === 'proposta_enviada')
+    if (staleProposals.length > 0) {
+      const topProposal = staleProposals[0].deal
+      const topVal = Number(topProposal.value) || 0
       return {
-        stageName: 'Proposta Enviada',
-        bottleneck: `Gargalo crítico em "Proposta Enviada" (${countsByStage.proposta_enviada} propostas aguardando retorno).`,
-        suggestion:
-          'Envie uma mensagem de acompanhamento com um resumo em áudio no WhatsApp destacando o ROI do projeto e ofereça uma chamada rápida de alinhamento.',
-        action: 'Disparar Follow-up Comercial',
+        stageName: 'Proposta enviada (Atenção Urgente)',
+        bottleneck: `${staleProposals.length} deal(s) parado(s) em Proposta enviada há mais de 7 dias, retendo R$ ${stageSummary.proposta_enviada.totalValue.toLocaleString('pt-BR')}.`,
+        prescription: `Prescrição imediata: Envie mensagem de follow-up personalizada focando no negócio de maior valor: "${topProposal.title}" (R$ ${topVal.toLocaleString('pt-BR')}). Utilize case de prova social recente da sua marca com áudio no WhatsApp oferecendo alinhamento de escopo sem fricção.`,
+        action: 'Enviar Follow-up da Proposta',
+        priorityDeals: staleProposals.map((s) => s.deal).slice(0, 3),
+        metricsDetail: `Melhor conversão por canal: ${bestSource} (${bestSourceRate.toFixed(0)}%). Propostas em espera: ${stageSummary.proposta_enviada.count}.`,
       }
     }
 
-    if (countsByStage.negociacao >= 2) {
+    // Caso B: Negociação acumulando valor alto
+    if (stageSummary.negociacao.count >= 2 || stageSummary.negociacao.totalValue > 5000) {
       return {
-        stageName: 'Negociação',
-        bottleneck: `Alta concentração de valor retido em "Negociação" (R$ ${kpis.inNegotiationValue.toLocaleString('pt-BR')}).`,
-        suggestion:
-          'Ofereça uma condição especial para fechamento até o fim desta semana (ex: bônus de 2 roteiros adicionais ou parcelamento estendido via Asaas).',
-        action: 'Aplicar Condição de Fechamento',
+        stageName: 'Negociação (Fechamento Próximo)',
+        bottleneck: `R$ ${stageSummary.negociacao.totalValue.toLocaleString('pt-BR')} concentrados em ${stageSummary.negociacao.count} negociações ativas.`,
+        prescription: `Prescrição comercial: Clientes em negociação necessitam de um gatilho de urgência. Ofereça condição de fechamento até sexta-feira com bônus de 2 peças adicionais ou link de parcelamento via Asaas sem juros para desatar a decisão.`,
+        action: 'Criar Oferta de Fechamento',
+        priorityDeals: deals.filter((d) => d.stage === 'negociacao').slice(0, 3),
+        metricsDetail: `Ticket médio em negociação: R$ ${Math.round(stageSummary.negociacao.totalValue / (stageSummary.negociacao.count || 1)).toLocaleString('pt-BR')}.`,
       }
     }
 
-    if (countsByStage.lead_captado >= 3) {
+    // Caso C: Leads captados aguardando primeiro contato
+    if (stageSummary.lead_captado.count >= 2) {
       return {
-        stageName: 'Lead Captado',
-        bottleneck: `Tempo de resposta: ${countsByStage.lead_captado} novos leads ainda sem contato inicial formal.`,
-        suggestion:
-          'Contatos respondidos em menos de 1 hora convertem até 7x mais. Priorize o primeiro contato via Direct/WhatsApp hoje.',
+        stageName: 'Lead captado (Tempo de Resposta)',
+        bottleneck: `${stageSummary.lead_captado.count} novo(s) lead(s) captados aguardando qualificação inicial formal.`,
+        prescription: `Prescrição de velocidade: Contatar leads nas primeiras 2 horas eleva a conversão em 391%. Inicie qualificação enviando o portfólio visual da marca com link direto de agendamento de call de 15 minutos.`,
         action: 'Iniciar Qualificação Rápida',
+        priorityDeals: deals.filter((d) => d.stage === 'lead_captado').slice(0, 3),
+        metricsDetail: `Canal mais ágil: Google Ads / Direct. Oportunidades aguardando: ${stageSummary.lead_captado.count}.`,
       }
     }
 
+    // Fluxo geral saudável
     return {
-      stageName: 'Fluxo Estável',
-      bottleneck: `Funil balanceado com taxa de conversão atual de ${kpis.conversionRate}%.`,
-      suggestion:
-        'Aumente a geração de novos leads a partir dos posts de maior engajamento identificados no Dashboard de Performance.',
-      action: 'Promover Post de Top Desempenho',
+      stageName: 'Fluxo Estável & Balanceado',
+      bottleneck: `Funil com taxa de conversão atual de ${kpis.conversionRate}% e ${kpis.wonCount} negócio(s) ganho(s).`,
+      prescription: `Prescrição de escala: Aumente a conversão do topo do funil promovendo conteúdos de maior engajamento do Social Hub e convertendo cliques de campanhas no bloco Google Ads.`,
+      action: 'Converter Mais Cliques em Leads',
+      priorityDeals: deals.filter((d) => d.stage === 'contato_feito').slice(0, 3),
+      metricsDetail: `Taxa global de fechamento: ${kpis.conversionRate}%. Ticket médio: R$ ${kpis.averageTicket.toLocaleString('pt-BR')}.`,
     }
   }, [deals, kpis])
 
@@ -465,7 +555,18 @@ export default function SalesFunnelPage() {
         </Card>
       </div>
 
-      {/* Caixa de Insights de IA (Análise Textual do Funil & Gargalo) */}
+      {/* Bloco de Performance Google Ads Integrado */}
+      <GoogleAdsFunnelBlock onConvertClickToLead={handleConvertClickToLead} />
+
+      {/* Painel de Automações do Funil (Persistidas no Banco) */}
+      <FunnelAutomationsPanel
+        automations={automations}
+        deals={deals}
+        onRefreshAutomations={reloadAutomations}
+        onRefreshDeals={loadDeals}
+      />
+
+      {/* Caixa de Insights de IA (BestContent Sales Advisor Aprimorado com Dados Reais & Prescrições Concretas) */}
       <Card className="p-5 rounded-3xl border-2 border-purple-500/30 bg-gradient-to-br from-purple-950/15 via-background to-pink-950/15 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -473,9 +574,9 @@ export default function SalesFunnelPage() {
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-black text-foreground">
-                  Diagnóstico Comercial por IA (BestContent Sales Advisor)
+                  Diagnóstico Comercial & Prescrição IA (BestContent Sales Advisor)
                 </h3>
                 <Badge className="bg-purple-600 text-white text-[9px] uppercase font-bold">
                   {aiInsight.stageName}
@@ -485,23 +586,44 @@ export default function SalesFunnelPage() {
             </div>
           </div>
 
-          <Badge variant="outline" className="text-[10px] font-mono self-start sm:self-center">
-            Tempo real
-          </Badge>
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <Badge variant="outline" className="text-[10px] font-mono">
+              {aiInsight.metricsDetail}
+            </Badge>
+          </div>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-card border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start gap-2.5">
             <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-foreground/90 leading-relaxed">
-              <strong className="text-foreground">Recomendação Estratégica: </strong>
-              {aiInsight.suggestion}
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs text-foreground/90 leading-relaxed">
+                <strong className="text-foreground">Prescrição Concreta da IA: </strong>
+                {aiInsight.prescription}
+              </p>
+              {aiInsight.priorityDeals && aiInsight.priorityDeals.length > 0 && (
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  <span className="text-[11px] font-bold text-muted-foreground">
+                    Priorizar no pipeline:
+                  </span>
+                  {aiInsight.priorityDeals.map((pd) => (
+                    <Badge
+                      key={pd.id}
+                      variant="outline"
+                      className="cursor-pointer border-purple-500/40 text-purple-700 dark:text-purple-300 text-[10px]"
+                      onClick={() => handleOpenEditModal(pd)}
+                    >
+                      {pd.title} (R$ {(pd.value || 0).toLocaleString('pt-BR')})
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <Button
             size="sm"
             onClick={() => handleOpenCreateModal('lead_captado')}
-            className="rounded-xl text-xs h-8 px-3 bg-purple-600 hover:bg-purple-700 text-white font-bold shrink-0 self-end sm:self-center"
+            className="rounded-xl text-xs h-8 px-3 bg-purple-600 hover:bg-purple-700 text-white font-bold shrink-0 self-end sm:self-center min-h-[36px]"
           >
             <span>{aiInsight.action}</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />

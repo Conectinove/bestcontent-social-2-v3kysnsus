@@ -8,7 +8,15 @@ export type DealStage =
   | 'fechado_ganho'
   | 'fechado_perdido'
 
-export type DealSource = 'Instagram' | 'TikTok' | 'LinkedIn' | 'Indicacao' | 'Site' | 'Outro'
+export type DealSource =
+  | 'Google Ads'
+  | 'Meta Ads'
+  | 'Instagram'
+  | 'TikTok'
+  | 'LinkedIn'
+  | 'Indicacao'
+  | 'Site'
+  | 'Outro'
 
 export interface FunnelDeal {
   id: string
@@ -106,6 +114,8 @@ export const FUNNEL_STAGES: FunnelStageConfig[] = [
 ]
 
 export const SOURCES_OPTIONS: DealSource[] = [
+  'Google Ads',
+  'Meta Ads',
   'Instagram',
   'TikTok',
   'LinkedIn',
@@ -113,6 +123,47 @@ export const SOURCES_OPTIONS: DealSource[] = [
   'Site',
   'Outro',
 ]
+
+export interface FunnelAutomationRecord {
+  id: string
+  user?: string
+  rule_key: string
+  name: string
+  description?: string
+  enabled: boolean
+  days_inactive?: number
+  action_type?: string
+  target_stage?: string
+  config_json?: any
+  created?: string
+  updated?: string
+}
+
+export async function getFunnelAutomations(): Promise<FunnelAutomationRecord[]> {
+  try {
+    return await pb.collection('funnel_automations').getFullList<FunnelAutomationRecord>({
+      sort: 'created',
+      requestKey: null,
+    })
+  } catch (err) {
+    console.warn('Erro ao carregar automações do funil:', err)
+    return []
+  }
+}
+
+export async function updateFunnelAutomation(
+  id: string,
+  data: Partial<FunnelAutomationRecord>,
+): Promise<FunnelAutomationRecord> {
+  return await pb.collection('funnel_automations').update<FunnelAutomationRecord>(id, data)
+}
+
+export async function toggleFunnelAutomation(
+  id: string,
+  enabled: boolean,
+): Promise<FunnelAutomationRecord> {
+  return await pb.collection('funnel_automations').update<FunnelAutomationRecord>(id, { enabled })
+}
 
 export async function getFunnelDeals(): Promise<FunnelDeal[]> {
   try {

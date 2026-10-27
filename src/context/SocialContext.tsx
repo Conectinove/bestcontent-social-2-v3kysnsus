@@ -188,6 +188,23 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const markAllNotificationsRead = () =>
     setNotifications((p) => p.map((n) => ({ ...n, read: true })))
 
+  const addNotification = useCallback(
+    (notif: { title: string; message: string; type?: 'post' | 'system' | 'ai' | 'schedule' }) => {
+      setNotifications((prev) => [
+        {
+          id: String(Date.now()),
+          title: notif.title,
+          message: notif.message,
+          time: 'agora',
+          read: false,
+          type: notif.type || 'system',
+        },
+        ...prev,
+      ])
+    },
+    [],
+  )
+
   return (
     <SocialContext.Provider
       value={{
@@ -200,6 +217,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         setSearchQuery,
         notifications,
         markAllNotificationsRead,
+        addNotification,
         theme,
         toggleTheme,
         addBrand,

@@ -108,7 +108,7 @@ export interface NotificationItem {
   message: string
   time: string
   read: boolean
-  type: 'post' | 'system' | 'ai'
+  type: 'post' | 'system' | 'ai' | 'schedule'
 }
 
 export interface UserProfile {

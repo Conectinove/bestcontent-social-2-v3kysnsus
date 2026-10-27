@@ -59,9 +59,18 @@ import { EditProfileModal } from '@/components/EditProfileModal'
 import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
 import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
-type TabKey = 'account' | 'subscription' | 'appearance' | 'integrations' | 'about'
+import { Building2 } from 'lucide-react'
+import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
+
+type TabKey = 'organization' | 'account' | 'subscription' | 'appearance' | 'integrations' | 'about'
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: string }> = [
+  {
+    key: 'organization',
+    label: 'Minha Organização',
+    icon: Building2,
+    description: 'Gestão de marcas, deduplicação e identidade oficial',
+  },
   {
     key: 'account',
     label: 'Conta & Perfil',
@@ -96,7 +105,11 @@ export default function Settings() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const [activeTab, setActiveTab] = useState<TabKey>('account')
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'organization' || tabParam === 'marcas') return 'organization'
+    return 'organization'
+  })
   const [editProfileOpen, setEditProfileOpen] = useState(
     () => searchParams.get('edit') === 'profile',
   )
@@ -366,6 +379,10 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">{activeTabMeta.description}</p>
                 </div>
               </div>
+
+              {activeTab === 'organization' && (
+                <OrganizationBrandManager onAddNewBrand={() => navigate('/app/brands')} />
+              )}
 
               {activeTab === 'subscription' && (
                 <div className="space-y-6">
