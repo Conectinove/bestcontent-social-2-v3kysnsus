@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T00:32:16.111Z",
+  "generatedAt": "2026-10-27T01:00:55.070Z",
   "collections": [
     {
       "name": "users",
@@ -1767,6 +1767,18 @@
         {
           "name": "is_official",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reacoes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "novos_seguidores",
+          "type": "number",
           "required": false,
           "system": false
         }

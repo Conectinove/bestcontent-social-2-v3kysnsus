@@ -46,6 +46,7 @@ import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { createScheduledPost } from '@/services/scheduled_posts'
 import { generateCaption, generateHashtags } from '@/services/ai'
+import { AI_VOICE_TONES } from '@/services/voice-tones'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -2042,29 +2043,11 @@ export default function ImageCreator() {
                         <span>🎙️ Tom de Voz da Legenda</span>
                       </span>
                       <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold capitalize">
-                        {
-                          [
-                            { id: 'profissional', label: 'Profissional' },
-                            { id: 'descontraido', label: 'Descontraído' },
-                            { id: 'inspirador', label: 'Inspirador' },
-                            { id: 'divertido', label: 'Divertido' },
-                            { id: 'direto', label: 'Direto ao Ponto' },
-                            { id: 'empatico', label: 'Empático' },
-                            { id: 'provocativo', label: 'Provocativo' },
-                          ].find((t) => t.id === captionTone)?.label
-                        }
+                        {AI_VOICE_TONES.find((t) => t.id === captionTone)?.label || captionTone}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar">
-                      {[
-                        { id: 'profissional', label: 'Profissional', emoji: '💼' },
-                        { id: 'descontraido', label: 'Descontraído', emoji: '😊' },
-                        { id: 'inspirador', label: 'Inspirador', emoji: '🚀' },
-                        { id: 'divertido', label: 'Divertido', emoji: '🎉' },
-                        { id: 'direto', label: 'Direto ao Ponto', emoji: '🎯' },
-                        { id: 'empatico', label: 'Empático', emoji: '🤝' },
-                        { id: 'provocativo', label: 'Provocativo', emoji: '🔥' },
-                      ].map((t) => {
+                      {AI_VOICE_TONES.map((t) => {
                         const active = captionTone === t.id
                         return (
                           <button

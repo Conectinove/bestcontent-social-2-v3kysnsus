@@ -31,7 +31,14 @@ import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { createScheduledPost } from '@/services/scheduled_posts'
 import { updatePost } from '@/services/posts'
-import { generateCaption, generateHashtags, improveText } from '@/services/ai'
+import {
+  generateCaption,
+  generateHashtags,
+  improveText,
+  HighPerformanceCaptionResult,
+  HookVariationItem,
+} from '@/services/ai'
+import { AI_VOICE_TONES } from '@/services/voice-tones'
 import { sharePost } from '@/lib/share'
 import { NetworkHashtagGenerator } from '@/components/NetworkHashtagGenerator'
 import { PostSeoWidget } from '@/components/seo/PostSeoWidget'
@@ -161,6 +168,14 @@ export default function CreatePost() {
   const [templateOpen, setTemplateOpen] = useState(false)
   const [whatToPostOpen, setWhatToPostOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(initialTemplate)
+  const [selectedTone, setSelectedTone] = useState<string>('profissional')
+  const [hookVariations, setHookVariations] = useState<HookVariationItem[]>([])
+  const [captionScores, setCaptionScores] = useState<{
+    seo?: number
+    hook?: number
+    readability?: number
+    toneApplied?: string
+  } | null>(null)
   // Validação inline
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
 
@@ -287,8 +302,31 @@ export default function CreatePost() {
     setAiLoading(type)
     try {
       if (type === 'caption') {
-        const r = await generateCaption(sourceText, platform)
-        setCaption((r as any).caption)
+        const brandNiche = (selectedBrand as any)?.niche || (selectedBrand as any)?.segment || ''
+        const brandName = selectedBrand?.name || ''
+        const r = await generateCaption({
+          content: sourceText,
+          topic: sourceText,
+          platform,
+          tone: selectedTone,
+          brandName,
+          brandNiche,
+          recentPosts: [caption, content].filter(Boolean),
+        })
+        if (r && (r.caption || r.success)) {
+          setCaption(r.caption || '')
+          if (Array.isArray(r.hook_variations) && r.hook_variations.length > 0) {
+            setHookVariations(r.hook_variations)
+          }
+          setCaptionScores({
+            seo: r.seo_score,
+            hook: r.hook_strength_score,
+            readability: r.readability_score,
+            toneApplied: r.tone_applied || selectedTone,
+          })
+        } else {
+          setCaption((r as any)?.caption || sourceText)
+        }
       } else if (type === 'hashtags') {
         const r = await generateHashtags(sourceText)
         setCaption((prev) => `${prev}\n\n${(r as any).hashtags.join(' ')}`.trim())
@@ -667,6 +705,37 @@ export default function CreatePost() {
 
             {/* Linha 3: Legenda com Assistente IA & Hashtags */}
             <div className="space-y-2">
+              {/* Seletor do Catálogo Central de 25 Tons de Voz */}
+              <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <span>🎙️ Tom de Voz da IA (25 Tons)</span>
+                  </span>
+                  <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold capitalize">
+                    {AI_VOICE_TONES.find((t) => t.id === selectedTone)?.label || selectedTone}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                  {AI_VOICE_TONES.map((t) => {
+                    const active = selectedTone === t.id
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSelectedTone(t.id)}
+                        className={`text-[10px] px-2.5 py-1 rounded-full font-semibold shrink-0 transition-all ${
+                          active
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+                        }`}
+                      >
+                        {t.emoji} {t.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-foreground">
                   Legenda Completa para Redes
@@ -676,18 +745,103 @@ export default function CreatePost() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setAiModalOpen(true)}
+                    onClick={() => aiAction('caption')}
+                    disabled={aiLoading === 'caption'}
                     className="text-xs text-purple-600 dark:text-purple-400 border-purple-500/30 gap-1.5 h-7 px-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                    title="Gera gancho magnético, corpo, CTA e hashtags no tom selecionado"
                   >
-                    <Sparkles className="w-3.5 h-3.5" /> Assistente IA
+                    {aiLoading === 'caption' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    <span>Gerar Legenda com IA</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAiModalOpen(true)}
+                    className="text-xs text-muted-foreground hover:text-foreground h-7 px-2 rounded-lg"
+                  >
+                    Assistente
                   </Button>
                 </div>
               </div>
+
+              {/* Variantes de Gancho em 1-clique */}
+              {hookVariations.length > 0 && (
+                <div className="p-3 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-900/40 space-y-2 animate-in fade-in-50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Ganchos Magnéticos Alternativos (clique para aplicar no início da legenda):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setHookVariations([])}
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      Dispensar
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {hookVariations.map((v, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          // Substitui a 1ª linha da legenda ou adiciona como gancho
+                          const lines = caption.split('\n')
+                          const newCaption = [v.hook, ...lines.slice(1)].join('\n')
+                          setCaption(newCaption)
+                          toast({
+                            title: `Gancho aplicado!`,
+                            description: `O gancho do tipo "${v.type}" foi inserido na legenda.`,
+                          })
+                        }}
+                        className="p-2 text-left rounded-lg bg-card hover:bg-muted/80 border border-border/80 transition-all text-xs group"
+                      >
+                        <span className="font-bold text-purple-600 dark:text-purple-400 block text-[10px] uppercase">
+                          {v.type}
+                        </span>
+                        <p className="text-foreground font-medium text-[11px] mt-0.5">{v.hook}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Badges de Score da Legenda Gerada */}
+              {captionScores && (
+                <div className="flex items-center gap-2 flex-wrap text-[11px] p-2 rounded-lg bg-muted/40 border border-border/60">
+                  <span className="font-semibold text-muted-foreground">Avaliação da IA:</span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
+                  >
+                    Gancho: {captionScores.hook || 92}%
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                  >
+                    SEO: {captionScores.seo || 90}%
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                  >
+                    Legibilidade: {captionScores.readability || 88}%
+                  </Badge>
+                </div>
+              )}
+
               <Textarea
-                placeholder="Escreva a legenda detalhada, storytelling ou copie da IA..."
+                placeholder="Escreva a legenda detalhada, storytelling ou gere com a IA..."
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="min-h-[100px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
+                className="min-h-[110px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
                 <span>Dica: Use quebras de linha e emojis para maior retenção.</span>

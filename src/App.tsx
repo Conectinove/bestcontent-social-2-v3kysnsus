@@ -82,6 +82,8 @@ const App = () => (
                 <Route path="/app/dashboard" element={<Dashboard />} />
                 <Route path="/app/social-hub" element={<SocialHubPage />} />
                 <Route path="/app/hub-social" element={<SocialHubPage />} />
+                <Route path="/app/campaigns-dashboard" element={<CampaignsDashboard />} />
+                <Route path="/app/dash-campanhas" element={<CampaignsDashboard />} />
                 <Route path="/app/performance" element={<PerformanceDashboard />} />
                 <Route path="/app/dashboard-performance" element={<PerformanceDashboard />} />
                 <Route path="/app/analytics" element={<Analytics />} />

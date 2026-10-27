@@ -61,23 +61,15 @@ import {
   Wand2,
 } from 'lucide-react'
 
-export const CAMPAIGN_TONES = [
-  { id: 'profissional', label: 'Profissional', emoji: '💼' },
-  { id: 'inspirador', label: 'Inspirador', emoji: '✨' },
-  { id: 'divertido', label: 'Divertido', emoji: '🎉' },
-  { id: 'tecnico', label: 'Técnico / Especialista', emoji: '🔬' },
-  { id: 'acolhedor', label: 'Acolhedor', emoji: '🤝' },
-  { id: 'urgente', label: 'Urgente / Oferta', emoji: '⚡' },
-  { id: 'premium', label: 'Premium / Sofisticado', emoji: '💎' },
-  { id: 'provocativo', label: 'Provocativo', emoji: '🔥' },
-  { id: 'educativo', label: 'Educacional', emoji: '📚' },
-  { id: 'storytelling', label: 'Storytelling', emoji: '📖' },
-  { id: 'descontraido', label: 'Descontraído', emoji: '😎' },
-  { id: 'direto', label: 'Direto ao Ponto', emoji: '🎯' },
-  { id: 'emocional', label: 'Emocional', emoji: '❤️' },
-  { id: 'autoridade', label: 'Autoridade & Liderança', emoji: '👑' },
-  { id: 'minimalista', label: 'Minimalista & Elegante', emoji: '🌿' },
-]
+import { AI_VOICE_TONES } from '@/services/voice-tones'
+
+export const CAMPAIGN_TONES = AI_VOICE_TONES.map((t) => ({
+  id: t.id,
+  label: t.label,
+  emoji: t.emoji,
+  description: t.description,
+  badge: t.badge,
+}))
 interface CreateCampaignModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void

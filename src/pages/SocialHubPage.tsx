@@ -224,6 +224,174 @@ export function SocialHubPage() {
         </Card>
       </div>
 
+      {/* Destaque Especial: LinkedIn Orgânico Integrado */}
+      {data?.linkedinOrganic && (
+        <Card className="rounded-3xl border-2 border-blue-500/30 bg-gradient-to-br from-blue-950/20 via-background to-purple-950/20 shadow-xl overflow-hidden">
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/80">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#0A66C2] flex items-center justify-center text-white text-2xl font-bold shadow-md ring-2 ring-blue-500/40">
+                  <span className="font-black">in</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-black text-foreground">
+                      LinkedIn Conteúdo & Perfil Orgânico
+                    </h2>
+                    <Badge
+                      className={
+                        data.linkedinOrganic.is_official
+                          ? 'bg-emerald-600 text-white text-[10px]'
+                          : 'bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/40 text-[10px]'
+                      }
+                    >
+                      {data.linkedinOrganic.badge_label}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {data.linkedinOrganic.profile.display_name} &middot;{' '}
+                    {data.linkedinOrganic.profile.headline}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className="border-blue-500/30 text-blue-600 dark:text-blue-400 text-xs px-3 py-1"
+                >
+                  Taxa de Engajamento B2B: {data.linkedinOrganic.metrics.engagement_rate}%
+                </Badge>
+              </div>
+            </div>
+
+            {/* Grid de Métricas LinkedIn Orgânico */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-6">
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Seguidores / Conexões
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.linkedinOrganic.metrics.followers.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  +{data.linkedinOrganic.metrics.new_followers_30d} no mês
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Impressões de Artigos/Posts
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.linkedinOrganic.metrics.impressions.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-muted-foreground">Feed Corporativo</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Reações Profissionais
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.linkedinOrganic.metrics.reactions.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-0.5 font-semibold">
+                  <Heart className="w-2.5 h-2.5 fill-current" /> Aplausos & Apoio
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Cliques em Links
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.linkedinOrganic.metrics.clicks.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center gap-0.5 font-semibold">
+                  <ArrowUpRight className="w-2.5 h-2.5" /> CTR Qualificado
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Comentários Qualificados
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.linkedinOrganic.metrics.comments.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                  <MessageCircle className="w-2.5 h-2.5" /> Networking
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Reposts / Compartilhamentos
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.linkedinOrganic.metrics.shares.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 font-semibold">
+                  <Share2 className="w-2.5 h-2.5" /> Autoridade B2B
+                </span>
+              </div>
+            </div>
+
+            {/* Evolução temporal & Melhores Horários LinkedIn */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-border/60">
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <BarChart2 className="w-3.5 h-3.5 text-blue-600" />
+                  Evolução Temporal das Últimas 4 Semanas (LinkedIn)
+                </span>
+                <div className="space-y-1.5">
+                  {data.linkedinOrganic.history.map((h, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between text-xs p-2 rounded-lg bg-card/80 border border-border/60"
+                    >
+                      <span className="font-semibold text-foreground">{h.period}</span>
+                      <div className="flex items-center gap-4 text-muted-foreground font-mono text-[11px]">
+                        <span>{h.impressions.toLocaleString('pt-BR')} views</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-bold">
+                          {h.engagement}% eng
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-blue-500" />
+                  Janelas Nobres de Publicação Corporativa (LinkedIn B2B)
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {data.linkedinOrganic.best_times.map((bt, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-foreground">{bt.day}</p>
+                        <p className="text-[11px] text-blue-600 dark:text-blue-400 font-mono font-semibold">
+                          {bt.time}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">
+                        Índice {bt.reach_index}%
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Destaque Especial: TikTok Orgânico Integrado */}
       {data?.tiktokOrganic && (
         <Card className="rounded-3xl border-2 border-purple-500/30 bg-gradient-to-br from-purple-950/20 via-background to-pink-950/20 shadow-xl overflow-hidden">

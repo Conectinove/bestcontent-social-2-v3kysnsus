@@ -6,28 +6,73 @@ export interface CaptionVariation {
   cta?: string
 }
 
+export interface HookVariationItem {
+  type: string
+  hook: string
+}
+
+export interface HighPerformanceCaptionResult {
+  caption: string
+  hook_variations?: HookVariationItem[]
+  cta?: string
+  hashtags?: string[]
+  seo_score?: number
+  hook_strength_score?: number
+  readability_score?: number
+  estimated_reading_time_sec?: number
+  tone_applied?: string
+}
+
 export interface GenerateCaptionOptions {
   content: string
+  topic?: string
   platform?: string
   objective?: string
   approach?: string
   brandName?: string
   brandVoice?: string
+  brandNiche?: string
+  niche?: string
+  targetAudience?: string
   tone?: string
   formatName?: string
   headline?: string
   variations?: boolean
+  recentPosts?: string[]
+  customPrompt?: string
 }
 
-export const generateCaption = (
+export const generateCaption = async (
   contentOrOptions: string | GenerateCaptionOptions,
   legacyPlatform?: string,
-) => {
-  const payload =
+): Promise<any> => {
+  const payload: any =
     typeof contentOrOptions === 'string'
-      ? { content: contentOrOptions, platform: legacyPlatform || 'Instagram' }
-      : contentOrOptions
+      ? {
+          content: contentOrOptions,
+          topic: contentOrOptions,
+          platform: legacyPlatform || 'Instagram',
+        }
+      : {
+          ...contentOrOptions,
+          topic: contentOrOptions.topic || contentOrOptions.content,
+        }
 
+  // Tenta o endpoint moderno de alta performance primeiro
+  try {
+    const res = await pb.send('/backend/v1/ai/generate-caption', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (res && (res.caption || res.success)) {
+      return res
+    }
+  } catch {
+    /* intentionally ignored */
+  }
+
+  // Fallback para /backend/v1/ai/caption
   return pb.send('/backend/v1/ai/caption', {
     method: 'POST',
     body: JSON.stringify(payload),

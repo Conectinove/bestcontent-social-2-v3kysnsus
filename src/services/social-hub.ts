@@ -2,6 +2,7 @@ import pb from '@/lib/pocketbase/client'
 import type { IntegrationNetwork } from '@/types'
 import { getAllPostMetrics, type PostMetric } from '@/services/post-metrics'
 import { getTikTokOrganicMetrics, type TikTokOrganicData } from '@/services/tiktok-organic'
+import { getLinkedInOrganicMetrics, type LinkedInOrganicData } from '@/services/linkedin-organic'
 import { getUserIntegrations } from '@/services/user_integrations'
 
 export interface NetworkChannelSummary {
@@ -47,6 +48,7 @@ export interface ConsolidatedSocialHubData {
     engagement: number
   }[]
   tiktokOrganic: TikTokOrganicData | null
+  linkedinOrganic?: LinkedInOrganicData | null
 }
 
 export const ALL_SUPPORTED_NETWORKS: {
@@ -317,6 +319,13 @@ export async function getConsolidatedSocialHubData(
     /* intentionally ignored */
   }
 
+  let linkedinOrganic: LinkedInOrganicData | null = null
+  try {
+    linkedinOrganic = await getLinkedInOrganicMetrics()
+  } catch {
+    /* intentionally ignored */
+  }
+
   // Buscar posts com dados de conteúdo
   let posts: any[] = []
   try {
@@ -357,6 +366,11 @@ export async function getConsolidatedSocialHubData(
       engagementRate = tiktokOrganic.metrics.engagement_rate
       isOfficial = tiktokOrganic.is_official
       badgeLabel = tiktokOrganic.badge_label
+    } else if (meta.network === 'linkedin' && linkedinOrganic) {
+      followers = linkedinOrganic.metrics.followers
+      engagementRate = linkedinOrganic.metrics.engagement_rate
+      isOfficial = linkedinOrganic.is_official
+      badgeLabel = linkedinOrganic.badge_label
     } else if (metricsForNet.length > 0) {
       const sumEng = metricsForNet.reduce((acc, m) => acc + (m.taxa_engajamento || 0), 0)
       engagementRate = Number((sumEng / metricsForNet.length).toFixed(2))
@@ -453,5 +467,6 @@ export async function getConsolidatedSocialHubData(
     topPerformingPosts,
     weeklyTrend,
     tiktokOrganic,
+    linkedinOrganic,
   }
 }

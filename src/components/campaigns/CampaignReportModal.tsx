@@ -28,7 +28,7 @@ export interface CampaignReportModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   campaign: CampaignRecord | null
-  posts: Post[]
+  posts?: Post[]
   brandName?: string
 }
 
@@ -36,7 +36,7 @@ export function CampaignReportModal({
   open,
   onOpenChange,
   campaign,
-  posts,
+  posts = [],
   brandName = 'Sua Marca',
 }: CampaignReportModalProps) {
   const [copiedLink, setCopiedLink] = useState(false)
