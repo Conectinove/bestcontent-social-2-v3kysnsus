@@ -3,10 +3,20 @@ import { InstagramFeedWidget } from './InstagramFeedWidget'
 import { TikTokFeedWidget } from './TikTokFeedWidget'
 import { YouTubeFeedWidget } from './YouTubeFeedWidget'
 import { GoogleAnalyticsFeedWidget } from './GoogleAnalyticsFeedWidget'
-import { ChevronDown, ChevronUp, Globe } from 'lucide-react'
+import { LinkedInFeedWidget } from './LinkedInFeedWidget'
+import { SubstackFeedWidget } from './SubstackFeedWidget'
+import { GoogleBusinessFeedWidget } from './GoogleBusinessFeedWidget'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export type FeedWidgetNetwork = 'instagram' | 'tiktok' | 'youtube' | 'analytics'
+export type FeedWidgetNetwork =
+  | 'instagram'
+  | 'tiktok'
+  | 'youtube'
+  | 'analytics'
+  | 'linkedin'
+  | 'substack'
+  | 'gbp'
 
 interface FeedMetricsMultiWidgetProps {
   className?: string
@@ -71,15 +81,60 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             variant={activeTab === 'analytics' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('analytics')}
-            className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'analytics'
                 ? 'bg-card text-foreground shadow-xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="hidden sm:inline">Google Analytics</span>
-            <span className="sm:hidden">GA4</span>
+            <span>GA4</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'linkedin' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('linkedin')}
+            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'linkedin'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-600" />
+            <span>LinkedIn</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'substack' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('substack')}
+            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'substack'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-orange-500" />
+            <span>Substack</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'gbp' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('gbp')}
+            className={`h-7 px-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'gbp'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="hidden sm:inline">Google Meu Negócio</span>
+            <span className="sm:hidden">GBP</span>
           </Button>
         </div>
 
@@ -106,6 +161,9 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
         {activeTab === 'tiktok' && <TikTokFeedWidget />}
         {activeTab === 'youtube' && <YouTubeFeedWidget />}
         {activeTab === 'analytics' && <GoogleAnalyticsFeedWidget />}
+        {activeTab === 'linkedin' && <LinkedInFeedWidget />}
+        {activeTab === 'substack' && <SubstackFeedWidget />}
+        {activeTab === 'gbp' && <GoogleBusinessFeedWidget />}
       </div>
     </div>
   )

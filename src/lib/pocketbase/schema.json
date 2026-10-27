@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T12:20:16.708Z",
+  "generatedAt": "2026-10-27T13:04:53.304Z",
   "collections": [
     {
       "name": "users",
@@ -3443,6 +3443,12 @@
           "system": false
         },
         {
+          "name": "report_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
           "name": "frequency",
           "type": "select",
           "required": true,
@@ -3498,6 +3504,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "engagement_data_json",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

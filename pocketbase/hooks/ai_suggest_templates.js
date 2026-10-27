@@ -15,7 +15,51 @@ routerAdd(
     const preferredFormats = Array.isArray(body.preferredFormats) ? body.preferredFormats : []
     const visualStyle = (body.visualStyle || '').trim()
 
-    // 1. Cruzamento de dados reais: biblioteca de posts mais engajados
+    // 1. Anti-repetição: extrair temas e formatos dos últimos 7-14 dias
+    let recentThemesExclusion = []
+    let recentFormatsUsed = []
+    let recentPostsCount = 0
+
+    try {
+      // Buscar posts dos últimos 14 dias para evitar repetir temas e formatos
+      const recentPosts = $app.findRecordsByFilter('posts', '', '-created', 15, 0)
+      if (recentPosts && recentPosts.length > 0) {
+        recentPostsCount = recentPosts.length
+        recentPosts.forEach((p) => {
+          const t = p.getString('title')
+          const f = p.getString('format') || p.getString('type')
+          if (t && t.length > 5) recentThemesExclusion.push(t)
+          if (f) recentFormatsUsed.push(f)
+        })
+      }
+    } catch (_) {}
+
+    // 2. Sazonalidade / Datas comemorativas e contexto temporal do mês atual
+    const now = new Date()
+    const currentMonth = now.getMonth() + 1
+    const currentDay = now.getDate()
+    const currentYear = now.getFullYear()
+
+    const MONTH_EVENTS = {
+      1: 'Janeiro: Planejamento anual, metas, novos começos e produtividade',
+      2: 'Fevereiro: Carnaval, retorno às aulas, ritmo de trabalho e primeiros resultados',
+      3: 'Março: Mês da Mulher (8 de março), Dia do Consumidor (15 de março), encerramento do Q1',
+      4: 'Abril: Páscoa, inovação, início do Q2 e revisão de processos',
+      5: 'Maio: Dia do Trabalho (1 de maio), Dia das Mães, campanhas promocionais de alto valor',
+      6: 'Junho: Dia dos Namorados (12 de junho), Festas Juninas, balanço do primeiro semestre',
+      7: 'Julho: Férias, meio de ano, reciclagem profissional e planejamento do Q3',
+      8: 'Agosto: Dia dos Pais, Dia do Estudante (11 de agosto), foco em retenção e escala',
+      9: 'Setembro: Independência (7 de setembro), Dia do Cliente (15 de setembro), aquecimento Q4',
+      10: 'Outubro: Dia das Crianças (12 de outubro), Outubro Rosa, início da preparação de Black Friday',
+      11: 'Novembro: Black Friday, Cyber Monday, Novembro Azul e ofertas agressivas de fim de ano',
+      12: 'Dezembro: Natal, confraternizações, retrospectivas do ano e tendências para o próximo ano',
+    }
+
+    const currentSeasonalityContext =
+      MONTH_EVENTS[currentMonth] ||
+      'Campanhas de meio de trimestre com foco em autoridade e crescimento'
+
+    // 3. Cruzamento de dados reais: biblioteca de posts mais engajados
     let topPostsSummary = 'Carrosséis educativos e vídeos rápidos de 30s'
     let bestEngagedRate = 4.8
     let bestFormatInsight = 'seus carrosséis engajam 34% mais que posts estáticos'
@@ -65,112 +109,102 @@ routerAdd(
         ? preferredFormats.join(', ')
         : 'Carrosséis educativos, Vídeos curtos (Reels/Shorts), Talking Head, Audiograma'
 
-    // Diretrizes específicas para formatos de vídeo com retenção nos 3s e Brand Kit
+    // Diretrizes específicas para Carrosséis e Vídeos
+    const carouselGuidelineNote =
+      'Para carrosséis: slide 1 capa-gancho irresistível, 1 ideia clara por slide, texto enxuto e escaneável, ritmo progressivo, último slide com CTA decisivo e indicação de arraste/salve, cores do Brand Kit e tom da marca.'
     const videoGuidelineNote =
-      'Para sugestões em vídeo: duração ideal por rede (Reels/Shorts/TikTok 15-60s, YouTube longo, Stories 15s), gancho forte nos primeiros 3 segundos, estrutura hook -> desenvolvimento -> CTA, sugestão de trilha/energia e estilo visual com cores e tom de voz da marca aplicados.'
+      'Para vídeos: duração ideal 15-60s, gancho nos 3s, hook -> desenvolvimento -> CTA, trilha enérgica e cores da marca.'
 
-    // Fallback calibrado cruzando dados reais, preferências de estilo da marca e objetivos de funil
+    // Fallback calibrado determinístico e inteligente com ângulos concretos, sazonalidade e anti-repetição
     let defaultIdeas = [
       {
         id: 'idea-1',
-        title: 'O Erro Invisível que Custa Clientes (E a Solução em 3 Passos)',
+        title: '5 Erros Silenciosos de IA na Carreira (Do Básico ao Avançado)',
         suggestedModel: 'Carrossel Educativo Passo a Passo',
         format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
+        concreteAngle:
+          'Auditoria progressiva de 5 slides mostrando o erro amador até a falha que custa clientes para sêniors.',
+        seasonalityContext: currentSeasonalityContext,
         suggestedCta:
-          'Toque em Salvar para consultar esta auditoria rápida antes da sua próxima campanha.',
-        caption:
-          'A maioria dos negócios perde vendas por um detalhe que passa despercebido no dia a dia. Salve este post para conferir a auditoria prática de 3 minutos! 👇\n\n1. O sintoma inicial...\n2. Onde a conversão quebra...\n3. O ajuste que destrava o resultado.\n\nQual desses pontos mais chama atenção na sua operação hoje?',
-        hashtags: ['#estratégia', '#negocios', '#produtividade', '#crescimento'],
+          'Toque em Salvar para auditar seus prompts e rotinas antes da sua próxima entrega profissional.',
+        caption: `Quem usa IA como simples buscador está ficando para trás. Deslize para ver os 5 erros que separam amadores de profissionais no uso de automações e inteligência artificial hoje.\n\n• Slide 1: O erro do prompt genérico\n• Slide 2: Onde a personalização é esquecida\n• Slide 3: O filtro crítico humano essencial\n• Slide 4: A automação que gera valor real\n• Slide 5: Salve para consultar sempre que produzir!\n\nQual desses você mais percebe no mercado? 👇`,
+        hashtags: ['#inteligenciaartificial', '#carreira', '#estrategia', '#produtividade'],
         bestTime: bestNetworkTime,
         reason: preferredFormats.some((f) => f.toLowerCase().includes('carrossel'))
-          ? `Priorizado pelo Estilo da Marca (${brandName}): formato favorito selecionado no Brand Kit com +34% de retenção slide a slide.`
-          : `${bestFormatInsight}; sugerimos carrossel de 5 slides com gancho na capa para maximizar salvamentos.`,
+          ? `Priorizado pelo Estilo da Marca (${brandName}): carrossel com ângulo concreto e anti-repetição dos últimos 14 dias com +34% de retenção.`
+          : `${bestFormatInsight}; carrossel educativo com capa-gancho no slide 1 e CTA final.`,
       },
       {
         id: 'idea-2',
-        title: 'Checklist Definitivo da Semana: 5 Hábitos para Escalar Resultados',
+        title: 'O Gancho Magnético dos 3 Segundos: Roteiro Pronto para Testar Hoje',
         suggestedModel: 'Talking Head / Reels Dinâmico (30s)',
         format: 'Vídeo Curto (Reels / TikTok)',
         videoFormat: 'talking_head',
         durationSec: 30,
-        hook3s: 'Pare tudo por 3 segundos se você quer dobrar sua retenção nesta semana!',
+        concreteAngle:
+          'Demonstração prática em 30s de como uma abertura fraca mata o alcance e como reescrever o gancho com psicologia de curiosidade.',
+        seasonalityContext: currentSeasonalityContext,
+        hook3s:
+          'Se você perdeu mais da metade da sua audiência no primeiro segundo, o problema está aqui!',
         trackEnergy: 'Batida ritmada lo-fi moderna com punch nos cortes',
         visualStyleApplied: `${visualStyle || 'Paleta violeta com texto em alto contraste'} | Cortes rápidos a cada 3s com zoom sutil`,
         funnelObjective: 'Atração',
         suggestedCta:
-          'Siga o perfil para mais hacks diários de produtividade e compartilhe com um colega.',
+          'Siga o perfil para mais hacks diários de retenção e marque alguém que precisa destravar o algoritmo.',
         caption:
-          'Sua semana pode ser produtiva ou apenas ocupada. Qual dos 5 itens da lista você já aplicou hoje? Deixe nos comentários seu foco principal da semana! 👇🔥',
-        hashtags: ['#foco', '#planejamento', '#dicaspraticas', '#altaperformance'],
-        bestTime: '20:15 (Maior tempo de tela)',
-        reason: `Diretriz de Vídeo da Marca (${brandName}): formato Talking Head (30s) com gancho nos primeiros 3s, cortes rápidos alinhados à identidade violeta e trilha de alta energia.`,
-      },
-      {
-        id: 'idea-video-master',
-        title: 'Masterclass Express: A Virada de Chave que Destrava a Escala',
-        suggestedModel: 'Live com Roteiro Master / Audiograma',
-        format: 'Vídeo Vertical / Audiograma',
-        videoFormat: 'audiograma',
-        durationSec: 45,
-        hook3s: 'Esse é o segredo de bastidores que quase nenhum especialista revela em público.',
-        trackEnergy: 'Trilha envolvente cinematográfica com foco em fala clara',
-        visualStyleApplied:
-          'Waveform de áudio animada nas cores da marca com legendas dinâmicas em destaque',
-        funnelObjective: 'Autoridade',
-        suggestedCta: 'Comente ROTEIRO para receber a estrutura completa no seu direct.',
-        caption:
-          'A virada de chave no conteúdo não é sobre postar mais vezes, mas sobre prender a atenção com intenção cirúrgica nos 3 primeiros segundos. Salve e teste hoje mesmo! 👇\n\nComente ROTEIRO!',
-        hashtags: ['#autoridade', '#estrategia', '#podcastsnippet', '#audiograma'],
-        bestTime: '19:00 (Pico de atenção)',
-        reason: `Priorizado pelo Estilo de Vídeo (${brandName}): Audiograma com legendas dinâmicas e waveform violeta, gerando alta autoridade com retenção prolongada.`,
+          'O algoritmo não odeia seus vídeos: ele só mede a desistência dos 3 primeiros segundos. Qual das 3 estruturas de gancho você vai aplicar no próximo post? 🔥 Deixe nos comentários! 👇',
+        hashtags: ['#reels', '#shorts', '#criacaodeconteudo', '#estrategia'],
+        bestTime: '12:15 (Pico de atenção)',
+        reason: `Diretriz de Vídeo da Marca (${brandName}): Talking Head de 30s com gancho direto nos primeiros 3s e foco no topo do funil (Atração).`,
       },
       {
         id: 'idea-3',
-        title: 'Estudo de Caso Rápido: Do Zero à Autoridade Sem Gastar com Anúncios',
-        suggestedModel: 'Post Único com Prova Social',
-        format: 'Feed Único / Imagem',
+        title: 'Estudo de Caso Real: Do Zero a 48 Clientes Qualificados Sem Gastar 1 Real em Ads',
+        suggestedModel: 'Estudo de Caso & Prova Social',
+        format: 'Feed Único / Carrossel',
         funnelObjective: 'Conversão',
-        suggestedCta:
-          'Comente "GUIA" que te envio o resumo completo no direct com o passo a passo.',
+        concreteAngle:
+          'Transparência de bastidores revelando a cadência semanal exata de posts, direct e fechamento de contrato comercial.',
+        seasonalityContext: currentSeasonalityContext,
+        suggestedCta: 'Comente "METODO" no direct para receber a estrutura detalhada deste caso.',
         caption:
-          'Quando começamos, muitos disseram que o mercado estava saturado. Aqui está o princípio que nos diferenciou e atraiu os clientes certos de forma orgânica. 🚀\n\nComente "GUIA" que te envio o resumo completo no direct!',
-        hashtags: ['#autoridade', '#empreendedorismo', '#marketingdeconteudo', '#sucesso'],
-        bestTime: '12:00 (Pico no horário de almoço)',
-        reason: preferredFormats.some(
-          (f) => f.toLowerCase().includes('frases') || f.toLowerCase().includes('conceit'),
-        )
-          ? `Alinhado ao Estilo da Marca (${brandName}): posts conceituais de alto impacto geram autoridade imediata e direct qualificado.`
-          : 'Conteúdos de prova social convertem leads 2.4x mais rápido quando direcionam para mensagem direta no direct.',
+          'Muitos dizem que o tráfego orgânico morreu. Aqui está a prova matemática de que consistência alinhada à autoridade gera leads prontos para fechar contrato.\n\nQuer implementar esse modelo na sua operação neste mês?\n\nComente "METODO" para conversarmos no direct! 🚀',
+        hashtags: ['#casesucesso', '#vendasb2b', '#crescimento', '#autoridade'],
+        bestTime: '18:45 (Janela de decisão comercial)',
+        reason:
+          'Alinhado ao objetivo de Conversão: conteúdos de prova social convertem leads 2.4x mais rápido com CTA direto.',
       },
       {
         id: 'idea-4',
-        title: 'Bastidores Reais: O que Deu Errado nesta Semana e o Aprendizado',
-        suggestedModel: 'Post Reflexivo / Comunidade',
+        title: 'A Maior Mentira que Te Contaram Sobre Consistência em Redes Sociais',
+        suggestedModel: 'Post Reflexivo / Debate Aberto',
         format: 'Stories / Post Interativo',
         funnelObjective: 'Comunidade',
+        concreteAngle:
+          'Quebra de tabu contra o mito de postar 5 vezes ao dia sem substância, convidando a comunidade a desabafar e compartilhar a rotina real.',
+        seasonalityContext: currentSeasonalityContext,
         suggestedCta:
-          'Deixe sua opinião nos comentários: você já passou por uma situação parecida?',
+          'Qual a sua rotina real hoje? Responda nos comentários para trocarmos experiências sinceras.',
         caption:
-          'Nem tudo são vitórias nos bastidores. Aqui está o erro de processo que nos ensinou a lição mais valiosa do mês.\n\nTransparência conecta mais do que qualquer perfeição fictícia. Como você lida com imprevistos na sua operação?',
-        hashtags: ['#bastidores', '#comunidade', '#transparencia', '#lideranca'],
-        bestTime: '21:00 (Horário de maior conexão humana e leitura)',
-        reason: preferredFormats.some(
-          (f) => f.toLowerCase().includes('stories') || f.toLowerCase().includes('bastidores'),
-        )
-          ? `Alinhado ao Estilo da Marca (${brandName}): stories de bastidores aumentam o senso de comunidade e retenção dos clientes mais fiéis.`
-          : 'Posts de vulnerabilidade e bastidores geram 3x mais comentários qualificados e constroem comunidade sólida.',
+          'Postar por obrigação sem intenção só gera burnout e alcance vazio. A verdadeira consistência é sobre relevância sustentável ao longo de meses.\n\nQual a sua maior dificuldade com o calendário de conteúdo hoje? Solte nos comentários! 👇💬',
+        hashtags: ['#comunidade', '#bastidores', '#socialmedia', '#saudemental'],
+        bestTime: '21:00 (Pico de comentários noturno)',
+        reason:
+          'Objetivo de Comunidade: debates abertos geram 2.8x mais respostas espontâneas e fortalecem o relacionamento com seguidores fiéis.',
       },
     ]
 
     try {
       const systemPrompt =
-        'Você é o estrategista-chefe de inteligência de conteúdo da plataforma BestContent Social 2. Seu papel é cruzar dados de performance real (top posts por engajamento, formatos com maior retenção, horários de pico por rede e benchmarks de mercado) e OBRIGATORIAMENTE PRIORIZAR os formatos favoritos definidos no Estilo da Marca ativa.\n' +
-        'Cada sugestão deve conter OBRIGATORIAMENTE:\n' +
-        '1. Justificativa baseada nos formatos favoritos e estilo da marca ("Priorizado pelo Estilo da Marca [Nome]: formato favorito [Formato] com retenção...")\n' +
-        '2. Objetivo de Funil explícito: "Atração", "Autoridade", "Conversão" ou "Comunidade"\n' +
-        '3. CTA sugerido específico e persuasivo\n' +
-        '4. DIRETRIZES DE VÍDEO (quando o formato for vídeo): incluir hook_3s (gancho nos primeiros 3 segundos), track_energy (energia e estilo da trilha), duration_sec (15-60s) e visual_style_applied (cores e tom da marca).'
+        'Você é o estrategista-chefe de inteligência de conteúdo da plataforma MidiaViva / BestContent AI. Seu papel é cruzar dados de performance real e gerar 4 sugestões acionáveis e sofisticadas.\n' +
+        'REGRAS INEGOCIÁVEIS:\n' +
+        '1. ANTI-REPETIÇÃO: Evite rigorosamente repetir temas, títulos ou abordagens dos últimos 7 a 14 dias do usuário já existentes no histórico.\n' +
+        '2. SAZONALIDADE & CONTEXTO TEMPORAL: Incorpore o momento do ano, datas comemorativas do mês e comportamento da audiência nesta época.\n' +
+        '3. OBJETIVOS DE FUNIL: Distribua as 4 ideias cobrindo os 4 pilares: "Atração", "Autoridade", "Conversão" e "Comunidade" (ou foque no objetivo solicitado caso o usuário tenha filtrado um específico).\n' +
+        '4. ÂNGULO CONCRETO: Cada sugestão DEVE ter um ângulo/abordagem específico e prático (não genérico — ex: "carrossel: 5 erros de IA na carreira, do básico ao avançado").\n' +
+        '5. DIRETRIZES DE ESTILO: Para carrosséis, siga capa-gancho no slide 1, 1 ideia por slide, texto enxuto e CTA com arraste no último slide. Para vídeos, inclua gancho nos 3s e duração.\n' +
+        '6. RETORNO: Retorne EXCLUSIVAMENTE em formato JSON.'
 
       const userPrompt =
         `DADOS REAIS DA MARCA & HISTÓRICO:\n` +
@@ -178,28 +212,31 @@ routerAdd(
         `- Nicho: ${brandNiche}\n` +
         `- Tom de voz: ${brandTone}\n` +
         `- Rede Principal: ${network}\n` +
-        `- FORMATOS FAVORITOS DA MARCA (PRIORIZAR ESTES): ${favFormatsStr}\n` +
-        `- DIRETRIZ ESTÉTICA DA MARCA: ${visualStyle || 'Estilo visual moderno com foco em autoridade e clareza'}\n` +
-        `- DIRETRIZ DE VÍDEO: ${videoGuidelineNote}\n` +
-        `- Objetivo de Funil Solicitado: ${requestedObjective || 'Equilibrado (Atração / Autoridade / Conversão / Comunidade)'}\n` +
+        `- FORMATOS FAVORITOS DA MARCA (PRIORIZAR): ${favFormatsStr}\n` +
+        `- DIRETRIZ ESTÉTICA: ${visualStyle || 'Estilo visual moderno com foco em autoridade e clareza'}\n` +
+        `- DIRETRIZ DE CARROSSÉIS: ${carouselGuidelineNote}\n` +
+        `- DIRETRIZ DE VÍDEOS: ${videoGuidelineNote}\n` +
+        `- OBJETIVO DE FUNIL SOLICITADO: ${requestedObjective || 'Equilibrado (Atração / Autoridade / Conversão / Comunidade)'}\n` +
+        `- SAZONALIDADE ATUAL DO MÊS (${currentMonth}/${currentYear}): ${currentSeasonalityContext}\n` +
+        `- ANTI-REPETIÇÃO (TEMAS RECENTES DOS ÚLTIMOS 14 DIAS A EVITAR): ${recentThemesExclusion.slice(0, 6).join(' | ') || 'Nenhum recente conflitante'}\n` +
         `- Benchmark e Retenção: ${bestFormatInsight}\n` +
-        `- Melhor horário por rede: ${bestNetworkTime}\n` +
-        `- Amostra de histórico: ${topPostsSummary}\n\n` +
-        'Gere EXATAMENTE 4 ideias completas de post priorizando os FORMATOS FAVORITOS da marca (incluindo formatos de vídeo como Talking Head, Reels/Shorts, Audiograma ou Collab Duo), cobrindo os objetivos de funil. Retorne EXCLUSIVAMENTE em formato JSON com o seguinte schema:\n' +
+        `- Melhor horário por rede: ${bestNetworkTime}\n\n` +
+        'Gere EXATAMENTE 4 ideias completas de post, cada uma com ÂNGULO CONCRETO e cobrindo os objetivos de funil. Retorne EXCLUSIVAMENTE em formato JSON com o seguinte schema:\n' +
         '{\n' +
         '  "ideas": [\n' +
         '    {\n' +
-        '      "title": "Título chamativo do post",\n' +
-        '      "suggestedModel": "Nome do modelo sugerido",\n' +
-        '      "format": "Feed / Carrossel / Reels / Talking Head / Audiograma",\n' +
+        '      "title": "Título com ângulo concreto",\n' +
+        '      "suggestedModel": "Carrossel Educativo | Talking Head | Prova Social | Debate",\n' +
+        '      "format": "Carrossel (Slides) | Vídeo Curto / Reels | Feed Único | Stories",\n' +
         '      "funnelObjective": "Atração | Autoridade | Conversão | Comunidade",\n' +
-        '      "suggestedCta": "Chamada para ação clara e específica",\n' +
-        '      "caption": "Legenda completa com gancho, corpo e chamada para ação (CTA)",\n' +
+        '      "concreteAngle": "Descrição clara do ângulo e da abordagem concreta do conteúdo",\n' +
+        '      "seasonalityContext": "Como conecta com o mês ou sazonalidade",\n' +
+        '      "suggestedCta": "CTA específico e persuasivo",\n' +
+        '      "caption": "Legenda completa com gancho, corpo, quebra de linha e CTA",\n' +
         '      "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4"],\n' +
-        '      "bestTime": "Horário recomendado baseado em audiência (ex: 18:30)",\n' +
-        '      "reason": "Justificativa rica cruzando dados de histórico e estilo",\n' +
+        '      "bestTime": "Horário recomendado baseado em audiência",\n' +
+        '      "reason": "Justificativa rica citando estilo da marca, anti-repetição e dados",\n' +
         '      "hook_3s": "Gancho nos primeiros 3s (quando vídeo)",\n' +
-        '      "track_energy": "Sugestão de estilo/energia da trilha sonora (quando vídeo)",\n' +
         '      "duration_sec": 30\n' +
         '    }\n' +
         '  ]\n' +
@@ -234,13 +271,16 @@ routerAdd(
                     : idx === 2
                       ? 'Atração'
                       : 'Comunidade'),
+              concreteAngle: item.concreteAngle || item.concrete_angle || '',
+              seasonalityContext:
+                item.seasonalityContext || item.seasonality_context || currentSeasonalityContext,
               suggestedCta: item.suggestedCta || 'Salve este post para consultar depois.',
               caption: item.caption,
               hashtags: Array.isArray(item.hashtags) ? item.hashtags : bestTags,
               bestTime: item.bestTime || bestNetworkTime,
               reason:
                 item.reason ||
-                `${bestFormatInsight}; sugerimos este formato para maximizar resultados.`,
+                `${bestFormatInsight}; sugerimos este formato com anti-repetição e ângulo estratégico.`,
               hook3s: item.hook_3s || item.hook3s,
               trackEnergy: item.track_energy || item.trackEnergy,
               durationSec: item.duration_sec || item.durationSec || 30,

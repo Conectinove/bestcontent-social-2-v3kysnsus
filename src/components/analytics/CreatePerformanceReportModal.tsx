@@ -63,13 +63,16 @@ export function CreatePerformanceReportModal({
   onReportCreated,
   currentKpis,
 }: CreatePerformanceReportModalProps) {
+  const [reportType, setReportType] = useState<'geral' | 'engajamento' | 'anuncios' | 'conteudo'>(
+    'engajamento',
+  )
   const [title, setTitle] = useState(
-    'Relatório Consolidado Multi-Canal — ' +
+    'Relatório de Engajamento & Retenção — ' +
       new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
   )
   const [frequency, setFrequency] = useState<'semanal' | 'mensal' | 'avulso'>('mensal')
   const [periodRange, setPeriodRange] = useState('Últimos 30 Dias')
-  const [selectedChannels, setSelectedChannels] = useState<string[]>(ALL_CHANNELS)
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(ALL_CHANNELS.slice(0, 6))
   const [executiveSummary, setExecutiveSummary] = useState('')
   const [isGeneratingAi, setIsGeneratingAi] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -85,6 +88,7 @@ export function CreatePerformanceReportModal({
     try {
       const summary = await generateExecutiveSummary({
         title,
+        reportType,
         periodRange,
         channels: selectedChannels,
         kpis: {
@@ -92,7 +96,7 @@ export function CreatePerformanceReportModal({
           totalEngagement: currentKpis?.totalEngagement || 14850,
           avgEngagementRate: currentKpis?.avgEngagementRate || 5.4,
           totalReach: currentKpis?.totalReach || 42800,
-          bestChannel: 'Instagram Orgânico & Reels',
+          bestChannel: 'Instagram Orgânico & LinkedIn',
           bestFormat: 'Carrossel Educativo & Vídeos Curtos 30s',
         },
       })
@@ -120,27 +124,137 @@ export function CreatePerformanceReportModal({
 
     setSaving(true)
     try {
+      const isEngagement = reportType === 'engajamento'
+      const avgRate = currentKpis?.avgEngagementRate || 5.4
+      const totEng = currentKpis?.totalEngagement || 14850
+
       const newReport = await createPerformanceReport({
         user: userId,
         brand: brandId,
         title,
+        report_type: reportType,
         frequency,
         period_range: periodRange,
         channels_included: selectedChannels,
         executive_summary: executiveSummary,
         is_scheduled: frequency !== 'avulso',
+        engagement_data_json: {
+          engagementByNetwork: [
+            {
+              network: 'Instagram',
+              rate: Number((avgRate * 1.15).toFixed(1)),
+              interactions: Math.round(totEng * 0.45),
+            },
+            {
+              network: 'LinkedIn',
+              rate: Number((avgRate * 0.95).toFixed(1)),
+              interactions: Math.round(totEng * 0.25),
+            },
+            {
+              network: 'TikTok',
+              rate: Number((avgRate * 1.25).toFixed(1)),
+              interactions: Math.round(totEng * 0.18),
+            },
+            {
+              network: 'YouTube',
+              rate: Number((avgRate * 0.8).toFixed(1)),
+              interactions: Math.round(totEng * 0.12),
+            },
+          ],
+          engagementByFormat: [
+            {
+              format: 'Carrossel Educativo',
+              rate: Number((avgRate * 1.35).toFixed(1)),
+              avgInteractions: 480,
+            },
+            {
+              format: 'Vídeo Curto (Reels / Shorts)',
+              rate: Number((avgRate * 1.2).toFixed(1)),
+              avgInteractions: 390,
+            },
+            {
+              format: 'Talking Head com Gancho 3s',
+              rate: Number((avgRate * 1.1).toFixed(1)),
+              avgInteractions: 340,
+            },
+            {
+              format: 'Post Único / Frase',
+              rate: Number((avgRate * 0.75).toFixed(1)),
+              avgInteractions: 190,
+            },
+          ],
+          weeklyEvolution: [
+            {
+              week: 'Semana 1',
+              engagementRate: Number((avgRate * 0.88).toFixed(1)),
+              interactions: Math.round(totEng * 0.2),
+            },
+            {
+              week: 'Semana 2',
+              engagementRate: Number((avgRate * 0.94).toFixed(1)),
+              interactions: Math.round(totEng * 0.23),
+            },
+            {
+              week: 'Semana 3',
+              engagementRate: Number((avgRate * 1.05).toFixed(1)),
+              interactions: Math.round(totEng * 0.27),
+            },
+            {
+              week: 'Semana 4',
+              engagementRate: Number((avgRate * 1.13).toFixed(1)),
+              interactions: Math.round(totEng * 0.3),
+            },
+          ],
+          periodComparison: {
+            currentRate: avgRate,
+            previousRate: Number((avgRate * 0.86).toFixed(1)),
+            diffPercentage: 16.3,
+          },
+          topEngagedPosts: [
+            {
+              title: '5 Erros Silenciosos de IA na Carreira (Do Básico ao Avançado)',
+              network: 'Instagram',
+              format: 'Carrossel Educativo',
+              engagementRate: Number((avgRate * 1.6).toFixed(1)),
+              interactions: 890,
+            },
+            {
+              title: 'O Gancho Magnético dos 3 Segundos: Roteiro Pronto',
+              network: 'TikTok',
+              format: 'Talking Head',
+              engagementRate: Number((avgRate * 1.4).toFixed(1)),
+              interactions: 740,
+            },
+            {
+              title: 'Estudo de Caso: Do Zero a 48 Clientes Qualificados',
+              network: 'LinkedIn',
+              format: 'Carrossel Estratégico',
+              engagementRate: Number((avgRate * 1.3).toFixed(1)),
+              interactions: 520,
+            },
+          ],
+          aiRecommendations: [
+            'Concentrar 50% dos lançamentos semanais no formato Carrossel Educativo com 5 a 7 slides.',
+            'Aplicar gancho nos primeiros 3 segundos em todos os vídeos verticais para elevar a retenção acima de 45%.',
+            'Finalizar posts com pergunta aberta provocativa para dobrar o volume orgânico de comentários.',
+          ],
+        },
         kpis_json: {
           totalPosts: currentKpis?.totalPosts || 28,
-          totalEngagement: currentKpis?.totalEngagement || 14850,
-          avgEngagementRate: currentKpis?.avgEngagementRate || 5.4,
+          totalEngagement: totEng,
+          avgEngagementRate: avgRate,
           totalReach: currentKpis?.totalReach || 42800,
-          bestChannel: 'Instagram Orgânico',
+          bestChannel: isEngagement ? 'Instagram Orgânico & Reels' : 'Instagram Orgânico',
           bestFormat: 'Carrossel Educativo',
         },
         highlights_json: {
-          topChannel: { name: 'Instagram', engagement: 6.2 },
-          topFormat: { name: 'Carrossel', reach: 24500 },
-          topPost: { title: 'Estratégia de Retenção Visual', rate: 7.4, channel: 'Instagram' },
+          topChannel: { name: 'Instagram', engagement: Number((avgRate * 1.15).toFixed(1)) },
+          topFormat: { name: 'Carrossel Educativo', reach: 24500 },
+          topPost: {
+            title: '5 Erros Silenciosos de IA na Carreira',
+            rate: Number((avgRate * 1.6).toFixed(1)),
+            channel: 'Instagram',
+          },
           comparison: {
             currentPeriodReach: currentKpis?.totalReach || 42800,
             previousPeriodReach: Math.round((currentKpis?.totalReach || 42800) * 0.88),
@@ -191,6 +305,92 @@ export function CreatePerformanceReportModal({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Tipo de Relatório (NOVO: Engajamento como tipo de primeira classe) */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold flex items-center justify-between">
+              <span>Tipo do Relatório</span>
+              <span className="text-[10px] text-purple-600 font-semibold">
+                Novo tipo: Engajamento
+              </span>
+            </Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Button
+                type="button"
+                variant={reportType === 'engajamento' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReportType('engajamento')
+                  setTitle(
+                    'Relatório de Engajamento & Retenção — ' +
+                      new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                  )
+                }}
+                className={`text-xs h-9 font-bold ${
+                  reportType === 'engajamento'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-foreground'
+                }`}
+              >
+                🔥 Engajamento
+              </Button>
+              <Button
+                type="button"
+                variant={reportType === 'geral' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReportType('geral')
+                  setTitle(
+                    'Relatório Geral Consolidado — ' +
+                      new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                  )
+                }}
+                className={`text-xs h-9 font-bold ${
+                  reportType === 'geral' ? 'bg-purple-600 text-white shadow-xs' : 'text-foreground'
+                }`}
+              >
+                📊 Consolidado Geral
+              </Button>
+              <Button
+                type="button"
+                variant={reportType === 'conteudo' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReportType('conteudo')
+                  setTitle(
+                    'Relatório Editorial & Formatos — ' +
+                      new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                  )
+                }}
+                className={`text-xs h-9 font-bold ${
+                  reportType === 'conteudo'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-foreground'
+                }`}
+              >
+                📝 Formatos & Mídia
+              </Button>
+              <Button
+                type="button"
+                variant={reportType === 'anuncios' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReportType('anuncios')
+                  setTitle(
+                    'Relatório de Campanhas Pagas — ' +
+                      new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                  )
+                }}
+                className={`text-xs h-9 font-bold ${
+                  reportType === 'anuncios'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-foreground'
+                }`}
+              >
+                🎯 Tráfego Pago
+              </Button>
+            </div>
+          </div>
+
           {/* Título e Frequência */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2 space-y-1.5">
@@ -201,7 +401,7 @@ export function CreatePerformanceReportModal({
                 id="report-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: Balanço Mensal de Performance — Novembro"
+                placeholder="Ex: Balanço de Engajamento — Novembro"
                 className="text-xs sm:text-sm"
               />
             </div>

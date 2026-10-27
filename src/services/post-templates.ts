@@ -90,7 +90,12 @@ export interface TodayPostIdea {
   bestTime: string
   reason: string
   funnelObjective?: FunnelObjective
+  concreteAngle?: string
+  seasonalityContext?: string
   suggestedCta?: string
+  hook3s?: string
+  trackEnergy?: string
+  durationSec?: number
 }
 export async function suggestTemplates(
   options: SuggestTemplatesOptions = {},
@@ -135,17 +140,21 @@ export async function getWhatToPostToday(options: {
     return [
       {
         id: 'idea-1',
-        title: 'Carrossel Slide-a-Slide: Guia Prático de 5 Passos',
-        suggestedModel: 'Carrossel Educativo',
+        title: '5 Erros Silenciosos de IA na Carreira (Do Básico ao Avançado)',
+        suggestedModel: 'Carrossel Educativo Passo a Passo',
         format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
-        suggestedCta: 'Toque em Salvar para consultar este checklist na sua próxima produção.',
+        concreteAngle:
+          'Auditoria progressiva de 5 slides: do erro amador de prompt até a falha que custa contratos com clientes.',
+        seasonalityContext: 'Contexto de produtividade, inovação e consolidação de resultados',
+        suggestedCta:
+          'Toque em Salvar para auditar seus prompts e processos antes da sua próxima campanha.',
         caption:
-          'Deslize para o lado para dominar este guia! 👉\n\n• Slide 1: O erro invisível que custa caro\n• Slide 2: Onde a maioria quebra\n• Slide 3: O método em 3 etapas\n• Slide 4: Aplicação prática imediata\n• Slide 5: Salve para consultar sempre que produzir!',
-        hashtags: ['#carrossel', '#educativo', '#dicaspraticas', '#estrategia'],
+          'Quem usa IA apenas como buscador está ficando para trás. Deslize para ver os 5 erros que separam amadores de profissionais no uso de automações hoje.\n\n• Slide 1: O erro do prompt genérico\n• Slide 2: Onde a personalização é esquecida\n• Slide 3: O filtro crítico humano essencial\n• Slide 4: A automação que gera valor real\n• Slide 5: Salve para consultar sempre que produzir!\n\nQual desses você mais percebe no mercado? 👇',
+        hashtags: ['#inteligenciaartificial', '#carreira', '#estrategia', '#produtividade'],
         bestTime: '18:30 (Melhor horário mapeado da sua audiência)',
         reason: favFormats.some((f) => f.toLowerCase().includes('carrossel'))
-          ? `Priorizado pelo Estilo da Marca (${brandName}): formato favorito selecionado no Brand Kit com +34% de retenção slide a slide.`
+          ? `Priorizado pelo Estilo da Marca (${brandName}): carrossel com ângulo concreto e anti-repetição dos últimos 14 dias com +34% de retenção.`
           : 'Seus carrosséis engajam 34% mais que posts estáticos e geram 3x mais salvamentos e retenção slide a slide.',
       },
       {

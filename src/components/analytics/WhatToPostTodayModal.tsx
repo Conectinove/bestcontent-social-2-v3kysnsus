@@ -264,12 +264,34 @@ export function WhatToPostTodayModal({
                     </div>
                   </div>
 
-                  {/* Justificativa de IA com dados reais */}
-                  <div className="p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/15 text-[11px] text-purple-700 dark:text-purple-300 font-medium space-y-1">
+                  {/* Justificativa de IA com dados reais & Ângulo Concreto */}
+                  <div className="p-2.5 rounded-lg bg-purple-50/5 border border-purple-500/15 text-[11px] text-purple-700 dark:text-purple-300 font-medium space-y-1.5">
                     <div className="flex items-center gap-2">
                       <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                       <span>{idea.reason}</span>
                     </div>
+
+                    {idea.concreteAngle && (
+                      <div className="text-[11px] text-foreground/90 flex items-start gap-1.5 pl-5 pt-0.5 bg-card/60 p-1.5 rounded-md border border-purple-500/20">
+                        <Target className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                        <span>
+                          <strong className="text-purple-600 dark:text-purple-400">
+                            Ângulo Concreto:
+                          </strong>{' '}
+                          {idea.concreteAngle}
+                        </span>
+                      </div>
+                    )}
+
+                    {idea.seasonalityContext && (
+                      <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 pl-5">
+                        <Calendar className="w-3 h-3 text-pink-500 shrink-0" />
+                        <span>
+                          <strong>Sazonalidade:</strong> {idea.seasonalityContext}
+                        </span>
+                      </div>
+                    )}
+
                     {idea.suggestedCta && (
                       <div className="text-[10px] text-foreground/80 flex items-center gap-1.5 pl-5 pt-0.5 font-semibold">
                         <Megaphone className="w-3 h-3 text-pink-500 shrink-0" />
@@ -277,7 +299,6 @@ export function WhatToPostTodayModal({
                       </div>
                     )}
                   </div>
-
                   {/* Legenda sugerida */}
                   <div className="space-y-1.5">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">

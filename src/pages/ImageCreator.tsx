@@ -1815,9 +1815,9 @@ export default function ImageCreator() {
               </div>
             )}
 
-            {/* Controle de slides caso seja carrossel */}
+            {/* Controle de slides caso seja carrossel & IA de Diretrizes de Estilo */}
             {selectedFormat.isCarousel && (
-              <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3 mt-4 animate-in fade-in-50 duration-200">
+              <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4 mt-4 animate-in fade-in-50 duration-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
@@ -1825,7 +1825,8 @@ export default function ImageCreator() {
                       <span>Número de Slides do Carrossel</span>
                     </label>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Cada slide consome 10 créditos para ser renderizado individualmente.
+                      Recomendação da IA: 5 a 7 slides para maximizar tempo de retenção (+34% de
+                      engajamento).
                     </p>
                   </div>
                   <span className="text-xs font-extrabold text-purple-600 dark:text-purple-400">
@@ -1833,7 +1834,7 @@ export default function ImageCreator() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {[2, 3, 4, 5, 6, 8, 10].map((num) => (
+                  {[3, 4, 5, 6, 7, 8, 10].map((num) => (
                     <button
                       type="button"
                       key={num}
@@ -1847,6 +1848,58 @@ export default function ImageCreator() {
                       {num}
                     </button>
                   ))}
+                </div>
+
+                {/* Box de Diretrizes de IA para Carrosséis de Alta Conversão */}
+                <div className="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      Diretrizes de IA para Carrossel de Alta Retenção
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] font-bold border-purple-500/30 text-purple-600"
+                    >
+                      Brand Kit Aplicado
+                    </Badge>
+                  </div>
+                  <ul className="text-[11px] text-muted-foreground space-y-1.5 leading-relaxed">
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-purple-600 font-bold shrink-0">
+                        1. Slide 1 (Capa-Gancho):
+                      </span>
+                      <span>
+                        Promessa irresistível de valor ou curiosidade imediata com indicação de
+                        "arraste para o lado 👉".
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-purple-600 font-bold shrink-0">
+                        2. 1 Ideia por Slide:
+                      </span>
+                      <span>
+                        Máximo de 35 a 45 palavras por slide. Frases curtas e alto contraste WCAG.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-purple-600 font-bold shrink-0">
+                        3. Slide Final (CTA Forte):
+                      </span>
+                      <span>
+                        Chamada para ação clara ("Toque em Salvar" ou "Comente X no direct") e
+                        incentivo ao compartilhamento.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-purple-600 font-bold shrink-0">
+                        4. Cores do Brand Kit:
+                      </span>
+                      <span>
+                        Paleta institucional aplicada nos títulos, acentos e marcadores numéricos.
+                      </span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             )}

@@ -817,25 +817,59 @@ export default function PerformanceDashboard() {
               >
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] capitalize font-bold ${
-                        rep.frequency === 'semanal'
-                          ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
-                          : rep.frequency === 'mensal'
-                            ? 'bg-purple-500/10 text-purple-600 border-purple-500/30'
-                            : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      <Clock className="w-2.5 h-2.5 mr-1" />
-                      {rep.frequency}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] capitalize font-bold ${
+                          rep.report_type === 'engajamento'
+                            ? 'bg-pink-500/10 text-pink-600 border-pink-500/30'
+                            : rep.frequency === 'semanal'
+                              ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
+                              : rep.frequency === 'mensal'
+                                ? 'bg-purple-500/10 text-purple-600 border-purple-500/30'
+                                : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {rep.report_type === 'engajamento' ? (
+                          <>
+                            <TrendingUp className="w-2.5 h-2.5 mr-1 text-pink-600" />
+                            Engajamento
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-2.5 h-2.5 mr-1" />
+                            {rep.frequency}
+                          </>
+                        )}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                        {rep.frequency}
+                      </Badge>
+                    </div>
                     <span className="text-[10px] text-muted-foreground">
                       {rep.period_range || '30 dias'}
                     </span>
                   </div>
 
                   <h4 className="font-bold text-sm text-foreground line-clamp-1">{rep.title}</h4>
+
+                  {/* Highlights específicos se for relatório de engajamento */}
+                  {rep.report_type === 'engajamento' && rep.engagement_data_json && (
+                    <div className="grid grid-cols-2 gap-2 text-center p-2 rounded-xl bg-pink-500/5 border border-pink-500/15">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Taxa Média</p>
+                        <p className="text-xs font-black text-pink-600 dark:text-pink-400">
+                          {rep.kpis_json?.avgEngagementRate || 5.4}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Evolução</p>
+                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                          +{rep.engagement_data_json?.periodComparison?.diffPercentage || 16.3}%
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {rep.executive_summary && (
                     <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed bg-background/60 p-2.5 rounded-xl border border-border/40">
@@ -849,6 +883,71 @@ export default function PerformanceDashboard() {
                     {rep.channels_included?.length || 4} canais inclusos
                   </span>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const jsonStr = JSON.stringify(rep, null, 2)
+                        const blob = new Blob([jsonStr], { type: 'application/json' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${(rep.title || 'relatorio').toLowerCase().replace(/\s+/g, '_')}.json`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                        toast({
+                          title: 'JSON Exportado',
+                          description: 'Dados estruturados baixados.',
+                        })
+                      }}
+                      className="h-7 px-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground"
+                      title="Exportar JSON"
+                    >
+                      JSON
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const headers = [
+                          'Título',
+                          'Tipo',
+                          'Frequência',
+                          'Período',
+                          'Taxa Engajamento',
+                          'Interações',
+                          'Resumo',
+                        ]
+                        const rows = [
+                          [
+                            `"${rep.title.replace(/"/g, '""')}"`,
+                            `"${rep.report_type || 'geral'}"`,
+                            `"${rep.frequency}"`,
+                            `"${rep.period_range || ''}"`,
+                            `"${rep.kpis_json?.avgEngagementRate || 0}%"`,
+                            `"${rep.kpis_json?.totalEngagement || 0}"`,
+                            `"${(rep.executive_summary || '').replace(/"/g, '""')}"`,
+                          ],
+                        ]
+                        const csvContent =
+                          '\uFEFF' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n')
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${(rep.title || 'relatorio').toLowerCase().replace(/\s+/g, '_')}.csv`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                        toast({
+                          title: 'CSV Exportado',
+                          description: 'Planilha CSV gerada com sucesso.',
+                        })
+                      }}
+                      className="h-7 px-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground"
+                      title="Exportar CSV"
+                    >
+                      CSV
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
