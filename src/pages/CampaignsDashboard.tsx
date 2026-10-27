@@ -61,8 +61,8 @@ export function CampaignsDashboard() {
     setLoading(true)
     try {
       const [campsRes, brandsRes] = await Promise.all([
-        getCampaigns().catch(() => []),
-        getBrands().catch(() => []),
+        getCampaigns().catch(() => [] as CampaignRecord[]),
+        user ? getBrands(user.id).catch(() => []) : Promise.resolve([]),
       ])
       setCampaigns(campsRes)
       setBrands(brandsRes)
@@ -95,7 +95,7 @@ export function CampaignsDashboard() {
   // Filtragem
   const filteredCampaigns = campaigns.filter((camp) => {
     const matchesSearch =
-      camp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      camp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (camp.briefing || '').toLowerCase().includes(searchQuery.toLowerCase())
     const matchesBrand = selectedBrand === 'all' || camp.brand === selectedBrand
     const matchesObjective =
@@ -110,12 +110,10 @@ export function CampaignsDashboard() {
 
   // KPIs consolidados
   const totalCampaigns = campaigns.length
-  const activeCampaigns = campaigns.filter(
-    (c) => c.status === 'published' || c.status === 'active',
-  ).length
+  const activeCampaigns = campaigns.filter((c) => c.status === 'active').length
   const totalFormatsGenerated = campaigns.reduce((acc, c) => acc + (c.formats?.length || 0), 0)
   const totalCreditsUsed = campaigns.reduce(
-    (acc, c) => acc + (c.credits_used || (c.formats?.length || 0) * 2),
+    (acc, c) => acc + (c.total_credits || (c.formats?.length || 0) * 2),
     0,
   )
 
@@ -134,9 +132,7 @@ export function CampaignsDashboard() {
   const reviewedPercentage =
     campaigns.length > 0
       ? Math.round(
-          (campaigns.filter((c) => c.status === 'completed' || c.status === 'published').length /
-            campaigns.length) *
-            100,
+          (campaigns.filter((c) => c.status === 'completed').length / campaigns.length) * 100,
         )
       : 85
 
@@ -495,7 +491,7 @@ export function CampaignsDashboard() {
                         </Badge>
                         <Badge
                           className={`text-[9px] uppercase ${
-                            camp.status === 'published' || camp.status === 'active'
+                            camp.status === 'active'
                               ? 'bg-emerald-600 text-white'
                               : 'bg-muted text-muted-foreground'
                           }`}
@@ -505,13 +501,13 @@ export function CampaignsDashboard() {
                       </div>
 
                       <span className="text-[11px] font-mono font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                        <Coins className="w-3 h-3" /> {camp.credits_used || 12} créditos
+                        <Coins className="w-3 h-3" /> {camp.total_credits || 12} créditos
                       </span>
                     </div>
 
                     <div>
                       <h4 className="font-bold text-sm text-foreground group-hover:text-purple-600 transition-colors line-clamp-1">
-                        {camp.title}
+                        {camp.name}
                       </h4>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
                         {camp.briefing || 'Sem descrição detalhada.'}

@@ -40,6 +40,7 @@ import { SeoTools } from './pages/SeoTools'
 import { AdsPage } from './pages/AdsPage'
 import PerformanceDashboard from './pages/PerformanceDashboard'
 import SocialHubPage from './pages/SocialHubPage'
+import { CampaignsDashboard } from './pages/CampaignsDashboard'
 
 import Onboarding from './pages/Onboarding'
 import Login from './pages/auth/Login'
