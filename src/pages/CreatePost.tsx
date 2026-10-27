@@ -1225,6 +1225,16 @@ export default function CreatePost() {
           (selectedBrand as any)?.voice_tone ||
           'Profissional e dinâmico'
         }
+        preferredFormats={
+          (selectedBrand as any)?._raw?.visual_style?.includes('Formatos preferidos:')
+            ? (selectedBrand as any)._raw.visual_style
+                .split('Formatos preferidos:')[1]
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : undefined
+        }
+        visualStyle={(selectedBrand as any)?._raw?.visual_style}
         network={platform}
         onApplyIdea={(idea: TodayPostIdea) => {
           setContent(idea.title)

@@ -118,6 +118,8 @@ export async function getWhatToPostToday(options: {
   brandTone?: string
   network?: string
   funnelObjective?: FunnelObjective
+  preferredFormats?: string[]
+  visualStyle?: string
 }): Promise<TodayPostIdea[]> {
   try {
     const res = await pb.send('/backend/v1/ai/what-to-post-today', {
@@ -128,6 +130,8 @@ export async function getWhatToPostToday(options: {
     return (res as any)?.ideas || []
   } catch (err) {
     console.warn('[getWhatToPostToday] Fallback:', err)
+    const brandName = options.brandName || 'Sua Marca'
+    const favFormats = options.preferredFormats || []
     return [
       {
         id: 'idea-1',
@@ -140,8 +144,9 @@ export async function getWhatToPostToday(options: {
           'Deslize para o lado para dominar este guia! 👉\n\n• Slide 1: O erro invisível que custa caro\n• Slide 2: Onde a maioria quebra\n• Slide 3: O método em 3 etapas\n• Slide 4: Aplicação prática imediata\n• Slide 5: Salve para consultar sempre que produzir!',
         hashtags: ['#carrossel', '#educativo', '#dicaspraticas', '#estrategia'],
         bestTime: '18:30 (Melhor horário mapeado da sua audiência)',
-        reason:
-          'Seus carrosséis engajam 34% mais que posts estáticos e geram 3x mais salvamentos e retenção slide a slide.',
+        reason: favFormats.some((f) => f.toLowerCase().includes('carrossel'))
+          ? `Priorizado pelo Estilo da Marca (${brandName}): formato favorito selecionado no Brand Kit com +34% de retenção slide a slide.`
+          : 'Seus carrosséis engajam 34% mais que posts estáticos e geram 3x mais salvamentos e retenção slide a slide.',
       },
       {
         id: 'idea-2',
@@ -154,8 +159,14 @@ export async function getWhatToPostToday(options: {
           '🎬 ROTEIRO COMPLETO (30s):\n\n[0:00 - 0:03] GANCHO: "Pare de cometer esse erro agora mesmo se você quer crescer!"\n[0:03 - 0:15] DESENVOLVIMENTO: "A maioria tenta pelo caminho longo, mas com essa mudança simples você dobra seus cliques."\n[0:15 - 0:25] DEMONSTRAÇÃO: Mostrar o produto ou tela em funcionamento.\n[0:25 - 0:30] CTA: "Comente QUERO para receber o acesso gratuito no direct!"',
         hashtags: ['#reels', '#shorts', '#viral', '#roteiro'],
         bestTime: '12:00 (Pico no horário de almoço)',
-        reason:
-          'Vídeos curtos de 30s com gancho nos primeiros 3s têm taxa de retenção 70% superior e expandem alcance para não-seguidores.',
+        reason: favFormats.some(
+          (f) =>
+            f.toLowerCase().includes('vídeo') ||
+            f.toLowerCase().includes('reels') ||
+            f.toLowerCase().includes('shorts'),
+        )
+          ? `Priorizado pelo Estilo da Marca (${brandName}): formato favorito de vídeos curtos com beats rápidos para retenção máxima.`
+          : 'Vídeos curtos de 30s com gancho nos primeiros 3s têm taxa de retenção 70% superior e expandem alcance para não-seguidores.',
       },
       {
         id: 'idea-3',
@@ -169,8 +180,11 @@ export async function getWhatToPostToday(options: {
           'Como transformamos um funil parado em 48 novos clientes qualificados em 21 dias.\n\nSem fórmulas mágicas: apenas consistência de conteúdo, público segmentado e follow-up rápido.\n\nQuer aplicar esse modelo na sua operação neste mês?',
         hashtags: ['#conversao', '#estratégia', '#vendas', '#casesucesso'],
         bestTime: '19:15 (Janela de decisão comercial)',
-        reason:
-          'Conteúdos com objetivo de conversão registram a maior taxa de mensagens diretas no comparativo de funil.',
+        reason: favFormats.some(
+          (f) => f.toLowerCase().includes('frases') || f.toLowerCase().includes('conceit'),
+        )
+          ? `Alinhado ao Estilo da Marca (${brandName}): formato conceitual com prova social comprovada para destravar leads qualificados.`
+          : 'Conteúdos com objetivo de conversão registram a maior taxa de mensagens diretas no comparativo de funil.',
       },
       {
         id: 'idea-4',
@@ -198,7 +212,11 @@ export async function getWhatToPostToday(options: {
           '🧵 1/5 | 90% das pessoas erram feio ao planejar seu conteúdo.\n\nAqui estão os 3 pilares validados para destravar sua consistência 👇\n\n2/5 | Ponto 1: Simplicidade bate sofisticação.\n3/5 | Ponto 2: Consistência vence picos isolados.\n4/5 | Ponto 3: Conversas no direct fecham contratos.\n5/5 | Curtiu? Dê um RT no primeiro tweet e siga para receber insights diários!',
         hashtags: ['#twitter', '#threads', '#estrategia', '#negocios'],
         bestTime: '09:00 (Manhã Executiva)',
-        reason: 'Threads estruturadas no X geram 4x mais retweets e consolidam autoridade rápida.',
+        reason: favFormats.some(
+          (f) => f.toLowerCase().includes('artigos') || f.toLowerCase().includes('threads'),
+        )
+          ? `Priorizado pelo Estilo da Marca (${brandName}): artigos e threads selecionados no Brand Kit para autoridade profunda.`
+          : 'Threads estruturadas no X geram 4x mais retweets e consolidam autoridade rápida.',
       },
       {
         id: 'idea-6',

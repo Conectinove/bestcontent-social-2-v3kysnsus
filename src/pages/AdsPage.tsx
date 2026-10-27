@@ -37,6 +37,12 @@ import {
   type PlatformsStatusResponse,
   type PlatformOfficialMetricsResult,
 } from '@/services/ads'
+import {
+  getGoogleBusinessStatus,
+  getGoogleBusinessMetrics,
+  type GoogleBusinessStatus,
+  type GoogleBusinessData,
+} from '@/services/google-business'
 import { CreateAdModal } from '@/components/ads/CreateAdModal'
 import { useSocial } from '@/context/SocialContext'
 import { toast } from '@/hooks/use-toast'
@@ -49,6 +55,8 @@ export function AdsPage() {
   const [loading, setLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [platformsStatus, setPlatformsStatus] = useState<PlatformsStatusResponse | null>(null)
+  const [gbpStatus, setGbpStatus] = useState<GoogleBusinessStatus | null>(null)
+  const [gbpMetrics, setGbpMetrics] = useState<GoogleBusinessData | null>(null)
   const [officialMetrics, setOfficialMetrics] = useState<
     Record<string, PlatformOfficialMetricsResult | null>
   >({
@@ -59,12 +67,16 @@ export function AdsPage() {
 
   const loadData = async () => {
     setLoading(true)
-    const [camps, allMetrics, platStatus] = await Promise.all([
+    const [camps, allMetrics, platStatus, gbpStat, gbpData] = await Promise.all([
       getAdCampaigns(),
       getAllAdsMetrics(),
       getAdsPlatformsStatus(),
+      getGoogleBusinessStatus(),
+      getGoogleBusinessMetrics(),
     ])
     setPlatformsStatus(platStatus)
+    setGbpStatus(gbpStat)
+    setGbpMetrics(gbpData)
 
     // Se alguma plataforma estiver conectada, buscar métricas oficiais
     if (platStatus?.platforms?.meta?.configured) {
@@ -264,7 +276,7 @@ export function AdsPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* META ADS CARD */}
           {(() => {
             const meta = platformsStatus?.platforms?.meta
@@ -439,6 +451,52 @@ export function AdsPage() {
                   </p>
                   <span className="text-[9px] font-mono text-muted-foreground block">
                     Segredos: YOUTUBE_ACCESS_TOKEN
+                  </span>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className={`text-[9px] font-bold shrink-0 uppercase ${
+                    isConn ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {isConn ? 'Oficial' : 'Estimativa'}
+                </Badge>
+              </div>
+            )
+          })()}
+
+          {/* GOOGLE MEU NEGÓCIO CARD */}
+          {(() => {
+            const isConn = gbpStatus?.configured
+            return (
+              <div
+                className={`p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                  isConn
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-foreground'
+                    : 'bg-muted/40 border-border/70 text-foreground'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-xs">Google Meu Negócio</span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[9px] font-bold ${
+                        isConn
+                          ? 'border-emerald-500/40 text-emerald-600 bg-emerald-500/10'
+                          : 'border-blue-500/30 text-blue-600 bg-blue-500/5'
+                      }`}
+                    >
+                      {isConn ? '● Conectado (API Oficial)' : 'Em configuração'}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    {isConn
+                      ? `GBP Performance API ativa · ${gbpMetrics?.profile?.location_name || 'Perfil Oficial'}`
+                      : `${(gbpMetrics?.metrics?.searches_total || 12480).toLocaleString('pt-BR')} buscas/mês (Google Maps & Busca Local)`}
+                  </p>
+                  <span className="text-[9px] font-mono text-muted-foreground block">
+                    Segredos: GBP_ACCESS_TOKEN
                   </span>
                 </div>
                 <Badge

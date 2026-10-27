@@ -1,6 +1,7 @@
 import pb from '@/lib/pocketbase/client'
 
 export interface TikTokProfile {
+  username?: string
   display_name: string
   avatar_url?: string
   bio?: string
@@ -12,6 +13,9 @@ export interface TikTokMetrics {
   followers: number
   views: number
   likes: number
+  likes_total?: number
+  shares_30d?: number
+  video_views_30d?: number
   comments: number
   shares: number
   saves: number
@@ -90,6 +94,7 @@ export async function getTikTokOrganicMetrics(): Promise<TikTokOrganicData> {
       badge_label: 'Estimativa Calibrada',
       notice: 'Exibindo estimativa inteligente calibrada com seu histórico de conteúdo.',
       profile: {
+        username: 'midiaviva_oficial',
         display_name: 'MidiaViva Content Creator',
         avatar_url: 'https://img.usecurling.com/i?q=tiktok&color=black',
         bio: 'Criador de Conteúdo & Estratégia Visual · Powered by BestContent AI',
@@ -99,9 +104,12 @@ export async function getTikTokOrganicMetrics(): Promise<TikTokOrganicData> {
       metrics: {
         followers: 24800,
         views: 186400,
+        video_views_30d: 186400,
         likes: 14250,
+        likes_total: 14250,
         comments: 1180,
         shares: 2340,
+        shares_30d: 2340,
         saves: 3890,
         engagement_rate: 6.4,
         growth_rate_30d: 5.4,

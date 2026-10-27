@@ -129,6 +129,11 @@ routerAdd(
             status: 'connected',
             badge_label: 'Dados Oficiais',
             profile: {
+              username:
+                userObj.username ||
+                (userObj.display_name
+                  ? userObj.display_name.toLowerCase().replace(/\s+/g, '_')
+                  : 'midiaviva'),
               display_name: userObj.display_name || 'Conta TikTok',
               avatar_url: userObj.avatar_url || '',
               bio: userObj.bio_description || '',
@@ -138,9 +143,12 @@ routerAdd(
             metrics: {
               followers: followers,
               views: totalViews,
+              video_views_30d: totalViews,
               likes: likes,
+              likes_total: likes,
               comments: totalComments,
               shares: totalShares,
+              shares_30d: totalShares,
               saves: totalSaves,
               engagement_rate: engagementRate,
               growth_rate_30d: 4.8,
@@ -227,6 +235,7 @@ routerAdd(
       notice:
         'Segredos TIKTOK_CONTENT_ACCESS_TOKEN não detectados no ambiente. Exibindo estimativa inteligente calibrada com seu histórico de conteúdo.',
       profile: {
+        username: 'midiaviva_oficial',
         display_name: 'MidiaViva Content Creator',
         avatar_url: 'https://img.usecurling.com/i?q=tiktok&color=black',
         bio: 'Criador de Conteúdo & Estratégia Visual · Powered by BestContent AI',
@@ -236,9 +245,12 @@ routerAdd(
       metrics: {
         followers: baselineFollowers,
         views: baselineViews,
+        video_views_30d: baselineViews,
         likes: baselineLikes,
+        likes_total: baselineLikes,
         comments: baselineComments,
         shares: baselineShares,
+        shares_30d: baselineShares,
         saves: baselineSaves,
         engagement_rate: baselineRate,
         growth_rate_30d: 5.4,

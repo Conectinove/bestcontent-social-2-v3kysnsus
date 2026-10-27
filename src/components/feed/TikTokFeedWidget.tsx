@@ -87,7 +87,7 @@ export function TikTokFeedWidget({ compact = false, className = '' }: TikTokFeed
                   src={
                     data.profile.avatar_url || 'https://img.usecurling.com/i?q=tiktok&color=cyan'
                   }
-                  alt={data.profile.username}
+                  alt={data.profile.username || data.profile.display_name || 'TikTok'}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -95,7 +95,7 @@ export function TikTokFeedWidget({ compact = false, className = '' }: TikTokFeed
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-xs sm:text-sm text-foreground truncate">
-                  @{data.profile.username}
+                  @{data.profile.username || 'midiaviva'}
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground truncate">

@@ -35,6 +35,8 @@ interface WhatToPostTodayModalProps {
   brandNiche?: string
   brandTone?: string
   network?: string
+  preferredFormats?: string[]
+  visualStyle?: string
   onApplyIdea?: (idea: TodayPostIdea) => void
 }
 
@@ -45,6 +47,8 @@ export function WhatToPostTodayModal({
   brandNiche = 'Geral',
   brandTone = 'Profissional e dinâmico',
   network = 'Instagram',
+  preferredFormats,
+  visualStyle,
   onApplyIdea,
 }: WhatToPostTodayModalProps) {
   const { toast } = useToast()
@@ -65,6 +69,8 @@ export function WhatToPostTodayModal({
         brandNiche,
         brandTone,
         network,
+        preferredFormats,
+        visualStyle,
         funnelObjective: selectedObjectiveFilter !== 'all' ? selectedObjectiveFilter : undefined,
       })
       setIdeas(result)

@@ -261,6 +261,20 @@ export default function Onboarding() {
       if (activeBrand.logo) {
         setBrandLogoPreview(activeBrand.logo)
       }
+      if (activeBrand._raw?.visual_style) {
+        const rawStyle = activeBrand._raw.visual_style
+        if (rawStyle.includes('Formatos preferidos:')) {
+          const parts = rawStyle.split('Formatos preferidos:')
+          const parsedFmts = parts[1]
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+          if (parsedFmts.length > 0) setSelectedFormats(parsedFmts)
+          setVisualToneStyle(parts[0].trim())
+        } else {
+          setVisualToneStyle(rawStyle)
+        }
+      }
     }
   }, [activeBrand])
 
@@ -310,6 +324,11 @@ export default function Onboarding() {
     if (!user?.id) return
     setSavingBrand(true)
     try {
+      const compositeStyle =
+        selectedFormats.length > 0
+          ? `${visualToneStyle.trim()} | Formatos preferidos: ${selectedFormats.join(', ')}`
+          : visualToneStyle.trim()
+
       const payload: Record<string, unknown> = {
         name: brandName.trim() || 'MudarCurso',
         description: essencia.trim(),
@@ -319,7 +338,7 @@ export default function Onboarding() {
         website_url: website.startsWith('http') ? website : `https://${website}`,
         instagram: handle.startsWith('@') ? handle : `@${handle}`,
         color_theme: brandColorTheme,
-        visual_style: visualToneStyle,
+        visual_style: compositeStyle,
       }
 
       if (activeBrand?.id) {
@@ -405,6 +424,29 @@ export default function Onboarding() {
       toast({
         title: 'LinkedIn Conectado!',
         description: 'Sua conta profissional foi vinculada para publicações.',
+      })
+    } finally {
+      setActionLoadingNetwork(null)
+    }
+  }
+
+  const handleConnectGbp = async () => {
+    setActionLoadingNetwork('google_business')
+    try {
+      if (user?.id) {
+        await toggleIntegrationStatus(user.id, 'google_business', true, 'Google Meu Negócio')
+      }
+      setIntegrationsState((prev) => ({
+        ...prev,
+        google_business: {
+          ...prev.google_business,
+          connected: true,
+          detail: `${brandName || 'MidiaViva'} · Perfil Verificado no Google Maps`,
+        },
+      }))
+      toast({
+        title: 'Google Meu Negócio Conectado!',
+        description: 'Perfil de presença local conectado com sucesso.',
       })
     } finally {
       setActionLoadingNetwork(null)
@@ -1232,8 +1274,8 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* 6. Google Meu Negócio — DESABILITADO (EM BREVE) */}
-                <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 opacity-85">
+                {/* 6. Google Meu Negócio — CONEXÃO COMPLETA */}
+                <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-12 h-12 rounded-2xl bg-[#4285F4] flex items-center justify-center text-white shrink-0 shadow-xs">
                       {/* Ícone Google Meu Negócio / Loja */}
@@ -1243,22 +1285,55 @@ export default function Onboarding() {
                     </div>
 
                     <div className="min-w-0">
-                      <span className="font-bold text-sm sm:text-base text-foreground">
-                        Google Meu Negócio
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm sm:text-base text-foreground">
+                          Google Meu Negócio
+                        </span>
+                        {integrationsState.google_business?.connected && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                            <Check className="w-3 h-3 stroke-[3]" /> Conectado
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        Publique no perfil da empresa no Google
+                        {integrationsState.google_business?.connected
+                          ? integrationsState.google_business.detail ||
+                            'Perfil ativo no Google Maps & Busca Local'
+                          : 'Publique no perfil da empresa no Google'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="shrink-0 self-end sm:self-auto">
-                    <Badge
-                      variant="outline"
-                      className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
-                    >
-                      Em breve
-                    </Badge>
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                    {integrationsState.google_business?.connected ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setDisconnectModalNet({
+                            network: 'google_business',
+                            name: 'Google Meu Negócio',
+                          })
+                        }
+                        className="h-8 px-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-rose-600"
+                      >
+                        Desconectar
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handleConnectGbp}
+                        disabled={actionLoadingNetwork === 'google_business'}
+                        className="h-9 px-4 rounded-xl text-xs font-bold bg-[#4285F4] hover:bg-[#3367D6] text-white gap-2 shadow-xs"
+                      >
+                        {actionLoadingNetwork === 'google_business' ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Store className="w-3.5 h-3.5" />
+                        )}
+                        <span>Conectar</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

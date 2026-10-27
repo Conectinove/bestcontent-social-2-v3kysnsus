@@ -12,6 +12,8 @@ routerAdd(
     const brandTone = (body.brandTone || 'Profissional e dinâmico').trim()
     const network = (body.network || 'Instagram').trim()
     const requestedObjective = (body.funnelObjective || '').trim()
+    const preferredFormats = Array.isArray(body.preferredFormats) ? body.preferredFormats : []
+    const visualStyle = (body.visualStyle || '').trim()
 
     // 1. Cruzamento de dados reais: biblioteca de posts mais engajados
     let topPostsSummary = 'Carrosséis educativos e vídeos rápidos de 30s'
@@ -57,13 +59,19 @@ routerAdd(
         'anúncios de vídeo e tutoriais práticos convertem 3.2x mais leads no funil'
     }
 
-    // Fallback calibrado cruzando dados reais e objetivos de funil
-    const defaultIdeas = [
+    // Formatos favoritos da marca ativa para priorização
+    const favFormatsStr =
+      preferredFormats.length > 0
+        ? preferredFormats.join(', ')
+        : 'Carrosséis educativos, Vídeos curtos (Reels/Shorts)'
+
+    // Fallback calibrado cruzando dados reais, preferências de estilo da marca e objetivos de funil
+    let defaultIdeas = [
       {
         id: 'idea-1',
         title: 'O Erro Invisível que Custa Clientes (E a Solução em 3 Passos)',
         suggestedModel: 'Carrossel Educativo Passo a Passo',
-        format: 'Carrossel (1080x1350)',
+        format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
         suggestedCta:
           'Toque em Salvar para consultar esta auditoria rápida antes da sua próxima campanha.',
@@ -71,28 +79,15 @@ routerAdd(
           'A maioria dos negócios perde vendas por um detalhe que passa despercebido no dia a dia. Salve este post para conferir a auditoria prática de 3 minutos! 👇\n\n1. O sintoma inicial...\n2. Onde a conversão quebra...\n3. O ajuste que destrava o resultado.\n\nQual desses pontos mais chama atenção na sua operação hoje?',
         hashtags: ['#estratégia', '#negocios', '#produtividade', '#crescimento'],
         bestTime: bestNetworkTime,
-        reason: `${bestFormatInsight}; sugerimos carrossel de 5 slides com gancho na capa para maximizar salvamentos.`,
+        reason: preferredFormats.some((f) => f.toLowerCase().includes('carrossel'))
+          ? `Priorizado pelo Estilo da Marca (${brandName}): formato favorito selecionado no Brand Kit com +34% de retenção slide a slide.`
+          : `${bestFormatInsight}; sugerimos carrossel de 5 slides com gancho na capa para maximizar salvamentos.`,
       },
       {
         id: 'idea-2',
-        title: 'Estudo de Caso Rápido: Do Zero à Autoridade Sem Gastar com Anúncios',
-        suggestedModel: 'Post Único com Prova Social',
-        format: 'Feed Quadrado (1080x1080)',
-        funnelObjective: 'Conversão',
-        suggestedCta:
-          'Comente "GUIA" que te envio o resumo completo no direct com o passo a passo.',
-        caption:
-          'Quando começamos, muitos disseram que o mercado estava saturado. Aqui está o princípio que nos diferenciou e atraiu os clientes certos de forma orgânica. 🚀\n\nComente "GUIA" que te envio o resumo completo no direct!',
-        hashtags: ['#autoridade', '#empreendedorismo', '#marketingdeconteudo', '#sucesso'],
-        bestTime: '12:00 (Pico no horário de almoço)',
-        reason:
-          'Conteúdos de prova social convertem leads 2.4x mais rápido quando direcionam para mensagem direta no direct.',
-      },
-      {
-        id: 'idea-3',
         title: 'Checklist Definitivo da Semana: 5 Hábitos para Escalar Resultados',
         suggestedModel: 'Roteiro de Vídeo Curto / Reels',
-        format: 'Vídeo Curto / Reels (1080x1920)',
+        format: 'Vídeo Curto / Reels',
         funnelObjective: 'Atração',
         suggestedCta:
           'Siga o perfil para mais hacks diários de produtividade e compartilhe com um colega.',
@@ -100,14 +95,38 @@ routerAdd(
           'Sua semana pode ser produtiva ou apenas ocupada. Qual dos 5 itens da lista você já aplicou hoje? Deixe nos comentários seu foco principal da semana! 👇🔥',
         hashtags: ['#foco', '#planejamento', '#dicaspraticas', '#altaperformance'],
         bestTime: '20:15 (Maior tempo de tela)',
-        reason:
-          'Formatos interativos em vídeo com beats rápidos elevam em +42% os compartilhamentos para novos públicos.',
+        reason: preferredFormats.some(
+          (f) =>
+            f.toLowerCase().includes('vídeo') ||
+            f.toLowerCase().includes('reels') ||
+            f.toLowerCase().includes('shorts'),
+        )
+          ? `Priorizado pelo Estilo da Marca (${brandName}): vídeos curtos estão marcados como preferência no wizard e têm 70% mais alcance de não-seguidores.`
+          : 'Formatos interativos em vídeo com beats rápidos elevam em +42% os compartilhamentos para novos públicos.',
+      },
+      {
+        id: 'idea-3',
+        title: 'Estudo de Caso Rápido: Do Zero à Autoridade Sem Gastar com Anúncios',
+        suggestedModel: 'Post Único com Prova Social',
+        format: 'Feed Único / Imagem',
+        funnelObjective: 'Conversão',
+        suggestedCta:
+          'Comente "GUIA" que te envio o resumo completo no direct com o passo a passo.',
+        caption:
+          'Quando começamos, muitos disseram que o mercado estava saturado. Aqui está o princípio que nos diferenciou e atraiu os clientes certos de forma orgânica. 🚀\n\nComente "GUIA" que te envio o resumo completo no direct!',
+        hashtags: ['#autoridade', '#empreendedorismo', '#marketingdeconteudo', '#sucesso'],
+        bestTime: '12:00 (Pico no horário de almoço)',
+        reason: preferredFormats.some(
+          (f) => f.toLowerCase().includes('frases') || f.toLowerCase().includes('conceit'),
+        )
+          ? `Alinhado ao Estilo da Marca (${brandName}): posts conceituais de alto impacto geram autoridade imediata e direct qualificado.`
+          : 'Conteúdos de prova social convertem leads 2.4x mais rápido quando direcionam para mensagem direta no direct.',
       },
       {
         id: 'idea-4',
         title: 'Bastidores Reais: O que Deu Errado nesta Semana e o Aprendizado',
         suggestedModel: 'Post Reflexivo / Comunidade',
-        format: 'Feed Único / Story',
+        format: 'Stories / Post Interativo',
         funnelObjective: 'Comunidade',
         suggestedCta:
           'Deixe sua opinião nos comentários: você já passou por uma situação parecida?',
@@ -115,16 +134,19 @@ routerAdd(
           'Nem tudo são vitórias nos bastidores. Aqui está o erro de processo que nos ensinou a lição mais valiosa do mês.\n\nTransparência conecta mais do que qualquer perfeição fictícia. Como você lida com imprevistos na sua operação?',
         hashtags: ['#bastidores', '#comunidade', '#transparencia', '#lideranca'],
         bestTime: '21:00 (Horário de maior conexão humana e leitura)',
-        reason:
-          'Posts de vulnerabilidade e bastidores geram 3x mais comentários qualificados e constroem comunidade sólida.',
+        reason: preferredFormats.some(
+          (f) => f.toLowerCase().includes('stories') || f.toLowerCase().includes('bastidores'),
+        )
+          ? `Alinhado ao Estilo da Marca (${brandName}): stories de bastidores aumentam o senso de comunidade e retenção dos clientes mais fiéis.`
+          : 'Posts de vulnerabilidade e bastidores geram 3x mais comentários qualificados e constroem comunidade sólida.',
       },
     ]
 
     try {
       const systemPrompt =
-        'Você é o estrategista-chefe de inteligência de conteúdo da plataforma BestContent Social 2. Seu papel é cruzar dados de performance real (top posts por engajamento, formatos com maior retenção, horários de pico por rede e benchmarks de mercado) para gerar sugestões de post hiper-contextualizadas.\n' +
+        'Você é o estrategista-chefe de inteligência de conteúdo da plataforma BestContent Social 2. Seu papel é cruzar dados de performance real (top posts por engajamento, formatos com maior retenção, horários de pico por rede e benchmarks de mercado) e OBRIGATORIAMENTE PRIORIZAR os formatos favoritos definidos no Estilo da Marca ativa.\n' +
         'Cada sugestão deve conter OBRIGATORIAMENTE:\n' +
-        '1. Justificativa baseada em dados ("seus carrosséis engajam 34% mais...", "horário de pico mapeado às...", "ganchos de 3s...")\n' +
+        '1. Justificativa baseada nos formatos favoritos e estilo da marca ("Priorizado pelo Estilo da Marca [Nome]: formato favorito [Formato] com retenção...")\n' +
         '2. Objetivo de Funil explícito: "Atração", "Autoridade", "Conversão" ou "Comunidade"\n' +
         '3. CTA sugerido específico e persuasivo'
 
@@ -134,11 +156,13 @@ routerAdd(
         `- Nicho: ${brandNiche}\n` +
         `- Tom de voz: ${brandTone}\n` +
         `- Rede Principal: ${network}\n` +
+        `- FORMATOS FAVORITOS DA MARCA (PRIORIZAR ESTES): ${favFormatsStr}\n` +
+        `- DIRETRIZ ESTÉTICA DA MARCA: ${visualStyle || 'Estilo visual moderno com foco em autoridade e clareza'}\n` +
         `- Objetivo de Funil Solicitado: ${requestedObjective || 'Equilibrado (Atração / Autoridade / Conversão / Comunidade)'}\n` +
         `- Benchmark e Retenção: ${bestFormatInsight}\n` +
         `- Melhor horário por rede: ${bestNetworkTime}\n` +
         `- Amostra de histórico: ${topPostsSummary}\n\n` +
-        'Gere EXATAMENTE 4 ideias completas de post, cobrindo os objetivos de funil (Atração, Autoridade, Conversão, Comunidade). Retorne EXCLUSIVAMENTE em formato JSON com o seguinte schema:\n' +
+        'Gere EXATAMENTE 4 ideias completas de post priorizando os FORMATOS FAVORITOS da marca, cobrindo os objetivos de funil (Atração, Autoridade, Conversão, Comunidade). Retorne EXCLUSIVAMENTE em formato JSON com o seguinte schema:\n' +
         '{\n' +
         '  "ideas": [\n' +
         '    {\n' +

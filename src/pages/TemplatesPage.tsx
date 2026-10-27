@@ -332,6 +332,16 @@ export default function TemplatesPage() {
           (activeBrand as any)?.voice_tone ||
           'Profissional e dinâmico'
         }
+        preferredFormats={
+          (activeBrand as any)?._raw?.visual_style?.includes('Formatos preferidos:')
+            ? (activeBrand as any)._raw.visual_style
+                .split('Formatos preferidos:')[1]
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : undefined
+        }
+        visualStyle={(activeBrand as any)?._raw?.visual_style}
         network="Instagram"
         onApplyIdea={(idea: TodayPostIdea) => {
           navigate('/app/content/new', {
