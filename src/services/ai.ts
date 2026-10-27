@@ -21,6 +21,7 @@ export interface HighPerformanceCaptionResult {
   readability_score?: number
   estimated_reading_time_sec?: number
   tone_applied?: string
+  recommended_chars?: number
 }
 
 export interface GenerateCaptionOptions {

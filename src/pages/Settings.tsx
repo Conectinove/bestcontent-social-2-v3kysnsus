@@ -133,6 +133,10 @@ export default function Settings() {
     mastodon: { connected: false },
     tumblr: { connected: false },
     dribbble: { connected: false },
+    spotify: { connected: false },
+    substack: { connected: false },
+    patreon: { connected: false },
+    github: { connected: false },
   })
   const [loadingIntegrations, setLoadingIntegrations] = useState(false)
   const [actionLoadingNetwork, setActionLoadingNetwork] = useState<IntegrationNetwork | null>(null)
@@ -186,6 +190,10 @@ export default function Settings() {
             mastodon: { connected: false },
             tumblr: { connected: false },
             dribbble: { connected: false },
+            spotify: { connected: false },
+            substack: { connected: false },
+            patreon: { connected: false },
+            github: { connected: false },
           }
 
           records.forEach((rec) => {
@@ -835,6 +843,46 @@ export default function Settings() {
                         iconBg: 'bg-[#EA4C89]/15 border-[#EA4C89]/20 text-[#EA4C89]',
                         renderIcon: () => (
                           <span className="font-black text-xs text-[#EA4C89]">DRB</span>
+                        ),
+                      },
+                      {
+                        network: 'spotify' as IntegrationNetwork,
+                        name: 'Spotify for Podcasters & Audio',
+                        subtitle:
+                          'Distribuição de videocasts, episódios, áudios promocionais e audiência de stream',
+                        iconBg: 'bg-[#1DB954]/15 border-[#1DB954]/20 text-[#1DB954]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#1DB954]">SPOT</span>
+                        ),
+                      },
+                      {
+                        network: 'substack' as IntegrationNetwork,
+                        name: 'Substack Publishing API',
+                        subtitle:
+                          'Newsletters autorais, publicações pagas por assinatura e ensaios semanais',
+                        iconBg: 'bg-[#FF6719]/15 border-[#FF6719]/20 text-[#FF6719]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#FF6719]">SUB</span>
+                        ),
+                      },
+                      {
+                        network: 'patreon' as IntegrationNetwork,
+                        name: 'Patreon Community & Memberships',
+                        subtitle:
+                          'Conteúdos exclusivos para assinantes VIP, tiers de membros e comunidade',
+                        iconBg: 'bg-[#FF424D]/15 border-[#FF424D]/20 text-[#FF424D]',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-[#FF424D]">PAT</span>
+                        ),
+                      },
+                      {
+                        network: 'github' as IntegrationNetwork,
+                        name: 'GitHub Sponsor & Social Repos',
+                        subtitle:
+                          'Releases de código aberto, documentação, perfis técnicos e engajamento dev',
+                        iconBg: 'bg-black/15 dark:bg-white/10 border-foreground/20 text-foreground',
+                        renderIcon: () => (
+                          <span className="font-black text-xs text-foreground">GIT</span>
                         ),
                       },
                     ].map((item) => {

@@ -77,7 +77,7 @@ export function SocialHubPage() {
               variant="outline"
               className="border-purple-500/30 text-purple-600 dark:text-purple-400 font-semibold text-xs"
             >
-              23 Redes Suportadas
+              27 Redes Suportadas
             </Badge>
           </div>
           <h1 className="text-3xl font-black text-foreground tracking-tight mt-2 flex items-center gap-2">
@@ -223,6 +223,177 @@ export function SocialHubPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Destaque Especial: Instagram Conteúdo & Perfil Orgânico */}
+      {data?.instagramOrganic && (
+        <Card className="rounded-3xl border-2 border-pink-500/30 bg-gradient-to-br from-pink-950/20 via-background to-purple-950/20 shadow-xl overflow-hidden">
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/80">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] flex items-center justify-center text-white text-2xl font-bold shadow-md ring-2 ring-pink-500/40">
+                  <span className="font-black">IG</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-black text-foreground">
+                      Instagram Conteúdo & Perfil Orgânico
+                    </h2>
+                    <Badge
+                      className={
+                        data.instagramOrganic.is_official
+                          ? 'bg-emerald-600 text-white text-[10px]'
+                          : 'bg-pink-600/20 text-pink-700 dark:text-pink-300 border border-pink-500/40 text-[10px]'
+                      }
+                    >
+                      {data.instagramOrganic.badge_label}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {data.instagramOrganic.profile.display_name} (@
+                    {data.instagramOrganic.profile.username}) &middot;{' '}
+                    {data.instagramOrganic.profile.bio}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className="border-pink-500/30 text-pink-600 dark:text-pink-400 text-xs px-3 py-1"
+                >
+                  Taxa de Engajamento: {data.instagramOrganic.metrics.engagement_rate}%
+                </Badge>
+              </div>
+            </div>
+
+            {/* Grid de Métricas Instagram Orgânico */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-6">
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Seguidores Orgânicos
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.instagramOrganic.metrics.followers.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  +{data.instagramOrganic.metrics.new_followers_30d} no mês
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Alcance (Contas Únicas)
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.instagramOrganic.metrics.reach.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {data.instagramOrganic.metrics.impressions.toLocaleString('pt-BR')} impressões
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Curtidas no Feed/Reels
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.instagramOrganic.metrics.likes.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-pink-600 dark:text-pink-400 flex items-center gap-0.5 font-semibold">
+                  <Heart className="w-2.5 h-2.5 fill-current" /> Interações Visuais
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Comentários
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.instagramOrganic.metrics.comments.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center gap-0.5 font-semibold">
+                  <MessageCircle className="w-2.5 h-2.5" /> Conversas Ativas
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Saves / Salvamentos
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.instagramOrganic.metrics.saves.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5 font-semibold">
+                  <Bookmark className="w-2.5 h-2.5 fill-current" /> Retenção Forte
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Compartilhamentos (Direct)
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.instagramOrganic.metrics.shares.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 font-semibold">
+                  <Share2 className="w-2.5 h-2.5" /> Viralidade Orgânica
+                </span>
+              </div>
+            </div>
+
+            {/* Evolução temporal & Melhores Horários Instagram */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-border/60">
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <BarChart2 className="w-3.5 h-3.5 text-pink-600" />
+                  Evolução Temporal das Últimas 4 Semanas (Instagram)
+                </span>
+                <div className="space-y-1.5">
+                  {data.instagramOrganic.history.map((h, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between text-xs p-2 rounded-lg bg-card/80 border border-border/60"
+                    >
+                      <span className="font-semibold text-foreground">{h.period}</span>
+                      <div className="flex items-center gap-4 text-muted-foreground font-mono text-[11px]">
+                        <span>{h.impressions.toLocaleString('pt-BR')} impressões</span>
+                        <span className="text-pink-600 dark:text-pink-400 font-bold">
+                          {h.engagement}% eng
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-pink-500" />
+                  Janelas Nobres de Publicação (Instagram Feed & Reels)
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {data.instagramOrganic.best_times.map((bt, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-foreground">{bt.day}</p>
+                        <p className="text-[11px] text-pink-600 dark:text-pink-400 font-mono font-semibold">
+                          {bt.time}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">
+                        Índice {bt.reach_index}%
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Destaque Especial: LinkedIn Orgânico Integrado */}
       {data?.linkedinOrganic && (
@@ -622,7 +793,7 @@ export function SocialHubPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-xl font-black text-foreground">
-              Comparativo por Canal ({filteredChannels.length} de 23 Redes)
+              Comparativo por Canal ({filteredChannels.length} de 27 Redes)
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Métricas detalhadas, melhor horário sugerido e status de calibração por rede

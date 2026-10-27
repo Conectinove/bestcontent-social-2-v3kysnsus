@@ -3,6 +3,7 @@ import type { IntegrationNetwork } from '@/types'
 import { getAllPostMetrics, type PostMetric } from '@/services/post-metrics'
 import { getTikTokOrganicMetrics, type TikTokOrganicData } from '@/services/tiktok-organic'
 import { getLinkedInOrganicMetrics, type LinkedInOrganicData } from '@/services/linkedin-organic'
+import { getInstagramOrganicMetrics, type InstagramOrganicData } from '@/services/instagram-organic'
 import { getUserIntegrations } from '@/services/user_integrations'
 
 export interface NetworkChannelSummary {
@@ -49,6 +50,7 @@ export interface ConsolidatedSocialHubData {
   }[]
   tiktokOrganic: TikTokOrganicData | null
   linkedinOrganic?: LinkedInOrganicData | null
+  instagramOrganic?: InstagramOrganicData | null
 }
 
 export const ALL_SUPPORTED_NETWORKS: {
@@ -291,6 +293,46 @@ export const ALL_SUPPORTED_NETWORKS: {
     bestHour: '15:00',
     color: '#EA4C89',
   },
+  {
+    network: 'spotify',
+    name: 'Spotify for Podcasters',
+    category: 'messaging',
+    baseFollowers: 3100,
+    baseEng: 7.4,
+    bestDay: 'Terça',
+    bestHour: '07:00',
+    color: '#1DB954',
+  },
+  {
+    network: 'substack',
+    name: 'Substack Newsletter',
+    category: 'community',
+    baseFollowers: 2600,
+    baseEng: 8.8,
+    bestDay: 'Quinta',
+    bestHour: '08:00',
+    color: '#FF6719',
+  },
+  {
+    network: 'patreon',
+    name: 'Patreon Creators',
+    category: 'community',
+    baseFollowers: 850,
+    baseEng: 9.6,
+    bestDay: 'Sexta',
+    bestHour: '18:00',
+    color: '#FF424D',
+  },
+  {
+    network: 'github',
+    name: 'GitHub Sponsor & Community',
+    category: 'professional',
+    baseFollowers: 1950,
+    baseEng: 6.5,
+    bestDay: 'Segunda',
+    bestHour: '14:00',
+    color: '#24292F',
+  },
 ]
 
 export async function getConsolidatedSocialHubData(
@@ -322,6 +364,13 @@ export async function getConsolidatedSocialHubData(
   let linkedinOrganic: LinkedInOrganicData | null = null
   try {
     linkedinOrganic = await getLinkedInOrganicMetrics()
+  } catch {
+    /* intentionally ignored */
+  }
+
+  let instagramOrganic: InstagramOrganicData | null = null
+  try {
+    instagramOrganic = await getInstagramOrganicMetrics()
   } catch {
     /* intentionally ignored */
   }
@@ -371,6 +420,11 @@ export async function getConsolidatedSocialHubData(
       engagementRate = linkedinOrganic.metrics.engagement_rate
       isOfficial = linkedinOrganic.is_official
       badgeLabel = linkedinOrganic.badge_label
+    } else if (meta.network === 'instagram' && instagramOrganic) {
+      followers = instagramOrganic.metrics.followers
+      engagementRate = instagramOrganic.metrics.engagement_rate
+      isOfficial = instagramOrganic.is_official
+      badgeLabel = instagramOrganic.badge_label
     } else if (metricsForNet.length > 0) {
       const sumEng = metricsForNet.reduce((acc, m) => acc + (m.taxa_engajamento || 0), 0)
       engagementRate = Number((sumEng / metricsForNet.length).toFixed(2))
@@ -468,5 +522,6 @@ export async function getConsolidatedSocialHubData(
     weeklyTrend,
     tiktokOrganic,
     linkedinOrganic,
+    instagramOrganic,
   }
 }

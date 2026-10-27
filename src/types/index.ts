@@ -242,6 +242,10 @@ export type IntegrationNetwork =
   | 'mastodon'
   | 'tumblr'
   | 'dribbble'
+  | 'spotify'
+  | 'substack'
+  | 'patreon'
+  | 'github'
 
 export interface UserIntegrationRecord {
   id: string

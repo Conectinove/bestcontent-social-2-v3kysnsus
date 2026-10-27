@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T01:16:31.764Z",
+  "generatedAt": "2026-10-27T01:23:55.923Z",
   "collections": [
     {
       "name": "users",
@@ -1778,6 +1778,18 @@
         },
         {
           "name": "novos_seguidores",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "stories_visualizacoes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reels_reproducoes",
           "type": "number",
           "required": false,
           "system": false

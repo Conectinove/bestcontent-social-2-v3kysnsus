@@ -170,11 +170,13 @@ export default function CreatePost() {
   const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(initialTemplate)
   const [selectedTone, setSelectedTone] = useState<string>('profissional')
   const [hookVariations, setHookVariations] = useState<HookVariationItem[]>([])
+  const [selectedObjective, setSelectedObjective] = useState<string>('engajamento')
   const [captionScores, setCaptionScores] = useState<{
     seo?: number
     hook?: number
     readability?: number
     toneApplied?: string
+    recommendedChars?: number
   } | null>(null)
   // Validação inline
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
@@ -307,7 +309,8 @@ export default function CreatePost() {
         const r = await generateCaption({
           content: sourceText,
           topic: sourceText,
-          platform,
+          platform: platform.toLowerCase(),
+          objective: selectedObjective,
           tone: selectedTone,
           brandName,
           brandNiche,
@@ -323,6 +326,7 @@ export default function CreatePost() {
             hook: r.hook_strength_score,
             readability: r.readability_score,
             toneApplied: r.tone_applied || selectedTone,
+            recommendedChars: r.recommended_chars,
           })
         } else {
           setCaption((r as any)?.caption || sourceText)
@@ -734,6 +738,34 @@ export default function CreatePost() {
                     )
                   })}
                 </div>
+
+                {/* Seletor de Objetivo da Campanha para CTA Contextual */}
+                <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
+                    🎯 Objetivo do CTA:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {[
+                      { id: 'engajamento', label: 'Engajamento' },
+                      { id: 'vendas', label: 'Vendas / Conversão' },
+                      { id: 'autoridade', label: 'Autoridade / Salvar' },
+                      { id: 'leads', label: 'Captura / Direct' },
+                    ].map((obj) => (
+                      <button
+                        key={obj.id}
+                        type="button"
+                        onClick={() => setSelectedObjective(obj.id)}
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-all ${
+                          selectedObjective === obj.id
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {obj.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between">
@@ -834,6 +866,14 @@ export default function CreatePost() {
                   >
                     Legibilidade: {captionScores.readability || 88}%
                   </Badge>
+                  {captionScores.recommendedChars && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                    >
+                      Ideal {platform}: ~{captionScores.recommendedChars} chars
+                    </Badge>
+                  )}
                 </div>
               )}
 
@@ -844,7 +884,10 @@ export default function CreatePost() {
                 className="min-h-[110px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                <span>Dica: Use quebras de linha e emojis para maior retenção.</span>
+                <span>
+                  Dica: Clique nas variantes de abertura acima para testar ganchos alternativos em 1
+                  clique.
+                </span>
                 <span className="font-mono">{caption.length} caracteres</span>
               </div>
 
