@@ -257,7 +257,7 @@ export function generateDailyMetricsForCampaign(
 }
 
 export interface PlatformConnectionStatus {
-  platform: 'meta' | 'google' | 'tiktok' | 'youtube'
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin'
   name: string
   configured: boolean
   status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
@@ -274,12 +274,13 @@ export interface PlatformsStatusResponse {
     google: PlatformConnectionStatus
     tiktok: PlatformConnectionStatus
     youtube?: PlatformConnectionStatus
+    linkedin?: PlatformConnectionStatus
   }
   message: string
 }
 
 export interface PlatformOfficialMetricsResult {
-  platform: 'meta' | 'google' | 'tiktok' | 'youtube'
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin'
   source: 'official_api' | 'simulated_fallback'
   is_official: boolean
   status: string
@@ -328,6 +329,32 @@ export interface TikTokAdsStatusResponse {
   advertiserIdPrefix?: string | null
   requiredSecrets: string[]
   message?: string
+}
+
+export interface LinkedInAdsStatusResponse {
+  platform: 'linkedin'
+  name: string
+  configured: boolean
+  status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
+  accountIdPrefix?: string | null
+  requiredSecrets: string[]
+  message?: string
+}
+
+export async function getLinkedInAdsStatus(): Promise<LinkedInAdsStatusResponse> {
+  try {
+    const res = await pb.send('/backend/v1/linkedin/ads/status', { method: 'GET' })
+    return res as LinkedInAdsStatusResponse
+  } catch {
+    return {
+      platform: 'linkedin',
+      name: 'LinkedIn Campaign Manager',
+      configured: false,
+      status: 'not_configured',
+      requiredSecrets: ['LINKEDIN_ADS_ACCESS_TOKEN', 'LINKEDIN_ADS_AD_ACCOUNT_ID'],
+      message: 'Estimativa calibrada ativa.',
+    }
+  }
 }
 
 export async function getTikTokAdsStatus(): Promise<TikTokAdsStatusResponse> {
@@ -421,6 +448,13 @@ export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> 
           status: 'not_configured',
           requiredSecrets: ['YOUTUBE_ACCESS_TOKEN', 'YOUTUBE_API_KEY', 'YOUTUBE_CHANNEL_ID'],
         },
+        linkedin: {
+          platform: 'linkedin',
+          name: 'LinkedIn Ads (Campaign Manager)',
+          configured: false,
+          status: 'not_configured',
+          requiredSecrets: ['LINKEDIN_ADS_ACCESS_TOKEN', 'LINKEDIN_ADS_AD_ACCOUNT_ID'],
+        },
       },
       message: 'Status obtido em fallback local.',
     }
@@ -428,7 +462,7 @@ export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> 
 }
 
 export async function getPlatformOfficialMetrics(
-  platform: 'meta' | 'google' | 'tiktok' | 'youtube',
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin',
 ): Promise<PlatformOfficialMetricsResult> {
   try {
     const res = await pb.send(`/backend/v1/ads/${platform}/metrics`, { method: 'GET' })

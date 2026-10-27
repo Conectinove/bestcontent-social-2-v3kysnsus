@@ -327,12 +327,69 @@ export function FunnelAutomationsPanel({
             if (addNotification) {
               addNotification({
                 title: `Alerta Estratégico: Pipeline Comercial Frio`,
-                message: `Nenhum novo lead entrou no funil nos últimos 7 dias. Recomendamos ativar campanhas em Google Ads, Meta Ads ou YouTube Ads.`,
+                message: `Nenhum novo lead entrou no funil nos últimos 7 dias. Recomendamos ativar campanhas em Google Ads, Meta Ads, YouTube Ads, TikTok Ads ou LinkedIn Ads.`,
                 type: 'schedule',
               })
               remindersCreated++
             }
             processedCount++
+          }
+        }
+
+        // 8. Lead LinkedIn Ads sem contato há 3 dias -> Alerta de Follow-up B2B com decisor
+        if (auto.rule_key === 'linkedin_ads_stale_followup') {
+          const daysThreshold = auto.days_inactive || 3
+          for (const d of deals) {
+            if (
+              d.source === 'LinkedIn Ads' &&
+              (d.stage === 'lead_captado' || d.stage === 'contato_feito')
+            ) {
+              const updatedAt = new Date(d.updated || d.created).getTime()
+              const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
+              if (diffDays >= daysThreshold && d.priority !== 'alta') {
+                await updateFunnelDeal(d.id, {
+                  priority: 'alta',
+                  notes:
+                    `${d.notes || ''}\n[Automação LinkedIn Ads] Lead B2B sem contato há ${Math.floor(diffDays)} dias. Prioridade elevada para contato com decisor.`.trim(),
+                })
+                processedCount++
+                if (addNotification) {
+                  addNotification({
+                    title: `Follow-up LinkedIn Ads: ${d.title}`,
+                    message: `Lead executivo ${d.company || ''} sem retorno há ${Math.floor(diffDays)} dias. Acione via InMail ou telefone.`,
+                    type: 'schedule',
+                  })
+                  remindersCreated++
+                }
+              }
+            }
+          }
+        }
+
+        // 9. Proposta LinkedIn Ads há 5+ dias -> Elevar para prioridade alta
+        if (auto.rule_key === 'linkedin_ads_proposal_priority') {
+          const daysThreshold = auto.days_inactive || 5
+          for (const d of deals) {
+            if (d.source === 'LinkedIn Ads' && d.stage === 'proposta_enviada') {
+              const updatedAt = new Date(d.updated || d.created).getTime()
+              const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
+              if (diffDays >= daysThreshold && d.priority !== 'alta') {
+                await updateFunnelDeal(d.id, {
+                  priority: 'alta',
+                  notes:
+                    `${d.notes || ''}\n[Automação LinkedIn Ads] Proposta corporativa sem retorno há ${Math.floor(diffDays)} dias. Prioridade Alta aplicada.`.trim(),
+                })
+                processedCount++
+                if (addNotification) {
+                  addNotification({
+                    title: `Proposta B2B Parada: ${d.title}`,
+                    message: `Proposta enviada para lead LinkedIn Ads parada há ${Math.floor(diffDays)} dias. Agendar call de alinhamento com stakeholders.`,
+                    type: 'mention',
+                  })
+                  remindersCreated++
+                }
+              }
+            }
           }
         }
       }
