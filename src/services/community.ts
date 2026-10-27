@@ -169,15 +169,31 @@ export async function getTopicReplies(topicId: string): Promise<CommunityReply[]
   }
 }
 
+export async function toggleTopicPin(topicId: string, currentPinned: boolean): Promise<boolean> {
+  const currentUserId = pb.authStore.record?.id
+  if (!currentUserId) throw new Error('Usuário não autenticado')
+
+  const newPinned = !currentPinned
+  await pb.collection('community_topics').update(topicId, {
+    is_pinned: newPinned,
+  })
+  return newPinned
+}
+
 export async function createReply(topicId: string, content: string): Promise<CommunityReply> {
   const currentUserId = pb.authStore.record?.id
   if (!currentUserId) throw new Error('Usuário não autenticado')
 
-  return await pb.collection('community_replies').create<CommunityReply>({
-    user: currentUserId,
-    topic: topicId,
-    content,
-  })
+  return await pb.collection('community_replies').create<CommunityReply>(
+    {
+      user: currentUserId,
+      topic: topicId,
+      content,
+    },
+    {
+      expand: 'user',
+    },
+  )
 }
 
 export async function searchCommunityTopics(query: string): Promise<CommunityTopic[]> {

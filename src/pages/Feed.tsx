@@ -28,6 +28,12 @@ import {
   Pin,
   Check,
   TrendingUp,
+  Search,
+  Filter,
+  FileText,
+  MoreVertical,
+  X,
+  Share,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -40,17 +46,25 @@ import { Input } from '@/components/ui/input'
 import { toast } from '@/hooks/use-toast'
 import { TopRankingModal } from '@/components/jornada/TopRankingModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import useRealtime from '@/hooks/use-realtime'
 import {
   getCommunityTopics,
   getCommunityCategories,
   createCommunityTopic,
   toggleTopicLike,
+  toggleTopicPin,
   getUserLikedTopicIds,
   getTopicReplies,
   createReply,
 } from '@/services/community'
 import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
+import { InstagramFeedWidget } from '@/components/feed/InstagramFeedWidget'
 
 // Community creators carousel data
 interface CommunityCreator {
@@ -199,6 +213,13 @@ export default function Feed() {
   const [likedTopicIds, setLikedTopicIds] = useState<Set<string>>(new Set())
   const [loadingFeed, setLoadingFeed] = useState(true)
   const [feedFilter, setFeedFilter] = useState<'todos' | 'populares' | 'fixados'>('todos')
+  const [selectedCategory, setSelectedCategory] = useState<string>('todas')
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'todos' | 'com_imagem' | 'somente_texto'>(
+    'todos',
+  )
+  const [searchQuery, setSearchQuery] = useState('')
+  const [togglingPinId, setTogglingPinId] = useState<string | null>(null)
+  const [likingTopicId, setLikingTopicId] = useState<string | null>(null)
 
   // Composer State ("No que você está pensando?")
   const [composerOpen, setComposerOpen] = useState(false)
@@ -277,8 +298,42 @@ export default function Feed() {
     }
   }
 
-  // Handle Like
+  // Handle Toggle Pin
+  const handleTogglePin = async (topic: CommunityTopic) => {
+    if (togglingPinId) return
+    const wasPinned = !!topic.is_pinned
+    const nextPinned = !wasPinned
+    setTogglingPinId(topic.id)
+
+    // Optimistic UI
+    setTopics((prev) => prev.map((t) => (t.id === topic.id ? { ...t, is_pinned: nextPinned } : t)))
+
+    try {
+      await toggleTopicPin(topic.id, wasPinned)
+      toast({
+        title: nextPinned ? 'Post fixado no topo 📌' : 'Post desfixado',
+        description: nextPinned
+          ? 'Este post agora aparece em destaque no feed para todos.'
+          : 'O post voltou para a listagem padrão por ordem cronológica.',
+      })
+    } catch (err: any) {
+      // Revert
+      setTopics((prev) => prev.map((t) => (t.id === topic.id ? { ...t, is_pinned: wasPinned } : t)))
+      toast({
+        title: 'Não foi possível alterar a fixação',
+        description: err?.message || 'Apenas o autor do post ou moderadores podem fixar.',
+        variant: 'destructive',
+      })
+    } finally {
+      setTogglingPinId(null)
+    }
+  }
+
+  // Handle Like (com proteção contra double-click)
   const handleToggleLike = async (topic: CommunityTopic) => {
+    if (likingTopicId === topic.id) return
+    setLikingTopicId(topic.id)
+
     const isCurrentlyLiked = likedTopicIds.has(topic.id)
     // Optimistic UI
     const updatedSet = new Set(likedTopicIds)
@@ -290,7 +345,7 @@ export default function Feed() {
     setLikedTopicIds(updatedSet)
 
     const updatedLikesCount = isCurrentlyLiked
-      ? Math.max(0, topic.likes_count - 1)
+      ? Math.max(0, (topic.likes_count || 1) - 1)
       : (topic.likes_count || 0) + 1
 
     setTopics((prev) =>
@@ -298,7 +353,7 @@ export default function Feed() {
     )
 
     try {
-      const res = await toggleTopicLike(topic.id, topic.likes_count)
+      const res = await toggleTopicLike(topic.id, topic.likes_count || 0)
       setTopics((prev) =>
         prev.map((t) => (t.id === topic.id ? { ...t, likes_count: res.newLikes } : t)),
       )
@@ -310,6 +365,8 @@ export default function Feed() {
         variant: 'destructive',
       })
       loadFeedData()
+    } finally {
+      setLikingTopicId(null)
     }
   }
 
@@ -383,20 +440,57 @@ export default function Feed() {
 
   // Handle Add Reply
   const handleSendReply = async (topicId: string) => {
-    if (!replyInput.trim()) return
+    const text = replyInput.trim()
+    if (!text || isSubmittingReply) return
     setIsSubmittingReply(true)
+
+    // Optimistic new reply
+    const tempReply: CommunityReply = {
+      id: `temp-${Date.now()}`,
+      topic: topicId,
+      user: user?.id || 'me',
+      content: text,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      expand: {
+        user: {
+          id: user?.id || 'me',
+          name: user?.name || 'Você',
+          avatar: user?.avatar,
+          email: user?.email,
+        },
+      },
+    }
+
+    setTopicRepliesMap((prev) => ({
+      ...prev,
+      [topicId]: [...(prev[topicId] || []), tempReply],
+    }))
+
+    setTopics((prev) =>
+      prev.map((t) => (t.id === topicId ? { ...t, replies_count: (t.replies_count || 0) + 1 } : t)),
+    )
+    setReplyInput('')
+
     try {
-      await createReply(topicId, replyInput.trim())
-      setReplyInput('')
-      toast({ title: 'Comentário enviado!' })
-      // Update replies count in state
+      const created = await createReply(topicId, text)
+      toast({ title: 'Comentário enviado com sucesso! 💬' })
+      // Replace optimistic reply with real created
+      setTopicRepliesMap((prev) => ({
+        ...prev,
+        [topicId]: (prev[topicId] || []).map((r) => (r.id === tempReply.id ? created : r)),
+      }))
+    } catch (err: any) {
+      // Revert optimistic addition
+      setTopicRepliesMap((prev) => ({
+        ...prev,
+        [topicId]: (prev[topicId] || []).filter((r) => r.id !== tempReply.id),
+      }))
       setTopics((prev) =>
         prev.map((t) =>
-          t.id === topicId ? { ...t, replies_count: (t.replies_count || 0) + 1 } : t,
+          t.id === topicId ? { ...t, replies_count: Math.max(0, (t.replies_count || 1) - 1) } : t,
         ),
       )
-      loadReplies(topicId)
-    } catch (err: any) {
       toast({
         title: 'Erro ao enviar comentário',
         description: err?.message || 'Tente novamente.',
@@ -457,6 +551,42 @@ export default function Feed() {
   // Filtered Topics
   const displayedTopics = useMemo(() => {
     let list = [...topics]
+
+    // 1. Filtro principal de tipo/status (Todos, Mais curtidos, Fixados)
+    if (feedFilter === 'fixados') {
+      list = list.filter((t) => t.is_pinned)
+    }
+
+    // 2. Filtro por Categoria
+    if (selectedCategory !== 'todas') {
+      list = list.filter(
+        (t) => t.category === selectedCategory || t.expand?.category?.id === selectedCategory,
+      )
+    }
+
+    // 3. Filtro por Mídia (com imagem vs somente texto)
+    if (mediaTypeFilter === 'com_imagem') {
+      list = list.filter((t) => !!t.image_url && t.image_url.trim().length > 0)
+    } else if (mediaTypeFilter === 'somente_texto') {
+      list = list.filter((t) => !t.image_url || t.image_url.trim().length === 0)
+    }
+
+    // 4. Busca textual (título, conteúdo ou autor)
+    const q = searchQuery.trim().toLowerCase()
+    if (q) {
+      list = list.filter((t) => {
+        const titleMatch = t.title?.toLowerCase().includes(q)
+        const contentMatch = t.content?.toLowerCase().includes(q)
+        const authorMatch = t.expand?.user?.name?.toLowerCase().includes(q)
+        const tagMatch =
+          Array.isArray(t.tags) && t.tags.some((tag) => tag.toLowerCase().includes(q))
+        return titleMatch || contentMatch || authorMatch || tagMatch
+      })
+    }
+
+    // 5. Ordenação:
+    // Se "Mais curtidos", ordena por curtidas + views.
+    // Em outros casos, FIXADOS aparecem no topo primeiro, e depois ordem cronológica mais recente.
     if (feedFilter === 'populares') {
       list.sort(
         (a, b) =>
@@ -464,13 +594,26 @@ export default function Feed() {
           (b.views_count || 0) -
           ((a.likes_count || 0) + (a.views_count || 0)),
       )
-    } else if (feedFilter === 'fixados') {
-      list = list.filter((t) => t.is_pinned)
     } else {
-      list.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+      list.sort((a, b) => {
+        // Pinned posts prioritize on top (unless specifically filtered)
+        if (a.is_pinned && !b.is_pinned) return -1
+        if (!a.is_pinned && b.is_pinned) return 1
+        return new Date(b.created).getTime() - new Date(a.created).getTime()
+      })
     }
+
     return list
-  }, [topics, feedFilter])
+  }, [topics, feedFilter, selectedCategory, mediaTypeFilter, searchQuery])
+
+  // Counts for filters badges
+  const filterCounts = useMemo(() => {
+    const total = topics.length
+    const pinned = topics.filter((t) => t.is_pinned).length
+    const withImage = topics.filter((t) => !!t.image_url && t.image_url.trim().length > 0).length
+    const onlyText = total - withImage
+    return { total, pinned, withImage, onlyText }
+  }, [topics])
 
   // Sample creations
   const creations = useMemo(() => {
@@ -832,39 +975,156 @@ export default function Feed() {
           </Card>
 
           {/* =====================================================================
-              FEED HEADER BAR (Filtros & Destaque)
+              WIDGET INSTAGRAM NO MOBILE (acima do stream)
               ===================================================================== */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-            <div className="flex items-center gap-2">
-              <Flame className="w-5 h-5 text-primary" />
-              <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
-                Feed da Comunidade
-              </h2>
-              <Badge className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-extrabold px-2 py-0.5 uppercase">
-                AO VIVO
-              </Badge>
+          <div className="block lg:hidden">
+            <InstagramFeedWidget compact />
+          </div>
+
+          {/* =====================================================================
+              FEED HEADER BAR (Filtros Avançados & Busca)
+              ===================================================================== */}
+          <div className="space-y-3 pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-primary" />
+                <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                  Feed da Comunidade
+                </h2>
+                <Badge className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-extrabold px-2 py-0.5 uppercase">
+                  AO VIVO
+                </Badge>
+              </div>
+
+              {/* Status Pills (Todos, Mais curtidos, Fixados) */}
+              <div className="flex items-center gap-1.5 bg-card border border-border/80 p-1 rounded-xl self-start sm:self-auto shadow-2xs">
+                {[
+                  { id: 'todos', label: 'Todos', count: filterCounts.total },
+                  { id: 'populares', label: 'Mais curtidos' },
+                  { id: 'fixados', label: 'Fixados', count: filterCounts.pinned },
+                ].map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setFeedFilter(filter.id as any)}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-all inline-flex items-center gap-1.5 ${
+                      feedFilter === filter.id
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
+                    }`}
+                  >
+                    <span>{filter.label}</span>
+                    {filter.count !== undefined && filter.count > 0 && (
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          feedFilter === filter.id
+                            ? 'bg-white/20 text-white'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {filter.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 bg-card border border-border/80 p-1 rounded-xl self-start sm:self-auto">
-              {[
-                { id: 'todos', label: 'Todos' },
-                { id: 'populares', label: 'Mais curtidos' },
-                { id: 'fixados', label: 'Fixados' },
-              ].map((filter) => (
+            {/* Sub-Filters: Categoria, Mídia & Busca */}
+            <div className="p-3 rounded-2xl bg-card border border-border/70 space-y-2.5 shadow-2xs">
+              {/* Search + Media Types */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Input
+                    placeholder="Buscar por ideia, tema, autor ou tag..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-8.5 pl-9 pr-8 text-xs rounded-xl bg-background border-border/80 focus-visible:ring-1 focus-visible:ring-primary"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Media Type Chips */}
+                <div className="flex items-center gap-1.5 self-start sm:self-auto overflow-x-auto pb-0.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground mr-1 hidden sm:inline">
+                    Tipo:
+                  </span>
+                  {[
+                    { id: 'todos', label: 'Todos', icon: Filter },
+                    {
+                      id: 'com_imagem',
+                      label: `Com mídia (${filterCounts.withImage})`,
+                      icon: ImageIcon,
+                    },
+                    {
+                      id: 'somente_texto',
+                      label: `Texto (${filterCounts.onlyText})`,
+                      icon: FileText,
+                    },
+                  ].map((m) => {
+                    const Icon = m.icon
+                    const isActive = mediaTypeFilter === m.id
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setMediaTypeFilter(m.id as any)}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all inline-flex items-center gap-1 shrink-0 ${
+                          isActive
+                            ? 'bg-primary/10 border-primary/40 text-primary font-bold'
+                            : 'border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        <span>{m.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Category Pills Strip */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 scrollbar-none scroll-smooth">
                 <button
-                  key={filter.id}
                   type="button"
-                  onClick={() => setFeedFilter(filter.id as any)}
-                  className={`text-xs px-3 py-1 rounded-lg font-semibold transition-all ${
-                    feedFilter === filter.id
-                      ? 'bg-primary text-primary-foreground shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
+                  onClick={() => setSelectedCategory('todas')}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all shrink-0 ${
+                    selectedCategory === 'todas'
+                      ? 'bg-violet-600 text-white border-violet-600 shadow-2xs font-bold'
+                      : 'border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/60'
                   }`}
                 >
-                  {filter.label}
+                  Todas categorias
                 </button>
-              ))}
+                {categories.map((c) => {
+                  const isActive = selectedCategory === c.id
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(c.id)}
+                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all shrink-0 inline-flex items-center gap-1 ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground border-primary shadow-2xs font-bold'
+                          : 'border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <span>{c.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
@@ -923,14 +1183,43 @@ export default function Feed() {
                 const isLiked = likedTopicIds.has(topic.id)
                 const isCommentsOpen = openCommentsTopicId === topic.id
                 const topicReplies = topicRepliesMap[topic.id] || []
+                const isAuthorOrAdmin =
+                  Boolean(
+                    user?.id && (user.id === topic.user || user.id === topic.expand?.user?.id),
+                  ) || user?.email === 'midiaviva@bestcontent.ai'
+                const isPinned = !!topic.is_pinned
+                const isPinLoading = togglingPinId === topic.id
 
                 return (
                   <Card
                     key={topic.id}
-                    className="rounded-2xl border border-border/80 bg-card hover:border-primary/40 transition-all shadow-xs overflow-hidden"
+                    className={`rounded-2xl transition-all shadow-xs overflow-hidden ${
+                      isPinned
+                        ? 'border-2 border-indigo-500/40 bg-gradient-to-b from-indigo-500/5 via-card to-card ring-1 ring-indigo-500/20'
+                        : 'border border-border/80 bg-card hover:border-primary/40'
+                    }`}
                   >
+                    {isPinned && (
+                      <div className="bg-indigo-500/10 border-b border-indigo-500/20 px-4 py-1.5 flex items-center justify-between text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Pin className="w-3.5 h-3.5 fill-indigo-500/30 text-indigo-600 dark:text-indigo-400" />
+                          Post Fixado no Topo da Comunidade
+                        </span>
+                        {isAuthorOrAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePin(topic)}
+                            disabled={isPinLoading}
+                            className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
+                          >
+                            {isPinLoading ? 'Atualizando...' : 'Desfixar'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     <CardContent className="p-4 sm:p-5 space-y-3.5">
-                      {/* Post Header: Author, Badge, Date */}
+                      {/* Post Header: Author, Badge, Date + Actions Menu */}
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 border border-border/80 overflow-hidden">
@@ -956,10 +1245,10 @@ export default function Feed() {
                               >
                                 {categoryName}
                               </Badge>
-                              {topic.is_pinned && (
+                              {isPinned && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 text-[10px] font-semibold px-1.5 py-0 rounded gap-0.5"
+                                  className="bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 text-[10px] font-bold px-1.5 py-0 rounded gap-1"
                                 >
                                   <Pin className="w-2.5 h-2.5" /> Fixado
                                 </Badge>
@@ -969,17 +1258,64 @@ export default function Feed() {
                               {new Date(topic.created).toLocaleDateString('pt-BR', {
                                 day: '2-digit',
                                 month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
                               })}
                             </span>
                           </div>
                         </div>
 
-                        <Link
-                          to={`/app/community/topic/${topic.id}`}
-                          className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5 font-medium shrink-0"
-                        >
-                          Ver tópico <ArrowUpRight className="w-3 h-3" />
-                        </Link>
+                        {/* Top-Right: Actions menu (Fixar, Compartilhar, Ver Tópico) */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Link
+                            to={`/app/community/topic/${topic.id}`}
+                            className="text-[11px] text-muted-foreground hover:text-primary transition-colors hidden sm:flex items-center gap-0.5 font-medium px-2 py-1 rounded-md hover:bg-muted"
+                          >
+                            Ver tópico <ArrowUpRight className="w-3 h-3" />
+                          </Link>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                                aria-label="Mais ações do post"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl text-xs">
+                              {/* Fixar/Desfixar (visível sempre para autor/admin, e se não for autor permite tentar com feedback) */}
+                              <DropdownMenuItem
+                                onClick={() => handleTogglePin(topic)}
+                                disabled={isPinLoading}
+                                className="gap-2 cursor-pointer"
+                              >
+                                <Pin className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>{isPinned ? 'Desfixar do topo' : 'Fixar no topo'}</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => handleShareTopic(topic)}
+                                className="gap-2 cursor-pointer"
+                              >
+                                <Share2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span>Copiar link do post</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem asChild className="cursor-pointer">
+                                <Link
+                                  to={`/app/community/topic/${topic.id}`}
+                                  className="flex items-center gap-2"
+                                >
+                                  <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span>Abrir página dedicada</span>
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
 
                       {/* Post Content */}
@@ -1003,7 +1339,6 @@ export default function Feed() {
                             alt={topic.title}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              // Hide broken image
                               ;(e.target as HTMLElement).style.display = 'none'
                             }}
                           />
@@ -1012,12 +1347,13 @@ export default function Feed() {
 
                       {/* Engagement Bar: Curtir, Comentar, Compartilhar */}
                       <div className="flex items-center justify-between pt-2.5 border-t border-border/60 text-xs">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           {/* Like Button */}
                           <button
                             type="button"
                             onClick={() => handleToggleLike(topic)}
-                            className={`flex items-center gap-1.5 font-semibold transition-colors px-2 py-1 rounded-lg ${
+                            disabled={likingTopicId === topic.id}
+                            className={`flex items-center gap-1.5 font-semibold transition-all px-2.5 py-1 rounded-lg ${
                               isLiked
                                 ? 'text-rose-500 bg-rose-500/10'
                                 : 'text-muted-foreground hover:text-rose-500 hover:bg-muted/70'
@@ -1025,7 +1361,9 @@ export default function Feed() {
                             title="Curtir post"
                           >
                             <Heart
-                              className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`}
+                              className={`w-4 h-4 transition-transform active:scale-125 ${
+                                isLiked ? 'fill-rose-500 text-rose-500' : ''
+                              }`}
                             />
                             <span>{topic.likes_count || 0}</span>
                           </button>
@@ -1034,7 +1372,7 @@ export default function Feed() {
                           <button
                             type="button"
                             onClick={() => toggleCommentsSection(topic.id)}
-                            className={`flex items-center gap-1.5 font-semibold transition-colors px-2 py-1 rounded-lg ${
+                            className={`flex items-center gap-1.5 font-semibold transition-all px-2.5 py-1 rounded-lg ${
                               isCommentsOpen
                                 ? 'text-primary bg-primary/10'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
@@ -1049,7 +1387,7 @@ export default function Feed() {
                           <button
                             type="button"
                             onClick={() => handleShareTopic(topic)}
-                            className="flex items-center gap-1.5 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 px-2 py-1 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 px-2.5 py-1 rounded-lg transition-colors"
                             title="Compartilhar post"
                           >
                             <Share2 className="w-4 h-4" />
@@ -1057,50 +1395,111 @@ export default function Feed() {
                           </button>
                         </div>
 
-                        <span className="text-[11px] text-muted-foreground">
-                          {topic.views_count || 1} visualizações
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {isAuthorOrAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePin(topic)}
+                              disabled={isPinLoading}
+                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-md transition-colors inline-flex items-center gap-1 ${
+                                isPinned
+                                  ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                              }`}
+                              title={isPinned ? 'Desfixar post' : 'Fixar no topo'}
+                            >
+                              <Pin className="w-3 h-3" />
+                              <span className="hidden md:inline">
+                                {isPinned ? 'Fixado' : 'Fixar'}
+                              </span>
+                            </button>
+                          )}
+                          <span className="text-[11px] text-muted-foreground">
+                            {topic.views_count || 1} visualizações
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Threaded Comments Dropdown */}
+                      {/* =======================================================
+                          THREADED COMMENTS: Perfeito alinhamento visual
+                          ======================================================= */}
                       {isCommentsOpen && (
-                        <div className="pt-3 border-t border-border/50 space-y-3 animate-in fade-in duration-150">
-                          <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                        <div className="pt-3 border-t border-border/60 space-y-3 animate-in fade-in duration-150">
+                          {/* Replies List */}
+                          <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin">
                             {loadingReplies ? (
                               <div className="py-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                                 <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />{' '}
                                 Carregando respostas...
                               </div>
                             ) : topicReplies.length === 0 ? (
-                              <p className="text-[11px] text-muted-foreground text-center py-2">
-                                Nenhum comentário ainda. Deixe a primeira resposta!
-                              </p>
+                              <div className="text-center py-4 px-2 rounded-xl bg-muted/30 border border-dashed border-border/70">
+                                <MessageSquare className="w-6 h-6 text-muted-foreground/60 mx-auto mb-1" />
+                                <p className="text-xs font-semibold text-foreground">
+                                  Nenhum comentário ainda
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  Seja o primeiro a deixar uma resposta construtiva para a
+                                  comunidade!
+                                </p>
+                              </div>
                             ) : (
-                              topicReplies.map((reply) => (
-                                <div
-                                  key={reply.id}
-                                  className="p-2.5 rounded-xl bg-muted/50 border border-border/50 text-xs space-y-1"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-bold text-foreground">
-                                      {reply.expand?.user?.name || 'Membro da Comunidade'}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {new Date(reply.created).toLocaleDateString('pt-BR')}
-                                    </span>
+                              topicReplies.map((reply) => {
+                                const replyAuthorName =
+                                  reply.expand?.user?.name || 'Membro da Comunidade'
+                                const replyAvatar = reply.expand?.user?.avatar
+                                const replyInitials = replyAuthorName.slice(0, 2).toUpperCase()
+
+                                return (
+                                  <div
+                                    key={reply.id}
+                                    className="p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors border border-border/60 text-xs space-y-1.5"
+                                  >
+                                    {/* Aligned author header */}
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 border border-border overflow-hidden">
+                                          {replyAvatar && !replyAvatar.includes('seed=') ? (
+                                            <img
+                                              src={replyAvatar}
+                                              alt={replyAuthorName}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <span>{replyInitials}</span>
+                                          )}
+                                        </div>
+                                        <span className="font-bold text-foreground text-xs truncate">
+                                          {replyAuthorName}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] font-medium text-muted-foreground shrink-0">
+                                        {new Date(reply.created).toLocaleDateString('pt-BR', {
+                                          day: '2-digit',
+                                          month: 'short',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                      </span>
+                                    </div>
+
+                                    {/* Comment Content indented aligned with avatar text */}
+                                    <p className="text-muted-foreground/90 leading-relaxed whitespace-pre-wrap pl-8">
+                                      {reply.content}
+                                    </p>
                                   </div>
-                                  <p className="text-muted-foreground leading-relaxed">
-                                    {reply.content}
-                                  </p>
-                                </div>
-                              ))
+                                )
+                              })
                             )}
                           </div>
 
                           {/* Quick reply composer */}
                           <div className="flex items-center gap-2 pt-1">
+                            <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 border border-primary/20">
+                              {user?.name?.slice(0, 2).toUpperCase() || 'VC'}
+                            </div>
                             <Input
-                              placeholder="Escreva uma resposta construtiva..."
+                              placeholder="Escreva uma resposta construtiva (Pressione Enter para enviar)..."
                               value={replyInput}
                               onChange={(e) => setReplyInput(e.target.value)}
                               onKeyDown={(e) => {
@@ -1109,18 +1508,21 @@ export default function Feed() {
                                   handleSendReply(topic.id)
                                 }
                               }}
-                              className="text-xs h-9 rounded-xl bg-background border-border"
+                              className="text-xs h-9 rounded-xl bg-background border-border flex-1"
                             />
                             <Button
                               type="button"
                               disabled={isSubmittingReply || !replyInput.trim()}
                               onClick={() => handleSendReply(topic.id)}
-                              className="h-9 px-3 rounded-xl bg-primary text-white text-xs font-semibold shrink-0"
+                              className="h-9 px-3.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shrink-0 gap-1"
                             >
                               {isSubmittingReply ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : (
-                                <Send className="w-3.5 h-3.5" />
+                                <>
+                                  <Send className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">Enviar</span>
+                                </>
                               )}
                             </Button>
                           </div>
@@ -1375,9 +1777,14 @@ export default function Feed() {
         </div>
 
         {/* =======================================================================
-            RIGHT COLUMN (4 cols): Ranking, Comunidade Links, 500 Créditos, Datas, Dica
+            RIGHT COLUMN (4 cols): Instagram Widget, Ranking, Comunidade Links, etc.
             ======================================================================= */}
         <div className="lg:col-span-4 space-y-4">
+          {/* Widget Instagram no Desktop (fixo no topo da sidebar direita) */}
+          <div className="hidden lg:block">
+            <InstagramFeedWidget />
+          </div>
+
           {/* 1. Ranking de Setembro Card */}
           <Card className="rounded-2xl border border-border/70 bg-card shadow-xs overflow-hidden">
             <CardContent className="p-4">
