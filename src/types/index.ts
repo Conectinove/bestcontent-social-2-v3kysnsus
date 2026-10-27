@@ -130,6 +130,13 @@ export interface UserProfile {
   notif_push?: boolean
   referral_code?: string
   onboarding_completed?: boolean
+  reminder_daily_post?: boolean
+  reminder_daily_time?: string
+  reminder_weekly_summary?: boolean
+  reminder_weekly_time?: string
+  reminder_client_approval?: boolean
+  reminder_best_times?: boolean
+  reminder_channel?: 'in_app' | 'email' | 'push' | 'all'
 }
 
 export interface CategoryRecord {

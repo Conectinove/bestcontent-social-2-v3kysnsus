@@ -290,21 +290,32 @@ export async function applySmartWeeklyPlan(
   let successCount = 0
   const errors: string[] = []
 
+  // Validação segura do brandId
+  let validBrandId: string | null = plan.brandId
+  if (!validBrandId || validBrandId === 'all') {
+    validBrandId = null
+  }
+
   for (const slot of plan.slots) {
     try {
-      const fullCaption = `📅 [Plano Semanal IA: ${slot.dayOfWeek}]\n🎯 ${slot.headline}\n\n💡 GANCHO:\n${slot.hookPrompt}\n\n🏷️ Formato: ${slot.formatLabel} &middot; Objetivo: ${slot.objectiveLabel}\n\n#${slot.network} #${plan.niche.replace(/\s+/g, '')} #MidiaViva`
+      const fullCaption = `📅 [Plano Semanal IA: ${slot.dayOfWeek}]\n🎯 ${slot.headline}\n\n💡 GANCHO:\n${slot.hookPrompt}\n\n🏷️ Formato: ${slot.formatLabel} · Objetivo: ${slot.objectiveLabel}\n\n#${slot.network} #${plan.niche.replace(/\s+/g, '')} #MidiaViva`
 
-      // 1. Criar o post principal
-      const postRecord = await createPost({
-        brand: plan.brandId,
-        platform: slot.platformName,
+      const payload: Record<string, unknown> = {
+        user: userId,
+        platform: slot.platformName || 'Instagram',
         content: slot.headline,
         caption: fullCaption,
         status: 'scheduled',
-        scheduled_at: slot.isoDateTime,
+        scheduled_date: slot.isoDateTime,
         campaign_format: slot.suggestedFormat,
         tags: ['plano-semanal-ia', slot.network, slot.suggestedFormat],
-      })
+      }
+      if (validBrandId) {
+        payload.brand = validBrandId
+      }
+
+      // 1. Criar o post principal
+      const postRecord = await createPost(payload)
 
       // 2. Criar a entrada no agendamento do backend
       if (postRecord?.id) {

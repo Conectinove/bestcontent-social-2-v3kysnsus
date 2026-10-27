@@ -24,7 +24,32 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [ideas, setIdeas] = useState<IdeaCard[]>([])
   const [selectedBrandId, setSelectedBrandId] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('midiaviva_theme')
+      if (saved === 'light' || saved === 'dark') return saved
+    } catch {
+      /* intentionally ignored */
+    }
+    return 'dark'
+  })
+
+  // Sincroniza a classe 'dark' no documento raiz e salva a preferência
+  useEffect(() => {
+    try {
+      localStorage.setItem('midiaviva_theme', theme)
+    } catch {
+      /* intentionally ignored */
+    }
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+      root.classList.remove('light')
+    } else {
+      root.classList.remove('dark')
+      root.classList.add('light')
+    }
+  }, [theme])
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: '1',
@@ -83,13 +108,31 @@ export function SocialProvider({ children }: { children: ReactNode }) {
 
   const addPost = async (data: any) => {
     if (!user?.id) return null
+    // Validar se brandId informado realmente existe ou usar a marca selecionada / primeira
+    let validBrandId = data.brandId
+    if (!validBrandId || validBrandId === 'all' || !brands.some((b) => b.id === validBrandId)) {
+      if (
+        selectedBrandId &&
+        selectedBrandId !== 'all' &&
+        brands.some((b) => b.id === selectedBrandId)
+      ) {
+        validBrandId = selectedBrandId
+      } else if (brands.length > 0) {
+        validBrandId = brands[0].id
+      } else {
+        validBrandId = null
+      }
+    }
+
     const fd = new FormData()
     fd.append('user', user.id)
-    fd.append('brand', data.brandId)
+    if (validBrandId) {
+      fd.append('brand', validBrandId)
+    }
     fd.append('content', data.content || data.caption || '')
     fd.append('caption', data.caption || '')
-    fd.append('platform', data.platform)
-    fd.append('status', data.status)
+    fd.append('platform', data.platform || 'Instagram')
+    fd.append('status', data.status || 'draft')
     if (data.scheduledDate) fd.append('scheduled_date', data.scheduledDate)
     if (data.media instanceof File) fd.append('media', data.media)
     const record = await svcCreatePost(fd as any)

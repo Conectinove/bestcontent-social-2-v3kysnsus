@@ -7,6 +7,8 @@ import {
   Calendar as CalendarIcon,
   Share2,
   Sparkles,
+  Clock,
+  Trash2,
 } from 'lucide-react'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
 import { useAuth } from '@/context/AuthContext'
@@ -46,6 +48,9 @@ export default function CalendarPage() {
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
   const [smartPlanOpen, setSmartPlanOpen] = useState(false)
+  const [editingPostTimeId, setEditingPostTimeId] = useState<string | null>(null)
+  const [editTimeValue, setEditTimeValue] = useState('12:00')
+  const [editDateValue, setEditDateValue] = useState('')
 
   const load = useCallback(async () => {
     if (!user?.id) return
@@ -77,15 +82,89 @@ export default function CalendarPage() {
       return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year
     })
 
+  const handleUpdateTime = async (scheduledId: string) => {
+    try {
+      if (!editDateValue || !editTimeValue) return
+      const [h, m] = editTimeValue.split(':').map(Number)
+      const targetDate = new Date(`${editDateValue}T00:00:00`)
+      targetDate.setHours(h || 12, m || 0, 0, 0)
+      await updateScheduledPost(scheduledId, { scheduled_at: targetDate.toISOString() })
+
+      const item = scheduled.find((s) => s.id === scheduledId)
+      if (item?.post) {
+        try {
+          const { updatePost } = await import('@/services/posts')
+          await updatePost(item.post, { scheduled_date: targetDate.toISOString() })
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+
+      toast({
+        title: 'Horário Atualizado!',
+        description: `Agendamento ajustado para ${targetDate.toLocaleString('pt-BR')}.`,
+      })
+      setEditingPostTimeId(null)
+      await load()
+      setSelectedDay(null)
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao reagendar',
+        description: err?.message || 'Não foi possível alterar a data/horário.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDeleteScheduled = async (scheduledId: string) => {
+    try {
+      const { deleteScheduledPost } = await import('@/services/scheduled_posts')
+      await deleteScheduledPost(scheduledId)
+      toast({
+        title: 'Agendamento removido',
+        description: 'O post foi retirado da grade.',
+      })
+      await load()
+      setSelectedDay((prev) => (prev ? prev.filter((s) => s.id !== scheduledId) : null))
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao remover',
+        description: err?.message || 'Falha ao excluir agendamento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleDrop = async (day: number) => {
     setDragOver(null)
     if (!dragId) return
-    const newDate = new Date(year, month, day, 12, 0)
+    const currentPost = scheduled.find((s) => s.id === dragId)
+    const prevDate = currentPost ? new Date(currentPost.scheduled_at) : null
+    const hour = prevDate && !isNaN(prevDate.getTime()) ? prevDate.getHours() : 12
+    const minute = prevDate && !isNaN(prevDate.getTime()) ? prevDate.getMinutes() : 0
+    const newDate = new Date(year, month, day, hour, minute)
     try {
       await updateScheduledPost(dragId, { scheduled_at: newDate.toISOString() })
-      toast({ title: 'Reagendado!', description: `Post movido para ${day}/${month + 1}.` })
-    } catch (_) {
-      toast({ title: 'Erro', description: 'Não foi possível reagendar.', variant: 'destructive' })
+      // Se tiver o post associado, atualiza também a data do post
+      if (currentPost?.post) {
+        try {
+          const { updatePost } = await import('@/services/posts')
+          await updatePost(currentPost.post, { scheduled_date: newDate.toISOString() })
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+      toast({
+        title: 'Reagendado com sucesso!',
+        description: `Post movido para ${day}/${month + 1} às ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}.`,
+      })
+      load()
+    } catch (err: any) {
+      toast({
+        title: 'Erro',
+        description: err?.message || 'Não foi possível reagendar.',
+        variant: 'destructive',
+      })
     }
     setDragId(null)
   }
@@ -290,19 +369,83 @@ export default function CalendarPage() {
                   <p className="text-foreground leading-relaxed">
                     {post?.caption || post?.content}
                   </p>
-                  <div className="flex justify-between items-center pt-1 border-t border-border">
-                    <span className="text-[10px] text-muted-foreground">
-                      {new Date(s.scheduled_at).toLocaleString('pt-BR')}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => sharePost(post?.caption || post?.content || '')}
-                    >
-                      <Share2 className="w-3 h-3" />
-                    </Button>
-                  </div>
+                  {editingPostTimeId === s.id ? (
+                    <div className="p-2.5 rounded-xl bg-card border border-primary/40 space-y-2 mt-2">
+                      <p className="text-[11px] font-bold text-foreground">
+                        Ajustar Data e Horário:
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          value={editDateValue}
+                          onChange={(e) => setEditDateValue(e.target.value)}
+                          className="text-xs bg-muted border border-border rounded-lg px-2 py-1 text-foreground"
+                        />
+                        <input
+                          type="time"
+                          value={editTimeValue}
+                          onChange={(e) => setEditTimeValue(e.target.value)}
+                          className="text-xs bg-muted border border-border rounded-lg px-2 py-1 text-foreground"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-1.5 pt-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingPostTimeId(null)}
+                          className="h-7 text-xs rounded-lg"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpdateTime(s.id)}
+                          className="h-7 text-xs bg-primary text-white rounded-lg"
+                        >
+                          Salvar Horário
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center pt-1 border-t border-border">
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(s.scheduled_at).toLocaleString('pt-BR')}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] rounded-lg text-purple-600 dark:text-purple-400 gap-1 hover:bg-purple-500/10"
+                          onClick={() => {
+                            const d = new Date(s.scheduled_at)
+                            setEditDateValue(d.toISOString().slice(0, 10))
+                            setEditTimeValue(
+                              `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+                            )
+                            setEditingPostTimeId(s.id)
+                          }}
+                        >
+                          <Clock className="w-3 h-3" /> Trocar Horário
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => sharePost(post?.caption || post?.content || '')}
+                        >
+                          <Share2 className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDeleteScheduled(s.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}

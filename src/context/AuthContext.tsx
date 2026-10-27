@@ -14,7 +14,7 @@ interface AuthContextType {
     password: string,
   ) => Promise<{ error: string | null; fieldErrors?: FieldErrors }>
   logout: () => void
-  updateProfile: (data: Record<string, unknown>) => Promise<{ error: string | null }>
+  updateProfile: (data: Record<string, unknown> | FormData) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -42,6 +42,13 @@ function mapUser(record: any): UserProfile {
     notif_push: record.notif_push ?? false,
     referral_code: record.referral_code || 'RONALDD89L',
     onboarding_completed: record.onboarding_completed ?? false,
+    reminder_daily_post: record.reminder_daily_post ?? true,
+    reminder_daily_time: record.reminder_daily_time || '09:00',
+    reminder_weekly_summary: record.reminder_weekly_summary ?? true,
+    reminder_weekly_time: record.reminder_weekly_time || '18:00',
+    reminder_client_approval: record.reminder_client_approval ?? true,
+    reminder_best_times: record.reminder_best_times ?? true,
+    reminder_channel: record.reminder_channel || 'all',
   }
 }
 
@@ -100,11 +107,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pb.authStore.clear()
   }
 
-  const updateProfile = async (data: Record<string, unknown>) => {
+  const updateProfile = async (data: Record<string, unknown> | FormData) => {
     if (!pb.authStore.record) return { error: 'Não autenticado' }
     try {
       const updated = await pb.collection('users').update(pb.authStore.record.id, data)
       pb.authStore.save(pb.authStore.token, updated)
+      setUser(mapUser(updated))
       return { error: null }
     } catch (err) {
       return { error: getErrorMessage(err) }

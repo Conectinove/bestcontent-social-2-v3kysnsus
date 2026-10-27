@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Sparkles,
   Calendar,
@@ -70,6 +71,8 @@ export function SmartWeeklyPlanModal({
     }
   }
 
+  const navigate = useNavigate()
+
   const handleApplyAll = async () => {
     if (!plan || !user?.id) return
     setApplyingPlan(true)
@@ -77,11 +80,12 @@ export function SmartWeeklyPlanModal({
       const { successCount, errors } = await applySmartWeeklyPlan(plan, user.id)
       if (successCount > 0) {
         toast({
-          title: 'Fila Semanal Agendada com Sucesso!',
-          description: `${successCount} publicações foram criadas e adicionadas ao cronograma.`,
+          title: 'Plano Semanal Aplicado com Sucesso!',
+          description: `${successCount} publicações foram agendadas no seu calendário.`,
         })
         onSuccessPlanApplied?.()
         onOpenChange(false)
+        navigate('/app/calendar')
       } else {
         toast({
           title: 'Erro ao aplicar plano',

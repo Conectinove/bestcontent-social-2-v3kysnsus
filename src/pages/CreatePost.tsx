@@ -359,20 +359,27 @@ export default function CreatePost() {
       })
       return
     }
-    if (!brandId) {
-      toast({
-        title: 'Selecione uma Marca',
-        description: 'Escolha qual marca é responsável por esta publicação.',
-        variant: 'destructive',
-      })
-      return
+    // Assegura que brandId existe e não seja "all"
+    let resolvedBrandId = brandId
+    if (
+      !resolvedBrandId ||
+      resolvedBrandId === 'all' ||
+      !brands.some((b) => b.id === resolvedBrandId)
+    ) {
+      if (selectedBrand?.id && selectedBrand.id !== 'all') {
+        resolvedBrandId = selectedBrand.id
+      } else if (brands.length > 0) {
+        resolvedBrandId = brands[0].id
+      } else {
+        resolvedBrandId = ''
+      }
     }
 
     setSubmitting(true)
     try {
       // Criação principal através do SocialContext
       const createdRecord = await addPost({
-        brandId,
+        brandId: resolvedBrandId,
         platform,
         content: content.trim() || caption.trim(),
         caption: caption.trim(),

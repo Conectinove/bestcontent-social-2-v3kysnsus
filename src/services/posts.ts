@@ -6,11 +6,58 @@ export const getPosts = (userId: string, sort = '-created') =>
 
 export const getPost = (id: string) => pb.collection('posts').getOne(id, { expand: 'brand' })
 
+/**
+ * Normaliza e sanitiza campos de relação antes de enviar para o PocketBase.
+ * Remove IDs vazios (""), "all", ou campos de relation indefinidos para evitar:
+ * "Failed to find all relation records with the provided ids."
+ */
+function sanitizePostPayload(
+  data: Record<string, unknown> | FormData,
+): Record<string, unknown> | FormData {
+  if (data instanceof FormData) {
+    const cleaned = new FormData()
+    for (const [key, val] of data.entries()) {
+      if (typeof val === 'string') {
+        const trimmed = val.trim()
+        // Campos de relation não podem ser vazios ou 'all'
+        if (['brand', 'trend', 'campaign', 'user'].includes(key)) {
+          if (!trimmed || trimmed === 'all' || trimmed === 'undefined' || trimmed === 'null') {
+            continue
+          }
+        }
+      }
+      cleaned.append(key, val)
+    }
+    return cleaned
+  }
+
+  const cleaned: Record<string, unknown> = { ...data }
+  const relationKeys = ['brand', 'trend', 'campaign', 'user']
+
+  for (const k of relationKeys) {
+    if (k in cleaned) {
+      const v = cleaned[k]
+      if (
+        v === null ||
+        v === undefined ||
+        v === '' ||
+        v === 'all' ||
+        v === 'undefined' ||
+        v === 'null'
+      ) {
+        delete cleaned[k]
+      }
+    }
+  }
+
+  return cleaned
+}
+
 export const createPost = (data: Record<string, unknown> | FormData) =>
-  pb.collection('posts').create(data)
+  pb.collection('posts').create(sanitizePostPayload(data))
 
 export const updatePost = (id: string, data: Record<string, unknown> | FormData) =>
-  pb.collection('posts').update(id, data)
+  pb.collection('posts').update(id, sanitizePostPayload(data))
 
 export const deletePost = (id: string) => pb.collection('posts').delete(id)
 
