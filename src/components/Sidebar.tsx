@@ -250,27 +250,48 @@ export function Sidebar({
 
         {/* Navigation Menu */}
         <nav className="p-2 space-y-1 mt-2">
-          {/* Visão Geral (Central Operacional) */}
+          {/* Feed da Comunidade (Entrada Principal do Portal) */}
           <Link
             to="/app/feed"
             onClick={onMobileClose}
             className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/feed' || location.pathname === '/app/feed-comunidade'
+                ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
+                : 'text-foreground hover:bg-muted/80 hover:text-foreground',
+            )}
+            title={collapsed ? 'Feed da Comunidade' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Home className="w-4 h-4 shrink-0 text-primary" />
+              {!collapsed && <span>Feed</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-extrabold text-primary bg-primary/15 px-1.5 py-0.5 rounded tracking-wider uppercase border border-primary/30">
+                HOME
+              </span>
+            )}
+          </Link>
+
+          {/* Visão Geral (Central Operacional) */}
+          <Link
+            to="/app/visao-geral"
+            onClick={onMobileClose}
+            className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              location.pathname === '/app/feed' ||
-                location.pathname === '/app/visao-geral' ||
-                location.pathname === '/'
+              location.pathname === '/app/visao-geral'
                 ? 'bg-muted text-foreground font-bold shadow-xs'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
             title={collapsed ? 'Visão Geral' : undefined}
           >
-            <div className="grid grid-cols-2 gap-0.5 w-4 h-4 shrink-0 text-primary">
+            <div className="grid grid-cols-2 gap-0.5 w-4 h-4 shrink-0 text-muted-foreground">
               <div className="bg-current rounded-[2px]" />
               <div className="bg-current rounded-[2px]" />
               <div className="bg-current rounded-[2px]" />
               <div className="bg-current rounded-[2px]" />
             </div>
-            {!collapsed && <span>Dashboard</span>}
+            {!collapsed && <span>Visão Geral</span>}
           </Link>
 
           {/* Criar CTA button */}
@@ -486,7 +507,7 @@ export function Sidebar({
               </div>
               <div className="space-y-0.5 pl-2 mt-1">
                 <Link
-                  to="/app/feed"
+                  to="/app/visao-geral"
                   onClick={onMobileClose}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
                 >
@@ -496,7 +517,7 @@ export function Sidebar({
                     <div className="bg-current rounded-[1px]" />
                     <div className="bg-current rounded-[1px]" />
                   </div>
-                  <span>Dashboard Geral</span>
+                  <span>Visão Geral</span>
                 </Link>
                 <Link
                   to="/app/calendar"
@@ -617,20 +638,20 @@ export function Sidebar({
             </div>
           )}
 
-          {/* Comunidade */}
+          {/* Comunidade / Fórum */}
           <Link
-            to="/app/feed-comunidade"
+            to="/app/community"
             onClick={onMobileClose}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              location.pathname === '/app/feed-comunidade'
+              location.pathname.startsWith('/app/community')
                 ? 'bg-muted text-foreground font-bold shadow-xs'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
-            title={collapsed ? 'Comunidade' : undefined}
+            title={collapsed ? 'Fórum da Comunidade' : undefined}
           >
-            <Home className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Feed Criadores</span>}
+            <Users className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Fórum & Academy</span>}
           </Link>
         </nav>
       </div>

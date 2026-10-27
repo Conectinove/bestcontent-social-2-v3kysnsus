@@ -65,8 +65,9 @@ const App = () => (
               {/* Authenticated routes inside Layout */}
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
-                <Route path="/app/feed" element={<VisaoGeral />} />
-                <Route path="/app/feed-comunidade" element={<Feed />} />
+                <Route path="/app" element={<Navigate to="/app/feed" replace />} />
+                <Route path="/app/feed" element={<Feed />} />
+                <Route path="/app/feed-comunidade" element={<Navigate to="/app/feed" replace />} />
                 <Route path="/app/visao-geral" element={<VisaoGeral />} />
                 <Route path="/app/portal-cliente" element={<ClientPortal />} />
                 <Route path="/app/onboarding" element={<Onboarding />} />

@@ -1033,7 +1033,7 @@ export default function Settings() {
                     <div>
                       <h3 className="text-lg font-bold">MidiaViva</h3>
                       <p className="text-xs text-muted-foreground">
-                        Powered by BestContent AI · Versão 0.0.64
+                        Powered by BestContent AI · Versão 0.0.79
                       </p>
                     </div>
                   </div>

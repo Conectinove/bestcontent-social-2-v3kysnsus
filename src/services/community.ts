@@ -42,6 +42,57 @@ export async function getCommunityTopics(
   }
 }
 
+export async function getUserLikedTopicIds(): Promise<string[]> {
+  try {
+    const currentUserId = pb.authStore.record?.id
+    if (!currentUserId) return []
+    const records = await pb.collection('community_likes').getFullList<{ topic: string }>({
+      filter: `user = "${currentUserId}"`,
+      fields: 'topic',
+    })
+    return records.map((r) => r.topic)
+  } catch {
+    return []
+  }
+}
+
+export async function toggleTopicLike(
+  topicId: string,
+  currentLikes: number,
+): Promise<{ liked: boolean; newLikes: number }> {
+  const currentUserId = pb.authStore.record?.id
+  if (!currentUserId) {
+    throw new Error('Usuário não autenticado')
+  }
+
+  try {
+    const existing = await pb
+      .collection('community_likes')
+      .getFirstListItem(`user = "${currentUserId}" && topic = "${topicId}"`)
+    if (existing) {
+      await pb.collection('community_likes').delete(existing.id)
+      const newLikes = Math.max(0, currentLikes - 1)
+      await pb.collection('community_topics').update(topicId, { likes_count: newLikes })
+      return { liked: false, newLikes }
+    }
+  } catch {
+    // Record not found -> proceed to like
+  }
+
+  try {
+    await pb.collection('community_likes').create({
+      user: currentUserId,
+      topic: topicId,
+    })
+    const newLikes = (currentLikes || 0) + 1
+    await pb.collection('community_topics').update(topicId, { likes_count: newLikes })
+    return { liked: true, newLikes }
+  } catch {
+    // In case of conflict, re-fetch
+    return { liked: true, newLikes: (currentLikes || 0) + 1 }
+  }
+}
+
 export async function getCommunityTopic(id: string): Promise<CommunityTopic | null> {
   try {
     const topic = await pb.collection('community_topics').getOne<CommunityTopic>(id, {
@@ -62,20 +113,26 @@ export async function createCommunityTopic(data: {
   category: string
   tags?: string[]
   is_pinned?: boolean
+  image_url?: string
 }): Promise<CommunityTopic> {
   const currentUserId = pb.authStore.record?.id
   if (!currentUserId) throw new Error('Usuário não autenticado')
 
-  return await pb.collection('community_topics').create<CommunityTopic>({
+  const payload: Record<string, any> = {
     user: currentUserId,
     category: data.category,
     title: data.title,
     content: data.content,
-    tags: data.tags || [],
+    tags: data.tags || ['Feed'],
     views_count: 1,
     likes_count: 0,
     is_pinned: !!data.is_pinned,
-  })
+  }
+  if (data.image_url) {
+    payload.image_url = data.image_url
+  }
+
+  return await pb.collection('community_topics').create<CommunityTopic>(payload)
 }
 
 export async function incrementTopicViews(id: string, currentViews: number): Promise<void> {

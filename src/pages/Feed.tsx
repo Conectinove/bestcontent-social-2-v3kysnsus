@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Trophy,
@@ -13,29 +13,46 @@ import {
   Plus,
   ArrowUpRight,
   Sparkles,
-  BookOpen,
   Gift,
   Lightbulb,
-  ExternalLink,
   ChevronDown,
-  Layers,
   GraduationCap,
   Play,
   Film,
-  CheckCircle2,
+  Heart,
+  Share2,
+  Send,
+  Loader2,
+  Image as ImageIcon,
+  Flame,
+  Pin,
+  Check,
+  TrendingUp,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/hooks/use-toast'
 import { TopRankingModal } from '@/components/jornada/TopRankingModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import useRealtime from '@/hooks/use-realtime'
+import {
+  getCommunityTopics,
+  getCommunityCategories,
+  createCommunityTopic,
+  toggleTopicLike,
+  getUserLikedTopicIds,
+  getTopicReplies,
+  createReply,
+} from '@/services/community'
+import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
 
-// Community creators data exactly as seen on screenshot
+// Community creators carousel data
 interface CommunityCreator {
   id: string
   name: string
@@ -165,6 +182,7 @@ export default function Feed() {
   const { user } = useAuth()
   const { posts, brands } = useSocial()
 
+  // Modals state
   const [rankingModalOpen, setRankingModalOpen] = useState(false)
   const [rankingExpanded, setRankingExpanded] = useState(true)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -174,6 +192,232 @@ export default function Feed() {
   // Scroll ref for community carousel
   const communityCarouselRef = useRef<HTMLDivElement>(null)
   const creationsCarouselRef = useRef<HTMLDivElement>(null)
+
+  // Feed Live State
+  const [topics, setTopics] = useState<CommunityTopic[]>([])
+  const [categories, setCategories] = useState<CommunityCategory[]>([])
+  const [likedTopicIds, setLikedTopicIds] = useState<Set<string>>(new Set())
+  const [loadingFeed, setLoadingFeed] = useState(true)
+  const [feedFilter, setFeedFilter] = useState<'todos' | 'populares' | 'fixados'>('todos')
+
+  // Composer State ("No que você está pensando?")
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [composerTitle, setComposerTitle] = useState('')
+  const [composerContent, setComposerContent] = useState('')
+  const [composerCategory, setComposerCategory] = useState('')
+  const [composerImage, setComposerImage] = useState('')
+  const [isPublishing, setIsPublishing] = useState(false)
+
+  // Quick Comment per post
+  const [openCommentsTopicId, setOpenCommentsTopicId] = useState<string | null>(null)
+  const [topicRepliesMap, setTopicRepliesMap] = useState<Record<string, CommunityReply[]>>({})
+  const [loadingReplies, setLoadingReplies] = useState(false)
+  const [replyInput, setReplyInput] = useState('')
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false)
+
+  // Load feed data from PocketBase
+  const loadFeedData = async () => {
+    try {
+      const [topicsData, categoriesData, userLikes] = await Promise.all([
+        getCommunityTopics(),
+        getCommunityCategories(),
+        getUserLikedTopicIds(),
+      ])
+      setTopics(topicsData)
+      setCategories(categoriesData)
+      setLikedTopicIds(new Set(userLikes))
+      if (categoriesData.length > 0 && !composerCategory) {
+        setComposerCategory(categoriesData[0].id)
+      }
+    } catch {
+      // Graceful fallback
+    } finally {
+      setLoadingFeed(false)
+    }
+  }
+
+  useEffect(() => {
+    loadFeedData()
+  }, [])
+
+  // Realtime updates
+  useRealtime('community_topics', () => {
+    loadFeedData()
+  })
+  useRealtime('community_replies', () => {
+    if (openCommentsTopicId) {
+      loadReplies(openCommentsTopicId)
+    }
+  })
+  useRealtime('community_likes', () => {
+    getUserLikedTopicIds().then((likes) => setLikedTopicIds(new Set(likes)))
+  })
+
+  // Load replies for a topic
+  const loadReplies = async (topicId: string) => {
+    setLoadingReplies(true)
+    try {
+      const replies = await getTopicReplies(topicId)
+      setTopicRepliesMap((prev) => ({ ...prev, [topicId]: replies }))
+    } catch {
+      // Silent error
+    } finally {
+      setLoadingReplies(false)
+    }
+  }
+
+  const toggleCommentsSection = (topicId: string) => {
+    if (openCommentsTopicId === topicId) {
+      setOpenCommentsTopicId(null)
+    } else {
+      setOpenCommentsTopicId(topicId)
+      if (!topicRepliesMap[topicId]) {
+        loadReplies(topicId)
+      }
+    }
+  }
+
+  // Handle Like
+  const handleToggleLike = async (topic: CommunityTopic) => {
+    const isCurrentlyLiked = likedTopicIds.has(topic.id)
+    // Optimistic UI
+    const updatedSet = new Set(likedTopicIds)
+    if (isCurrentlyLiked) {
+      updatedSet.delete(topic.id)
+    } else {
+      updatedSet.add(topic.id)
+    }
+    setLikedTopicIds(updatedSet)
+
+    const updatedLikesCount = isCurrentlyLiked
+      ? Math.max(0, topic.likes_count - 1)
+      : (topic.likes_count || 0) + 1
+
+    setTopics((prev) =>
+      prev.map((t) => (t.id === topic.id ? { ...t, likes_count: updatedLikesCount } : t)),
+    )
+
+    try {
+      const res = await toggleTopicLike(topic.id, topic.likes_count)
+      setTopics((prev) =>
+        prev.map((t) => (t.id === topic.id ? { ...t, likes_count: res.newLikes } : t)),
+      )
+    } catch {
+      // Revert if error
+      toast({
+        title: 'Faça login para interagir',
+        description: 'É necessário estar conectado para curtir posts da comunidade.',
+        variant: 'destructive',
+      })
+      loadFeedData()
+    }
+  }
+
+  // Handle Create Post via Composer
+  const handlePublishPost = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!composerContent.trim()) {
+      toast({
+        title: 'Mensagem vazia',
+        description: 'Digite o conteúdo do seu post antes de publicar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsPublishing(true)
+    try {
+      // Derive a nice title from first line if empty
+      const derivedTitle =
+        composerTitle.trim() ||
+        composerContent.slice(0, 60).split('\n')[0] ||
+        'Novo post na comunidade'
+
+      const catId = composerCategory || categories[0]?.id || ''
+
+      const created = await createCommunityTopic({
+        title: derivedTitle,
+        content: composerContent.trim(),
+        category: catId,
+        tags: ['Feed', 'Comunidade'],
+        image_url: composerImage.trim() || undefined,
+      })
+
+      toast({
+        title: 'Post publicado com sucesso! 🚀',
+        description: 'Sua ideia agora está visível no feed principal da comunidade.',
+      })
+
+      // Reset
+      setComposerTitle('')
+      setComposerContent('')
+      setComposerImage('')
+      setComposerOpen(false)
+
+      // Prepend optimistic
+      setTopics((prev) => [
+        {
+          ...created,
+          expand: {
+            user: {
+              id: user?.id || 'me',
+              name: user?.name || 'Você',
+              avatar: user?.avatar,
+            },
+            category: categories.find((c) => c.id === catId),
+          },
+          replies_count: 0,
+        },
+        ...prev,
+      ])
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao publicar',
+        description: err?.message || 'Tente novamente em instantes.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
+  // Handle Add Reply
+  const handleSendReply = async (topicId: string) => {
+    if (!replyInput.trim()) return
+    setIsSubmittingReply(true)
+    try {
+      await createReply(topicId, replyInput.trim())
+      setReplyInput('')
+      toast({ title: 'Comentário enviado!' })
+      // Update replies count in state
+      setTopics((prev) =>
+        prev.map((t) =>
+          t.id === topicId ? { ...t, replies_count: (t.replies_count || 0) + 1 } : t,
+        ),
+      )
+      loadReplies(topicId)
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao enviar comentário',
+        description: err?.message || 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmittingReply(false)
+    }
+  }
+
+  // Handle Share
+  const handleShareTopic = (topic: CommunityTopic) => {
+    const url = `${window.location.origin}/app/community/topic/${topic.id}`
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url)
+      toast({
+        title: 'Link copiado!',
+        description: 'O link deste post foi copiado para sua área de transferência.',
+      })
+    }
+  }
 
   const scrollCarousel = (
     ref: React.RefObject<HTMLDivElement | null>,
@@ -210,7 +454,25 @@ export default function Feed() {
     }
   }, [posts])
 
-  // Sample or real creations
+  // Filtered Topics
+  const displayedTopics = useMemo(() => {
+    let list = [...topics]
+    if (feedFilter === 'populares') {
+      list.sort(
+        (a, b) =>
+          (b.likes_count || 0) +
+          (b.views_count || 0) -
+          ((a.likes_count || 0) + (a.views_count || 0)),
+      )
+    } else if (feedFilter === 'fixados') {
+      list = list.filter((t) => t.is_pinned)
+    } else {
+      list.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+    }
+    return list
+  }, [topics, feedFilter])
+
+  // Sample creations
   const creations = useMemo(() => {
     return [
       {
@@ -219,7 +481,7 @@ export default function Feed() {
         badgeColor: 'bg-white/90 text-slate-900',
         ratio: '620:877',
         title: 'Mudar de Curso: O Começo de Algo Incrível',
-        subtext: 'SDFSD — A decodificação do seu sucesso começa aqui',
+        subtext: 'A decodificação do seu sucesso começa aqui',
         date: 'cerca de 1 mês',
         image:
           'https://img.usecurling.com/p/620/877?q=cyberpunk%20ai%20man%20futuristic%20violet&color=purple',
@@ -263,7 +525,7 @@ export default function Feed() {
   }, [])
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in">
+    <div className="space-y-6 pb-12 animate-fade-in text-foreground">
       {/* =========================================================================
           TOP ROW: 2 Cards (Criador Dedicado & Missões)
           ========================================================================= */}
@@ -272,36 +534,33 @@ export default function Feed() {
         <Card className="rounded-2xl border border-border/70 bg-card shadow-xs hover:shadow-md transition-shadow">
           <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0 flex-1">
-              {/* Trophy icon with level badge */}
               <div className="relative shrink-0">
-                <div className="w-12 h-12 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground border border-border">
-                  <Trophy className="w-6 h-6 text-foreground/70" />
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                  <Trophy className="w-6 h-6 text-primary" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-violet-900 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
                   4
                 </div>
               </div>
 
-              {/* Title and Progress */}
               <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-bold text-sm text-foreground truncate">Criador Dedicado</h3>
                   <span className="text-xs font-semibold text-muted-foreground shrink-0">
-                    345/600
+                    345/600 XP
                   </span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-primary h-full rounded-full transition-all duration-500"
+                    className="bg-gradient-to-r from-primary to-purple-500 h-full rounded-full transition-all duration-500"
                     style={{ width: `${Math.round((345 / 600) * 100)}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Streak Counter */}
             <div className="pl-4 border-l border-border/60 flex items-center gap-2 shrink-0">
-              <Zap className="w-4 h-4 text-muted-foreground fill-transparent stroke-[2.2]" />
+              <Zap className="w-4 h-4 text-amber-500 fill-amber-500/20 stroke-[2.2]" />
               <div className="text-left">
                 <p className="text-lg font-black leading-none text-foreground">1</p>
                 <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
@@ -324,9 +583,11 @@ export default function Feed() {
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  MISSÕES
+                  MISSÕES SEMANAIS
                 </p>
-                <p className="text-base font-bold text-foreground">0/8 completas</p>
+                <p className="text-base font-bold text-foreground">
+                  0/8 completas &middot; Ganhe XP
+                </p>
               </div>
             </div>
 
@@ -338,7 +599,7 @@ export default function Feed() {
       </div>
 
       {/* =========================================================================
-          COMMUNITY CAROUSEL: "Últimos posts da comunidade"
+          COMMUNITY CAROUSEL: "Criadores em Destaque"
           ========================================================================= */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -382,9 +643,8 @@ export default function Feed() {
               onClick={() => navigate('/app/community')}
               className="flex flex-col items-center gap-1.5 shrink-0 w-20 sm:w-22 cursor-pointer group text-center"
             >
-              {/* Circular Avatar / Image with ring */}
               <div className="relative">
-                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2px] bg-gradient-to-tr from-primary via-purple-400 to-pink-500 group-hover:scale-105 transition-transform duration-300">
+                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2px] bg-gradient-to-tr from-primary via-purple-500 to-pink-500 group-hover:scale-105 transition-transform duration-300">
                   <div className="w-full h-full rounded-full overflow-hidden bg-muted border-2 border-background">
                     <img
                       src={creator.image}
@@ -394,7 +654,6 @@ export default function Feed() {
                   </div>
                 </div>
 
-                {/* Badge with initials */}
                 <div
                   className={`absolute -bottom-1 -right-0.5 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full ring-2 ring-background ${creator.avatarColor}`}
                 >
@@ -402,7 +661,6 @@ export default function Feed() {
                 </div>
               </div>
 
-              {/* Creator Name */}
               <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground line-clamp-1 w-full text-center transition-colors">
                 {creator.name}
               </span>
@@ -416,150 +674,469 @@ export default function Feed() {
           ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* =======================================================================
-            LEFT COLUMN (8 cols): Dashboard Header, Stats, Creations, Suggestions, Academy
+            LEFT COLUMN (8 cols): Composer, Feed Posts, Stats, Creations, Suggestions
             ======================================================================= */}
-        <div className="lg:col-span-8 space-y-7">
-          {/* Dashboard Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-transparent pt-1">
-            <div className="flex items-center gap-3">
-              {/* Logo / Brand Icon */}
-              <div className="w-10 h-10 rounded-xl bg-purple-900/80 text-white flex items-center justify-center font-bold text-base shadow-sm ring-1 ring-white/10">
-                M
+        <div className="lg:col-span-8 space-y-6">
+          {/* =====================================================================
+              COMPOSER RÁPIDO ("No que você está pensando?")
+              ===================================================================== */}
+          <Card className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 shadow-md overflow-hidden">
+            <CardContent className="p-4 sm:p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/30 overflow-hidden">
+                  {user?.avatar && !user.avatar.includes('seed=') ? (
+                    <img
+                      src={user.avatar}
+                      alt={user?.name || ''}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{user?.name?.slice(0, 2).toUpperCase() || 'VC'}</span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setComposerOpen(true)}
+                  className="flex-1 text-left px-4 py-3 rounded-xl bg-muted/60 hover:bg-muted text-xs sm:text-sm text-muted-foreground font-medium transition-colors border border-border/60 hover:border-primary/40 cursor-text flex items-center justify-between"
+                >
+                  <span>No que você está pensando, {user?.name?.split(' ')[0] || 'criador'}?</span>
+                  <Sparkles className="w-4 h-4 text-primary shrink-0 opacity-70" />
+                </button>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-extrabold text-foreground tracking-tight">
-                    Dashboard
-                  </h1>
+
+              {composerOpen && (
+                <form
+                  onSubmit={handlePublishPost}
+                  className="space-y-3 pt-2 border-t border-border/60 animate-in fade-in duration-200"
+                >
+                  <div>
+                    <Input
+                      placeholder="Título ou tema do post (opcional)"
+                      value={composerTitle}
+                      onChange={(e) => setComposerTitle(e.target.value)}
+                      className="text-xs sm:text-sm font-semibold rounded-xl bg-background border-border"
+                    />
+                  </div>
+
+                  <div>
+                    <Textarea
+                      placeholder="Compartilhe seu insight, novidade, case ou tire uma dúvida com os criadores do MidiaViva..."
+                      value={composerContent}
+                      onChange={(e) => setComposerContent(e.target.value)}
+                      rows={4}
+                      required
+                      className="text-xs sm:text-sm rounded-xl resize-none bg-background border-border"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                        Categoria
+                      </label>
+                      <select
+                        value={composerCategory}
+                        onChange={(e) => setComposerCategory(e.target.value)}
+                        className="w-full h-9 rounded-xl text-xs bg-background border border-border px-3 font-medium text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                        URL de Imagem (opcional)
+                      </label>
+                      <Input
+                        placeholder="https://... (link da imagem)"
+                        value={composerImage}
+                        onChange={(e) => setComposerImage(e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-background border-border"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setComposerOpen(false)
+                        setComposerTitle('')
+                        setComposerContent('')
+                        setComposerImage('')
+                      }}
+                      className="text-xs h-8 text-muted-foreground hover:text-foreground"
+                    >
+                      Cancelar
+                    </Button>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="submit"
+                        disabled={isPublishing || !composerContent.trim()}
+                        className="rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold gap-1.5 h-9 px-4 shadow-sm"
+                      >
+                        {isPublishing ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Publicando...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5" /> Publicar no Feed
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              )}
+
+              {!composerOpen && (
+                <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setComposerOpen(true)}
+                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      <span>Nova Ideia</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setComposerOpen(true)}
+                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5 text-purple-500" />
+                      <span>Mídia</span>
+                    </button>
+                  </div>
+
                   <button
-                    onClick={() => setHelpOpen(true)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title="Ajuda"
+                    type="button"
+                    onClick={() => setComposerOpen(true)}
+                    className="text-xs font-semibold text-primary hover:underline"
                   >
-                    <HelpCircle className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setFeedbackOpen(true)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title="Comentários"
-                  >
-                    <MessageSquare className="w-4 h-4" />
+                    Abrir editor completo →
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Trabalhando em{' '}
-                  <span className="font-semibold text-foreground">
-                    {activeBrand.name || 'MudarCurso'}
-                  </span>
-                </p>
-              </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* =====================================================================
+              FEED HEADER BAR (Filtros & Destaque)
+              ===================================================================== */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <div className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                Feed da Comunidade
+              </h2>
+              <Badge className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-extrabold px-2 py-0.5 uppercase">
+                AO VIVO
+              </Badge>
             </div>
 
-            {/* Actions: Agendamento & + Criar Post */}
-            <div className="flex items-center gap-2.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/app/calendar')}
-                className="rounded-xl border-border/80 text-xs font-semibold gap-1.5 h-9 px-3.5 hover:bg-muted"
-              >
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                Agendamento
-              </Button>
-
-              <Button
-                size="sm"
-                onClick={() => navigate('/app/content/new')}
-                className="rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold gap-1.5 h-9 px-4 shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Criar Post
-              </Button>
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1.5 bg-card border border-border/80 p-1 rounded-xl self-start sm:self-auto">
+              {[
+                { id: 'todos', label: 'Todos' },
+                { id: 'populares', label: 'Mais curtidos' },
+                { id: 'fixados', label: 'Fixados' },
+              ].map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setFeedFilter(filter.id as any)}
+                  className={`text-xs px-3 py-1 rounded-lg font-semibold transition-all ${
+                    feedFilter === filter.id
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Stats Grid: 4 Columns (POSTS, PAUTAS, AGENDADOS, CRÉDITOS IA) */}
-          <Card className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-xs">
-            <CardContent className="p-0">
-              <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border/60">
-                {/* 1. POSTS */}
-                <div className="p-5 space-y-1">
-                  <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                    POSTS
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-black text-foreground">{stats.posts}</span>
-                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      {stats.postsGrowth}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 2. PAUTAS */}
-                <div className="p-5 space-y-1">
-                  <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                    PAUTAS
-                  </p>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-black text-foreground">{stats.pautas}</span>
-                    <span className="text-xs font-medium text-muted-foreground">/ 30 dias</span>
-                  </div>
-                </div>
-
-                {/* 3. AGENDADOS */}
-                <div className="p-5 space-y-1">
-                  <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                    AGENDADOS
-                  </p>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-black text-foreground">{stats.agendados}</span>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      / Para esta semana
-                    </span>
-                  </div>
-                </div>
-
-                {/* 4. CRÉDITOS IA */}
-                <div className="p-5 space-y-2">
-                  <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                    CRÉDITOS IA
-                  </p>
-                  <div>
-                    <span className="text-3xl font-black text-foreground">
-                      {stats.creditos.toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-                  {/* Purple progress bar */}
-                  <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-primary h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${Math.round((stats.creditos / stats.maxCreditos) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <button
-                      onClick={() =>
-                        toast({
-                          title: 'Recarga de créditos',
-                          description: 'Seus créditos são renovados mensalmente no plano Pro.',
-                        })
-                      }
-                      className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5"
-                    >
-                      + Recarregar
-                    </button>
-                  </div>
-                </div>
+          {/* =====================================================================
+              POSTS STREAM (Com persistência no PocketBase e engajamento)
+              ===================================================================== */}
+          <div className="space-y-4">
+            {loadingFeed ? (
+              // Skeletons de carregamento elegantes
+              <div className="space-y-4">
+                {[1, 2, 3].map((n) => (
+                  <Card
+                    key={n}
+                    className="rounded-2xl border border-border/70 p-5 space-y-3.5 bg-card"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-10 h-10 rounded-full" />
+                      <div className="space-y-1.5 flex-1">
+                        <Skeleton className="w-32 h-4" />
+                        <Skeleton className="w-20 h-3" />
+                      </div>
+                    </div>
+                    <Skeleton className="w-3/4 h-5" />
+                    <Skeleton className="w-full h-16" />
+                    <div className="flex items-center gap-4 pt-2">
+                      <Skeleton className="w-16 h-4" />
+                      <Skeleton className="w-16 h-4" />
+                      <Skeleton className="w-16 h-4" />
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            ) : displayedTopics.length === 0 ? (
+              // Empty State amigável
+              <Card className="rounded-2xl border border-dashed border-border p-8 sm:p-12 text-center bg-card/60">
+                <Sparkles className="w-10 h-10 text-primary/60 mx-auto mb-3" />
+                <h3 className="font-bold text-base text-foreground">
+                  Nenhum post encontrado neste filtro
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                  Seja o primeiro a compartilhar uma ideia com a comunidade de criadores do
+                  MidiaViva!
+                </p>
+                <Button
+                  onClick={() => setComposerOpen(true)}
+                  className="mt-4 rounded-xl bg-primary text-white text-xs font-semibold gap-1.5"
+                >
+                  <Plus className="w-4 h-4" /> Criar Primeiro Post
+                </Button>
+              </Card>
+            ) : (
+              displayedTopics.map((topic) => {
+                const authorName = topic.expand?.user?.name || 'Criador MidiaViva'
+                const authorAvatar = topic.expand?.user?.avatar
+                const categoryName = topic.expand?.category?.name || 'Geral'
+                const isLiked = likedTopicIds.has(topic.id)
+                const isCommentsOpen = openCommentsTopicId === topic.id
+                const topicReplies = topicRepliesMap[topic.id] || []
+
+                return (
+                  <Card
+                    key={topic.id}
+                    className="rounded-2xl border border-border/80 bg-card hover:border-primary/40 transition-all shadow-xs overflow-hidden"
+                  >
+                    <CardContent className="p-4 sm:p-5 space-y-3.5">
+                      {/* Post Header: Author, Badge, Date */}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 border border-border/80 overflow-hidden">
+                            {authorAvatar && !authorAvatar.includes('seed=') ? (
+                              <img
+                                src={authorAvatar}
+                                alt={authorName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span>{authorName.slice(0, 2).toUpperCase()}</span>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs sm:text-sm text-foreground truncate">
+                                {authorName}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="bg-primary/10 text-primary border-primary/20 text-[10px] font-semibold px-1.5 py-0 rounded"
+                              >
+                                {categoryName}
+                              </Badge>
+                              {topic.is_pinned && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 text-[10px] font-semibold px-1.5 py-0 rounded gap-0.5"
+                                >
+                                  <Pin className="w-2.5 h-2.5" /> Fixado
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(topic.created).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'short',
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Link
+                          to={`/app/community/topic/${topic.id}`}
+                          className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5 font-medium shrink-0"
+                        >
+                          Ver tópico <ArrowUpRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+
+                      {/* Post Content */}
+                      <div className="space-y-1.5">
+                        <Link
+                          to={`/app/community/topic/${topic.id}`}
+                          className="block font-extrabold text-sm sm:text-base text-foreground hover:text-primary transition-colors leading-snug"
+                        >
+                          {topic.title}
+                        </Link>
+                        <p className="text-xs sm:text-sm text-muted-foreground/90 leading-relaxed whitespace-pre-wrap">
+                          {topic.content}
+                        </p>
+                      </div>
+
+                      {/* Optional Post Image */}
+                      {topic.image_url && (
+                        <div className="rounded-xl overflow-hidden border border-border/70 max-h-96 bg-muted">
+                          <img
+                            src={topic.image_url}
+                            alt={topic.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Hide broken image
+                              ;(e.target as HTMLElement).style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Engagement Bar: Curtir, Comentar, Compartilhar */}
+                      <div className="flex items-center justify-between pt-2.5 border-t border-border/60 text-xs">
+                        <div className="flex items-center gap-4">
+                          {/* Like Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleLike(topic)}
+                            className={`flex items-center gap-1.5 font-semibold transition-colors px-2 py-1 rounded-lg ${
+                              isLiked
+                                ? 'text-rose-500 bg-rose-500/10'
+                                : 'text-muted-foreground hover:text-rose-500 hover:bg-muted/70'
+                            }`}
+                            title="Curtir post"
+                          >
+                            <Heart
+                              className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`}
+                            />
+                            <span>{topic.likes_count || 0}</span>
+                          </button>
+
+                          {/* Comment Button */}
+                          <button
+                            type="button"
+                            onClick={() => toggleCommentsSection(topic.id)}
+                            className={`flex items-center gap-1.5 font-semibold transition-colors px-2 py-1 rounded-lg ${
+                              isCommentsOpen
+                                ? 'text-primary bg-primary/10'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
+                            }`}
+                            title="Ver ou adicionar comentários"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            <span>{topic.replies_count || 0}</span>
+                          </button>
+
+                          {/* Share Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleShareTopic(topic)}
+                            className="flex items-center gap-1.5 font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 px-2 py-1 rounded-lg transition-colors"
+                            title="Compartilhar post"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            <span className="hidden sm:inline">Compartilhar</span>
+                          </button>
+                        </div>
+
+                        <span className="text-[11px] text-muted-foreground">
+                          {topic.views_count || 1} visualizações
+                        </span>
+                      </div>
+
+                      {/* Threaded Comments Dropdown */}
+                      {isCommentsOpen && (
+                        <div className="pt-3 border-t border-border/50 space-y-3 animate-in fade-in duration-150">
+                          <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                            {loadingReplies ? (
+                              <div className="py-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />{' '}
+                                Carregando respostas...
+                              </div>
+                            ) : topicReplies.length === 0 ? (
+                              <p className="text-[11px] text-muted-foreground text-center py-2">
+                                Nenhum comentário ainda. Deixe a primeira resposta!
+                              </p>
+                            ) : (
+                              topicReplies.map((reply) => (
+                                <div
+                                  key={reply.id}
+                                  className="p-2.5 rounded-xl bg-muted/50 border border-border/50 text-xs space-y-1"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-foreground">
+                                      {reply.expand?.user?.name || 'Membro da Comunidade'}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {new Date(reply.created).toLocaleDateString('pt-BR')}
+                                    </span>
+                                  </div>
+                                  <p className="text-muted-foreground leading-relaxed">
+                                    {reply.content}
+                                  </p>
+                                </div>
+                              ))
+                            )}
+                          </div>
+
+                          {/* Quick reply composer */}
+                          <div className="flex items-center gap-2 pt-1">
+                            <Input
+                              placeholder="Escreva uma resposta construtiva..."
+                              value={replyInput}
+                              onChange={(e) => setReplyInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleSendReply(topic.id)
+                                }
+                              }}
+                              className="text-xs h-9 rounded-xl bg-background border-border"
+                            />
+                            <Button
+                              type="button"
+                              disabled={isSubmittingReply || !replyInput.trim()}
+                              onClick={() => handleSendReply(topic.id)}
+                              className="h-9 px-3 rounded-xl bg-primary text-white text-xs font-semibold shrink-0"
+                            >
+                              {isSubmittingReply ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Send className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
 
           {/* =======================================================================
               SECTION: "Suas Últimas Criações"
               ======================================================================= */}
-          <div className="space-y-3.5">
+          <div className="space-y-3.5 pt-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
                 Suas Últimas Criações
@@ -585,7 +1162,6 @@ export default function Feed() {
                     onClick={() => navigate('/app/library')}
                     className="w-72 sm:w-80 shrink-0 rounded-2xl overflow-hidden border border-border/80 bg-card hover:shadow-lg hover:border-primary/40 transition-all cursor-pointer group flex flex-col"
                   >
-                    {/* Media container */}
                     <div className="relative aspect-[4/3] bg-muted overflow-hidden">
                       <img
                         src={creation.image}
@@ -593,10 +1169,8 @@ export default function Feed() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
 
-                      {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-                      {/* Badge Type (FLYER / FACEBOOK / etc.) */}
                       <div className="absolute top-3 right-3">
                         <span className="inline-flex items-center gap-1 bg-white/95 text-slate-900 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider backdrop-blur-xs">
                           {creation.isVideo && <Film className="w-3 h-3 text-slate-900" />}
@@ -604,7 +1178,6 @@ export default function Feed() {
                         </span>
                       </div>
 
-                      {/* Aspect Ratio / user pill */}
                       <div className="absolute bottom-3 left-3 flex items-center gap-2">
                         <span className="bg-black/75 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-md font-mono font-medium">
                           {creation.ratio}
@@ -616,7 +1189,6 @@ export default function Feed() {
                         )}
                       </div>
 
-                      {/* Play button overlay for video */}
                       {creation.isVideo && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center group-hover:scale-110 group-hover:bg-primary transition-all">
@@ -626,7 +1198,6 @@ export default function Feed() {
                       )}
                     </div>
 
-                    {/* Meta info */}
                     <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-2">
                       <div>
                         <h4 className="font-bold text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors">
@@ -652,7 +1223,7 @@ export default function Feed() {
           {/* =======================================================================
               SECTION: "Sugestões para Você"
               ======================================================================= */}
-          <div className="space-y-3.5">
+          <div className="space-y-3.5 pt-2">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
                 Sugestões para Você
@@ -665,10 +1236,8 @@ export default function Feed() {
               </button>
             </div>
 
-            {/* Rich Suggestion Card */}
             <Card className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs hover:shadow-md transition-shadow">
               <CardContent className="p-5 space-y-4">
-                {/* Badges row */}
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-semibold text-xs gap-1">
                     🔥 trends
@@ -684,7 +1253,6 @@ export default function Feed() {
                   </Badge>
                 </div>
 
-                {/* Title & Description */}
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
                     IA e o Futuro da Sua Carreira: Prepare-se Agora!
@@ -696,7 +1264,6 @@ export default function Feed() {
                   </p>
                 </div>
 
-                {/* Tip highlight box */}
                 <div className="p-3.5 rounded-xl bg-muted/60 border border-border/70 text-xs space-y-1">
                   <p className="font-semibold text-foreground flex items-center gap-1.5">
                     💡 Dica do SOCI: Use slides visuais e diretos
@@ -707,7 +1274,6 @@ export default function Feed() {
                   </p>
                 </div>
 
-                {/* Double XP callout banner */}
                 <div className="p-3 rounded-xl bg-purple-500/10 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
@@ -731,7 +1297,7 @@ export default function Feed() {
           {/* =======================================================================
               SECTION: "Aprenda com a Academy"
               ======================================================================= */}
-          <div className="space-y-3.5">
+          <div className="space-y-3.5 pt-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-primary" />
@@ -748,7 +1314,6 @@ export default function Feed() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Academy Card 1 */}
               <Card
                 onClick={() => navigate('/app/community')}
                 className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 hover:shadow-md hover:border-primary/40 transition-all cursor-pointer group space-y-3"
@@ -776,7 +1341,6 @@ export default function Feed() {
                 </div>
               </Card>
 
-              {/* Academy Card 2 */}
               <Card
                 onClick={() => navigate('/app/community')}
                 className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 hover:shadow-md hover:border-primary/40 transition-all cursor-pointer group space-y-3"
@@ -811,7 +1375,7 @@ export default function Feed() {
         </div>
 
         {/* =======================================================================
-            RIGHT COLUMN (4 cols): Ranking, Comunidade, 500 Créditos, Datas, Dica
+            RIGHT COLUMN (4 cols): Ranking, Comunidade Links, 500 Créditos, Datas, Dica
             ======================================================================= */}
         <div className="lg:col-span-4 space-y-4">
           {/* 1. Ranking de Setembro Card */}
@@ -824,7 +1388,7 @@ export default function Feed() {
                 <div className="flex items-center gap-2.5">
                   <Trophy className="w-4 h-4 text-amber-500" />
                   <span className="text-xs sm:text-sm font-bold text-foreground">
-                    Ranking de Setembro
+                    Ranking de Criadores
                   </span>
                 </div>
 
@@ -863,25 +1427,53 @@ export default function Feed() {
             </CardContent>
           </Card>
 
-          {/* 2. Comunidade Section */}
+          {/* 2. Atalho para Central Operacional (Visão Geral) */}
+          <Card className="rounded-2xl border border-border/70 bg-card shadow-xs">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  <h3 className="font-bold text-sm text-foreground">Central Operacional</h3>
+                </div>
+                <Link
+                  to="/app/visao-geral"
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Abrir →
+                </Link>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Acompanhe o status das suas marcas, agendamentos dos próximos 7 dias e métricas
+                consolidadas.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app/visao-geral')}
+                className="w-full rounded-xl text-xs font-semibold h-8 border-border"
+              >
+                Ir para Visão Geral
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* 3. Comunidade Top Highlights */}
           <Card className="rounded-2xl border border-border/70 bg-card shadow-xs">
             <CardContent className="p-4 space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-primary" />
-                  <h3 className="font-bold text-sm text-foreground">Comunidade</h3>
+                  <h3 className="font-bold text-sm text-foreground">Destaques da Comunidade</h3>
                 </div>
-                <button
-                  onClick={() => navigate('/app/community')}
+                <Link
+                  to="/app/community"
                   className="text-xs font-semibold text-primary hover:underline flex items-center gap-0.5"
                 >
-                  Ver mais →
-                </button>
+                  Fórum →
+                </Link>
               </div>
 
-              {/* Feed items */}
               <div className="space-y-3">
-                {/* Item 1 */}
                 <div
                   onClick={() => navigate('/app/community')}
                   className="space-y-1.5 cursor-pointer group"
@@ -896,7 +1488,6 @@ export default function Feed() {
                   </p>
                 </div>
 
-                {/* Item 2 */}
                 <div
                   onClick={() => navigate('/app/community')}
                   className="space-y-1.5 cursor-pointer group pt-2 border-t border-border/50"
@@ -911,7 +1502,6 @@ export default function Feed() {
                   </p>
                 </div>
 
-                {/* Item 3 */}
                 <div
                   onClick={() => navigate('/app/community')}
                   className="space-y-1.5 cursor-pointer group pt-2 border-t border-border/50"
@@ -925,48 +1515,20 @@ export default function Feed() {
                     Novidade no Programa de Indicação: 500 créditos por cada indicação! 🎉
                   </p>
                 </div>
-
-                {/* Item 4: Dúvidas */}
-                <div
-                  onClick={() => navigate('/app/community')}
-                  className="space-y-1.5 cursor-pointer group pt-2 border-t border-border/50"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full">
-                      Dúvidas
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                    Alterar Instagram &middot; Dúvida sobre sincronização
-                  </p>
-                </div>
-
-                {/* Item 5: Blog */}
-                <div
-                  onClick={() => navigate('/app/community')}
-                  className="space-y-1.5 cursor-pointer group pt-2 border-t border-border/50"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded-full">
-                      Blog
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                    Como construir uma presença autoritária no LinkedIn
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 3. Button Destaque "Ganhe 500 Créditos" */}
+          {/* 4. Button Destaque "Ganhe 500 Créditos" */}
           <Button
             onClick={() => {
-              navigator.clipboard?.writeText?.(window.location.origin)
-              toast({
-                title: 'Link copiado!',
-                description: 'Compartilhe com amigos e ganhe 500 créditos por cada cadastro.',
-              })
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.origin)
+                toast({
+                  title: 'Link copiado!',
+                  description: 'Compartilhe com amigos e ganhe 500 créditos por cada cadastro.',
+                })
+              }
             }}
             className="w-full h-12 rounded-2xl bg-muted/70 hover:bg-muted text-foreground border border-border/80 font-bold text-sm gap-2 shadow-xs group transition-all"
           >
@@ -974,21 +1536,22 @@ export default function Feed() {
             <span>Ganhe 500 Créditos</span>
           </Button>
 
-          {/* 4. Card "Próximas Datas — Não perca nenhuma" */}
+          {/* 5. Card "Próximas Datas" */}
           <Card className="rounded-2xl border border-border/70 bg-card shadow-xs">
             <CardContent className="p-5 space-y-3 text-center">
               <div className="flex items-center justify-start gap-2 text-left">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <h3 className="font-bold text-sm text-foreground">Próximas Datas</h3>
-                  <p className="text-[11px] text-muted-foreground">Não perca nenhuma</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Não perca nenhuma oportunidade
+                  </p>
                 </div>
               </div>
 
-              {/* Empty state elegante matching screenshot */}
-              <div className="py-8 px-2 space-y-2">
+              <div className="py-6 px-2 space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Nenhuma data comemorativa encontrada
+                  Nenhuma data comemorativa cadastrada para hoje
                 </p>
                 <Button
                   variant="ghost"
@@ -1002,7 +1565,7 @@ export default function Feed() {
             </CardContent>
           </Card>
 
-          {/* 5. Card "DICA RÁPIDA" */}
+          {/* 6. Card "DICA RÁPIDA" */}
           <Card className="rounded-2xl border border-border/70 bg-card shadow-xs">
             <CardContent className="p-4 sm:p-5 space-y-2">
               <div className="flex items-center gap-2">
@@ -1012,7 +1575,8 @@ export default function Feed() {
                 </span>
               </div>
               <p className="text-xs sm:text-sm font-medium text-foreground leading-relaxed">
-                Mostre bastidores: autenticidade gera confiança.
+                Mostre bastidores: autenticidade e posts da comunidade geram 3x mais retenção do que
+                posts comerciais.
               </p>
             </CardContent>
           </Card>
@@ -1020,11 +1584,12 @@ export default function Feed() {
       </div>
 
       {/* =========================================================================
-          FOOTER REFINADO
+          FOOTER REFINADO v0.0.79
           ========================================================================= */}
       <div className="pt-8 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
         <p className="text-center sm:text-left">
-          Social 2 Powered by <span className="font-semibold text-foreground">BestContent AI</span>
+          MidiaViva — Powered by{' '}
+          <span className="font-semibold text-foreground">BestContent AI</span> · v0.0.79
         </p>
         <div className="flex items-center gap-3">
           <button
@@ -1067,16 +1632,16 @@ export default function Feed() {
               <p className="font-bold text-foreground">Atalhos rápidos:</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>
+                  <strong className="text-foreground">Feed:</strong> veja os posts da comunidade,
+                  compartilhe ideias e interaja.
+                </li>
+                <li>
+                  <strong className="text-foreground">Visão Geral:</strong> acompanhe a central
+                  operacional de marcas e agendamentos.
+                </li>
+                <li>
                   <strong className="text-foreground">Criar Post:</strong> use o botão roxo para
                   abrir o gerador guiado de IA.
-                </li>
-                <li>
-                  <strong className="text-foreground">Agendamento:</strong> veja suas publicações em
-                  linha do tempo.
-                </li>
-                <li>
-                  <strong className="text-foreground">Biblioteca:</strong> acesse todas as suas
-                  mídias, flyers e vídeos.
                 </li>
               </ul>
             </div>
@@ -1109,7 +1674,7 @@ export default function Feed() {
                 setFeedbackOpen(false)
                 toast({
                   title: 'Feedback recebido!',
-                  description: 'Obrigado por ajudar a tornar o BestContent ainda melhor.',
+                  description: 'Obrigado por ajudar a tornar o MidiaViva ainda melhor.',
                 })
               }}
               className="w-full bg-primary text-white rounded-xl text-xs font-semibold"
@@ -1135,6 +1700,7 @@ export default function Feed() {
             </p>
             <div className="space-y-2">
               {[
+                { title: 'Publicar no Feed da Comunidade', xp: '+50 XP', link: '/app/feed' },
                 { title: 'Criar 3 posts esta semana', xp: '+50 XP', link: '/app/content/new' },
                 { title: 'Agendar 1 post no calendário', xp: '+30 XP', link: '/app/calendar' },
                 { title: 'Explorar 2 sugestões de IA', xp: '+20 XP', link: '/app/discover' },
@@ -1146,7 +1712,6 @@ export default function Feed() {
                   link: '/app/community',
                 },
                 { title: 'Gerar 1 flyer promocional', xp: '+45 XP', link: '/app/criar/flyers' },
-                { title: 'Indicar um criador parceiro', xp: '+100 XP', link: '/app/settings' },
               ].map((m, i) => (
                 <div
                   key={i}
@@ -1168,11 +1733,11 @@ export default function Feed() {
               size="sm"
               onClick={() => {
                 setMissionsModalOpen(false)
-                navigate('/app/content/new')
+                setComposerOpen(true)
               }}
               className="w-full bg-primary text-white rounded-xl text-xs font-semibold mt-2"
             >
-              Começar primeira missão
+              Publicar no Feed
             </Button>
           </div>
         </DialogContent>

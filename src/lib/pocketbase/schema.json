@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T01:23:55.923Z",
+  "generatedAt": "2026-10-27T02:43:49.639Z",
   "collections": [
     {
       "name": "users",
@@ -1034,6 +1034,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "image_url",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -2926,6 +2932,51 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_brand_materials_user ON brand_kit_materials (user)"]
+    },
+    {
+      "name": "community_likes",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "topic",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "community_topics"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_comm_likes_user_topic ON community_likes (user, topic)",
+        "CREATE INDEX idx_comm_likes_topic ON community_likes (topic)"
+      ]
     }
   ]
 }
