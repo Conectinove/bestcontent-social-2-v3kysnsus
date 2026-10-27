@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Loader2,
   CheckCircle2,
+  Store,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
