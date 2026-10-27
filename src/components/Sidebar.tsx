@@ -25,6 +25,7 @@ import {
   FlaskConical,
   BarChart3,
   Share2,
+  GraduationCap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -441,6 +442,29 @@ export function Sidebar({
             <div className="flex items-center gap-3">
               <BarChart3 className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
               {!collapsed && <span>Performance</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                NOVO
+              </span>
+            )}
+          </Link>
+
+          {/* Alunos Matriculados (MudarCurso & Educadores) */}
+          <Link
+            to="/app/students"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/students' || location.pathname === '/app/alunos'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Alunos Matriculados' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <GraduationCap className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              {!collapsed && <span>Alunos</span>}
             </div>
             {!collapsed && (
               <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">

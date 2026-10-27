@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T04:08:30.791Z",
+  "generatedAt": "2026-10-27T05:44:02.615Z",
   "collections": [
     {
       "name": "users",
@@ -3019,6 +3019,107 @@
       "indexes": [
         "CREATE UNIQUE INDEX idx_comm_likes_user_topic ON community_likes (user, topic)",
         "CREATE INDEX idx_comm_likes_topic ON community_likes (topic)"
+      ]
+    },
+    {
+      "name": "students",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "course",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cohort",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "concluido", "em_risco", "pausado", "cancelado"]
+        },
+        {
+          "name": "enrollment_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "progress",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_access_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_students_status ON students (status)",
+        "CREATE INDEX idx_students_course ON students (course)",
+        "CREATE INDEX idx_students_user ON students (user)",
+        "CREATE INDEX idx_students_enrollment_date ON students (enrollment_date)"
       ]
     }
   ]

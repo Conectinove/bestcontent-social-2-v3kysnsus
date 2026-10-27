@@ -4,6 +4,7 @@ import { getAllPostMetrics, type PostMetric } from '@/services/post-metrics'
 import { getTikTokOrganicMetrics, type TikTokOrganicData } from '@/services/tiktok-organic'
 import { getLinkedInOrganicMetrics, type LinkedInOrganicData } from '@/services/linkedin-organic'
 import { getInstagramOrganicMetrics, type InstagramOrganicData } from '@/services/instagram-organic'
+import { getSubstackOrganicMetrics, type SubstackOrganicData } from '@/services/substack-organic'
 import { getUserIntegrations } from '@/services/user_integrations'
 
 export interface NetworkChannelSummary {
@@ -51,6 +52,7 @@ export interface ConsolidatedSocialHubData {
   tiktokOrganic: TikTokOrganicData | null
   linkedinOrganic?: LinkedInOrganicData | null
   instagramOrganic?: InstagramOrganicData | null
+  substackOrganic?: SubstackOrganicData | null
 }
 
 export const ALL_SUPPORTED_NETWORKS: {
@@ -375,6 +377,13 @@ export async function getConsolidatedSocialHubData(
     /* intentionally ignored */
   }
 
+  let substackOrganic: SubstackOrganicData | null = null
+  try {
+    substackOrganic = await getSubstackOrganicMetrics()
+  } catch {
+    /* intentionally ignored */
+  }
+
   // Buscar posts com dados de conteúdo
   let posts: any[] = []
   try {
@@ -425,6 +434,11 @@ export async function getConsolidatedSocialHubData(
       engagementRate = instagramOrganic.metrics.engagement_rate
       isOfficial = instagramOrganic.is_official
       badgeLabel = instagramOrganic.badge_label
+    } else if (meta.network === 'substack' && substackOrganic) {
+      followers = substackOrganic.metrics.total_subscribers
+      engagementRate = substackOrganic.metrics.average_open_rate
+      isOfficial = substackOrganic.is_live
+      badgeLabel = substackOrganic.is_live ? 'Dados Oficiais' : 'Estimativa Calibrada'
     } else if (metricsForNet.length > 0) {
       const sumEng = metricsForNet.reduce((acc, m) => acc + (m.taxa_engajamento || 0), 0)
       engagementRate = Number((sumEng / metricsForNet.length).toFixed(2))
@@ -523,5 +537,6 @@ export async function getConsolidatedSocialHubData(
     tiktokOrganic,
     linkedinOrganic,
     instagramOrganic,
+    substackOrganic,
   }
 }

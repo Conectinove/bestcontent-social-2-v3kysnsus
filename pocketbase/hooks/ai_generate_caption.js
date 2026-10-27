@@ -216,12 +216,26 @@ ${customPrompt ? `Instruções adicionais: ${customPrompt}` : ''}
 Retorne apenas o JSON com os campos solicitados.`
 
     try {
-      const response = $ai.chat([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ])
+      const chatResult = $ai.chat({
+        model: 'fast',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      })
 
-      let clean = (response || '').trim()
+      const rawChoice =
+        chatResult &&
+        chatResult.choices &&
+        chatResult.choices[0] &&
+        chatResult.choices[0].message &&
+        chatResult.choices[0].message.content
+          ? chatResult.choices[0].message.content
+          : typeof chatResult === 'string'
+            ? chatResult
+            : ''
+
+      let clean = (rawChoice || '').trim()
       if (clean.startsWith('```json')) clean = clean.slice(7)
       if (clean.startsWith('```')) clean = clean.slice(3)
       if (clean.endsWith('```')) clean = clean.slice(0, -3)

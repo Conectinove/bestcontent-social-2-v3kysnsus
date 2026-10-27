@@ -563,6 +563,191 @@ export function SocialHubPage() {
         </Card>
       )}
 
+      {/* Destaque Especial: Substack Newsletter Orgânico Integrado */}
+      {data?.substackOrganic && (
+        <Card className="rounded-3xl border-2 border-orange-500/30 bg-gradient-to-br from-orange-950/20 via-background to-amber-950/20 shadow-xl overflow-hidden">
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/80">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#FF6719] flex items-center justify-center text-white text-2xl font-bold shadow-md ring-2 ring-orange-500/40">
+                  <span className="font-black">SS</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-black text-foreground">
+                      Substack Newsletter & Editorial
+                    </h2>
+                    <Badge
+                      className={
+                        data.substackOrganic.is_live
+                          ? 'bg-emerald-600 text-white text-[10px]'
+                          : 'bg-orange-600/20 text-orange-700 dark:text-orange-300 border border-orange-500/40 text-[10px]'
+                      }
+                    >
+                      {data.substackOrganic.publication.badge}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {data.substackOrganic.publication.name} &middot;{' '}
+                    <span className="font-mono text-foreground">
+                      {data.substackOrganic.publication.handle}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className="border-orange-500/30 text-orange-600 dark:text-orange-400 text-xs px-3 py-1"
+                >
+                  Taxa Média de Abertura: {data.substackOrganic.metrics.average_open_rate}%
+                </Badge>
+              </div>
+            </div>
+
+            {/* Grid de Métricas Substack */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-6">
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Assinantes Totais
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.substackOrganic.metrics.total_subscribers.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  +{data.substackOrganic.metrics.subscribers_growth_30d}% em 30d
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Assinantes Pagantes (MRR)
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.substackOrganic.metrics.paid_subscribers.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-orange-600 dark:text-orange-400 font-semibold">
+                  R${' '}
+                  {data.substackOrganic.metrics.monthly_recurring_revenue_brl.toLocaleString(
+                    'pt-BR',
+                  )}
+                  /mês
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Taxa Média de Abertura
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.substackOrganic.metrics.average_open_rate}%
+                </span>
+                <span className="text-[10px] text-muted-foreground">Top 5% editorial</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Taxa Média de Cliques
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.substackOrganic.metrics.average_click_rate}%
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                  Cliques Qualificados
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Leituras Totais (30d)
+                </span>
+                <span className="text-xl font-black text-foreground mt-1 block">
+                  {data.substackOrganic.metrics.total_reads_30d.toLocaleString('pt-BR')}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {data.substackOrganic.metrics.posts_published_30d} edições
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-[11px] text-muted-foreground block font-medium">
+                  Status da Conexão
+                </span>
+                <span className="text-sm font-bold text-foreground mt-1 block">
+                  {data.substackOrganic.is_live ? 'API Live' : 'Calibrada'}
+                </span>
+                <span className="text-[10px] text-muted-foreground line-clamp-1">
+                  SUBSTACK_API_KEY
+                </span>
+              </div>
+            </div>
+
+            {/* Melhores horários e Newsletters Recentes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-border/60">
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <BarChart2 className="w-3.5 h-3.5 text-orange-600" />
+                  Edições Recentes da Newsletter (Substack)
+                </span>
+                <div className="space-y-2">
+                  {data.substackOrganic.recent_newsletters.map((nl) => (
+                    <div
+                      key={nl.id}
+                      className="p-2.5 rounded-xl bg-card/80 border border-border/60 space-y-1"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-foreground line-clamp-1">{nl.title}</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-bold font-mono shrink-0 ml-2">
+                          {nl.open_rate}% open
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                        <span>{nl.opens.toLocaleString('pt-BR')} aberturas</span>
+                        <span>&middot;</span>
+                        <span>
+                          {nl.clicks} cliques ({nl.click_rate}%)
+                        </span>
+                        <span>&middot;</span>
+                        <span className="text-emerald-600">+{nl.new_subscribers} inscritos</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-orange-500" />
+                  Melhores Dias & Horários para Disparo de Newsletters
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {data.substackOrganic.best_times_to_send.map((bt, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex flex-col justify-between"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-foreground">{bt.day}</p>
+                        <p className="text-[12px] text-orange-600 dark:text-orange-400 font-mono font-bold">
+                          {bt.time}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px] mt-2 w-fit">
+                        ~{bt.open_rate_expected}% abertura
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-[11px] text-muted-foreground mt-2">
+                  {data.substackOrganic.notice}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Destaque Especial: TikTok Orgânico Integrado */}
       {data?.tiktokOrganic && (
         <Card className="rounded-3xl border-2 border-purple-500/30 bg-gradient-to-br from-purple-950/20 via-background to-pink-950/20 shadow-xl overflow-hidden">

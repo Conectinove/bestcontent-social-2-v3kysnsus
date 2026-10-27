@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { PerformanceReport } from '@/components/analytics/PerformanceReport'
+import { PerformanceDeepAnalytics } from '@/components/analytics/PerformanceDeepAnalytics'
 import { getABTests, type ABTest } from '@/services/ab-tests'
 import { getAllPostMetrics, type PostMetric } from '@/services/post-metrics'
 import {
@@ -129,17 +130,35 @@ export default function PerformanceDashboard() {
         color: '#0A66C2',
       })
     }
+    const ss = mapChannel('substack')
+    if (hubData.substackOrganic && ss) {
+      dataSourceRows.push({
+        network: 'substack',
+        name: 'Substack Newsletter',
+        official: hubData.substackOrganic.is_live,
+        followers: hubData.substackOrganic.metrics.total_subscribers,
+        engagementRate: hubData.substackOrganic.metrics.average_open_rate,
+        color: '#FF6719',
+      })
+    }
   }
 
   // Comparativo multi-rede: engajamento médio, alcance e audiência consolidados por canal
   const networkComparison = (hubData?.channels || [])
     .filter((c) =>
-      ['instagram', 'tiktok', 'linkedin', 'youtube', 'facebook', 'twitter', 'threads'].includes(
-        c.network,
-      ),
+      [
+        'instagram',
+        'tiktok',
+        'linkedin',
+        'substack',
+        'youtube',
+        'facebook',
+        'twitter',
+        'threads',
+      ].includes(c.network),
     )
     .sort((a, b) => b.engagementRate - a.engagementRate)
-    .slice(0, 6)
+    .slice(0, 7)
 
   const maxEngagementForScale = Math.max(...networkComparison.map((c) => c.engagementRate), 1)
 
@@ -539,6 +558,11 @@ export default function PerformanceDashboard() {
           ))}
         </div>
       </Card>
+
+      {/* ============================================================
+          BLOCO APROFUNDADO: Tendência Comparativa, Funil, Anomalias de IA & Metas
+          ============================================================ */}
+      <PerformanceDeepAnalytics posts={posts as Post[]} allMetrics={allMetrics} hubData={hubData} />
 
       {/* Relatório de Performance Consolidado (Tabelas, Gráficos temporais, Top Posts, Concorrentes e Testes A/B) */}
       <div className="pt-2">
