@@ -20,13 +20,24 @@ export type CampaignFormatId =
   | 'google_display'
   | 'story_sequence_5'
   | 'event_cover'
-  // 6 Novos Formatos
+  // 6 Novos Formatos Anteriores
   | 'carousel_testimonials'
   | 'story_backstage_3'
   | 'reels_cinematic'
   | 'email_newsletter_visual'
   | 'banner_linkedin_company'
   | 'meta_ad_square'
+  // 10 Novos Formatos Expandidos
+  | 'talking_head_script'
+  | 'carousel_before_after'
+  | 'carousel_educational_tips'
+  | 'ugc_social_proof'
+  | 'story_poll_ad'
+  | 'community_forum_post'
+  | 'podcast_audiogram_snippet'
+  | 'branded_meme_lightpost'
+  | 'live_script_stream'
+  | 'collab_duo_post'
 
 export interface CampaignFormatOption {
   id: CampaignFormatId
@@ -268,6 +279,117 @@ export const CAMPAIGN_FORMATS: CampaignFormatOption[] = [
     aspectRatio: '1:1',
     credits: 20,
     badge: 'Meta Ads 1:1 (20cr)',
+  },
+  // 10 Novos Formatos Expandidos
+  {
+    id: 'talking_head_script',
+    name: 'Vídeo Vertical "Talking Head" com Roteiro de Fala',
+    label: 'Talking Head 9:16',
+    description:
+      'Roteiro magnético direto para a câmera com gancho de fala natural, pausas, ênfases e teleprompter integrado.',
+    platform: 'TikTok',
+    aspectRatio: '9:16',
+    credits: 30,
+    badge: 'Talking Head (30cr)',
+  },
+  {
+    id: 'carousel_before_after',
+    name: 'Carrossel "Antes & Depois" (Estudo de Transformação)',
+    label: 'Carrossel Antes & Depois',
+    description:
+      'Sequência em 5 lâminas contrastando o estado caótico inicial, a virada de chave e o resultado final mensurável.',
+    platform: 'Instagram',
+    aspectRatio: '4:5',
+    credits: 35,
+    badge: 'Antes & Depois (35cr)',
+  },
+  {
+    id: 'carousel_educational_tips',
+    name: 'Série de Dicas "Carrossel Educativo Acionável"',
+    label: 'Carrossel Dicas Práticas',
+    description:
+      'Lâminas didáticas com títulos diretos, 1 dica por slide e alta probabilidade de salvamento e compartilhamento.',
+    platform: 'Instagram',
+    aspectRatio: '4:5',
+    credits: 35,
+    badge: 'Dicas 5s (35cr)',
+  },
+  {
+    id: 'ugc_social_proof',
+    name: 'UGC / Prova Social em Vídeo (Roteiro Autêntico)',
+    label: 'UGC Prova Social',
+    description:
+      'Roteiro sem cara de anúncio no formato de criador do dia a dia desempacotando, usando e recomendando o produto/serviço.',
+    platform: 'TikTok',
+    aspectRatio: '9:16',
+    credits: 25,
+    badge: 'UGC Vídeo (25cr)',
+  },
+  {
+    id: 'story_poll_ad',
+    name: 'Anúncio de Story com Enquete Interativa',
+    label: 'Story com Enquete',
+    description:
+      'Criativo 9:16 com pergunta polarizadora, posicionamento exato da figurinha de enquete e gancho de direct/clique.',
+    platform: 'Instagram',
+    aspectRatio: '9:16',
+    credits: 20,
+    badge: 'Story Enquete (20cr)',
+  },
+  {
+    id: 'community_forum_post',
+    name: 'Post de Comunidade / Fórum Aberto de Discussão',
+    label: 'Post Fórum / Comunidade',
+    description:
+      'Texto de abertura de debate provocativo para gerar dezenas de respostas nos comentários (Facebook, Reddit, Threads).',
+    platform: 'Facebook',
+    aspectRatio: '1:1',
+    credits: 15,
+    badge: 'Comunidade (15cr)',
+  },
+  {
+    id: 'podcast_audiogram_snippet',
+    name: 'Snippet de Podcast / Audiograma com Legenda Dinâmica',
+    label: 'Audiograma / Podcast',
+    description:
+      'Recorte de 45 segundos com onda sonora, transcrição em destaque e gancho reflexivo de alta retenção.',
+    platform: 'YouTube',
+    aspectRatio: '9:16',
+    credits: 25,
+    badge: 'Audiograma (25cr)',
+  },
+  {
+    id: 'branded_meme_lightpost',
+    name: 'Meme / Lightpost com Alinhamento de Marca',
+    label: 'Meme / Lightpost',
+    description:
+      'Humor contextual e identificação rápida para quebrar a frieza do feed sem perder a autoridade do negócio.',
+    platform: 'Instagram',
+    aspectRatio: '1:1',
+    credits: 15,
+    badge: 'Meme Marca (15cr)',
+  },
+  {
+    id: 'live_script_stream',
+    name: 'Live com Roteiro Completo (Estrutura de 45min)',
+    label: 'Roteiro de Live',
+    description:
+      'Estrutura de transmissão ao vivo: abertura, retenção de sala, quebra de objeções, entrega do conteúdo e pitch final.',
+    platform: 'YouTube',
+    aspectRatio: '16:9',
+    credits: 35,
+    badge: 'Live Roteiro (35cr)',
+  },
+  {
+    id: 'collab_duo_post',
+    name: 'Colaboração / Post em Dupla (Co-marketing)',
+    label: 'Collab / Duo Post',
+    description:
+      'Formato estruturado para convidar parceiros, co-autorias e cruzamento de audiências complementares no feed.',
+    platform: 'Instagram',
+    aspectRatio: '4:5',
+    credits: 25,
+    badge: 'Collab Duo (25cr)',
   },
 ]
 
@@ -1377,6 +1499,346 @@ async function generatePostForFormat(params: {
       script_json: JSON.stringify(adData),
       tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'meta-ads', 'anuncio-1080'],
       target_networks: ['facebook', 'instagram'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 1. talking_head_script
+  if (formatId === 'talking_head_script') {
+    const scriptData = {
+      hook: `Se você quer dominar ${name}, preste atenção nesta fala direta de 35 segundos.`,
+      speakingPoints: [
+        '[0s-3s] Olhar fixo para lente: "Não faça mais isso antes de entender este princípio."',
+        '[3s-15s] Entrando no ponto central: ' + briefing.slice(0, 120),
+        '[15s-25s] A virada prática: como a ' + brandName + ' implementa sem atrito.',
+        '[25s-35s] CTA: ' + effectiveCta,
+      ],
+      teleprompterNotes: 'Falar em tom coloquial, sem parecer leitura. Pausa de 1s antes do CTA.',
+    }
+
+    const talkingCaption = `🎙️ VÍDEO VERTICAL TALKING HEAD — ROTEIRO DE FALA DIRETA\n\n🎯 GANCHO DE ABERTURA:\n"${scriptData.hook}"\n\n📜 GUIA DO TELEPROMPTER / BEATS:\n${scriptData.speakingPoints.join('\n')}\n\n💡 NOTAS DE GRAVAÇÃO:\n${scriptData.teleprompterNotes}\n\n👉 ${effectiveCta}${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Vídeo Talking Head com Roteiro`,
+      caption: talkingCaption,
+      platform: 'TikTok',
+      status: 'draft',
+      duration: 35,
+      width: 1080,
+      height: 1920,
+      template_id: 'tpl-talking-head-script',
+      campaign_format: 'talking_head_script',
+      is_reviewed: false,
+      script_json: JSON.stringify(scriptData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'talking-head', 'video-vertical'],
+      target_networks: ['tiktok', 'instagram', 'youtube'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 2. carousel_before_after
+  if (formatId === 'carousel_before_after') {
+    const beforeAfterData = {
+      cover: `Antes vs. Depois: O Caso Real de ${name}`,
+      slide1: 'Slide 1 (Capa): O Contraste Inicial — De onde partimos.',
+      slide2: 'Slide 2 (O "Antes"): O cenário caótico, erros frequentes e dores.',
+      slide3: 'Slide 3 (O Ponto de Inflexão): O método que mudou a rota da operação.',
+      slide4: 'Slide 4 (O "Depois"): Métricas, print de resultado e alívio do cliente.',
+      slide5: 'Slide 5 (CTA): ' + effectiveCta,
+    }
+
+    const carCaption = `🔄 CARROSSEL ANTES & DEPOIS (5 SLIDES)\n\n📌 ${beforeAfterData.cover}\n\n${beforeAfterData.slide1}\n${beforeAfterData.slide2}\n${beforeAfterData.slide3}\n${beforeAfterData.slide4}\n${beforeAfterData.slide5}\n\n👉 Salve para comparar na sua operação!${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Carrossel Antes & Depois`,
+      caption: carCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1350,
+      template_id: 'tpl-carousel-before-after',
+      campaign_format: 'carousel_before_after',
+      is_reviewed: false,
+      script_json: JSON.stringify(beforeAfterData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'antes-depois', 'carrossel'],
+      target_networks: ['instagram', 'linkedin'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 3. carousel_educational_tips
+  if (formatId === 'carousel_educational_tips') {
+    const tipsData = {
+      cover: `5 Dicas Rápidas para ${name} que Você Pode Aplicar Hoje`,
+      tips: [
+        'Dica 1: Comece pela clareza do gancho antes de produzir o miolo.',
+        'Dica 2: Elimine os primeiros 3 segundos de enrolação e vá direto ao valor.',
+        'Dica 3: ' + briefing.slice(0, 90),
+        'Dica 4: Automatize a rotina repetitiva para focar na estratégia.',
+        'Dica 5: Salve este carrossel e revise toda semana.',
+      ],
+      cta: effectiveCta,
+    }
+
+    const tipsCaption = `📚 CARROSSEL EDUCATIVO COM DICAS PRÁTICAS\n\n📌 ${tipsData.cover}\n\n${tipsData.tips.map((t, idx) => `• Slide ${idx + 1}: ${t}`).join('\n')}\n\n👉 ${effectiveCta}${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Carrossel Educativo de Dicas`,
+      caption: tipsCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1350,
+      template_id: 'tpl-carousel-tips',
+      campaign_format: 'carousel_educational_tips',
+      is_reviewed: false,
+      script_json: JSON.stringify(tipsData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'educativo', 'dicas'],
+      target_networks: ['instagram', 'linkedin'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 4. ugc_social_proof
+  if (formatId === 'ugc_social_proof') {
+    const ugcData = {
+      hook: `Gente, eu precisava vir aqui contar o que aconteceu depois que comecei a usar ${name}...`,
+      narrative: `Eu estava cético, mas quando testei na prática com a ${brandName}, os números mudaram completamente.`,
+      demonstration:
+        'Gravação em modo selfie, sem iluminação de estúdio pesada, mostrando o resultado na tela do celular.',
+      cta: effectiveCta,
+    }
+
+    const ugcCaption = `🤳 UGC / VÍDEO DE PROVA SOCIAL AUTÊNTICO (9:16)\n\n[ROTEIRO DE CRIADOR]\n"${ugcData.hook}"\n\n[DESENVOLVIMENTO NATURAL]\n"${ugcData.narrative}"\n\n[AÇÃO DE TELA]\n${ugcData.demonstration}\n\n👉 ${effectiveCta}${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] UGC / Prova Social em Vídeo`,
+      caption: ugcCaption,
+      platform: 'TikTok',
+      status: 'draft',
+      duration: 30,
+      width: 1080,
+      height: 1920,
+      template_id: 'tpl-ugc-proof',
+      campaign_format: 'ugc_social_proof',
+      is_reviewed: false,
+      script_json: JSON.stringify(ugcData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'ugc', 'prova-social'],
+      target_networks: ['tiktok', 'instagram'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 5. story_poll_ad
+  if (formatId === 'story_poll_ad') {
+    const pollData = {
+      headline: `Qual é o seu maior gargalo em ${name}?`,
+      optionA: 'Falta de Tempo / Consistência',
+      optionB: 'Não saber o que postar / Ideias',
+      pollStickerPlacement: 'Centro da tela (Y: 55%, X: 50%)',
+      nextAction: 'Quem vota recebe diagnóstico gratuito na DM.',
+    }
+
+    const pollCaption = `📊 STORY INTERATIVO COM ENQUETE (9:16)\n\n❓ PERGUNTA POLARIZADORA:\n"${pollData.headline}"\n\n[OPÇÃO A]: ${pollData.optionA}\n[OPÇÃO B]: ${pollData.optionB}\n\n📍 POSICIONAMENTO DA FIGURINHA:\n${pollData.pollStickerPlacement}\n\n🎯 ESTRATÉGIA:\n${pollData.nextAction}\n\n👉 Responda acima para receber o acesso!${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Story com Enquete Interativa`,
+      caption: pollCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1920,
+      template_id: 'tpl-story-poll',
+      campaign_format: 'story_poll_ad',
+      is_reviewed: false,
+      script_json: JSON.stringify(pollData),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'story-enquete', 'interativo'],
+      target_networks: ['instagram', 'facebook'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 6. community_forum_post
+  if (formatId === 'community_forum_post') {
+    const forumCaption = `💬 DEBATE ABERTO NA COMUNIDADE: ${name}\n\n${briefing}\n\nUma pergunta sincera para quem está no campo de batalha:\n\nVocês preferem focar em volume diário ou em superproduções semanais para manter consistência?\n\nDeixem a experiência real de vocês aqui nos comentários. Vamos consolidar os melhores aprendizados! 👇`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Post de Fórum & Comunidade`,
+      caption: forumCaption,
+      platform: 'Facebook',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1080,
+      template_id: 'tpl-community-forum',
+      campaign_format: 'community_forum_post',
+      is_reviewed: false,
+      script_json: JSON.stringify({
+        type: 'community_debate',
+        topic: name,
+        question: 'Volume vs Qualidade',
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'comunidade', 'forum'],
+      target_networks: ['facebook', 'reddit', 'threads'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 7. podcast_audiogram_snippet
+  if (formatId === 'podcast_audiogram_snippet') {
+    const podcastCaption = `🎙️ CORTE DE PODCAST / AUDIOGRAMA (45s)\n\nEpisódio: ${name}\n\n"A maior ilusão é achar que o sucesso vem de uma grande sacada repentina. Na verdade, ${briefing.slice(0, 100)}..."\n\n🔊 Ouça o episódio completo no Spotify & YouTube.\n👉 Link na bio!${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Snippet Audiograma Podcast`,
+      caption: podcastCaption,
+      platform: 'YouTube',
+      status: 'draft',
+      duration: 45,
+      width: 1080,
+      height: 1920,
+      template_id: 'tpl-podcast-audiogram',
+      campaign_format: 'podcast_audiogram_snippet',
+      is_reviewed: false,
+      script_json: JSON.stringify({ waveform: true, highlightQuote: name, duration: 45 }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'podcast', 'audiograma'],
+      target_networks: ['youtube', 'tiktok', 'instagram'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 8. branded_meme_lightpost
+  if (formatId === 'branded_meme_lightpost') {
+    const memeCaption = `😂 QUANDO VOCÊ TENTA RESOLVER ${name.toUpperCase()} SEM O MÉTODO CERTO...\n\nExpectativa: tudo rodando em 5 minutos.\nRealidade: 14 abas abertas, café frio e nenhuma postagem feita.\n\nQuem se identifica dá um like aqui! 👇 Mas sério: com a ${brandName}, esse fluxo fica leve e automatizado.\n\n${effectiveCta}${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Meme / Lightpost com Marca`,
+      caption: memeCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1080,
+      template_id: 'tpl-branded-meme',
+      campaign_format: 'branded_meme_lightpost',
+      is_reviewed: false,
+      script_json: JSON.stringify({ memeType: 'relatable_business', punchline: name }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'meme', 'lightpost'],
+      target_networks: ['instagram', 'twitter'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 9. live_script_stream
+  if (formatId === 'live_script_stream') {
+    const liveCaption = `🔴 ROTEIRO MASTER PARA LIVE / WEBINAR (45 MINUTOS)\n\nTema: ${name}\n\n[00:00 - 05:00] ABERTURA: Recepção da audiência, perguntas de aquecimento no chat.\n[05:00 - 15:00] O PROBLEMA: Por que a maioria falha em ${briefing.slice(0, 80)}...\n[15:00 - 30:00] A ENTREGA: Os 3 pilares práticos e demonstração ao vivo.\n[30:00 - 40:00] PERGUNTAS & RESPOSTAS: Interação direta com os participantes.\n[40:00 - 45:00] PITCH & FECHAMENTO: ${effectiveCta}\n\n👉 Ative o lembrete para não perder!${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Roteiro Completo de Live`,
+      caption: liveCaption,
+      platform: 'YouTube',
+      status: 'draft',
+      duration: 2700,
+      width: 1920,
+      height: 1080,
+      template_id: 'tpl-live-script',
+      campaign_format: 'live_script_stream',
+      is_reviewed: false,
+      script_json: JSON.stringify({
+        type: 'live_stream',
+        durationMinutes: 45,
+        structure: '5-10-15-10-5',
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'live', 'webinar'],
+      target_networks: ['youtube', 'instagram', 'linkedin'],
+      revision_count: 1,
+      approval_level: 'Nível 1 (Em Revisão)',
+      is_favorite: false,
+      is_archived: false,
+    }
+  }
+
+  // 10. collab_duo_post
+  if (formatId === 'collab_duo_post') {
+    const collabCaption = `🤝 POST COLABORATIVO (COLLAB DUO)\n\n${brandName} ✕ Parceiro Convidado\n\nQuando duas visões se unem em torno de ${name}, o resultado é multiplicação de alcance.\n\n${briefing}\n\n👉 Siga ambos os perfis para continuar acompanhando novidades conjuntas!\n\n${effectiveCta}${effectiveUrl}`
+
+    return {
+      user: userId,
+      brand: brandId || null,
+      campaign: campaignId,
+      content: `[Campanha: ${name}] Post Colaborativo (Collab Duo)`,
+      caption: collabCaption,
+      platform: 'Instagram',
+      status: 'draft',
+      duration: 0,
+      width: 1080,
+      height: 1350,
+      template_id: 'tpl-collab-duo',
+      campaign_format: 'collab_duo_post',
+      is_reviewed: false,
+      script_json: JSON.stringify({
+        isCollab: true,
+        coAuthor: 'Parceiro Estratégico',
+        brandA: brandName,
+      }),
+      tags: ['campanha', name.toLowerCase().replace(/\s+/g, '-'), 'collab', 'duo'],
+      target_networks: ['instagram', 'linkedin'],
       revision_count: 1,
       approval_level: 'Nível 1 (Em Revisão)',
       is_favorite: false,

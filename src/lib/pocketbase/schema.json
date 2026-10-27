@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T23:33:28.547Z",
+  "generatedAt": "2026-10-27T00:32:16.111Z",
   "collections": [
     {
       "name": "users",
@@ -1751,6 +1751,24 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "saves",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "video_views",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_official",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

@@ -18,6 +18,7 @@ import {
   Globe,
   FlaskConical,
   BarChart3,
+  Share2,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCustomization } from '@/context/CustomizationContext'
@@ -74,6 +75,7 @@ export default function Layout() {
           <nav className="flex items-center gap-1 max-w-7xl mx-auto">
             {[
               { label: 'Visão Geral', href: '/app/feed', icon: LayoutDashboard },
+              { label: 'Hub Social', href: '/app/social-hub', icon: Share2 },
               { label: 'Feed Criadores', href: '/app/feed-comunidade', icon: Home },
               { label: 'Portal Cliente', href: '/app/portal-cliente', icon: Users },
               { label: 'Criar', href: '/app/criar', icon: Wand2, highlight: true },

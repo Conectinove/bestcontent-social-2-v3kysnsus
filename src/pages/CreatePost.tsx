@@ -114,6 +114,24 @@ const PLATFORMS_META: PlatformMeta[] = [
     dimensions: '1200x675',
     badgeClass: 'text-slate-700 dark:text-slate-300 bg-slate-500/10 border-slate-500/20',
   },
+  {
+    key: 'Pinterest',
+    label: 'Pinterest (Pin 2:3)',
+    icon: Layers,
+    networkKey: 'pinterest',
+    aspectRatio: '2:3',
+    dimensions: '1000x1500',
+    badgeClass: 'text-rose-600 bg-rose-500/10 border-rose-500/20',
+  },
+  {
+    key: 'WhatsApp',
+    label: 'WhatsApp Status / Canal',
+    icon: Layers,
+    networkKey: 'whatsapp',
+    aspectRatio: '9:16',
+    dimensions: '1080x1920',
+    badgeClass: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
+  },
 ]
 
 export default function CreatePost() {

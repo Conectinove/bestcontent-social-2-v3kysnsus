@@ -24,6 +24,7 @@ import {
   Palette,
   FlaskConical,
   BarChart3,
+  Share2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -376,6 +377,29 @@ export function Sidebar({
             {!collapsed && (
               <span className="text-[9px] font-bold text-pink-600 dark:text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
                 EXP
+              </span>
+            )}
+          </Link>
+
+          {/* Dashboard de Redes Sociais Hub */}
+          <Link
+            to="/app/social-hub"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/social-hub' || location.pathname === '/app/hub-social'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Hub de Redes Sociais' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Share2 className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              {!collapsed && <span>Hub Social (23)</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-pink-600 bg-pink-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                HUB
               </span>
             )}
           </Link>

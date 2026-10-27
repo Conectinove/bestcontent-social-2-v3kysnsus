@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Share2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Calendar as CalendarIcon,
+  Share2,
+  Sparkles,
+} from 'lucide-react'
+import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { getScheduledPosts, updateScheduledPost } from '@/services/scheduled_posts'
@@ -37,6 +45,7 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<any[] | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
+  const [smartPlanOpen, setSmartPlanOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!user?.id) return
@@ -128,6 +137,15 @@ export default function CalendarPage() {
             </Button>
           </div>
           <Button
+            variant="outline"
+            onClick={() => setSmartPlanOpen(true)}
+            className="border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 text-xs font-bold rounded-2xl h-10 px-4 gap-2 shadow-xs"
+          >
+            <Sparkles className="w-4 h-4 text-pink-500" />
+            <span>Fila Semanal IA</span>
+          </Button>
+
+          <Button
             onClick={() => navigate('/app/content/new')}
             className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-2xl h-10 px-4 gap-1.5 shadow-xs"
           >
@@ -135,6 +153,13 @@ export default function CalendarPage() {
           </Button>
         </div>
       </div>
+
+      {/* Modal IA de Fila Semanal Inteligente */}
+      <SmartWeeklyPlanModal
+        open={smartPlanOpen}
+        onOpenChange={setSmartPlanOpen}
+        onSuccessPlanApplied={() => load()}
+      />
 
       <Card className="p-5 rounded-2xl border border-border/80 bg-card shadow-xs overflow-x-auto">
         <div className="min-w-[600px]">

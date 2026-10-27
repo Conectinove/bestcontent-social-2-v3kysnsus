@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { getWhatToPostToday, type TodayPostIdea } from '@/services/post-templates'
+import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
 
 interface WhatToPostTodayModalProps {
   open: boolean
@@ -46,6 +47,7 @@ export function WhatToPostTodayModal({
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [selectedFormatFilter, setSelectedFormatFilter] = useState<string>('all')
+  const [weeklyPlanModalOpen, setWeeklyPlanModalOpen] = useState(false)
 
   const fetchIdeas = async () => {
     setLoading(true)
@@ -114,16 +116,28 @@ export function WhatToPostTodayModal({
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchIdeas}
-              disabled={loading}
-              className="self-start sm:self-auto text-xs gap-1.5 rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Novas Ideias
-            </Button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeeklyPlanModalOpen(true)}
+                className="text-xs gap-1.5 rounded-xl border-purple-500/40 text-purple-700 dark:text-purple-300 font-bold bg-purple-500/10 hover:bg-purple-500/20"
+              >
+                <Calendar className="w-3.5 h-3.5 text-pink-500" />
+                <span>Plano Semanal IA</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchIdeas}
+                disabled={loading}
+                className="text-xs gap-1.5 rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Novas Ideias
+              </Button>
+            </div>
           </div>
 
           {/* Seletor de Formatos de Conteúdo para IA */}
@@ -272,6 +286,14 @@ export function WhatToPostTodayModal({
           </div>
         )}
       </DialogContent>
+
+      <SmartWeeklyPlanModal
+        open={weeklyPlanModalOpen}
+        onOpenChange={setWeeklyPlanModalOpen}
+        onSuccessPlanApplied={() => {
+          onOpenChange(false)
+        }}
+      />
     </Dialog>
   )
 }

@@ -340,8 +340,27 @@ export default function Library() {
         // Format filter
         if (selectedFormat !== 'all') {
           const parsed = parsePostScriptMeta(post)
+          const cFmt = post.campaignFormat || post._raw?.campaign_format || ''
           if (selectedFormat === 'flyer' && parsed.typeLabel !== 'FLYER') return false
-          if (selectedFormat === 'video' && !parsed.isVideo) return false
+          if (
+            selectedFormat === 'video' &&
+            !parsed.isVideo &&
+            ![
+              'talking_head_script',
+              'ugc_social_proof',
+              'podcast_audiogram_snippet',
+              'live_script_stream',
+            ].includes(cFmt)
+          )
+            return false
+          if (selectedFormat === 'carousel' && !cFmt.includes('carousel')) return false
+          if (selectedFormat === 'talking_head' && cFmt !== 'talking_head_script') return false
+          if (selectedFormat === 'ugc' && cFmt !== 'ugc_social_proof') return false
+          if (
+            selectedFormat === 'interactive' &&
+            !['story_poll_ad', 'community_forum_post', 'collab_duo_post'].includes(cFmt)
+          )
+            return false
           if (selectedFormat === 'post' && (parsed.isVideo || parsed.typeLabel === 'FLYER'))
             return false
         }
@@ -1180,7 +1199,13 @@ export default function Library() {
                   <SelectContent>
                     <SelectItem value="all">Todos os formatos</SelectItem>
                     <SelectItem value="flyer">Flyers e Banners (Retrato)</SelectItem>
-                    <SelectItem value="video">Vídeos, Reels e Shorts</SelectItem>
+                    <SelectItem value="video">Vídeos, Reels, Shorts & TikTok</SelectItem>
+                    <SelectItem value="carousel">Carrosséis (Educativo, Antes & Depois)</SelectItem>
+                    <SelectItem value="talking_head">Talking Head (Roteiro 9:16)</SelectItem>
+                    <SelectItem value="ugc">UGC & Prova Social</SelectItem>
+                    <SelectItem value="interactive">
+                      Interativo / Enquete / Comunidade / Collab
+                    </SelectItem>
                     <SelectItem value="post">Posts de Feed Quadrados / Retrato</SelectItem>
                   </SelectContent>
                 </Select>
