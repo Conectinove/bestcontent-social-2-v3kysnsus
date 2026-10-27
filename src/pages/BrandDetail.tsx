@@ -11,6 +11,7 @@ import {
   TrendingUp,
   MessageCircle,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { updateBrand } from '@/services/brands'
@@ -144,7 +145,15 @@ export default function BrandDetail() {
               <p className="text-xs text-muted-foreground">{brand.description}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/app/onboarding?brand=${brand.id}`)}
+              className="text-xs gap-1.5 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950 font-semibold"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>Abrir no Assistente</span>
+            </Button>
             <Button
               onClick={() => setTemplateOpen(true)}
               className="bg-primary text-white text-xs gap-1 aggressive-button"

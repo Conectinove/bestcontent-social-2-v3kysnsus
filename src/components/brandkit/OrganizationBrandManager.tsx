@@ -466,6 +466,21 @@ export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandMan
 
                       <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          handleSetActiveBrand(b.id)
+                          window.location.href = `/app/onboarding?brand=${b.id}`
+                        }}
+                        className="rounded-xl text-xs h-9 px-3 font-semibold border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950 gap-1.5 min-h-[44px]"
+                        title="Abrir no Assistente de Marca (Wizard)"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                        <span>Assistente</span>
+                      </Button>
+
+                      <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleStartEdit(b)}

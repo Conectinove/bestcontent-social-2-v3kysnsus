@@ -83,9 +83,10 @@ export default function Brands() {
           <Button
             variant="outline"
             onClick={() => navigate('/app/onboarding')}
-            className="gap-2 text-xs"
+            className="gap-2 text-xs border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950 font-semibold"
           >
-            Onboarding Completo
+            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            Assistente de Marca (Wizard)
           </Button>
           <Button
             onClick={() => setOpen(true)}

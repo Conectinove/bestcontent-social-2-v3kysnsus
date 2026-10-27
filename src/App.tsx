@@ -65,6 +65,11 @@ const App = () => (
               <Route path="/waitlist" element={<LandingPage />} />
               <Route path="/review/:slug" element={<ClientApprovalPage />} />
 
+              {/* Onboarding / Assistente de Marca independente e imersivo */}
+              <Route path="/app/onboarding" element={<Onboarding />} />
+              <Route path="/app/brand-wizard" element={<Onboarding />} />
+              <Route path="/app/wizard-marca" element={<Onboarding />} />
+
               {/* Authenticated routes inside Layout */}
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
@@ -73,7 +78,6 @@ const App = () => (
                 <Route path="/app/feed-comunidade" element={<Navigate to="/app/feed" replace />} />
                 <Route path="/app/visao-geral" element={<VisaoGeral />} />
                 <Route path="/app/portal-cliente" element={<ClientPortal />} />
-                <Route path="/app/onboarding" element={<Onboarding />} />
                 <Route path="/app/criar" element={<CreateHub />} />
                 <Route path="/app/criar/imagens" element={<ImageCreator />} />
                 <Route path="/app/criar/flyers" element={<FlyerCreator />} />
