@@ -338,8 +338,8 @@ export function exportDealsToCSV(deals: FunnelDeal[], filename?: string): void {
     `"${(d.company || '').replace(/"/g, '""')}"`,
     `"${stageLabels[d.stage] || d.stage}"`,
     d.value || 0,
-    `"${sourceLabels[d.source] || d.source}"`,
-    `"${(d.contact_name || '').replace(/"/g, '""')}"`,
+    `"${d.source ? sourceLabels[d.source] || d.source : ''}"`,
+    `"${(d.responsible || '').replace(/"/g, '""')}"`,
     d.expected_close_date || '',
     `"${(d.notes || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
     d.created || '',
@@ -393,7 +393,7 @@ export function exportDealsToJSON(deals: FunnelDeal[], filename?: string): void 
  */
 export function generateFunnelExecutiveSummary(
   deals: FunnelDeal[],
-  metrics: ReturnType<typeof calculateFunnelMetrics>,
+  metrics: FunnelKpis,
   selectedBrandName?: string,
 ): string {
   const stageLabels: Record<string, string> = {

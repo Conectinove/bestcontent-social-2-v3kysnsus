@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
@@ -167,39 +167,34 @@ export default function CalendarPage() {
 
   // Melhores horários consolidados por rede
   const bestTimesByNetwork = useMemo(() => {
+    const igDays = NETWORK_BEST_TIMES_MAP.instagram?.days || []
+    const ttDays = NETWORK_BEST_TIMES_MAP.tiktok?.days || []
+    const liDays = NETWORK_BEST_TIMES_MAP.linkedin?.days || []
+
     return [
       {
         network: 'Instagram',
         badge: 'IG Feed & Reels',
         color: 'from-pink-500 to-rose-600',
-        best: NETWORK_BEST_TIMES_MAP.instagram || [
-          { day: 'Terça', time: '18:30' },
-          { day: 'Quinta', time: '12:15' },
-        ],
+        best: igDays.slice(0, 2).map((d) => ({ day: d.day.split('-')[0], time: d.hour })),
       },
       {
         network: 'TikTok',
         badge: 'Vídeos Curtos',
         color: 'from-cyan-500 to-black',
-        best: NETWORK_BEST_TIMES_MAP.tiktok || [
-          { day: 'Quarta', time: '20:00' },
-          { day: 'Sexta', time: '19:00' },
-        ],
+        best: ttDays.slice(0, 2).map((d) => ({ day: d.day.split('-')[0], time: d.hour })),
       },
       {
         network: 'LinkedIn',
         badge: 'B2B & Carreira',
         color: 'from-blue-600 to-indigo-700',
-        best: NETWORK_BEST_TIMES_MAP.linkedin || [
-          { day: 'Terça', time: '08:45' },
-          { day: 'Quinta', time: '10:00' },
-        ],
+        best: liDays.slice(0, 2).map((d) => ({ day: d.day.split('-')[0], time: d.hour })),
       },
       {
         network: 'Substack',
         badge: 'Newsletter Longform',
         color: 'from-orange-500 to-amber-600',
-        best: NETWORK_BEST_TIMES_MAP.substack || [
+        best: [
           { day: 'Domingo', time: '09:00' },
           { day: 'Quinta', time: '08:00' },
         ],

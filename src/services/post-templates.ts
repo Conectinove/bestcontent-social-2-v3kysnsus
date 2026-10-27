@@ -25,6 +25,8 @@ export interface PostTemplate {
   created: string
   updated: string
   ai_reason?: string
+  performance_score?: number
+  best_time?: string
 }
 
 export interface GetTemplatesFilter {

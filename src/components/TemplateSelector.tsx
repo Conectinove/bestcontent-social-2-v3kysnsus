@@ -11,6 +11,7 @@ import {
   Monitor,
   Tag,
   ArrowRight,
+  Clock,
 } from 'lucide-react'
 import {
   getTemplates,
@@ -462,7 +463,20 @@ export function TemplateSelector({
                       </div>
 
                       <div className="p-2.5 bg-card flex flex-col gap-1 border-t border-border/60">
-                        <p className="text-xs font-bold text-foreground truncate">{tpl.name}</p>
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-xs font-bold text-foreground truncate">{tpl.name}</p>
+                          {tpl.performance_score && (
+                            <Badge className="bg-emerald-600 text-white text-[9px] px-1 py-0 shrink-0 font-mono font-bold">
+                              {tpl.performance_score}%
+                            </Badge>
+                          )}
+                        </div>
+                        {tpl.best_time && (
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
+                            <Clock className="w-2.5 h-2.5 text-purple-600" />
+                            <span>{tpl.best_time}</span>
+                          </div>
+                        )}
                         {tpl.ai_reason && (
                           <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium line-clamp-2 leading-tight">
                             💡 {tpl.ai_reason}
