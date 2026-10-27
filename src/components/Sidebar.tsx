@@ -26,6 +26,8 @@ import {
   BarChart3,
   Share2,
   GraduationCap,
+  Briefcase,
+  Database,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -426,6 +428,29 @@ export function Sidebar({
             )}
           </Link>
 
+          {/* Funil de Vendas (CRM & Pipeline de Negócios) */}
+          <Link
+            to="/app/funnel"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/funnel' || location.pathname === '/app/funil'
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Funil de Vendas' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              {!collapsed && <span>Funil de Vendas</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                NOVO
+              </span>
+            )}
+          </Link>
+
           {/* Dashboard de Performance */}
           <Link
             to="/app/performance"
@@ -656,6 +681,24 @@ export function Sidebar({
                   </div>
                   <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded uppercase">
                     MAX
+                  </span>
+                </Link>
+                <Link
+                  to="/app/data"
+                  onClick={onMobileClose}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    location.pathname === '/app/data' || location.pathname === '/app/banco-de-dados'
+                      ? 'bg-purple-500/10 text-primary font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Database className="w-3.5 h-3.5 shrink-0 text-purple-600 opacity-90" />
+                    <span>Banco de Dados</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1 py-0.2 rounded uppercase">
+                    POCKET
                   </span>
                 </Link>
               </div>

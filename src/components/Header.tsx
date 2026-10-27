@@ -79,14 +79,15 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10 px-4 flex items-center justify-between gap-4">
+    <header className="h-16 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10 px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4">
       {/* Left side: Mobile Hamburger + Brand Filter Selector */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         <Button
           variant="ghost"
           size="icon"
           onClick={onOpenMobileMenu}
-          className="md:hidden text-foreground"
+          className="md:hidden text-foreground h-10 w-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl"
+          aria-label="Abrir menu lateral"
         >
           <Menu className="w-5 h-5" />
         </Button>
@@ -150,7 +151,7 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          className="h-9 w-9 text-muted-foreground hover:text-foreground"
+          className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground rounded-xl"
           title="Alternar tema"
         >
           {theme === 'dark' ? (
@@ -221,7 +222,10 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
         {/* User Profile Avatar Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="p-0 h-9 w-9 rounded-full ring-2 ring-primary/20">
+            <Button
+              variant="ghost"
+              className="p-0 h-10 w-10 min-h-[44px] min-w-[44px] rounded-full ring-2 ring-primary/20 flex items-center justify-center"
+            >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.avatar} alt={user?.name} />
                 <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || 'BC'}</AvatarFallback>

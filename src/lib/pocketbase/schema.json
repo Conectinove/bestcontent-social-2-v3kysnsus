@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T05:44:02.615Z",
+  "generatedAt": "2026-10-27T05:54:49.021Z",
   "collections": [
     {
       "name": "users",
@@ -3120,6 +3120,109 @@
         "CREATE INDEX idx_students_course ON students (course)",
         "CREATE INDEX idx_students_user ON students (user)",
         "CREATE INDEX idx_students_enrollment_date ON students (enrollment_date)"
+      ]
+    },
+    {
+      "name": "funnel_deals",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "company",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "stage",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "lead_captado",
+            "contato_feito",
+            "proposta_enviada",
+            "negociacao",
+            "fechado_ganho",
+            "fechado_perdido"
+          ]
+        },
+        {
+          "name": "source",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Instagram", "TikTok", "LinkedIn", "Indicacao", "Site", "Outro"]
+        },
+        {
+          "name": "responsible",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "expected_close_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "priority",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_funnel_deals_stage ON funnel_deals (stage)",
+        "CREATE INDEX idx_funnel_deals_source ON funnel_deals (source)",
+        "CREATE INDEX idx_funnel_deals_user ON funnel_deals (user)",
+        "CREATE INDEX idx_funnel_deals_created ON funnel_deals (created)"
       ]
     }
   ]

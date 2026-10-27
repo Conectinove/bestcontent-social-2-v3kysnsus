@@ -613,34 +613,34 @@ export default function ClientPortal() {
 
         {/* COLUNA DIREITA (Sidebar: Stats, Clientes, Dica MAX) */}
         <div className="space-y-5">
-          {/* Card 1: STATS DO MÊS em grid 2×2 */}
-          <Card className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs">
-            <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase mb-5">
+          {/* Card 1: STATS DO MÊS em grid 2×2 (1 coluna no mobile muito estreito) */}
+          <Card className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs">
+            <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase mb-4 sm:mb-5">
               STATS DO MÊS
             </h3>
 
-            <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
               {/* Calendários */}
-              <div className="space-y-1">
-                <p className="text-3xl font-black text-foreground">{totalCalendars}</p>
+              <div className="space-y-0.5">
+                <p className="text-2xl sm:text-3xl font-black text-foreground">{totalCalendars}</p>
                 <p className="text-xs text-muted-foreground font-medium">Calendários</p>
               </div>
 
               {/* Taxa de aprov. */}
-              <div className="space-y-1">
-                <p className="text-3xl font-black text-foreground">85%</p>
+              <div className="space-y-0.5">
+                <p className="text-2xl sm:text-3xl font-black text-foreground">85%</p>
                 <p className="text-xs text-muted-foreground font-medium">Taxa de aprov.</p>
               </div>
 
               {/* Resposta média */}
-              <div className="space-y-1">
-                <p className="text-3xl font-black text-foreground">4h</p>
+              <div className="space-y-0.5">
+                <p className="text-2xl sm:text-3xl font-black text-foreground">4h</p>
                 <p className="text-xs text-muted-foreground font-medium">Resposta média</p>
               </div>
 
               {/* Clientes ativos */}
-              <div className="space-y-1">
-                <p className="text-3xl font-black text-foreground">{uniqueClients}</p>
+              <div className="space-y-0.5">
+                <p className="text-2xl sm:text-3xl font-black text-foreground">{uniqueClients}</p>
                 <p className="text-xs text-muted-foreground font-medium">Clientes ativos</p>
               </div>
             </div>

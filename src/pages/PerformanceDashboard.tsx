@@ -14,7 +14,10 @@ import {
   Trophy,
   Instagram,
   Database,
+  Download,
+  FileText,
 } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -65,6 +68,145 @@ export default function PerformanceDashboard() {
     }
     loadData()
   }, [user?.id])
+
+  // Exportação do Dashboard em PDF e JSON seguindo o padrão de CampaignReportModal
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank')
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard de Performance — MidiaViva</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; background: #fff; line-height: 1.5; }
+    .header { border-bottom: 4px solid #7c3aed; padding-bottom: 18px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .title { font-size: 26px; font-weight: 900; color: #1e1b4b; margin: 0; }
+    .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .tag { display: inline-block; padding: 6px 14px; background: #ede9fe; color: #6d28d9; font-weight: 800; font-size: 11px; border-radius: 9999px; text-transform: uppercase; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0 28px; }
+    .kpi-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; background: #faf5ff; text-align: center; }
+    .kpi-lbl { font-size: 10px; text-transform: uppercase; font-weight: 700; color: #581c87; }
+    .kpi-val { font-size: 22px; font-weight: 900; color: #6d28d9; margin-top: 4px; }
+    h2 { font-size: 15px; font-weight: 800; color: #1e1b4b; border-left: 4px solid #7c3aed; padding-left: 10px; margin: 24px 0 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-box { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 18px; margin-bottom: 20px; font-size: 13px; color: #334155; line-height: 1.6; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; }
+    th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-weight: 700; color: #334155; }
+    td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+    .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 11px; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 class="title">Relatório Executivo de Performance Unificada</h1>
+      <p class="subtitle">MidiaViva — Powered by BestContent AI · Usuário: <strong>${user?.name || 'Gestor'}</strong></p>
+    </div>
+    <div>
+      <span class="tag">Relatório de Inteligência</span>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px; text-align: right;">${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-lbl">Posts Publicados</div>
+      <div class="kpi-val">${publishedPosts}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">Engajamento Total</div>
+      <div class="kpi-val" style="color: #059669;">${totalEngagement.toLocaleString('pt-BR')}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">Taxa de Engajamento</div>
+      <div class="kpi-val">${avgEngagementRate}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">Alcance Unificado</div>
+      <div class="kpi-val" style="color: #db2777;">${totalReach.toLocaleString('pt-BR')}</div>
+    </div>
+  </div>
+
+  <h2>Resumo de Audiência Multi-Rede</h2>
+  <div class="summary-box">
+    Acompanhamento unificado abrangendo ${hubData?.channels?.length || 8} canais monitorados. Total de seguidores: ${audienceTotalFollowers} com taxa média de resposta de ${audienceAvgEngagement}%. O volume de alcance dos últimos 30 dias alcançou ${audienceTotalReach} visualizações qualificadas.
+  </div>
+
+  <h2>Comparativo de Canais Sociais</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Canal</th>
+        <th>Seguidores</th>
+        <th>Taxa Média</th>
+        <th>Benchmark de Mercado</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${networkComparison
+        .map(
+          (net) => `
+        <tr>
+          <td><strong>${net.name}</strong></td>
+          <td>${net.followers.toLocaleString('pt-BR')}</td>
+          <td style="font-weight: 700; color: #6d28d9;">${net.engagementRate}%</td>
+          <td>${net.engagementRate >= 5 ? 'Acima do Mercado' : 'Padrão'}</td>
+        </tr>
+      `,
+        )
+        .join('')}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Relatório exportado diretamente pelo painel MidiaViva. Gerado em ${new Date().toLocaleString('pt-BR')}.
+  </div>
+  <script>
+    window.onload = function() { setTimeout(function() { window.print(); }, 250); }
+  </script>
+</body>
+</html>`
+
+    if (printWindow) {
+      printWindow.document.open()
+      printWindow.document.write(html)
+      printWindow.document.close()
+    }
+    toast({
+      title: 'Relatório Pronto para Impressão/PDF!',
+      description: 'A janela de impressão foi aberta com os dados de performance.',
+    })
+  }
+
+  const handleExportJSON = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      user: user?.name || 'Gestor',
+      kpis: {
+        totalPosts,
+        publishedPosts,
+        scheduledPosts,
+        totalEngagement,
+        avgEngagementRate,
+        totalReach,
+      },
+      channels: hubData?.channels || [],
+      networkComparison,
+      topPosts: topPostsConsolidated,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `performance-dashboard-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast({
+      title: 'Dashboard Exportado em JSON!',
+      description: 'Arquivo baixado com sucesso com as métricas completas.',
+    })
+  }
 
   // KPIs calculados
   const totalPosts = posts.length
@@ -210,10 +352,30 @@ export default function PerformanceDashboard() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+            className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40 font-semibold min-h-[36px]"
+          >
+            <Download className="w-4 h-4 text-purple-600" />
+            <span>Exportar PDF</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportJSON}
+            className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40 font-semibold min-h-[36px]"
+          >
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span>Exportar JSON</span>
+          </Button>
+
+          <Button
             asChild
             variant="outline"
             size="sm"
-            className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40"
+            className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40 min-h-[36px]"
           >
             <Link to="/app/social-hub">
               <Instagram className="w-4 h-4 text-pink-600" />
@@ -223,20 +385,8 @@ export default function PerformanceDashboard() {
 
           <Button
             asChild
-            variant="outline"
             size="sm"
-            className="rounded-xl text-xs h-9 px-3 gap-1.5 border-border hover:border-purple-500/40"
-          >
-            <Link to="/app/ads">
-              <Share2 className="w-4 h-4 text-emerald-600" />
-              <span>Gestor de Anúncios</span>
-            </Link>
-          </Button>
-
-          <Button
-            asChild
-            size="sm"
-            className="rounded-xl text-xs h-9 px-3.5 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs gap-1.5"
+            className="rounded-xl text-xs h-9 px-3.5 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs gap-1.5 min-h-[36px]"
           >
             <Link to="/app/content/new">
               <Sparkles className="w-4 h-4" />
@@ -246,8 +396,8 @@ export default function PerformanceDashboard() {
         </div>
       </div>
 
-      {/* Grid de Destaque Superior: 4 KPIs Principais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      {/* Grid de Destaque Superior: 4 KPIs Principais (1 col em telas < 400px, 2 col sm, 4 col lg) */}
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card space-y-1 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
@@ -334,7 +484,7 @@ export default function PerformanceDashboard() {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3.5">
           <div className="p-4 rounded-xl bg-card border border-border/60 space-y-1">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide">
               Seguidores Totais

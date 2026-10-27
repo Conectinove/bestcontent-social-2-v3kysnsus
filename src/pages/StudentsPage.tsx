@@ -284,8 +284,8 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      {/* Grid de 4 KPIs Principais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      {/* Grid de 4 KPIs Principais (1 coluna no mobile 360px, 2 colunas sm, 4 colunas lg) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card space-y-1 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">

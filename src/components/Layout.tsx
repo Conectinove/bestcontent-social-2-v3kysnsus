@@ -76,6 +76,7 @@ export default function Layout() {
             {[
               { label: 'Feed', href: '/app/feed', icon: Home, highlight: true },
               { label: 'Visão Geral', href: '/app/visao-geral', icon: LayoutDashboard },
+              { label: 'Funil Vendas', href: '/app/funnel', icon: LayoutGrid },
               { label: 'Hub Social', href: '/app/social-hub', icon: Share2 },
               { label: 'Performance', href: '/app/performance', icon: BarChart3 },
               { label: 'Portal Cliente', href: '/app/portal-cliente', icon: Users },
@@ -83,6 +84,7 @@ export default function Layout() {
               { label: 'Anúncios', href: '/app/ads', icon: LayoutGrid },
               { label: 'SEO Social', href: '/app/seo', icon: Globe },
               { label: 'Brand Kit', href: '/app/brand-kit', icon: Palette },
+              { label: 'Banco de Dados', href: '/app/data', icon: Settings },
               { label: 'Labs', href: '/app/labs', icon: FlaskConical },
               { label: 'Biblioteca', href: '/app/library', icon: BookOpen },
               { label: 'Calendário', href: '/app/calendar', icon: Calendar },
@@ -132,7 +134,10 @@ export default function Layout() {
 
         {/* Mobile drawer always uses vertical sidebar */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 w-64 border-r border-border">
+          <SheetContent
+            side="left"
+            className="p-0 w-72 max-w-[85vw] border-r border-border bg-sidebar overflow-y-auto"
+          >
             <Sidebar
               collapsed={false}
               onToggleCollapse={() => {}}
