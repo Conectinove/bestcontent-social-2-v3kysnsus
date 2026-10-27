@@ -18,8 +18,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { TemplateSelector, NETWORKS_CONFIG, CATEGORIES_CONFIG } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
+import { CampaignReportModal } from '@/components/campaigns/CampaignReportModal'
 import { suggestTemplates, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
-import { getCampaigns } from '@/services/campaigns'
+import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
+import { BarChart3 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { useEffect } from 'react'
@@ -31,15 +33,25 @@ export default function TemplatesPage() {
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [whatToPostOpen, setWhatToPostOpen] = useState(false)
   const [campaignModalOpen, setCampaignModalOpen] = useState(false)
+  const [campaignsList, setCampaignsList] = useState<CampaignRecord[]>([])
+  const [campaignReportOpen, setCampaignReportOpen] = useState(false)
+  const [selectedReportCampaign, setSelectedReportCampaign] = useState<CampaignRecord | null>(null)
   const [campaignsCount, setCampaignsCount] = useState<number>(0)
+  const { posts } = useSocial()
   const [activeNetwork, setActiveNetwork] = useState('all')
   const [featuredAiTemplates, setFeaturedAiTemplates] = useState<PostTemplate[]>([])
   const [loadingAi, setLoadingAi] = useState(false)
 
   useEffect(() => {
     getCampaigns(user?.id)
-      .then((camps) => setCampaignsCount(camps.length))
-      .catch(() => setCampaignsCount(0))
+      .then((camps) => {
+        setCampaignsList(camps)
+        setCampaignsCount(camps.length)
+      })
+      .catch(() => {
+        setCampaignsList([])
+        setCampaignsCount(0)
+      })
   }, [user?.id])
 
   useEffect(() => {
@@ -110,6 +122,20 @@ export default function TemplatesPage() {
               </Badge>
             )}
           </Button>
+
+          {campaignsList.length > 0 && (
+            <Button
+              onClick={() => {
+                setSelectedReportCampaign(campaignsList[0])
+                setCampaignReportOpen(true)
+              }}
+              className="rounded-xl bg-purple-600/15 border border-purple-500/40 text-purple-800 dark:text-purple-200 hover:bg-purple-600/25 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+              title="Abrir relatório analítico de campanha com IA"
+            >
+              <BarChart3 className="w-4 h-4 text-purple-600" />
+              <span>Relatório da Campanha</span>
+            </Button>
+          )}
 
           <Button
             onClick={() => setWhatToPostOpen(true)}
@@ -322,9 +348,21 @@ export default function TemplatesPage() {
         onOpenChange={setCampaignModalOpen}
         onSuccess={() => {
           getCampaigns(user?.id)
-            .then((camps) => setCampaignsCount(camps.length))
+            .then((camps) => {
+              setCampaignsList(camps)
+              setCampaignsCount(camps.length)
+            })
             .catch(() => {})
         }}
+      />
+
+      {/* Modal Relatório de Campanha */}
+      <CampaignReportModal
+        open={campaignReportOpen}
+        onOpenChange={setCampaignReportOpen}
+        campaign={selectedReportCampaign}
+        posts={posts}
+        brandName={activeBrand?.name || 'Sua Marca'}
       />
     </div>
   )

@@ -41,9 +41,11 @@ import {
   Maximize2,
   Megaphone,
   X,
+  BarChart3,
 } from 'lucide-react'
 import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
 import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
+import { CampaignReportModal } from '@/components/campaigns/CampaignReportModal'
 import {
   togglePostFavorite,
   togglePostArchived,
@@ -216,6 +218,10 @@ export default function Library() {
   })
   const [campaignsList, setCampaignsList] = useState<CampaignRecord[]>([])
   const [campaignModalOpen, setCampaignModalOpen] = useState(false)
+  const [campaignReportModalOpen, setCampaignReportModalOpen] = useState(false)
+  const [selectedCampaignForReport, setSelectedCampaignForReport] = useState<CampaignRecord | null>(
+    null,
+  )
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -1234,19 +1240,35 @@ export default function Library() {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedCampaignId('all')
-                searchParams.delete('campaign')
-                setSearchParams(searchParams)
-              }}
-              className="text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 h-8 gap-1.5 self-end sm:self-auto"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>Ver todas as criações</span>
-            </Button>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const currCamp = campaignsList.find((c) => c.id === selectedCampaignId) || null
+                  setSelectedCampaignForReport(currCamp)
+                  setCampaignReportModalOpen(true)
+                }}
+                className="text-xs bg-purple-600/15 hover:bg-purple-600/25 border-purple-500/40 text-purple-800 dark:text-purple-200 h-8 gap-1.5 font-bold shadow-xs"
+              >
+                <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
+                <span>Relatório da Campanha</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedCampaignId('all')
+                  searchParams.delete('campaign')
+                  setSearchParams(searchParams)
+                }}
+                className="text-xs text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 h-8 gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Ver todas as criações</span>
+              </Button>
+            </div>
           </div>
 
           {/* Sumário de Revisão da Campanha */}
@@ -2378,6 +2400,14 @@ export default function Library() {
           refreshPosts()
           getCampaigns().then(setCampaignsList)
         }}
+      />
+
+      <CampaignReportModal
+        open={campaignReportModalOpen}
+        onOpenChange={setCampaignReportModalOpen}
+        campaign={selectedCampaignForReport}
+        posts={posts}
+        brandName={activeBrand?.name || 'Sua Marca'}
       />
 
       {/* =========================================================================
