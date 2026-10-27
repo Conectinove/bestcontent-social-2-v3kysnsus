@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { InstagramCommentsInbox } from '@/components/feed/InstagramCommentsInbox'
+import { FacebookCommentsInbox } from '@/components/feed/FacebookCommentsInbox'
 import { useAuth } from '@/context/AuthContext'
 import {
   getConsolidatedSocialHubData,
@@ -41,7 +42,7 @@ export function SocialHubPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [activeTab, setActiveTab] = useState<'overview' | 'comments'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'comments-ig' | 'comments-fb'>('overview')
 
   const loadData = async () => {
     setLoading(true)
@@ -118,7 +119,7 @@ export function SocialHubPage() {
         </div>
       </div>
 
-      {/* Navegação entre Visão Geral do Hub e Caixa de Comentários */}
+      {/* Navegação entre Visão Geral do Hub e Caixas de Comentários */}
       <div className="flex items-center gap-2 border-b border-border/80 pb-2 overflow-x-auto scrollbar-none">
         <button
           type="button"
@@ -135,22 +136,42 @@ export function SocialHubPage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('comments')}
+          onClick={() => setActiveTab('comments-ig')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap min-h-[44px] ${
-            activeTab === 'comments'
+            activeTab === 'comments-ig'
               ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-xs'
               : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
           }`}
         >
           <MessageCircle className="w-4 h-4 text-pink-400" />
-          <span>Caixa de Entrada de Comentários</span>
+          <span>Comentários IG</span>
           <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse ml-0.5" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('comments-fb')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap min-h-[44px] ${
+            activeTab === 'comments-fb'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
+              : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+          }`}
+        >
+          <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+          </svg>
+          <span>Comentários FB</span>
+          <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse ml-0.5" />
         </button>
       </div>
 
-      {activeTab === 'comments' ? (
+      {activeTab === 'comments-ig' ? (
         <div className="space-y-6">
           <InstagramCommentsInbox />
+        </div>
+      ) : activeTab === 'comments-fb' ? (
+        <div className="space-y-6">
+          <FacebookCommentsInbox />
         </div>
       ) : (
         <>
@@ -1141,6 +1162,34 @@ export function SocialHubPage() {
                       {channel.bestTime.day} às {channel.bestTime.time}
                     </span>
                   </div>
+
+                  {channel.network === 'facebook' && (
+                    <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">Página Conectinove</span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('comments-fb')}
+                        className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        <span>Ver comentários FB</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {channel.network === 'instagram' && (
+                    <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">Feed & Reels</span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('comments-ig')}
+                        className="text-[11px] font-bold text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        <span>Ver comentários IG</span>
+                      </button>
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
