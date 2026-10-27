@@ -6,11 +6,13 @@ import {
   CheckCircle2,
   AlertCircle,
   Play,
-  RotateCcw,
   Sparkles,
   ArrowRight,
   Shield,
   Loader2,
+  TrendingUp,
+  Award,
+  Crown,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -48,6 +50,10 @@ export function FunnelAutomationsPanel({
   const pendingActionsStats = useMemo(() => {
     const now = new Date().getTime()
 
+    // Ticket médio da carteira para regras de Alto Valor
+    const totalPipelineVal = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0)
+    const avgTicket = deals.length > 0 ? totalPipelineVal / deals.length : 3000
+
     // 1. Propostas paradas há mais de 5 dias
     const staleProposals = deals.filter((d) => {
       if (d.stage !== 'proposta_enviada') return false
@@ -64,19 +70,58 @@ export function FunnelAutomationsPanel({
       return diffDays >= 2
     })
 
-    // 3. Negociações paradas há mais de 10 dias
+    // 3. Negociações paradas há mais de 7 dias
     const staleNegotiations = deals.filter((d) => {
       if (d.stage !== 'negociacao') return false
       const updatedAt = new Date(d.updated || d.created).getTime()
       const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
-      return diffDays >= 10
+      return diffDays >= 7
     })
+
+    // 4. Deals ganhos recentes (últimos 3 dias) para upsell
+    const wonDealsRecent = deals.filter((d) => {
+      if (d.stage !== 'fechado_ganho') return false
+      const updatedAt = new Date(d.updated || d.created).getTime()
+      const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
+      return diffDays <= 7
+    })
+
+    // 5. Deals perdidos há mais de 30 dias para reativação
+    const lostDealsReactivate = deals.filter((d) => {
+      if (d.stage !== 'fechado_perdido') return false
+      const updatedAt = new Date(d.updated || d.created).getTime()
+      const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
+      return diffDays >= 30
+    })
+
+    // 6. Deals de alto valor com prioridade não-alta
+    const highValueDeals = deals.filter((d) => {
+      const val = Number(d.value) || 0
+      return val > avgTicket && d.priority !== 'alta' && d.stage !== 'fechado_perdido'
+    })
+
+    // 7. Alerta de pipeline frio: nenhum lead captado nos últimos 7 dias
+    const newLeadsLast7d = deals.filter((d) => {
+      const createdTime = new Date(d.created).getTime()
+      return (now - createdTime) / (1000 * 60 * 60 * 24) <= 7
+    })
+    const isColdPipeline = deals.length > 0 && newLeadsLast7d.length === 0
 
     return {
       staleProposals,
       staleLeads,
       staleNegotiations,
-      totalPending: staleProposals.length + staleLeads.length + staleNegotiations.length,
+      wonDealsRecent,
+      lostDealsReactivate,
+      highValueDeals,
+      isColdPipeline,
+      avgTicket,
+      totalPending:
+        staleProposals.length +
+        staleLeads.length +
+        staleNegotiations.length +
+        highValueDeals.length +
+        (isColdPipeline ? 1 : 0),
     }
   }, [deals])
 
@@ -110,10 +155,14 @@ export function FunnelAutomationsPanel({
     try {
       const now = new Date().getTime()
 
+      // Calcular ticket médio da carteira
+      const totalPipelineVal = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0)
+      const avgTicket = deals.length > 0 ? totalPipelineVal / deals.length : 3000
+
       for (const auto of automations) {
         if (!auto.enabled) continue
 
-        // Regra de propostas paradas
+        // 1. Regra de propostas paradas (> 5 dias)
         if (auto.rule_key === 'stale_proposal_followup') {
           const daysThreshold = auto.days_inactive || 5
           for (const d of deals) {
@@ -127,12 +176,20 @@ export function FunnelAutomationsPanel({
                     `${d.notes || ''}\n[Automação] Sinalizado para follow-up urgente (${Math.floor(diffDays)} dias sem movimentação).`.trim(),
                 })
                 processedCount++
+                if (addNotification) {
+                  addNotification({
+                    title: `Proposta Parada: ${d.title}`,
+                    message: `A proposta está sem retorno há ${Math.floor(diffDays)} dias. Prioridade elevada para Alta.`,
+                    type: 'schedule',
+                  })
+                  remindersCreated++
+                }
               }
             }
           }
         }
 
-        // Regra de lembretes para leads parados
+        // 2. Regra de lembretes para leads parados (> 2 dias)
         if (auto.rule_key === 'stale_lead_reminder') {
           const daysThreshold = auto.days_inactive || 2
           for (const d of deals) {
@@ -142,8 +199,8 @@ export function FunnelAutomationsPanel({
               if (diffDays >= daysThreshold) {
                 if (addNotification) {
                   addNotification({
-                    title: `Lembrete Funil: Lead Parado (${d.title})`,
-                    message: `${d.company || 'Oportunidade'} aguarda 1º contato há mais de ${Math.floor(diffDays)} dias. Envie uma mensagem!`,
+                    title: `Lead Aguardando 1º Contato: ${d.title}`,
+                    message: `${d.company || 'Oportunidade'} aguarda 1º contato há ${Math.floor(diffDays)} dias. Faça contato para não esfriar!`,
                     type: 'schedule',
                   })
                   remindersCreated++
@@ -151,6 +208,131 @@ export function FunnelAutomationsPanel({
                 processedCount++
               }
             }
+          }
+        }
+
+        // 3. Negociação parada (> 7 dias) -> alerta urgente
+        if (
+          auto.rule_key === 'negotiation_stale_urgent_alert' ||
+          auto.rule_key === 'auto_negotiation_close'
+        ) {
+          const daysThreshold = auto.days_inactive || 7
+          for (const d of deals) {
+            if (d.stage === 'negociacao') {
+              const updatedAt = new Date(d.updated || d.created).getTime()
+              const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
+              if (diffDays >= daysThreshold) {
+                if (d.priority !== 'alta') {
+                  await updateFunnelDeal(d.id, {
+                    priority: 'alta',
+                    notes:
+                      `${d.notes || ''}\n[Automação] Alerta de Negociação parada há ${Math.floor(diffDays)} dias. Sugerir bônus ou condição rápida de fechamento.`.trim(),
+                  })
+                }
+                if (addNotification) {
+                  addNotification({
+                    title: `Alerta Negociação Urgente: ${d.title}`,
+                    message: `R$ ${(d.value || 0).toLocaleString('pt-BR')} travados em negociação há ${Math.floor(diffDays)} dias. Dispare uma condição de fechamento.`,
+                    type: 'mention',
+                  })
+                  remindersCreated++
+                }
+                processedCount++
+              }
+            }
+          }
+        }
+
+        // 4. Deal Ganho -> Parabenizar & Sugerir Upsell / Case de Sucesso
+        if (auto.rule_key === 'deal_won_congrats_upsell') {
+          for (const d of deals) {
+            if (d.stage === 'fechado_ganho') {
+              const updatedAt = new Date(d.updated || d.created).getTime()
+              const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
+              // Deals ganhos recentes que ainda não tiveram nota de upsell
+              if (diffDays <= 7 && (!d.notes || !d.notes.includes('[Upsell Programado]'))) {
+                await updateFunnelDeal(d.id, {
+                  notes:
+                    `${d.notes || ''}\n[Upsell Programado] Cliente fechado com sucesso. Agendar coleta de depoimento e apresentação de pacote ampliado em 15 dias.`.trim(),
+                })
+                if (addNotification) {
+                  addNotification({
+                    title: `Parabéns pela Venda: ${d.title}!`,
+                    message: `Cliente faturado em R$ ${(d.value || 0).toLocaleString('pt-BR')}. Agende o onboarding e prepare a proposta de upsell.`,
+                    type: 'like',
+                  })
+                  remindersCreated++
+                }
+                processedCount++
+              }
+            }
+          }
+        }
+
+        // 5. Deal Perdido -> Agendar Reativação em 30 dias
+        if (auto.rule_key === 'deal_lost_reactivation_30d') {
+          for (const d of deals) {
+            if (d.stage === 'fechado_perdido') {
+              const updatedAt = new Date(d.updated || d.created).getTime()
+              const diffDays = (now - updatedAt) / (1000 * 60 * 60 * 24)
+              if (diffDays >= 30 && (!d.notes || !d.notes.includes('[Reativação Acionada]'))) {
+                await updateFunnelDeal(d.id, {
+                  notes:
+                    `${d.notes || ''}\n[Reativação Acionada] 30 dias após arquivamento. Momento ideal para reenviar case atualizado ou condição promocional.`.trim(),
+                })
+                if (addNotification) {
+                  addNotification({
+                    title: `Reativação de Oportunidade: ${d.title}`,
+                    message: `Oportunidade perdida há 30 dias. Entre em contato com um novo case de sucesso ou oferta de retorno.`,
+                    type: 'schedule',
+                  })
+                  remindersCreated++
+                }
+                processedCount++
+              }
+            }
+          }
+        }
+
+        // 6. Deal de Alto Valor (> Ticket Médio) -> Elevar para Prioridade Alta VIP
+        if (auto.rule_key === 'high_value_deal_priority') {
+          for (const d of deals) {
+            const val = Number(d.value) || 0
+            if (val > avgTicket && d.priority !== 'alta' && d.stage !== 'fechado_perdido') {
+              await updateFunnelDeal(d.id, {
+                priority: 'alta',
+                notes:
+                  `${d.notes || ''}\n[Prioridade VIP] Valor (R$ ${val.toLocaleString('pt-BR')}) superior ao ticket médio (R$ ${Math.round(avgTicket).toLocaleString('pt-BR')}).`.trim(),
+              })
+              if (addNotification) {
+                addNotification({
+                  title: `Deal VIP de Alto Valor: ${d.title}`,
+                  message: `Oportunidade de R$ ${val.toLocaleString('pt-BR')} acima do ticket médio. Atenção prioritária do time comercial.`,
+                  type: 'mention',
+                })
+                remindersCreated++
+              }
+              processedCount++
+            }
+          }
+        }
+
+        // 7. Pipeline Frio -> Nenhum novo lead nos últimos 7 dias
+        if (auto.rule_key === 'pipeline_cold_alert_7d') {
+          const newLeadsLast7d = deals.filter((d) => {
+            const createdTime = new Date(d.created).getTime()
+            return (now - createdTime) / (1000 * 60 * 60 * 24) <= 7
+          })
+          if (deals.length > 0 && newLeadsLast7d.length === 0) {
+            if (addNotification) {
+              addNotification({
+                title: `Alerta Estratégico: Pipeline Comercial Frio`,
+                message: `Nenhum novo lead entrou no funil nos últimos 7 dias. Recomendamos ativar campanhas em Google Ads, Meta Ads ou YouTube Ads.`,
+                type: 'schedule',
+              })
+              remindersCreated++
+            }
+            processedCount++
           }
         }
       }
@@ -218,17 +400,42 @@ export function FunnelAutomationsPanel({
         {pendingActionsStats.totalPending > 0 && (
           <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div className="text-xs space-y-1">
+            <div className="text-xs space-y-1 w-full">
               <span className="font-bold text-foreground">
-                {pendingActionsStats.totalPending} oportunidade(s) atingiram os critérios de
-                automação hoje:
+                {pendingActionsStats.totalPending} gatilho(s) comercial(is) detectado(s) para
+                execução:
               </span>
-              <p className="text-muted-foreground">
-                • {pendingActionsStats.staleProposals.length} proposta(s) sem resposta há mais de 5
-                dias.
-                <br />• {pendingActionsStats.staleLeads.length} lead(s) novo(s) sem contato há mais
-                de 2 dias.
-              </p>
+              <ul className="text-muted-foreground list-disc pl-4 space-y-0.5 mt-1">
+                {pendingActionsStats.staleProposals.length > 0 && (
+                  <li>
+                    {pendingActionsStats.staleProposals.length} proposta(s) parada(s) há mais de 5
+                    dias.
+                  </li>
+                )}
+                {pendingActionsStats.staleLeads.length > 0 && (
+                  <li>
+                    {pendingActionsStats.staleLeads.length} lead(s) novo(s) aguardando primeiro
+                    contato há 48h+.
+                  </li>
+                )}
+                {pendingActionsStats.staleNegotiations.length > 0 && (
+                  <li>
+                    {pendingActionsStats.staleNegotiations.length} negociação(ões) parada(s) há 7+
+                    dias.
+                  </li>
+                )}
+                {pendingActionsStats.highValueDeals.length > 0 && (
+                  <li>
+                    {pendingActionsStats.highValueDeals.length} negócio(s) VIP com valor acima do
+                    ticket médio (R${' '}
+                    {Math.round(pendingActionsStats.avgTicket).toLocaleString('pt-BR')}) para elevar
+                    prioridade.
+                  </li>
+                )}
+                {pendingActionsStats.isColdPipeline && (
+                  <li>Alerta de pipeline frio: nenhum novo lead nos últimos 7 dias.</li>
+                )}
+              </ul>
             </div>
           </div>
         )}

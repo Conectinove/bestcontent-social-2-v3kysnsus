@@ -61,6 +61,7 @@ import {
 } from '@/services/funnel'
 import { GoogleAdsFunnelBlock } from '@/components/ads/GoogleAdsFunnelBlock'
 import { MetaAdsFunnelBlock } from '@/components/ads/MetaAdsFunnelBlock'
+import { YouTubeAdsFunnelBlock } from '@/components/ads/YouTubeAdsFunnelBlock'
 import { FunnelAutomationsPanel } from '@/components/funnel/FunnelAutomationsPanel'
 
 export default function SalesFunnelPage() {
@@ -183,6 +184,27 @@ export default function SalesFunnelPage() {
     setDeals((prev) => [created, ...prev])
   }
 
+  // Conversão de clique YouTube Ads em Lead captado
+  const handleConvertYouTubeClickToLead = async (leadData: {
+    title: string
+    company: string
+    value: number
+    source: 'YouTube Ads'
+    notes: string
+  }) => {
+    const created = await createFunnelDeal({
+      title: leadData.title,
+      company: leadData.company,
+      value: leadData.value,
+      stage: 'lead_captado',
+      source: 'YouTube Ads',
+      responsible: 'Ronaldo Barreto',
+      notes: leadData.notes,
+      priority: 'alta',
+    })
+    setDeals((prev) => [created, ...prev])
+  }
+
   // Análise de IA Avançada do Funil (BestContent Sales Advisor com dados reais)
   // Ampliado com: comparativo Google Ads vs Meta Ads vs Orgânico, Projeção do Mês e Próximo Melhor Contato
   const aiInsight = useMemo(() => {
@@ -198,6 +220,7 @@ export default function SalesFunnelPage() {
         channelComparison: {
           google: { count: 0, won: 0, rate: 0, totalVal: 0 },
           meta: { count: 0, won: 0, rate: 0, totalVal: 0 },
+          youtube: { count: 0, won: 0, rate: 0, totalVal: 0 },
           organic: { count: 0, won: 0, rate: 0, totalVal: 0 },
           winner: 'Nenhum canal ativo',
         },
@@ -222,10 +245,11 @@ export default function SalesFunnelPage() {
       fechado_perdido: { count: 0, totalValue: 0 },
     }
 
-    // 2. Comparativo aprofundado por canal: Google Ads vs Meta Ads vs Orgânico (Instagram/TikTok/LinkedIn/Site/Indicação)
+    // 2. Comparativo aprofundado por canal: Google Ads vs Meta Ads vs YouTube Ads vs Orgânico
     const channelStats = {
       google: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
       meta: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
+      youtube: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
       organic: { count: 0, won: 0, totalVal: 0, wonVal: 0 },
     }
 
@@ -259,6 +283,13 @@ export default function SalesFunnelPage() {
         if (d.stage === 'fechado_ganho') {
           channelStats.meta.won += 1
           channelStats.meta.wonVal += val
+        }
+      } else if (src === 'YouTube Ads') {
+        channelStats.youtube.count += 1
+        channelStats.youtube.totalVal += val
+        if (d.stage === 'fechado_ganho') {
+          channelStats.youtube.won += 1
+          channelStats.youtube.wonVal += val
         }
       } else {
         channelStats.organic.count += 1
@@ -317,22 +348,28 @@ export default function SalesFunnelPage() {
         : 0
     const metaRate =
       channelStats.meta.count > 0 ? (channelStats.meta.won / channelStats.meta.count) * 100 : 0
+    const youtubeRate =
+      channelStats.youtube.count > 0
+        ? (channelStats.youtube.won / channelStats.youtube.count) * 100
+        : 0
     const organicRate =
       channelStats.organic.count > 0
         ? (channelStats.organic.won / channelStats.organic.count) * 100
         : 0
 
     let channelWinner = 'Canais equilibrados'
-    if (metaRate > googleRate && metaRate > organicRate && channelStats.meta.count >= 1) {
-      channelWinner = `Meta Ads (${metaRate.toFixed(0)}% conversão)`
-    } else if (
-      googleRate >= metaRate &&
-      googleRate > organicRate &&
-      channelStats.google.count >= 1
-    ) {
-      channelWinner = `Google Ads (${googleRate.toFixed(0)}% conversão)`
-    } else if (organicRate > 0) {
-      channelWinner = `Orgânico / Social (${organicRate.toFixed(0)}% conversão)`
+    const candidatesRates = [
+      { name: 'Meta Ads', rate: metaRate, count: channelStats.meta.count },
+      { name: 'Google Ads', rate: googleRate, count: channelStats.google.count },
+      { name: 'YouTube Ads', rate: youtubeRate, count: channelStats.youtube.count },
+      { name: 'Orgânico / Social', rate: organicRate, count: channelStats.organic.count },
+    ].filter((c) => c.count >= 1 && c.rate > 0)
+
+    if (candidatesRates.length > 0) {
+      candidatesRates.sort((a, b) => b.rate - a.rate)
+      channelWinner = `${candidatesRates[0].name} (${candidatesRates[0].rate.toFixed(0)}% conversão)`
+    } else if (channelStats.youtube.count > 0) {
+      channelWinner = 'YouTube Ads (vídeo qualificado)'
     }
 
     const channelComparison = {
@@ -347,6 +384,12 @@ export default function SalesFunnelPage() {
         won: channelStats.meta.won,
         rate: metaRate,
         totalVal: channelStats.meta.totalVal,
+      },
+      youtube: {
+        count: channelStats.youtube.count,
+        won: channelStats.youtube.won,
+        rate: youtubeRate,
+        totalVal: channelStats.youtube.totalVal,
       },
       organic: {
         count: channelStats.organic.count,
@@ -728,10 +771,11 @@ export default function SalesFunnelPage() {
         </Card>
       </div>
 
-      {/* Blocos de Performance de Mídia Paga Integrados (Google Ads + Meta Ads lado a lado) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Blocos de Performance de Mídia Paga Integrados (Google Ads + Meta Ads + YouTube Ads lado a lado) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <GoogleAdsFunnelBlock onConvertClickToLead={handleConvertClickToLead} />
         <MetaAdsFunnelBlock onConvertClickToLead={handleConvertMetaClickToLead} />
+        <YouTubeAdsFunnelBlock onConvertClickToLead={handleConvertYouTubeClickToLead} />
       </div>
 
       {/* Painel de Automações do Funil (Persistidas no Banco) */}
@@ -775,18 +819,18 @@ export default function SalesFunnelPage() {
 
         {/* 3 Sub-blocos Inteligentes: Comparativo de Canais, Projeção do Mês e Próximo Melhor Contato */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Sub-bloco 1: Comparativo Google Ads vs Meta Ads vs Orgânico */}
+          {/* Sub-bloco 1: Comparativo Google Ads vs Meta Ads vs YouTube Ads vs Orgânico */}
           <div className="p-3.5 rounded-2xl bg-card border border-border/80 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-blue-500" />
-                Google Ads vs Meta vs Orgânico
+                Google vs Meta vs YouTube vs Orgânico
               </span>
               <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 Conversão
               </span>
             </div>
-            <div className="space-y-1.5 text-xs">
+            <div className="space-y-1 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Google Ads:</span>
                 <span className="font-bold font-mono text-foreground">
@@ -799,6 +843,13 @@ export default function SalesFunnelPage() {
                 <span className="font-bold font-mono text-foreground">
                   {aiInsight.channelComparison.meta.count} leads ·{' '}
                   {aiInsight.channelComparison.meta.rate.toFixed(0)}% fechados
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">YouTube Ads:</span>
+                <span className="font-bold font-mono text-foreground">
+                  {aiInsight.channelComparison.youtube?.count || 0} leads ·{' '}
+                  {(aiInsight.channelComparison.youtube?.rate || 0).toFixed(0)}% fechados
                 </span>
               </div>
               <div className="flex items-center justify-between">

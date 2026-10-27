@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T07:18:51.973Z",
+  "generatedAt": "2026-10-27T07:44:28.305Z",
   "collections": [
     {
       "name": "users",
@@ -3180,6 +3180,7 @@
           "selectValues": [
             "Google Ads",
             "Meta Ads",
+            "YouTube Ads",
             "Instagram",
             "TikTok",
             "LinkedIn",

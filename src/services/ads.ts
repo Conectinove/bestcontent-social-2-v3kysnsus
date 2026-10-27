@@ -310,6 +310,36 @@ export interface MetaAdsStatusResponse {
   message?: string
 }
 
+export interface YouTubeAdsStatusResponse {
+  platform: 'youtube'
+  name: string
+  configured: boolean
+  status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
+  customerIdPrefix?: string | null
+  requiredSecrets: string[]
+  message?: string
+}
+
+export async function getYouTubeAdsStatus(): Promise<YouTubeAdsStatusResponse> {
+  try {
+    const res = await pb.send('/backend/v1/youtube/ads/status', { method: 'GET' })
+    return res as YouTubeAdsStatusResponse
+  } catch {
+    return {
+      platform: 'youtube',
+      name: 'YouTube Ads & Video Campaigns',
+      configured: false,
+      status: 'not_configured',
+      requiredSecrets: [
+        'YOUTUBE_ADS_ACCESS_TOKEN',
+        'YOUTUBE_ADS_CUSTOMER_ID',
+        'GOOGLE_ADS_CUSTOMER_ID',
+      ],
+      message: 'Estimativa calibrada ativa.',
+    }
+  }
+}
+
 export async function getMetaAdsStatus(): Promise<MetaAdsStatusResponse> {
   try {
     const res = await pb.send('/backend/v1/meta/ads/status', { method: 'GET' })

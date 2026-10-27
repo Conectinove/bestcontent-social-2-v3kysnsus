@@ -11,6 +11,7 @@ export type DealStage =
 export type DealSource =
   | 'Google Ads'
   | 'Meta Ads'
+  | 'YouTube Ads'
   | 'Instagram'
   | 'TikTok'
   | 'LinkedIn'
@@ -116,6 +117,7 @@ export const FUNNEL_STAGES: FunnelStageConfig[] = [
 export const SOURCES_OPTIONS: DealSource[] = [
   'Google Ads',
   'Meta Ads',
+  'YouTube Ads',
   'Instagram',
   'TikTok',
   'LinkedIn',

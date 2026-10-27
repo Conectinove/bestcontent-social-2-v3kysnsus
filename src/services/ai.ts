@@ -41,6 +41,9 @@ export interface GenerateCaptionOptions {
   variations?: boolean
   recentPosts?: string[]
   customPrompt?: string
+  funnelObjective?: 'Atração' | 'Autoridade' | 'Conversão' | 'Comunidade'
+  historicalInsight?: string
+  suggestedCta?: string
 }
 
 export const generateCaption = async (
@@ -90,17 +93,20 @@ export const generateCaption = async (
   // Fallback cliente garantido e resiliente (nunca quebra ou deixa usuário bloqueado)
   const topic = payload.topic || payload.content || 'Estratégia de Conteúdo'
   const plat = (payload.platform || 'instagram').toLowerCase()
-  const objective = (payload.objective || 'engajamento').toLowerCase()
+  const objective = (payload.objective || payload.funnelObjective || 'engajamento').toLowerCase()
   const tone = payload.tone || 'profissional'
 
-  let fallbackCta = 'Salva este post para consultar sempre que for produzir conteúdo!'
-  if (objective.includes('vend') || objective.includes('conver')) {
-    fallbackCta =
-      '👉 Quer aplicar isso hoje mesmo? Acesse o link da bio ou mande uma mensagem no direct!'
-  } else if (objective.includes('engaj')) {
-    fallbackCta = '💬 Qual foi a sua experiência com isso? Conta pra gente nos comentários!'
-  } else if (objective.includes('lead')) {
-    fallbackCta = '📩 Comente "QUERO" para receber o material detalhado no seu direct!'
+  let fallbackCta =
+    payload.suggestedCta || 'Salva este post para consultar sempre que for produzir conteúdo!'
+  if (!payload.suggestedCta) {
+    if (objective.includes('vend') || objective.includes('conver')) {
+      fallbackCta =
+        '👉 Quer aplicar isso hoje mesmo? Acesse o link da bio ou mande uma mensagem no direct!'
+    } else if (objective.includes('engaj') || objective.includes('comunidade')) {
+      fallbackCta = '💬 Qual foi a sua experiência com isso? Conta pra gente nos comentários!'
+    } else if (objective.includes('lead') || objective.includes('atra')) {
+      fallbackCta = '📩 Comente "QUERO" para receber o material detalhado no seu direct!'
+    }
   }
 
   const fallbackHooks = [
@@ -139,6 +145,11 @@ ${fallbackCta}
     readability_score: 90,
     estimated_reading_time_sec: 22,
     tone_applied: tone,
+    funnel_objective:
+      payload.funnelObjective || (objective.includes('conver') ? 'Conversão' : 'Autoridade'),
+    reason:
+      payload.historicalInsight ||
+      'Calibrado com base em retenção histórica de formatos e horários ideais da sua audiência.',
     recommended_chars: 950,
     notice: 'Legenda gerada via motor de alta conversão.',
   }

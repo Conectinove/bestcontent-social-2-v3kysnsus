@@ -20,7 +20,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { getWhatToPostToday, type TodayPostIdea } from '@/services/post-templates'
+import { Target, Megaphone } from 'lucide-react'
+import {
+  getWhatToPostToday,
+  type TodayPostIdea,
+  type FunnelObjective,
+} from '@/services/post-templates'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
 
 interface WhatToPostTodayModalProps {
@@ -47,6 +52,9 @@ export function WhatToPostTodayModal({
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [selectedFormatFilter, setSelectedFormatFilter] = useState<string>('all')
+  const [selectedObjectiveFilter, setSelectedObjectiveFilter] = useState<FunnelObjective | 'all'>(
+    'all',
+  )
   const [weeklyPlanModalOpen, setWeeklyPlanModalOpen] = useState(false)
 
   const fetchIdeas = async () => {
@@ -57,6 +65,7 @@ export function WhatToPostTodayModal({
         brandNiche,
         brandTone,
         network,
+        funnelObjective: selectedObjectiveFilter !== 'all' ? selectedObjectiveFilter : undefined,
       })
       setIdeas(result)
     } catch {
@@ -72,10 +81,10 @@ export function WhatToPostTodayModal({
 
   // Carregar ideias ao abrir se ainda não tiver
   React.useEffect(() => {
-    if (open && ideas.length === 0) {
+    if (open) {
       fetchIdeas()
     }
-  }, [open])
+  }, [open, selectedObjectiveFilter])
 
   const handleCopyCaption = (idea: TodayPostIdea) => {
     const textToCopy = `${idea.caption}\n\n${idea.hashtags.join(' ')}`
@@ -110,7 +119,8 @@ export function WhatToPostTodayModal({
                   </Badge>
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  3 ideias completas baseadas no melhor histórico da marca{' '}
+                  Sugestões contextualizadas cruzando top posts, retenção por formato, horários e
+                  objetivos de funil da marca{' '}
                   <span className="font-semibold text-foreground">{brandName}</span> ({network}).
                 </p>
               </div>
@@ -140,36 +150,58 @@ export function WhatToPostTodayModal({
             </div>
           </div>
 
-          {/* Seletor de Formatos de Conteúdo para IA */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-2">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase mr-1">
-              Formato:
-            </span>
-            {[
-              { key: 'all', label: 'Todos os Formatos', icon: Layers },
-              { key: 'Carrossel', label: 'Carrossel (Slides)', icon: Layers },
-              { key: 'Vídeo Curto / Reels', label: 'Roteiro de Vídeo (Beats)', icon: Video },
-              { key: 'Thread X / Twitter', label: 'Threads (X)', icon: Twitter },
-              { key: 'Newsletter / Artigo', label: 'Newsletter & LinkedIn', icon: Mail },
-            ].map((f) => {
-              const Icon = f.icon
-              const active = selectedFormatFilter === f.key
-              return (
+          {/* Controles: Filtros por Formato & Objetivo de Funil */}
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase mr-1 shrink-0">
+                Formato:
+              </span>
+              {[
+                { key: 'all', label: 'Todos os Formatos', icon: Layers },
+                { key: 'Carrossel', label: 'Carrossel (Slides)', icon: Layers },
+                { key: 'Vídeo Curto / Reels', label: 'Roteiro de Vídeo (Beats)', icon: Video },
+                { key: 'Thread X / Twitter', label: 'Threads (X)', icon: Twitter },
+                { key: 'Newsletter / Artigo', label: 'Newsletter & LinkedIn', icon: Mail },
+              ].map((f) => {
+                const Icon = f.icon
+                const active = selectedFormatFilter === f.key
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setSelectedFormatFilter(f.key)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                      active
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{f.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-0.5">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase mr-1 shrink-0 flex items-center gap-1">
+                <Target className="w-3 h-3 text-purple-500" /> Objetivo de Funil:
+              </span>
+              {(['all', 'Atração', 'Autoridade', 'Conversão', 'Comunidade'] as const).map((obj) => (
                 <button
-                  key={f.key}
+                  key={obj}
                   type="button"
-                  onClick={() => setSelectedFormatFilter(f.key)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                    active
-                      ? 'bg-purple-600 text-white shadow-xs'
-                      : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  onClick={() => setSelectedObjectiveFilter(obj)}
+                  className={`px-2.5 py-0.5 rounded-md text-[11px] font-medium transition-all whitespace-nowrap ${
+                    selectedObjectiveFilter === obj
+                      ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/40 font-bold'
+                      : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{f.label}</span>
+                  {obj === 'all' ? 'Todos os Objetivos' : obj}
                 </button>
-              )
-            })}
+              ))}
+            </div>
           </div>
         </DialogHeader>
 
@@ -215,13 +247,29 @@ export function WhatToPostTodayModal({
                       <Badge variant="secondary" className="text-[10px]">
                         {idea.format}
                       </Badge>
+                      {idea.funnelObjective && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30 font-bold"
+                        >
+                          🎯 {idea.funnelObjective}
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
-                  {/* Justificativa de IA */}
-                  <div className="p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/15 text-[11px] text-purple-700 dark:text-purple-300 font-medium flex items-center gap-2">
-                    <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>{idea.reason}</span>
+                  {/* Justificativa de IA com dados reais */}
+                  <div className="p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/15 text-[11px] text-purple-700 dark:text-purple-300 font-medium space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>{idea.reason}</span>
+                    </div>
+                    {idea.suggestedCta && (
+                      <div className="text-[10px] text-foreground/80 flex items-center gap-1.5 pl-5 pt-0.5 font-semibold">
+                        <Megaphone className="w-3 h-3 text-pink-500 shrink-0" />
+                        <span>CTA sugerido: "{idea.suggestedCta}"</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Legenda sugerida */}
