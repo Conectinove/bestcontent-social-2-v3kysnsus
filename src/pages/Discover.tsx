@@ -23,6 +23,7 @@ import {
   Target,
   SlidersHorizontal,
   CheckCircle2,
+  Hash,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { evaluateIdeaRelevance, type SemanticMatchResult } from '@/services/semantic-search'
@@ -51,6 +52,7 @@ interface SuggestedIdea {
   badge?: string
   coverImage?: string
   targetTheme?: string
+  hashtags?: string[]
 }
 
 const INSPIRATION_IDEAS: SuggestedIdea[] = [
@@ -68,6 +70,7 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     funnelObjective: 'Conversão',
     coverImage: 'https://img.usecurling.com/p/600/400?q=shopping%20sale%20discount&color=purple',
     targetTheme: 'Promoção exclusiva de Singles Day 11.11 com foco em transformação',
+    hashtags: ['#singlesday', '#promocao', '#vendas', '#oferta1111'],
   },
   {
     id: 'case-midiaviva-4h',
@@ -83,6 +86,7 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     coverImage:
       'https://img.usecurling.com/p/600/400?q=workspace%20laptop%20productivity&color=blue',
     targetTheme: 'Case de sucesso: economia de 4 horas por dia com criação automatizada',
+    hashtags: ['#casesucesso', '#produtividade', '#ia', '#marketingdigital'],
   },
   {
     id: 'black-friday-aquecimento',
@@ -98,6 +102,7 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     funnelObjective: 'Conversão',
     coverImage: 'https://img.usecurling.com/p/600/400?q=black%20friday%20neon&color=yellow',
     targetTheme: 'Campanha de lista VIP antecipada para a Black Friday',
+    hashtags: ['#blackfriday', '#blackfriday2025', '#listavip', '#ofertas'],
   },
   {
     id: 'reels-3-erros',
@@ -112,6 +117,7 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     funnelObjective: 'Atração',
     coverImage: 'https://img.usecurling.com/p/600/400?q=smartphone%20recording%20video&color=rose',
     targetTheme: '3 erros comuns que derrubam o engajamento e alcance nas redes',
+    hashtags: ['#reels', '#alcance', '#dicasreels', '#socialmedia'],
   },
   {
     id: 'dia-mundial-criatividade',
@@ -127,6 +133,7 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     funnelObjective: 'Comunidade',
     coverImage: 'https://img.usecurling.com/p/600/400?q=designer%20creative%20desk&color=cyan',
     targetTheme: 'Como usamos inteligência artificial no dia a dia criativo',
+    hashtags: ['#criatividade', '#bastidores', '#ia', '#produtividade'],
   },
   {
     id: 'debate-comunidade-futuro',
@@ -142,6 +149,7 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     coverImage:
       'https://img.usecurling.com/p/600/400?q=discussion%20community%20podcast&color=purple',
     targetTheme: 'Debate comunitário: limites éticos e criativos do uso de IA',
+    hashtags: ['#comunidade', '#ia', '#futuro', '#conteudo'],
   },
   {
     id: 'reels-bastidores-lancamento',
@@ -156,6 +164,7 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     funnelObjective: 'Atração',
     coverImage: 'https://img.usecurling.com/p/600/400?q=video%20editing%20timeline&color=cyan',
     targetTheme: 'Roteiro de 20s dos bastidores da produção de campanhas',
+    hashtags: ['#bastidores', '#videomaker', '#campanha', '#marketingdigital'],
   },
   {
     id: 'story-enquete-estrategica',
@@ -170,6 +179,23 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
     funnelObjective: 'Conversão',
     coverImage: 'https://img.usecurling.com/p/600/400?q=mobile%20social%20poll&color=orange',
     targetTheme: 'Sequência de stories com enquetes de diagnóstico de funil',
+    hashtags: ['#vendas', '#enquetes', '#funildevendas', '#stories'],
+  },
+  {
+    id: 'dia-do-professor',
+    kind: 'date',
+    dateLabel: '15 out',
+    daysUntilLabel: 'Sazonal',
+    title: 'Homenagem ao Dia do Professor & Compartilhamento de Saber',
+    description:
+      'Post comemorativo que valoriza mentores, educadores e a partilha contínua de conhecimento que move o seu mercado.',
+    category: 'Data Comemorativa',
+    badge: '15 out · Sazonal',
+    format: 'Post Feed',
+    funnelObjective: 'Comunidade',
+    coverImage: 'https://img.usecurling.com/p/600/400?q=classroom%20teacher%20education&color=blue',
+    targetTheme: 'Homenagem e lições de vida para o Dia do Professor',
+    hashtags: ['#diadoprofessor', '#educacao', '#conhecimento', '#gratidao'],
   },
 ]
 
@@ -365,6 +391,7 @@ export default function Discover() {
           format: idea.format,
           funnelObjective: idea.funnelObjective,
           badge: idea.badge,
+          hashtags: idea.hashtags,
         })
 
         if (!evaluation.isMatch) {
@@ -699,7 +726,7 @@ export default function Discover() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               type="text"
-              placeholder="Buscar ideias por tema, palavra-chave, data ou objetivo (ex: Black Friday, reels, conversão)..."
+              placeholder="Buscar ideias por tema, hashtag (#blackfriday), data ou objetivo (ex: reels, conversão)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-10 h-10 rounded-xl bg-background border-border/80 text-sm focus-visible:ring-purple-500/30"
@@ -986,6 +1013,41 @@ export default function Discover() {
                       <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                         {idea.description}
                       </p>
+
+                      {/* Hashtags como chips clicáveis */}
+                      {idea.hashtags && idea.hashtags.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {idea.hashtags.map((tag) => {
+                            const cleanQueryTag = searchQuery
+                              .trim()
+                              .toLowerCase()
+                              .replace(/^#+/, '')
+                            const cleanThisTag = tag.toLowerCase().replace(/^#+/, '')
+                            const isSelectedTag = cleanQueryTag === cleanThisTag
+
+                            return (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  // Se já estava selecionada, limpa a busca; caso contrário, pesquisa por ela
+                                  setSearchQuery(isSelectedTag ? '' : tag)
+                                }}
+                                title={`Filtrar por ${tag}`}
+                                className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-semibold transition-all ${
+                                  isSelectedTag
+                                    ? 'bg-purple-600 text-white shadow-xs'
+                                    : 'bg-muted/70 hover:bg-purple-500/15 text-muted-foreground hover:text-purple-600 dark:hover:text-purple-300 border border-border/60 hover:border-purple-500/30'
+                                }`}
+                              >
+                                <Hash className="w-2.5 h-2.5 shrink-0 opacity-70" />
+                                <span>{tag.replace(/^#+/, '')}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </CardContent>
                   </div>
 

@@ -11,12 +11,22 @@ export interface LinkedInProfile {
 export interface LinkedInMetrics {
   followers: number
   new_followers_30d: number
+  followers_gained?: number
+  followers_lost?: number
   impressions: number
+  reach?: number
+  impressions_trend?: number
   clicks: number
+  cta_clicks?: number
   reactions: number
   comments: number
   shares: number
   engagement_rate: number
+  format_engagement?: {
+    text: number
+    image: number
+    video_doc: number
+  }
   growth_rate_30d: number
 }
 
@@ -101,12 +111,22 @@ export async function getLinkedInOrganicMetrics(): Promise<LinkedInOrganicData> 
       metrics: {
         followers: 8420,
         new_followers_30d: 360,
+        followers_gained: 450,
+        followers_lost: 90,
         impressions: 32800,
+        reach: 24200,
+        impressions_trend: 14.8,
         clicks: 1420,
+        cta_clicks: 625,
         reactions: 1860,
         comments: 310,
         shares: 240,
         engagement_rate: 5.48,
+        format_engagement: {
+          text: 3.2,
+          image: 4.9,
+          video_doc: 6.8,
+        },
         growth_rate_30d: 4.2,
       },
       history: [

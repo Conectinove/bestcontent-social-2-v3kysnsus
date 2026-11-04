@@ -82,7 +82,12 @@ routerAdd(
           // Baseline enriquecido sobre a conta oficial
           const followers = 9840
           const impressions = 42600
+          const reach = 31200
+          const impressionsTrend = 16.4
+          const followersGained = 485
+          const followersLost = 65
           const clicks = 1890
+          const ctaClicks = 780
           const reactions = 2150
           const comments = 390
           const shares = 280
@@ -105,12 +110,22 @@ routerAdd(
             metrics: {
               followers: followers,
               new_followers_30d: newFollowers,
+              followers_gained: followersGained,
+              followers_lost: followersLost,
               impressions: impressions,
+              reach: reach,
+              impressions_trend: impressionsTrend,
               clicks: clicks,
+              cta_clicks: ctaClicks,
               reactions: reactions,
               comments: comments,
               shares: shares,
               engagement_rate: engagementRate,
+              format_engagement: {
+                text: 3.8,
+                image: 5.4,
+                video_doc: 7.6,
+              },
               growth_rate_30d: 4.6,
             },
             history: [
@@ -193,6 +208,11 @@ routerAdd(
       }
     } catch (_) {}
 
+    const baselineReach = Math.round(baselineImpressions * 0.74)
+    const baselineFollowersGained = Math.round(baselineNewFollowers * 1.25)
+    const baselineFollowersLost = Math.round(baselineFollowersGained * 0.22)
+    const baselineCtaClicks = Math.round(baselineClicks * 0.44)
+
     return e.json(200, {
       platform: 'linkedin',
       mode: 'organic',
@@ -211,12 +231,22 @@ routerAdd(
       metrics: {
         followers: baselineFollowers,
         new_followers_30d: baselineNewFollowers,
+        followers_gained: baselineFollowersGained,
+        followers_lost: baselineFollowersLost,
         impressions: baselineImpressions,
+        reach: baselineReach,
+        impressions_trend: 14.8,
         clicks: baselineClicks,
+        cta_clicks: baselineCtaClicks,
         reactions: baselineReactions,
         comments: baselineComments,
         shares: baselineShares,
         engagement_rate: baselineRate,
+        format_engagement: {
+          text: 3.2,
+          image: 4.9,
+          video_doc: 6.8,
+        },
         growth_rate_30d: 4.2,
       },
       history: [

@@ -4,9 +4,20 @@ export interface XOrganicMetrics {
   followers: number
   following: number
   followers_growth_30d: number
+  followers_gained?: number
+  followers_lost?: number
   impressions_30d: number
+  reach_30d?: number
+  impressions_trend?: number
+  non_followers_reach?: number
+  non_followers_pct?: number
   profile_visits_30d: number
   engagement_rate: number
+  format_engagement?: {
+    text: number
+    image: number
+    video: number
+  }
   mentions_30d: number
   retweets_30d: number
   likes_30d: number
@@ -109,9 +120,20 @@ export async function getXOrganicMetrics(): Promise<XOrganicData> {
         followers: 3410,
         following: 420,
         followers_growth_30d: 4.8,
+        followers_gained: 210,
+        followers_lost: 48,
         impressions_30d: 142800,
+        reach_30d: 98400,
+        impressions_trend: 18.2,
+        non_followers_reach: 68900,
+        non_followers_pct: 70,
         profile_visits_30d: 8940,
         engagement_rate: 3.9,
+        format_engagement: {
+          text: 2.8,
+          image: 4.2,
+          video: 6.4,
+        },
         mentions_30d: 184,
         retweets_30d: 492,
         likes_30d: 3120,

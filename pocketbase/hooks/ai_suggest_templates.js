@@ -199,6 +199,20 @@ routerAdd(
         seasonalityContext: currentSeasonalityContext,
         hook3s:
           'Se você perdeu mais da metade da sua audiência no primeiro segundo, o problema está aqui!',
+        videoGuidelines: {
+          hookExample:
+            '"Pare de postar Reels e TikTok sem antes ver esses 3 segundos que salvam o alcance."',
+          cutPacing: 'Cortes dinâmicos a cada 1.8s a 2.5s com zoom sutil para sustentar a atenção',
+          idealDurationByNetwork: {
+            reels: '15-30s (taxa de retenção máxima)',
+            tiktok: '21-34s (janela otimizada de recomendação FYP)',
+            shorts: '20-40s (loop suave)',
+            youtubeLong: '6-9 min com divisão em capítulos',
+          },
+          trackEnergy: 'Batida ritmada lo-fi moderna com punch nos cortes (120 BPM)',
+          recommendedNetworkByPerformance:
+            'TikTok & Instagram Reels (maior taxa de conclusão comprovada: 48%)',
+        },
         trackEnergy: 'Batida ritmada lo-fi moderna com punch nos cortes',
         visualStyleApplied: `${visualStyle || 'Paleta violeta com texto em alto contraste'} | Cortes rápidos a cada 3s com zoom sutil`,
         funnelObjective: 'Atração',
@@ -337,7 +351,19 @@ routerAdd(
         '      "bestTime": "Horário recomendado baseado em audiência",\n' +
         '      "reason": "Justificativa rica citando estilo da marca, anti-repetição e dados",\n' +
         '      "hook3s": "Gancho nos primeiros 3s ou capa do carrossel",\n' +
-        '      "duration_sec": 30\n' +
+        '      "duration_sec": 30,\n' +
+        '      "videoGuidelines": {\n' +
+        '        "hookExample": "Exemplo de frase do gancho dos 3s",\n' +
+        '        "cutPacing": "Ritmo de corte sugerido",\n' +
+        '        "idealDurationByNetwork": {\n' +
+        '          "reels": "15-30s",\n' +
+        '          "tiktok": "21-34s",\n' +
+        '          "shorts": "20-40s",\n' +
+        '          "youtubeLong": "6-9 min"\n' +
+        '        },\n' +
+        '        "trackEnergy": "Estilo de trilha / energia",\n' +
+        '        "recommendedNetworkByPerformance": "Rede recomendada por dados reais"\n' +
+        '      }\n' +
         '    }\n' +
         '  ]\n' +
         '}'
@@ -426,6 +452,30 @@ routerAdd(
               hook3s: item.hook_3s || item.hook3s,
               trackEnergy: item.track_energy || item.trackEnergy,
               durationSec: item.duration_sec || item.durationSec || 30,
+              videoGuidelines:
+                item.videoGuidelines ||
+                item.video_guidelines ||
+                ((item.format && item.format.toLowerCase().includes('vídeo')) ||
+                (item.format && item.format.toLowerCase().includes('video')) ||
+                (item.format && item.format.toLowerCase().includes('reels'))
+                  ? {
+                      hookExample:
+                        item.hook_3s ||
+                        item.hook3s ||
+                        '"Se você comete este erro, pare imediatamente..."',
+                      cutPacing: 'Cortes rápidos a cada 2 a 3 segundos com micro-zoom',
+                      idealDurationByNetwork: {
+                        reels: '15-30s (retenção ideal)',
+                        tiktok: '21-34s (alta entrega FYP)',
+                        shorts: '20-40s (looping contínuo)',
+                        youtubeLong: '6-9 min',
+                      },
+                      trackEnergy:
+                        item.track_energy || item.trackEnergy || 'Batida moderna ritmada',
+                      recommendedNetworkByPerformance:
+                        'TikTok & Instagram Reels (maior taxa de retenção)',
+                    }
+                  : null),
             })),
           })
         }

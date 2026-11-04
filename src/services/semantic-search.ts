@@ -11,6 +11,7 @@ export interface SemanticMatchResult {
   matchedIntentLabel?: string
   matchReason?: string
   additionalBadge?: string
+  matchedHashtags?: string[]
 }
 
 // Mapa de sinônimos e intenções semânticas de marketing e mídias sociais
@@ -234,6 +235,7 @@ export function evaluateIdeaRelevance(
     format?: string
     funnelObjective?: string
     badge?: string
+    hashtags?: string[]
   },
 ): SemanticMatchResult {
   const cleanQuery = normalizeSemanticText(searchQuery)
@@ -249,7 +251,37 @@ export function evaluateIdeaRelevance(
   const cleanFunnel = normalizeSemanticText(idea.funnelObjective || '')
   const cleanBadge = normalizeSemanticText(idea.badge || '')
 
-  const fullCorpus = `${cleanTitle} ${cleanDesc} ${cleanCat} ${cleanTheme} ${cleanFmt} ${cleanFunnel} ${cleanBadge}`
+  // Tratamento específico de HASHTAG: se o usuário digitou #hashtag ou uma hashtag direta
+  const rawQuery = (searchQuery || '').trim()
+  const isExplicitHashtagQuery = rawQuery.startsWith('#')
+  const tagKeyword = cleanQuery.replace(/^#+/, '').trim()
+
+  const ideaTags = (idea.hashtags || []).map((t) => normalizeSemanticText(t).replace(/^#+/, ''))
+  const hasMatchingTag = ideaTags.some(
+    (tag) =>
+      tag === tagKeyword ||
+      (tagKeyword.length > 2 && (tag.includes(tagKeyword) || tagKeyword.includes(tag))),
+  )
+
+  if (hasMatchingTag) {
+    const matchedTagOriginal = (idea.hashtags || []).find((t) => {
+      const norm = normalizeSemanticText(t).replace(/^#+/, '')
+      return (
+        norm === tagKeyword ||
+        (tagKeyword.length > 2 && (norm.includes(tagKeyword) || tagKeyword.includes(norm)))
+      )
+    })
+
+    return {
+      isMatch: true,
+      score: isExplicitHashtagQuery ? 100 : 96,
+      matchReason: `hashtag: ${matchedTagOriginal ? (matchedTagOriginal.startsWith('#') ? matchedTagOriginal : `#${matchedTagOriginal}`) : `#${tagKeyword}`}`,
+      matchedHashtags: idea.hashtags,
+    }
+  }
+
+  const tagsCorpus = ideaTags.join(' ')
+  const fullCorpus = `${cleanTitle} ${cleanDesc} ${cleanCat} ${cleanTheme} ${cleanFmt} ${cleanFunnel} ${cleanBadge} ${tagsCorpus}`
 
   // 1. Correspondência direta exata da query inteira
   if (cleanTitle.includes(cleanQuery)) {

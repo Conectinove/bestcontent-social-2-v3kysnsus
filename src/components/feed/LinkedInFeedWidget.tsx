@@ -4,6 +4,7 @@ import {
   Users,
   Eye,
   TrendingUp,
+  TrendingDown,
   ArrowUpRight,
   ShieldCheck,
   Sparkles,
@@ -11,6 +12,10 @@ import {
   MousePointerClick,
   MessageSquare,
   Share2,
+  Target,
+  FileText,
+  Image as ImageIcon,
+  Video,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -59,11 +64,13 @@ export function LinkedInFeedWidget({ compact = false, className = '' }: LinkedIn
             </div>
             <Skeleton className="w-20 h-5 rounded-full" />
           </div>
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <Skeleton className="h-14 rounded-xl" />
-            <Skeleton className="h-14 rounded-xl" />
-            <Skeleton className="h-14 rounded-xl" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            <Skeleton className="h-16 rounded-xl" />
+            <Skeleton className="h-16 rounded-xl" />
+            <Skeleton className="h-16 rounded-xl" />
+            <Skeleton className="h-16 rounded-xl" />
           </div>
+          <Skeleton className="h-20 rounded-xl" />
         </CardContent>
       </Card>
     )
@@ -133,43 +140,127 @@ export function LinkedInFeedWidget({ compact = false, className = '' }: LinkedIn
           </div>
         </div>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-3 gap-2 text-center">
+        {/* Metrics Grid Responsivo 2 a 4 colunas */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-left">
           <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
-            <div className="flex items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground mb-0.5">
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground mb-0.5">
+              <Eye className="w-3 h-3 text-sky-500" />
+              <span>Alcance / Impr.</span>
+            </div>
+            <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight">
+              {Number(
+                data.metrics.reach || Math.round((data.metrics.impressions || 0) * 0.74),
+              ).toLocaleString('pt-BR')}
+            </p>
+            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+              <TrendingUp className="w-2.5 h-2.5" />+{data.metrics.impressions_trend ?? 14.8}% vs
+              ant.
+            </span>
+            <span className="text-[9px] text-muted-foreground block truncate">
+              {Number(data.metrics.impressions || 0).toLocaleString('pt-BR')} impr.
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground mb-0.5">
               <Users className="w-3 h-3 text-blue-600" />
               <span>Seguidores</span>
             </div>
             <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight">
               {Number(data.metrics.followers || 0).toLocaleString('pt-BR')}
             </p>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              +{data.metrics.growth_rate_30d || 4.2}%
+            <div className="text-[10px] font-medium flex items-center gap-1">
+              <span className="text-emerald-600 font-semibold flex items-center gap-0.5">
+                <TrendingUp className="w-2.5 h-2.5" />+
+                {data.metrics.followers_gained ?? data.metrics.new_followers_30d ?? 68}
+              </span>
+              <span className="text-rose-500 font-semibold flex items-center gap-0.5">
+                <TrendingDown className="w-2.5 h-2.5" />-{data.metrics.followers_lost ?? 12}
+              </span>
+            </div>
+            <span className="text-[9px] text-muted-foreground block truncate">
+              líquido +{data.metrics.growth_rate_30d || 4.2}%
             </span>
           </div>
 
           <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
-            <div className="flex items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground mb-0.5">
-              <Eye className="w-3 h-3 text-sky-500" />
-              <span>Impressões</span>
-            </div>
-            <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight">
-              {Number(data.metrics.impressions || 0).toLocaleString('pt-BR')}
-            </p>
-            <span className="text-[10px] font-medium text-muted-foreground">30 dias</span>
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
-            <div className="flex items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground mb-0.5">
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground mb-0.5">
               <TrendingUp className="w-3 h-3 text-emerald-500" />
               <span>Engajamento</span>
             </div>
-            <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight">
+            <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight text-emerald-600">
               {data.metrics.engagement_rate}%
             </p>
-            <span className="text-[10px] font-medium text-muted-foreground">taxa B2B</span>
+            <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 block truncate">
+              Excelente B2B
+            </span>
+            <span className="text-[9px] text-muted-foreground block truncate">
+              benchmark 3.5%-5.0%
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground mb-0.5">
+              <Target className="w-3 h-3 text-blue-600" />
+              <span>Cliques no CTA</span>
+            </div>
+            <p className="text-sm sm:text-base font-extrabold text-foreground tracking-tight text-blue-600">
+              {Number(
+                data.metrics.cta_clicks || Math.round((data.metrics.clicks || 0) * 0.44),
+              ).toLocaleString('pt-BR')}
+            </p>
+            <span className="text-[10px] font-medium text-muted-foreground block truncate">
+              {Number(data.metrics.clicks || 0).toLocaleString('pt-BR')} cliques totais
+            </span>
+            <span className="text-[9px] text-muted-foreground block truncate">
+              conversão artigos & posts
+            </span>
           </div>
         </div>
+
+        {/* Linha secundária: Engajamento por formato (Texto vs Imagem vs Vídeo/Doc) */}
+        {!compact && (
+          <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+              <span className="flex items-center gap-1 text-foreground">
+                <Sparkles className="w-3 h-3 text-blue-600" />
+                Engajamento Médio por Formato
+              </span>
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                Vídeos e Carrosséis/PDF geram maior retenção
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-0.5">
+              <div className="p-1.5 px-2 rounded-lg bg-card/80 border border-border/40 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                  <FileText className="w-3 h-3 text-slate-500 shrink-0" />
+                  Texto Puro
+                </span>
+                <span className="font-bold text-foreground text-xs">
+                  {data.metrics.format_engagement?.text ?? 3.2}%
+                </span>
+              </div>
+              <div className="p-1.5 px-2 rounded-lg bg-card/80 border border-border/40 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                  <ImageIcon className="w-3 h-3 text-blue-500 shrink-0" />
+                  Imagem / Banner
+                </span>
+                <span className="font-bold text-blue-600 text-xs">
+                  {data.metrics.format_engagement?.image ?? 4.9}%
+                </span>
+              </div>
+              <div className="p-1.5 px-2 rounded-lg bg-card/80 border border-border/40 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                  <Video className="w-3 h-3 text-purple-600 shrink-0" />
+                  Vídeo / Documento PDF
+                </span>
+                <span className="font-bold text-purple-600 text-xs">
+                  {data.metrics.format_engagement?.video_doc ?? 6.8}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Micro highlights: Clicks, Comments, Shares */}
         {!compact && (

@@ -16,6 +16,8 @@ import {
   Mail,
   SlidersHorizontal,
   TrendingUp,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -65,6 +67,7 @@ export function WhatToPostTodayModal({
     initialObjective || 'all',
   )
   const [weeklyPlanModalOpen, setWeeklyPlanModalOpen] = useState(false)
+  const [expandedVideoGuidelineId, setExpandedVideoGuidelineId] = useState<string | null>('idea-2')
 
   React.useEffect(() => {
     if (initialFormat && initialFormat !== 'all') {
@@ -331,6 +334,139 @@ export function WhatToPostTodayModal({
                       <div className="text-[10px] text-foreground/80 flex items-center gap-1.5 pl-5 pt-0.5 font-semibold">
                         <Megaphone className="w-3 h-3 text-pink-500 shrink-0" />
                         <span>CTA sugerido: "{idea.suggestedCta}"</span>
+                      </div>
+                    )}
+
+                    {/* Diretrizes Concretas de Vídeo (se aplicável ao formato de vídeo) */}
+                    {(idea.videoGuidelines ||
+                      idea.format.toLowerCase().includes('vídeo') ||
+                      idea.format.toLowerCase().includes('video') ||
+                      idea.format.toLowerCase().includes('reels') ||
+                      idea.format.toLowerCase().includes('tiktok') ||
+                      idea.format.toLowerCase().includes('shorts')) && (
+                      <div className="mt-2 pt-2 border-t border-purple-500/20">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedVideoGuidelineId(
+                              expandedVideoGuidelineId === idea.id ? null : idea.id,
+                            )
+                          }
+                          className="w-full flex items-center justify-between text-left text-xs font-semibold text-purple-700 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200 transition-colors py-1"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Video className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                            <span>
+                              🎬 Diretrizes Estratégicas de Vídeo (Gancho 3s, Ritmo e Duração)
+                            </span>
+                          </div>
+                          {expandedVideoGuidelineId === idea.id ? (
+                            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </button>
+
+                        {expandedVideoGuidelineId === idea.id && (
+                          <div className="mt-2 p-2.5 rounded-lg bg-card/90 border border-purple-500/25 space-y-2 text-xs text-foreground/90">
+                            {/* Gancho dos 3s */}
+                            <div className="space-y-1">
+                              <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1">
+                                <Zap className="w-3 h-3" /> Gancho dos 3 Primeiros Segundos (Exemplo
+                                Prático)
+                              </span>
+                              <p className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-xs italic font-medium text-amber-900 dark:text-amber-200">
+                                {idea.videoGuidelines?.hookExample ||
+                                  idea.hook3s ||
+                                  '"Pare de cometer este erro comum agora mesmo se você busca resultados reais."'}
+                              </p>
+                            </div>
+
+                            {/* Ritmo de corte e energia */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
+                              <div className="p-2 rounded bg-muted/60 border border-border/60">
+                                <span className="font-semibold text-purple-600 dark:text-purple-400 block mb-0.5">
+                                  ✂️ Ritmo de Corte Sugerido:
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {idea.videoGuidelines?.cutPacing ||
+                                    'Cortes dinâmicos a cada 1.8s a 2.5s com micro-zooms nas palavras-chave'}
+                                </span>
+                              </div>
+                              <div className="p-2 rounded bg-muted/60 border border-border/60">
+                                <span className="font-semibold text-pink-600 dark:text-pink-400 block mb-0.5">
+                                  🎵 Estilo de Trilha & Energia:
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {idea.videoGuidelines?.trackEnergy ||
+                                    idea.trackEnergy ||
+                                    'Batida ritmada lo-fi moderna com punch nos cortes (120 BPM)'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Duração Ideal por Rede */}
+                            <div className="p-2 rounded bg-muted/60 border border-border/60 text-[11px] space-y-1">
+                              <span className="font-semibold text-foreground block">
+                                ⏱️ Duração Ideal Calibrada por Rede:
+                              </span>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+                                <div className="p-1.5 rounded bg-card border border-border/50 text-center">
+                                  <strong className="block text-pink-600 dark:text-pink-400">
+                                    Reels
+                                  </strong>
+                                  <span className="text-muted-foreground font-mono">
+                                    {idea.videoGuidelines?.idealDurationByNetwork?.reels ||
+                                      '15-30s'}
+                                  </span>
+                                </div>
+                                <div className="p-1.5 rounded bg-card border border-border/50 text-center">
+                                  <strong className="block text-sky-600 dark:text-sky-400">
+                                    TikTok
+                                  </strong>
+                                  <span className="text-muted-foreground font-mono">
+                                    {idea.videoGuidelines?.idealDurationByNetwork?.tiktok ||
+                                      '21-34s'}
+                                  </span>
+                                </div>
+                                <div className="p-1.5 rounded bg-card border border-border/50 text-center">
+                                  <strong className="block text-red-600 dark:text-red-400">
+                                    Shorts
+                                  </strong>
+                                  <span className="text-muted-foreground font-mono">
+                                    {idea.videoGuidelines?.idealDurationByNetwork?.shorts ||
+                                      '20-40s'}
+                                  </span>
+                                </div>
+                                <div className="p-1.5 rounded bg-card border border-border/50 text-center">
+                                  <strong className="block text-amber-600 dark:text-amber-400">
+                                    YouTube Longo
+                                  </strong>
+                                  <span className="text-muted-foreground font-mono">
+                                    {idea.videoGuidelines?.idealDurationByNetwork?.youtubeLong ||
+                                      '6-9 min'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Rede recomendada por dados reais */}
+                            <div className="text-[11px] p-2 rounded bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between flex-wrap gap-1">
+                              <span className="text-emerald-800 dark:text-emerald-300 font-medium">
+                                📊 <strong>Rede Recomendada por Desempenho Real:</strong>{' '}
+                                {idea.videoGuidelines?.recommendedNetworkByPerformance ||
+                                  idea.recommendedNetwork ||
+                                  'TikTok & Instagram Reels (maior taxa de retenção algorítmica)'}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] bg-card text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                              >
+                                Alta Conversão
+                              </Badge>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

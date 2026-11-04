@@ -96,6 +96,19 @@ export interface ExpectedEngagementRange {
   confidenceScore: number
 }
 
+export interface VideoGuidelines {
+  hookExample?: string
+  cutPacing?: string
+  idealDurationByNetwork?: {
+    reels?: string
+    tiktok?: string
+    shorts?: string
+    youtubeLong?: string
+  }
+  trackEnergy?: string
+  recommendedNetworkByPerformance?: string
+}
+
 export interface TodayPostIdea {
   id: string
   title: string
@@ -117,6 +130,7 @@ export interface TodayPostIdea {
   durationSec?: number
   estimatedPerformanceScore?: number
   whyNowContext?: string
+  videoGuidelines?: VideoGuidelines | null
 }
 export async function suggestTemplates(
   options: SuggestTemplatesOptions = {},
@@ -214,6 +228,19 @@ export async function getWhatToPostToday(
         recommendedNetwork: 'TikTok & Shorts',
         estimatedPerformanceScore: 91,
         hook3s: 'Primeiros 3s: "Se você perdeu metade da audiência no início, o erro está aqui!"',
+        videoGuidelines: {
+          hookExample:
+            '"Pare de postar Reels e TikTok sem antes ver esses 3 segundos que salvam o alcance."',
+          cutPacing: 'Cortes dinâmicos a cada 1.8s a 2.5s com zoom sutil para sustentar a atenção',
+          idealDurationByNetwork: {
+            reels: '15-30s (taxa de retenção máxima)',
+            tiktok: '21-34s (janela otimizada For You)',
+            shorts: '20-40s (loop suave)',
+            youtubeLong: '6-9 min com divisão temática',
+          },
+          trackEnergy: 'Batida ritmada lo-fi moderna com punch nos cortes (120 BPM)',
+          recommendedNetworkByPerformance: 'TikTok & Instagram Reels (maior retenção real)',
+        },
         expectedEngagement: {
           min: 1200,
           max: 2800,

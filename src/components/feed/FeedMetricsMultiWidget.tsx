@@ -10,6 +10,7 @@ import { FacebookFeedWidget } from './FacebookFeedWidget'
 import { XFeedWidget } from './XFeedWidget'
 import { PinterestFeedWidget } from './PinterestFeedWidget'
 import { ThreadsFeedWidget } from './ThreadsFeedWidget'
+import { ReachComparisonBlock } from './ReachComparisonBlock'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -36,6 +37,9 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
 
   return (
     <div className={`space-y-2.5 ${className}`}>
+      {/* Bloco dedicado comparativo de Alcance Multi-Redes */}
+      <ReachComparisonBlock />
+
       {/* Network selector tabs */}
       <div className="flex items-center justify-between gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/80 overflow-hidden">
         <div className="flex items-center gap-1 flex-1 overflow-x-auto scrollbar-none py-0.5">
