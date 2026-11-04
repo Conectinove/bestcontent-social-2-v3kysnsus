@@ -1084,6 +1084,27 @@ routerAdd('GET', '/backend/v1/ads/platform-metrics', (e) => {
 })
 
 /**
+ * GET /backend/v1/ads/google/status
+ */
+routerAdd('GET', '/backend/v1/ads/google/status', (e) => {
+  const googleDevToken = ($os.getenv('GOOGLE_ADS_DEVELOPER_TOKEN') || '').trim()
+  const googleCustomerId = ($os.getenv('GOOGLE_ADS_CUSTOMER_ID') || '').trim()
+  const googleToken = (
+    $os.getenv('GOOGLE_ADS_ACCESS_TOKEN') ||
+    $os.getenv('GOOGLE_ADS_REFRESH_TOKEN') ||
+    ''
+  ).trim()
+  const configured = Boolean(googleDevToken && googleCustomerId)
+  return e.json(200, {
+    configured,
+    hasToken: Boolean(googleToken || googleDevToken),
+    hasAccountId: Boolean(googleCustomerId),
+    provider: 'Google Ads API v16',
+    status: configured ? 'connected' : 'calibrated_fallback',
+  })
+})
+
+/**
  * GET /backend/v1/ads/pinterest/status
  */
 routerAdd('GET', '/backend/v1/ads/pinterest/status', (e) => {

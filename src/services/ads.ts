@@ -477,6 +477,26 @@ export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> 
   }
 }
 
+export async function getGoogleAdsStatus() {
+  try {
+    const res = await pb.send('/backend/v1/ads/google/status', { method: 'GET' })
+    return res
+  } catch {
+    return {
+      platform: 'google',
+      name: 'Google Ads Search & Display',
+      configured: false,
+      status: 'not_configured',
+      requiredSecrets: [
+        'GOOGLE_ADS_DEVELOPER_TOKEN',
+        'GOOGLE_ADS_CUSTOMER_ID',
+        'GOOGLE_ADS_REFRESH_TOKEN',
+      ],
+      message: 'Estimativa calibrada ativa.',
+    }
+  }
+}
+
 export async function getPinterestAdsStatus() {
   try {
     const res = await pb.send('/backend/v1/ads/pinterest/status', { method: 'GET' })

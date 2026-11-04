@@ -179,7 +179,7 @@ export function GoogleAdsFunnelBlock({ onConvertClickToLead }: GoogleAdsFunnelBl
           </div>
         </div>
 
-        {/* 4 KPIs de Performance Google Ads */}
+        {/* 4 KPIs de Performance Google Ads + Linha de Investimento e Receita Atribuída */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Impressões */}
           <div className="p-3 rounded-xl bg-card border border-border/80 space-y-1">
@@ -207,24 +207,24 @@ export function GoogleAdsFunnelBlock({ onConvertClickToLead }: GoogleAdsFunnelBl
             </p>
           </div>
 
-          {/* Custo Total */}
+          {/* CPC Médio & Investimento */}
           <div className="p-3 rounded-xl bg-card border border-border/80 space-y-1">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                Custo Investido
-              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Investimento</span>
               <DollarSign className="w-3.5 h-3.5 text-amber-500" />
             </div>
             <p className="text-base sm:text-lg font-black text-foreground">
               R$ {metrics.spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-[10px] text-muted-foreground">Últimos 7 dias</p>
+            <p className="text-[10px] text-muted-foreground">CPC R$ {metrics.cpc.toFixed(2)}</p>
           </div>
 
-          {/* Leads / Conversões */}
+          {/* Conversões / Leads */}
           <div className="p-3 rounded-xl bg-card border border-border/80 space-y-1">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-[10px] font-bold uppercase tracking-wider">Leads Gerados</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                Conversões / Leads
+              </span>
               <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
             </div>
             <p className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
@@ -234,6 +234,23 @@ export function GoogleAdsFunnelBlock({ onConvertClickToLead }: GoogleAdsFunnelBl
               CPL: R$ {(metrics.spent / (metrics.conversions || 1)).toFixed(2)}
             </p>
           </div>
+        </div>
+
+        {/* Rodapé de Retorno e Receita Atribuída */}
+        <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="text-muted-foreground">
+              Receita Atribuída ao Google Ads:{' '}
+              <strong className="text-foreground font-bold">
+                R${' '}
+                {(metrics.conversions * 420).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </strong>{' '}
+              (ROAS estimado:{' '}
+              {(metrics.spent > 0 ? (metrics.conversions * 420) / metrics.spent : 2.1).toFixed(1)}x)
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">Canal de alta intenção de busca</span>
         </div>
       </CardContent>
     </Card>
