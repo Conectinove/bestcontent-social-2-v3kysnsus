@@ -1065,7 +1065,7 @@ export default function SalesFunnelPage() {
         )}
       </div>
 
-      {/* Blocos de Performance de Mídia Paga Integrados (7 canais: Google, Meta, YouTube, TikTok, LinkedIn, Pinterest, X Ads) */}
+      {/* Blocos de Performance de Mídia Paga Integrados (8 canais: Google, Meta, YouTube, TikTok, LinkedIn, Pinterest, X Ads) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <GoogleAdsFunnelBlock onConvertClickToLead={handleConvertClickToLead} />
         <MetaAdsFunnelBlock onConvertClickToLead={handleConvertMetaClickToLead} />
@@ -1084,7 +1084,7 @@ export default function SalesFunnelPage() {
         onRefreshDeals={loadDeals}
       />
 
-      {/* Seção Nova: Relatório Comparativo de Canais (Google Ads, Meta Ads, YouTube Ads, TikTok Ads, LinkedIn Ads, Pinterest Ads e X Ads) */}
+      {/* Seção Nova: Relatório Comparativo de Canais (Google Ads, Meta Ads, YouTube Ads, TikTok Ads, LinkedIn Ads, Pinterest Ads e X Ads consolidando 8 canais) */}
       <ChannelComparisonSection deals={deals} />
 
       {/* Caixa de Insights de IA Avançada (BestContent Sales Advisor com Inteligência Comparativa & Preditiva) */}

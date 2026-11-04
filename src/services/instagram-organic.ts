@@ -16,6 +16,16 @@ export interface InstagramStoriesMetrics {
   shares_30d: number
   exits_rate: number
   stories_published_30d: number
+  sticker_taps_30d?: number
+  poll_votes_30d?: number
+}
+
+export interface InstagramFormatReachBreakdown {
+  carrossel_reach: number
+  reels_reach: number
+  static_reach: number
+  stories_reach: number
+  top_format: string
 }
 
 export interface InstagramReelsMetrics {
@@ -42,6 +52,7 @@ export interface InstagramMetrics {
   growth_rate_30d: number
   stories?: InstagramStoriesMetrics
   reels?: InstagramReelsMetrics
+  reach_by_format?: InstagramFormatReachBreakdown
 }
 
 export interface InstagramHistoryItem {
@@ -144,6 +155,15 @@ export async function getInstagramOrganicMetrics(): Promise<InstagramOrganicData
           shares_30d: 94,
           exits_rate: 4.2,
           stories_published_30d: 68,
+          sticker_taps_30d: 384,
+          poll_votes_30d: 512,
+        },
+        reach_by_format: {
+          carrossel_reach: 14800,
+          reels_reach: 22600,
+          static_reach: 7800,
+          stories_reach: 9400,
+          top_format: 'Reels (+42% alcance não-seguidores)',
         },
         reels: {
           plays_30d: 64200,

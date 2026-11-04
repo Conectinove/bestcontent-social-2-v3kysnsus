@@ -359,6 +359,38 @@ export async function createSavedReportTemplate(
 /**
  * Exclui um modelo salvo
  */
+export async function updateSavedReportTemplate(
+  templateId: string,
+  data: Partial<SavedReportTemplate>,
+): Promise<SavedReportTemplate | null> {
+  try {
+    const payload: Record<string, any> = {}
+    if (data.name !== undefined) payload.name = data.name
+    if (data.description !== undefined) payload.description = data.description
+    if (data.channels !== undefined) payload.channels = data.channels
+    if (data.sections !== undefined) payload.sections = data.sections
+    if (data.period !== undefined) payload.period = data.period
+    if (data.frequency !== undefined) payload.frequency = data.frequency
+
+    const rec = await pb.collection('saved_report_templates').update(templateId, payload)
+    return {
+      id: rec.id,
+      user: rec.user,
+      name: rec.name,
+      description: rec.description,
+      channels: rec.channels,
+      sections: rec.sections,
+      period: rec.period,
+      frequency: rec.frequency,
+      created: rec.created,
+      updated: rec.updated,
+    }
+  } catch (err) {
+    console.warn('Erro ao atualizar saved_report_template:', err)
+    return null
+  }
+}
+
 export async function deleteSavedReportTemplate(templateId: string): Promise<boolean> {
   try {
     await pb.collection('saved_report_templates').delete(templateId)

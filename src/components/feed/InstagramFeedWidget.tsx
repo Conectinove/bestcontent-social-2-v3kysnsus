@@ -197,7 +197,7 @@ export function InstagramFeedWidget({ compact = false, className = '' }: Instagr
                   {data.metrics.stories?.retention_rate || 86.4}% retenção
                 </Badge>
               </div>
-              <div className="grid grid-cols-3 gap-1.5 text-center pt-0.5">
+              <div className="grid grid-cols-4 gap-1.5 text-center pt-0.5">
                 <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
                   <span className="text-[9px] text-muted-foreground block">Média Views</span>
                   <span className="text-xs font-extrabold text-foreground">
@@ -211,9 +211,61 @@ export function InstagramFeedWidget({ compact = false, className = '' }: Instagr
                   </span>
                 </div>
                 <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
-                  <span className="text-[9px] text-muted-foreground block">Compartilhados</span>
+                  <span className="text-[9px] text-muted-foreground block">Toques Stickers</span>
                   <span className="text-xs font-extrabold text-foreground">
-                    {Number(data.metrics.stories?.shares_30d || 94).toLocaleString('pt-BR')}
+                    {Number(data.metrics.stories?.sticker_taps_30d || 384).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Votos Enquetes</span>
+                  <span className="text-xs font-extrabold text-foreground">
+                    {Number(data.metrics.stories?.poll_votes_30d || 512).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Alcance Desmembrado por Formato */}
+            <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 text-xs">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold text-foreground">
+                  Alcance por Tipo de Post
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                  {data.metrics.reach_by_format?.top_format || 'Reels (+42% alcance)'}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 text-center">
+                <div className="p-1 rounded-lg bg-card border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Carrossel</span>
+                  <span className="text-[11px] font-bold text-foreground">
+                    {Number(data.metrics.reach_by_format?.carrossel_reach || 14800).toLocaleString(
+                      'pt-BR',
+                    )}
+                  </span>
+                </div>
+                <div className="p-1 rounded-lg bg-card border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Reels</span>
+                  <span className="text-[11px] font-bold text-foreground">
+                    {Number(data.metrics.reach_by_format?.reels_reach || 22600).toLocaleString(
+                      'pt-BR',
+                    )}
+                  </span>
+                </div>
+                <div className="p-1 rounded-lg bg-card border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Estático</span>
+                  <span className="text-[11px] font-bold text-foreground">
+                    {Number(data.metrics.reach_by_format?.static_reach || 7800).toLocaleString(
+                      'pt-BR',
+                    )}
+                  </span>
+                </div>
+                <div className="p-1 rounded-lg bg-card border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Stories</span>
+                  <span className="text-[11px] font-bold text-foreground">
+                    {Number(data.metrics.reach_by_format?.stories_reach || 9400).toLocaleString(
+                      'pt-BR',
+                    )}
                   </span>
                 </div>
               </div>

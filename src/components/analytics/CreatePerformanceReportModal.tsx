@@ -38,6 +38,7 @@ import {
   generateExecutiveSummary,
   getSavedReportTemplates,
   createSavedReportTemplate,
+  updateSavedReportTemplate,
   deleteSavedReportTemplate,
   type SavedReportTemplate,
   type PerformanceReportRecord,
@@ -101,6 +102,9 @@ export function CreatePerformanceReportModal({
   const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false)
   const [newTemplateName, setNewTemplateName] = useState('')
   const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
+  const [editTemplateName, setEditTemplateName] = useState('')
+  const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false)
 
   // Carregar modelos salvos ao abrir o modal
   React.useEffect(() => {
@@ -190,6 +194,46 @@ export function CreatePerformanceReportModal({
     }
   }
 
+  const handleStartEditTemplate = (tpl: SavedReportTemplate, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingTemplateId(tpl.id || null)
+    setEditTemplateName(tpl.name)
+  }
+
+  const handleUpdateTemplate = async (templateId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!editTemplateName.trim()) {
+      toast({ title: 'Nome obrigatório', variant: 'destructive' })
+      return
+    }
+    setIsUpdatingTemplate(true)
+    try {
+      const updated = await updateSavedReportTemplate(templateId, {
+        name: editTemplateName.trim(),
+        channels: selectedChannels,
+        period:
+          periodRange === 'Últimos 7 Dias'
+            ? '7d'
+            : periodRange === 'Últimos 90 Dias (Trimestre)'
+              ? '90d'
+              : '30d',
+        frequency,
+      })
+      if (updated) {
+        setSavedTemplates((prev) => prev.map((t) => (t.id === templateId ? updated : t)))
+        setEditingTemplateId(null)
+        toast({
+          title: 'Modelo Atualizado!',
+          description: `O modelo "${updated.name}" foi atualizado com as configurações atuais.`,
+        })
+      }
+    } catch {
+      toast({ title: 'Erro ao atualizar modelo', variant: 'destructive' })
+    } finally {
+      setIsUpdatingTemplate(false)
+    }
+  }
+
   const handleDeleteTemplate = async (templateId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {
@@ -197,6 +241,9 @@ export function CreatePerformanceReportModal({
       setSavedTemplates((prev) => prev.filter((t) => t.id !== templateId))
       if (selectedTemplateId === templateId) {
         setSelectedTemplateId(null)
+      }
+      if (editingTemplateId === templateId) {
+        setEditingTemplateId(null)
       }
       toast({
         title: 'Modelo Removido',
@@ -601,18 +648,67 @@ export function CreatePerformanceReportModal({
                       >
                         {tpl.channels?.length || 0} canais
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteTemplate(tpl.id!, e)}
-                        title="Excluir modelo"
-                        className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                          isSelected
-                            ? 'hover:bg-white/20 text-white'
-                            : 'hover:bg-destructive/10 text-destructive'
-                        }`}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      {editingTemplateId === tpl.id ? (
+                        <div
+                          className="flex items-center gap-1.5 ml-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="text"
+                            value={editTemplateName}
+                            onChange={(e) => setEditTemplateName(e.target.value)}
+                            className="h-6 px-1.5 text-xs rounded border border-border bg-background text-foreground w-28"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => handleUpdateTemplate(tpl.id!, e)}
+                            disabled={isUpdatingTemplate}
+                            title="Salvar alteração"
+                            className="p-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingTemplateId(null)
+                            }}
+                            title="Cancelar edição"
+                            className="p-1 rounded bg-muted text-muted-foreground hover:bg-muted/80"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={(e) => handleStartEditTemplate(tpl, e)}
+                            title="Editar modelo com configurações atuais"
+                            className={`p-0.5 rounded ${
+                              isSelected
+                                ? 'hover:bg-white/20 text-white'
+                                : 'hover:bg-purple-500/20 text-purple-600'
+                            }`}
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteTemplate(tpl.id!, e)}
+                            title="Excluir modelo"
+                            className={`p-0.5 rounded ${
+                              isSelected
+                                ? 'hover:bg-white/20 text-white'
+                                : 'hover:bg-destructive/10 text-destructive'
+                            }`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

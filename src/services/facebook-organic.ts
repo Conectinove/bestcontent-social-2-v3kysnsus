@@ -17,6 +17,13 @@ export interface FacebookOrganicMetrics {
     video: number
     link_status: number
   }
+  reactions_breakdown?: {
+    like: number
+    love: number
+    wow: number
+    haha: number
+    care: number
+  }
 }
 
 export interface FacebookOrganicPost {
@@ -125,6 +132,13 @@ export async function getFacebookOrganicMetrics(): Promise<FacebookOrganicData> 
           image: 4.8,
           video: 6.2,
           link_status: 2.9,
+        },
+        reactions_breakdown: {
+          like: 2150,
+          love: 680,
+          wow: 190,
+          haha: 120,
+          care: 70,
         },
       },
       recent_posts: [],

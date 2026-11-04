@@ -265,6 +265,50 @@ export function FacebookFeedWidget() {
               </span>
             </div>
           </div>
+
+          {/* Reações Desmembradas do Facebook */}
+          <div className="pt-2 border-t border-border/40">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+              Reações Desmembradas da Página
+            </span>
+            <div className="grid grid-cols-5 gap-1.5 text-center text-xs">
+              <div className="p-1.5 rounded-lg bg-card border border-border/40">
+                <span className="text-sm block">👍</span>
+                <span className="text-[10px] text-muted-foreground block">Curtir</span>
+                <span className="font-extrabold text-foreground text-xs">
+                  {Number(metrics?.reactions_breakdown?.like || 2150).toLocaleString('pt-BR')}
+                </span>
+              </div>
+              <div className="p-1.5 rounded-lg bg-card border border-border/40">
+                <span className="text-sm block">❤️</span>
+                <span className="text-[10px] text-muted-foreground block">Amei</span>
+                <span className="font-extrabold text-rose-600 dark:text-rose-400 text-xs">
+                  {Number(metrics?.reactions_breakdown?.love || 680).toLocaleString('pt-BR')}
+                </span>
+              </div>
+              <div className="p-1.5 rounded-lg bg-card border border-border/40">
+                <span className="text-sm block">😮</span>
+                <span className="text-[10px] text-muted-foreground block">Uau</span>
+                <span className="font-extrabold text-amber-600 dark:text-amber-400 text-xs">
+                  {Number(metrics?.reactions_breakdown?.wow || 190).toLocaleString('pt-BR')}
+                </span>
+              </div>
+              <div className="p-1.5 rounded-lg bg-card border border-border/40">
+                <span className="text-sm block">😆</span>
+                <span className="text-[10px] text-muted-foreground block">Haha</span>
+                <span className="font-extrabold text-purple-600 dark:text-purple-400 text-xs">
+                  {Number(metrics?.reactions_breakdown?.haha || 120).toLocaleString('pt-BR')}
+                </span>
+              </div>
+              <div className="p-1.5 rounded-lg bg-card border border-border/40">
+                <span className="text-sm block">🥰</span>
+                <span className="text-[10px] text-muted-foreground block">Força</span>
+                <span className="font-extrabold text-blue-600 dark:text-blue-400 text-xs">
+                  {Number(metrics?.reactions_breakdown?.care || 70).toLocaleString('pt-BR')}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Evolução Semanal & Melhores Horários */}

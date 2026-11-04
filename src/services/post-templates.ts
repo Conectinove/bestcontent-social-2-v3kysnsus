@@ -388,6 +388,32 @@ export async function getWhatToPostToday(
       },
     ]
 
+    // Enriquecer ideias com dados reais de post_metrics quando disponíveis no histórico
+    let topRedeName = 'Instagram'
+    let topTaxaEngaj = 0
+    try {
+      const { getAllPostMetrics } = await import('@/services/post-metrics')
+      const realMetrics = await getAllPostMetrics()
+      if (realMetrics && realMetrics.length > 0) {
+        const sorted = [...realMetrics].sort(
+          (a, b) => (b.taxa_engajamento || 0) - (a.taxa_engajamento || 0),
+        )
+        if (sorted[0]) {
+          topRedeName = sorted[0].rede
+            ? sorted[0].rede.charAt(0).toUpperCase() + sorted[0].rede.slice(1)
+            : 'Instagram'
+          topTaxaEngaj = sorted[0].taxa_engajamento || 0
+        }
+      }
+    } catch {
+      // Ignora erro e mantém fallback determinístico
+    }
+
+    if (topTaxaEngaj > 0) {
+      rawFallbackList[0].reason += ` Calibrado com seus posts reais: histórico na rede ${topRedeName} atingiu até ${topTaxaEngaj}% de engajamento.`
+      rawFallbackList[0].whyNowContext += ` O histórico real de métricas aponta ${topRedeName} como seu canal de melhor conversão.`
+    }
+
     // Filtrar ou ordenar de acordo com objetivo e formato solicitados mantendo fallback rico
     let filtered = rawFallbackList
     if (requestedObj) {
