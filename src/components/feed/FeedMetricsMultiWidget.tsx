@@ -7,6 +7,7 @@ import { LinkedInFeedWidget } from './LinkedInFeedWidget'
 import { SubstackFeedWidget } from './SubstackFeedWidget'
 import { GoogleBusinessFeedWidget } from './GoogleBusinessFeedWidget'
 import { FacebookFeedWidget } from './FacebookFeedWidget'
+import { XFeedWidget } from './XFeedWidget'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -14,6 +15,7 @@ export type FeedWidgetNetwork =
   | 'instagram'
   | 'tiktok'
   | 'facebook'
+  | 'x_twitter'
   | 'youtube'
   | 'analytics'
   | 'linkedin'
@@ -76,6 +78,21 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
           >
             <span className="w-2 h-2 rounded-full bg-[#1877F2] shrink-0" />
             <span>Facebook</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'x_twitter' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('x_twitter')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'x_twitter'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-black dark:bg-white shrink-0" />
+            <span>X (Twitter)</span>
           </Button>
 
           <Button
@@ -177,6 +194,7 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
         {activeTab === 'instagram' && <InstagramFeedWidget />}
         {activeTab === 'tiktok' && <TikTokFeedWidget />}
         {activeTab === 'facebook' && <FacebookFeedWidget />}
+        {activeTab === 'x_twitter' && <XFeedWidget />}
         {activeTab === 'youtube' && <YouTubeFeedWidget />}
         {activeTab === 'analytics' && <GoogleAnalyticsFeedWidget />}
         {activeTab === 'linkedin' && <LinkedInFeedWidget />}

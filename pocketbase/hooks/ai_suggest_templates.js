@@ -12,6 +12,7 @@ routerAdd(
     const brandTone = (body.brandTone || 'Profissional e dinâmico').trim()
     const network = (body.network || 'Instagram').trim()
     const requestedObjective = (body.funnelObjective || '').trim()
+    const requestedFormat = (body.requestedFormat || body.format || '').trim()
     const preferredFormats = Array.isArray(body.preferredFormats) ? body.preferredFormats : []
     const visualStyle = (body.visualStyle || '').trim()
 
@@ -228,6 +229,7 @@ routerAdd(
         `- DIRETRIZ ESTÉTICA: ${visualStyle || 'Estilo visual moderno com foco em autoridade e clareza'}\n` +
         `- DIRETRIZ DE CARROSSÉIS: ${carouselGuidelineNote}\n` +
         `- DIRETRIZ DE VÍDEOS: ${videoGuidelineNote}\n` +
+        `- FORMATO SOLICITADO PELO USUÁRIO (FILTRO ATIVO): ${requestedFormat || 'Todos os formatos permitidos'}\n` +
         `- OBJETIVO DE FUNIL SOLICITADO: ${requestedObjective || 'Equilibrado (Atração / Autoridade / Conversão / Comunidade)'}\n` +
         `- SAZONALIDADE ATUAL DO MÊS (${currentMonth}/${currentYear}): ${currentSeasonalityContext}\n` +
         `- ANTI-REPETIÇÃO (TEMAS RECENTES DOS ÚLTIMOS 14 DIAS A EVITAR): ${recentThemesExclusion.slice(0, 6).join(' | ') || 'Nenhum recente conflitante'}\n` +

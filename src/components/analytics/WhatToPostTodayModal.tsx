@@ -37,6 +37,8 @@ interface WhatToPostTodayModalProps {
   network?: string
   preferredFormats?: string[]
   visualStyle?: string
+  initialFormat?: string
+  initialObjective?: FunnelObjective | 'all'
   onApplyIdea?: (idea: TodayPostIdea) => void
 }
 
@@ -49,17 +51,28 @@ export function WhatToPostTodayModal({
   network = 'Instagram',
   preferredFormats,
   visualStyle,
+  initialFormat,
+  initialObjective,
   onApplyIdea,
 }: WhatToPostTodayModalProps) {
   const { toast } = useToast()
   const [ideas, setIdeas] = useState<TodayPostIdea[]>([])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [selectedFormatFilter, setSelectedFormatFilter] = useState<string>('all')
+  const [selectedFormatFilter, setSelectedFormatFilter] = useState<string>(initialFormat || 'all')
   const [selectedObjectiveFilter, setSelectedObjectiveFilter] = useState<FunnelObjective | 'all'>(
-    'all',
+    initialObjective || 'all',
   )
   const [weeklyPlanModalOpen, setWeeklyPlanModalOpen] = useState(false)
+
+  React.useEffect(() => {
+    if (initialFormat && initialFormat !== 'all') {
+      setSelectedFormatFilter(initialFormat)
+    }
+    if (initialObjective) {
+      setSelectedObjectiveFilter(initialObjective)
+    }
+  }, [initialFormat, initialObjective])
 
   const fetchIdeas = async () => {
     setLoading(true)
@@ -71,6 +84,7 @@ export function WhatToPostTodayModal({
         network,
         preferredFormats,
         visualStyle,
+        requestedFormat: selectedFormatFilter !== 'all' ? selectedFormatFilter : undefined,
         funnelObjective: selectedObjectiveFilter !== 'all' ? selectedObjectiveFilter : undefined,
       })
       setIdeas(result)
@@ -90,7 +104,7 @@ export function WhatToPostTodayModal({
     if (open) {
       fetchIdeas()
     }
-  }, [open, selectedObjectiveFilter])
+  }, [open, selectedObjectiveFilter, selectedFormatFilter])
 
   const handleCopyCaption = (idea: TodayPostIdea) => {
     const textToCopy = `${idea.caption}\n\n${idea.hashtags.join(' ')}`

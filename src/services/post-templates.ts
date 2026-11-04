@@ -121,15 +121,21 @@ export async function suggestTemplates(
  * Consulta o motor de IA para "O que postar hoje?", retornando 3 ideias completas
  * de post baseadas nas métricas anteriores, melhor horário de audiência e tom da marca.
  */
-export async function getWhatToPostToday(options: {
+export interface GetWhatToPostTodayOptions {
   brandName?: string
   brandNiche?: string
   brandTone?: string
   network?: string
   funnelObjective?: FunnelObjective
+  format?: string
+  requestedFormat?: string
   preferredFormats?: string[]
   visualStyle?: string
-}): Promise<TodayPostIdea[]> {
+}
+
+export async function getWhatToPostToday(
+  options: GetWhatToPostTodayOptions,
+): Promise<TodayPostIdea[]> {
   try {
     const res = await pb.send('/backend/v1/ai/what-to-post-today', {
       method: 'POST',
@@ -141,7 +147,10 @@ export async function getWhatToPostToday(options: {
     console.warn('[getWhatToPostToday] Fallback:', err)
     const brandName = options.brandName || 'Sua Marca'
     const favFormats = options.preferredFormats || []
-    return [
+    const requestedObj = options.funnelObjective
+    const requestedFmt = (options.requestedFormat || options.format || '').toLowerCase()
+
+    const rawFallbackList: TodayPostIdea[] = [
       {
         id: 'idea-1',
         title: '5 Erros Silenciosos de IA na Carreira (Do Básico ao Avançado)',
@@ -173,6 +182,9 @@ export async function getWhatToPostToday(options: {
         estimatedPerformanceScore: 91,
         whyNowContext:
           'Vídeos com gancho nos 3s têm 70% mais retenção; horário de almoço é o pico de consumo.',
+        concreteAngle:
+          'Estrutura em 4 tempos (gancho 0-3s, problema 3-15s, demonstração 15-25s e CTA 25-30s) desenhada para reter não-seguidores.',
+        seasonalityContext: 'Alta busca por tutoriais expressos em vídeo dinâmico',
         suggestedCta: 'Comente "QUERO" para receber o roteiro completo no seu direct.',
         caption:
           '🎬 ROTEIRO COMPLETO (30s):\n\n[0:00 - 0:03] GANCHO: "Pare de cometer esse erro agora mesmo se você quer crescer!"\n[0:03 - 0:15] DESENVOLVIMENTO: "A maioria tenta pelo caminho longo, mas com essa mudança simples você dobra seus cliques."\n[0:15 - 0:25] DEMONSTRAÇÃO: Mostrar o produto ou tela em funcionamento.\n[0:25 - 0:30] CTA: "Comente QUERO para receber o acesso gratuito no direct!"',
@@ -195,6 +207,9 @@ export async function getWhatToPostToday(options: {
         funnelObjective: 'Conversão',
         estimatedPerformanceScore: 88,
         whyNowContext: 'Lacuna de funil: você não postou nada com foco em Conversão há 6 dias.',
+        concreteAngle:
+          'Apresentação de métricas reais de cliente (antes x depois) com quebra de objeção sobre tempo de implementação.',
+        seasonalityContext: 'Momento propício para fechamentos e decisões comerciais do mês',
         suggestedCta:
           'Clique no link da bio ou mande mensagem para agendar sua sessão estratégica.',
         caption:
@@ -216,6 +231,9 @@ export async function getWhatToPostToday(options: {
         estimatedPerformanceScore: 85,
         whyNowContext:
           'Comunidade ativa à noite; momento ideal para puxar respostas e conexão genuína.',
+        concreteAngle:
+          'Quebra de mito polêmico sobre hacks milagrosos versus consistência real, estimulando desabafos de criadores.',
+        seasonalityContext: 'Construção de intimidade e engajamento comunitário pós-expediente',
         suggestedCta:
           'Deixe sua opinião nos comentários: você prefere consistência diária ou superproduções pontuais?',
         caption:
@@ -231,6 +249,11 @@ export async function getWhatToPostToday(options: {
         suggestedModel: 'Thread no X',
         format: 'Thread X / Twitter',
         funnelObjective: 'Autoridade',
+        estimatedPerformanceScore: 89,
+        whyNowContext: 'Pico matinal no X ideal para debate analítico e retenção por retweets.',
+        concreteAngle:
+          'Framework em 3 pilares rápidos com gancho provocativo no tweet 1 e resumo acionável no tweet 5.',
+        seasonalityContext: 'Forte demanda por sínteses objetivas e curadoria no ecossistema X',
         suggestedCta: 'Curtiu a thread? Dê RT no 1º tweet e siga o perfil para análises diárias.',
         caption:
           '🧵 1/5 | 90% das pessoas erram feio ao planejar seu conteúdo.\n\nAqui estão os 3 pilares validados para destravar sua consistência 👇\n\n2/5 | Ponto 1: Simplicidade bate sofisticação.\n3/5 | Ponto 2: Consistência vence picos isolados.\n4/5 | Ponto 3: Conversas no direct fecham contratos.\n5/5 | Curtiu? Dê um RT no primeiro tweet e siga para receber insights diários!',
@@ -248,6 +271,11 @@ export async function getWhatToPostToday(options: {
         suggestedModel: 'Newsletter LinkedIn',
         format: 'Newsletter / Artigo',
         funnelObjective: 'Autoridade',
+        estimatedPerformanceScore: 87,
+        whyNowContext: 'Janela de abertura corporativa de segunda a quinta pela manhã.',
+        concreteAngle:
+          'Ensaio aprofundado com análise de mercado e 3 decisões que executivos tomam antes do crescimento.',
+        seasonalityContext: 'Pauta corporativa e tomada de decisão estratégica do trimestre',
         suggestedCta:
           'Assine a newsletter para receber artigos estratégicos semanais direto na sua caixa de entrada.',
         caption:
@@ -258,5 +286,22 @@ export async function getWhatToPostToday(options: {
           'Artigos longos e newsletters aumentam a geração de leads qualificados em até 65% no LinkedIn.',
       },
     ]
+
+    // Filtrar ou ordenar de acordo com objetivo e formato solicitados mantendo fallback rico
+    let filtered = rawFallbackList
+    if (requestedObj) {
+      const matchObj = rawFallbackList.filter((i) => i.funnelObjective === requestedObj)
+      if (matchObj.length > 0) {
+        filtered = matchObj
+      }
+    }
+    if (requestedFmt && requestedFmt !== 'all') {
+      const matchFmt = filtered.filter((i) => i.format.toLowerCase().includes(requestedFmt))
+      if (matchFmt.length > 0) {
+        filtered = matchFmt
+      }
+    }
+
+    return filtered
   }
 }
