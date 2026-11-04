@@ -21,6 +21,7 @@ export interface LinkedInMetrics {
   reactions: number
   comments: number
   shares: number
+  saves?: number
   engagement_rate: number
   format_engagement?: {
     text: number
@@ -121,7 +122,8 @@ export async function getLinkedInOrganicMetrics(): Promise<LinkedInOrganicData> 
         reactions: 1860,
         comments: 310,
         shares: 240,
-        engagement_rate: 5.48,
+        saves: 185,
+        engagement_rate: 5.4,
         format_engagement: {
           text: 3.2,
           image: 4.9,

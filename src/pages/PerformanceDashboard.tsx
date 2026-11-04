@@ -25,6 +25,7 @@ import { toast } from '@/hooks/use-toast'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { PerformanceReport } from '@/components/analytics/PerformanceReport'
@@ -451,7 +452,7 @@ export default function PerformanceDashboard() {
         </div>
       </div>
 
-      {/* Grid de Destaque Superior: 4 KPIs Principais (1 col em telas < 400px, 2 col sm, 4 col lg) */}
+      {/* Grid de Destaque Superior: 4 KPIs Principais (com Skeleton se estiver carregando) */}
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card space-y-1 shadow-xs">
           <div className="flex items-center justify-between">
@@ -462,7 +463,11 @@ export default function PerformanceDashboard() {
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-foreground">{publishedPosts}</p>
+          {loading ? (
+            <Skeleton className="h-8 w-20 rounded-lg" />
+          ) : (
+            <p className="text-2xl font-black text-foreground">{publishedPosts}</p>
+          )}
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{totalPosts} criados no total</span>
             <span className="text-purple-600 font-semibold">{scheduledPosts} agendados</span>
@@ -478,9 +483,13 @@ export default function PerformanceDashboard() {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-foreground">
-            {totalEngagement > 0 ? totalEngagement.toLocaleString('pt-BR') : '14.850'}
-          </p>
+          {loading ? (
+            <Skeleton className="h-8 w-24 rounded-lg" />
+          ) : (
+            <p className="text-2xl font-black text-foreground">
+              {totalEngagement > 0 ? totalEngagement.toLocaleString('pt-BR') : '14.850'}
+            </p>
+          )}
           <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-bold">
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>+12.4% vs mês anterior</span>
@@ -496,7 +505,11 @@ export default function PerformanceDashboard() {
               <Share2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-foreground">{avgEngagementRate}%</p>
+          {loading ? (
+            <Skeleton className="h-8 w-16 rounded-lg" />
+          ) : (
+            <p className="text-2xl font-black text-foreground">{avgEngagementRate}%</p>
+          )}
           <div className="text-[11px] text-muted-foreground truncate">
             <span>Benchmark: LinkedIn 6.1% · Insta 5.2%</span>
           </div>
@@ -511,9 +524,13 @@ export default function PerformanceDashboard() {
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-foreground">
-            {totalReach.toLocaleString('pt-BR')}
-          </p>
+          {loading ? (
+            <Skeleton className="h-8 w-28 rounded-lg" />
+          ) : (
+            <p className="text-2xl font-black text-foreground">
+              {totalReach.toLocaleString('pt-BR')}
+            </p>
+          )}
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span className="text-pink-600 font-semibold">Audiência única impactada</span>
           </div>

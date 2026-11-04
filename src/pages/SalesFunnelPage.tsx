@@ -2107,7 +2107,7 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
 
     toast({
       title: 'Relatório CSV exportado!',
-      description: 'Comparativo dos 5 canais baixado com sucesso.',
+      description: 'Comparativo dos canais de tráfego baixado com sucesso.',
     })
   }
 
@@ -2133,12 +2133,12 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
               Relatório Comparativo de Canais de Tráfego Pago
             </h3>
             <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">
-              5 Redes
+              7 Redes
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Avaliação comparativa lado a lado de Google Ads, Meta Ads, YouTube Ads, TikTok Ads e
-            LinkedIn Ads com destaque dos campeões de eficiência.
+            Avaliação comparativa lado a lado de Google Ads, Meta Ads, YouTube Ads, TikTok Ads,
+            LinkedIn Ads, Pinterest Ads e X Ads com destaque dos campeões de eficiência.
           </p>
         </div>
 
@@ -2222,7 +2222,7 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
         </div>
       </div>
 
-      {/* Tabela Comparativa Completa dos 5 Canais */}
+      {/* Tabela Comparativa Completa dos Canais */}
       <div className="overflow-x-auto rounded-2xl border border-border/80">
         <table className="w-full text-xs text-left">
           <thead className="bg-muted/50 text-[11px] font-bold text-muted-foreground uppercase border-b border-border/80">

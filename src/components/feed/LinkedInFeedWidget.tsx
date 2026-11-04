@@ -16,6 +16,7 @@ import {
   FileText,
   Image as ImageIcon,
   Video,
+  Bookmark,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -227,7 +228,7 @@ export function LinkedInFeedWidget({ compact = false, className = '' }: LinkedIn
                 Engajamento Médio por Formato
               </span>
               <span className="text-[10px] text-muted-foreground hidden sm:inline">
-                Vídeos e Carrosséis/PDF geram maior retenção
+                Vídeos e Carrosséis/PDF geram maior retenção B2B
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-0.5">
@@ -262,10 +263,10 @@ export function LinkedInFeedWidget({ compact = false, className = '' }: LinkedIn
           </div>
         )}
 
-        {/* Micro highlights: Clicks, Comments, Shares */}
+        {/* Micro highlights: Clicks, Comments, Shares, Saves */}
         {!compact && (
           <div className="flex items-center justify-between px-2 pt-1 text-[11px] text-muted-foreground border-t border-border/50">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className="inline-flex items-center gap-1">
                 <MousePointerClick className="w-3 h-3 text-blue-600" />
                 <strong className="text-foreground font-semibold">
@@ -280,12 +281,19 @@ export function LinkedInFeedWidget({ compact = false, className = '' }: LinkedIn
                 </strong>{' '}
                 comentários
               </span>
-              <span className="inline-flex items-center gap-1 hidden sm:inline-flex">
+              <span className="inline-flex items-center gap-1">
                 <Share2 className="w-3 h-3 text-amber-500" />
                 <strong className="text-foreground font-semibold">
                   {Number(data.metrics.shares || 0).toLocaleString('pt-BR')}
                 </strong>{' '}
                 compart.
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Bookmark className="w-3 h-3 text-purple-500" />
+                <strong className="text-foreground font-semibold">
+                  {Number(data.metrics.saves || 185).toLocaleString('pt-BR')}
+                </strong>{' '}
+                salvos
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground hidden sm:inline">Orgânico B2B</span>

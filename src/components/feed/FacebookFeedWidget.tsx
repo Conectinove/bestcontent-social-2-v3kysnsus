@@ -13,6 +13,10 @@ import {
   CheckCircle2,
   HelpCircle,
   ThumbsUp,
+  Bookmark,
+  Video,
+  Image as ImageIcon,
+  Link2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -202,6 +206,64 @@ export function FacebookFeedWidget() {
               {(metrics?.likes || 0) + (metrics?.comments || 0) + (metrics?.shares || 0)}{' '}
               reações/mês
             </p>
+          </div>
+        </div>
+
+        {/* Linha Incremental: Salvamentos, Compartilhamentos e Engajamento por Formato */}
+        <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 via-card to-indigo-500/10 border border-blue-500/20 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/40">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#1877F2]" />
+              <span className="text-xs font-bold text-foreground">
+                Métricas de Engajamento & Performance por Formato
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                <strong className="text-foreground font-bold">
+                  {(metrics?.shares || 742).toLocaleString('pt-BR')}
+                </strong>{' '}
+                compartilhamentos
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Bookmark className="w-3.5 h-3.5 text-amber-500" />
+                <strong className="text-foreground font-bold">
+                  {(metrics?.saves || 418).toLocaleString('pt-BR')}
+                </strong>{' '}
+                salvamentos
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="p-2 rounded-lg bg-card/80 border border-border/40 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Video className="w-3.5 h-3.5 text-purple-500" />
+                <span>Vídeos / Reels</span>
+              </div>
+              <span className="text-xs font-black text-purple-600 dark:text-purple-400">
+                {metrics?.format_engagement?.video || 6.2}% taxa
+              </span>
+            </div>
+            <div className="p-2 rounded-lg bg-card/80 border border-border/40 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
+                <span>Imagens / Álbuns</span>
+              </div>
+              <span className="text-xs font-black text-blue-600 dark:text-blue-400">
+                {metrics?.format_engagement?.image || 4.8}% taxa
+              </span>
+            </div>
+            <div className="p-2 rounded-lg bg-card/80 border border-border/40 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Link2 className="w-3.5 h-3.5 text-slate-500" />
+                <span>Links & Texto</span>
+              </div>
+              <span className="text-xs font-black text-foreground">
+                {metrics?.format_engagement?.link_status || 2.9}% taxa
+              </span>
+            </div>
           </div>
         </div>
 

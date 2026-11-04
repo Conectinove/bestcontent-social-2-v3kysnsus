@@ -38,6 +38,16 @@ export interface MonetizationMetricsData {
   }[]
 }
 
+function formatMonetaryAbbreviated(value: number): string {
+  if (value >= 1_000_000) {
+    return `R$ ${(value / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
+  }
+  if (value >= 1_000) {
+    return `R$ ${(value / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
+  }
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 export function MonetizationBlock() {
   const [loading, setLoading] = useState(true)
   const [deals, setDeals] = useState<FunnelDeal[]>([])
@@ -274,11 +284,15 @@ export function MonetizationBlock() {
               <Wallet className="w-4 h-4 text-emerald-500" />
             </div>
             <p className="text-2xl font-black text-foreground">
-              R$ {attributedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {formatMonetaryAbbreviated(attributedRevenue)}
             </p>
-            <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-bold">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>+{growthPct}% vs mês anterior</span>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground">
+                R$ {attributedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+              <span className="text-emerald-600 font-bold flex items-center gap-0.5">
+                <ArrowUpRight className="w-3 h-3" />+{growthPct}%
+              </span>
             </div>
           </div>
 
@@ -291,9 +305,12 @@ export function MonetizationBlock() {
               <CreditCard className="w-4 h-4 text-purple-500" />
             </div>
             <p className="text-2xl font-black text-foreground">
-              R$ {totalSpend.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {formatMonetaryAbbreviated(totalSpend)}
             </p>
-            <p className="text-[11px] text-muted-foreground">Soma de 7 plataformas integradas</p>
+            <p className="text-[11px] text-muted-foreground">
+              R$ {totalSpend.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} &middot; 8
+              canais
+            </p>
           </div>
 
           {/* KPI 3: ROAS Geral */}
@@ -321,10 +338,10 @@ export function MonetizationBlock() {
               <Coins className="w-4 h-4 text-amber-500" />
             </div>
             <p className="text-2xl font-black text-amber-600 dark:text-amber-400">
-              R$ {revenuePerLead.toLocaleString('pt-BR')}
+              {formatMonetaryAbbreviated(revenuePerLead)}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Ticket médio por oportunidade qualificada
+              R$ {revenuePerLead.toLocaleString('pt-BR')} por oportunidade
             </p>
           </div>
         </div>
@@ -334,7 +351,7 @@ export function MonetizationBlock() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <PieChart className="w-4 h-4 text-emerald-500" />
-              Detalhamento de Investimento vs Retorno por Canal (7 Plataformas)
+              Detalhamento de Investimento vs Retorno por Canal (8 Plataformas)
             </span>
             <span className="text-[11px] text-muted-foreground">Comparativo Mensal Calibrado</span>
           </div>

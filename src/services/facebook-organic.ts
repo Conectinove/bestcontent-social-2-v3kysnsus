@@ -9,8 +9,14 @@ export interface FacebookOrganicMetrics {
   likes: number
   comments: number
   shares: number
+  saves?: number
   clicks: number
   posts_published_30d: number
+  format_engagement?: {
+    image: number
+    video: number
+    link_status: number
+  }
 }
 
 export interface FacebookOrganicPost {
@@ -112,8 +118,14 @@ export async function getFacebookOrganicMetrics(): Promise<FacebookOrganicData> 
         likes: 3210,
         comments: 486,
         shares: 742,
+        saves: 418,
         clicks: 1290,
         posts_published_30d: 22,
+        format_engagement: {
+          image: 4.8,
+          video: 6.2,
+          link_status: 2.9,
+        },
       },
       recent_posts: [],
       best_times: [

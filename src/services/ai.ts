@@ -108,7 +108,15 @@ export const generateCaption = async (
   } else if (plat.includes('tik')) {
     recommendedChars = 380
     networkBody = `O segredo rápido que ninguém te conta sobre ${topic} em menos de 30 segundos! 👇\n\nSe você ajustar só esse detalhe hoje, seu alcance e retenção dobram na mesma hora. Faz o teste e me conta nos comentários!`
-    networkTags = ['#dicasrapidas', '#aprendanotiktok', '#estrategia', '#rotina']
+    networkTags = ['#dicasrapidas', '#aprendanotiktok', '#estrategia', '#rotina', '#fyp']
+  } else if (plat.includes('twit') || plat === 'x' || plat.includes('/x')) {
+    recommendedChars = 260
+    networkBody = `90% erram ao abordar ${topic} tentando complicar o básico.\n\nA regra simples que gera resultado consistente:\n1. Menos fricção\n2. Mais clareza na dor\n3. Conversão sem enrolação`
+    networkTags = ['#marketing', '#tech', '#insights']
+  } else if (plat.includes('face')) {
+    recommendedChars = 820
+    networkBody = `Queremos abrir uma conversa sincera com você sobre ${topic}.\n\nAo longo da nossa jornada, percebemos que o maior obstáculo da comunidade é tentar dar o segundo passo antes de consolidar o primeiro.\n\nCompartilhamos aqui 3 aprendizados fundamentais que você pode aplicar ainda hoje no seu projeto ou negócio!`
+    networkTags = ['#comunidade', '#aprendizado', '#negocioslocais', '#dicaspraticas']
   } else {
     recommendedChars = 950
     networkBody = `Quando a maioria tenta avançar com ${topic}, foca no volume bruto de postagens. Mas quem realmente domina a retenção sabe: clareza e intenção batem qualquer quantidade sem estratégia.\n\n3 pontos essenciais para aplicar a partir de hoje:\n1. Elimine o ruído e foque no gancho dos primeiros segundos.\n2. Fale com a dor real de quem decide, não com o público genérico.\n3. Transforme cada publicação em um ativo de autoridade da sua marca.`
@@ -116,6 +124,7 @@ export const generateCaption = async (
       '#estrategia',
       '#conteudointeligente',
       '#altaperformance',
+      '#marketingdeconteudo',
       `#${plat.replace(/[^a-z0-9]/g, '')}`,
     ]
   }

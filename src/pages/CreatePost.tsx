@@ -26,6 +26,7 @@ import {
   Send,
   Layers,
   ArrowRight,
+  RotateCcw,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
@@ -295,7 +296,8 @@ export default function CreatePost() {
   }
 
   // Ações de inteligência artificial
-  const aiAction = async (type: string) => {
+  const aiAction = async (type: string, overridePlatform?: string) => {
+    const targetPlatform = overridePlatform || platform
     const sourceText = content || caption
     if (!sourceText.trim() && type !== 'caption') {
       toast({
@@ -312,7 +314,7 @@ export default function CreatePost() {
         const r = await generateCaption({
           content: sourceText,
           topic: sourceText,
-          platform: platform.toLowerCase(),
+          platform: targetPlatform.toLowerCase(),
           objective: selectedObjective,
           tone: selectedTone,
           brandName,
@@ -778,37 +780,119 @@ export default function CreatePost() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground">
-                  Legenda Completa para Redes
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => aiAction('caption')}
-                    disabled={aiLoading === 'caption'}
-                    className="text-xs text-purple-600 dark:text-purple-400 border-purple-500/30 gap-1.5 h-7 px-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950/40"
-                    title="Gera gancho magnético, corpo, CTA e hashtags no tom selecionado"
-                  >
-                    {aiLoading === 'caption' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
+              {/* Barra de Ação da IA com Seleção Rápida de Rede e Regeneração */}
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/10 via-card to-card border border-purple-500/30 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-2xs">
                       <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">
+                        Geração Avançada por Rede (IA Multicanal)
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Calibra ganchos, limite de caracteres, hashtags e CTA por canal
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={() => aiAction('caption')}
+                      disabled={aiLoading === 'caption'}
+                      className="text-xs bg-purple-600 hover:bg-purple-700 text-white gap-1.5 h-8 px-3 rounded-xl shadow-xs"
+                      title={`Gera copy avançada para ${platform} no tom ${selectedTone}`}
+                    >
+                      {aiLoading === 'caption' ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+                      <span>Gerar para {platform}</span>
+                    </Button>
+                    {caption && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => aiAction('caption')}
+                        disabled={aiLoading === 'caption'}
+                        className="text-xs h-8 px-2.5 rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 gap-1 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                        title="Regenerar variação com outro gancho e ritmo"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Regenerar</span>
+                      </Button>
                     )}
-                    <span>Gerar Legenda com IA</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAiModalOpen(true)}
-                    className="text-xs text-muted-foreground hover:text-foreground h-7 px-2 rounded-lg"
-                  >
-                    Assistente
-                  </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAiModalOpen(true)}
+                      className="text-xs text-muted-foreground hover:text-foreground h-8 px-2 rounded-xl"
+                    >
+                      Assistente
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Chips de variação por rede social (Instagram, TikTok, LinkedIn, X, Facebook) */}
+                <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-bold text-muted-foreground">
+                    Variar copy por canal:
+                  </span>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {[
+                      { key: 'Instagram', label: 'Instagram' },
+                      { key: 'TikTok', label: 'TikTok' },
+                      { key: 'LinkedIn', label: 'LinkedIn' },
+                      { key: 'Twitter/X', label: 'X (Twitter)' },
+                      { key: 'Facebook', label: 'Facebook' },
+                    ].map((p) => {
+                      const isCurrent = platform === p.key
+                      return (
+                        <button
+                          key={p.key}
+                          type="button"
+                          disabled={aiLoading === 'caption'}
+                          onClick={() => {
+                            setPlatform(p.key)
+                            aiAction('caption', p.key)
+                          }}
+                          className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                            isCurrent
+                              ? 'bg-purple-600 text-white shadow-2xs'
+                              : 'bg-card text-muted-foreground hover:text-foreground border border-border/70 hover:border-purple-500/40'
+                          }`}
+                          title={`Gerar copy específica para ${p.label}`}
+                        >
+                          <span>{p.label}</span>
+                          {isCurrent && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <label className="text-xs font-bold text-foreground">
+                  Legenda Completa ({platform})
+                </label>
+                <span className="text-[11px] text-muted-foreground">
+                  Tom:{' '}
+                  <strong className="text-purple-600 dark:text-purple-400 capitalize">
+                    {AI_VOICE_TONES.find((t) => t.id === selectedTone)?.label || selectedTone}
+                  </strong>{' '}
+                  &middot; CTA:{' '}
+                  <strong className="text-foreground capitalize">{selectedObjective}</strong>
+                </span>
               </div>
 
               {/* Variantes de Gancho em 1-clique */}
