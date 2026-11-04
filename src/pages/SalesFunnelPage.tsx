@@ -1084,7 +1084,7 @@ export default function SalesFunnelPage() {
         onRefreshDeals={loadDeals}
       />
 
-      {/* Seção Nova: Relatório Comparativo de Canais (Google Ads, Meta Ads, YouTube Ads, TikTok Ads e LinkedIn Ads) */}
+      {/* Seção Nova: Relatório Comparativo de Canais (Google Ads, Meta Ads, YouTube Ads, TikTok Ads, LinkedIn Ads, Pinterest Ads e X Ads) */}
       <ChannelComparisonSection deals={deals} />
 
       {/* Caixa de Insights de IA Avançada (BestContent Sales Advisor com Inteligência Comparativa & Preditiva) */}
@@ -2098,7 +2098,7 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
     link.href = url
     link.setAttribute(
       'download',
-      `relatorio-comparativo-5-canais-${new Date().toISOString().slice(0, 10)}.csv`,
+      `relatorio-comparativo-7-canais-${new Date().toISOString().slice(0, 10)}.csv`,
     )
     document.body.appendChild(link)
     link.click()

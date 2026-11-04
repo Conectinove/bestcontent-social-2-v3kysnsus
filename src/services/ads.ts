@@ -257,7 +257,7 @@ export function generateDailyMetricsForCampaign(
 }
 
 export interface PlatformConnectionStatus {
-  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin'
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin' | 'pinterest' | 'x'
   name: string
   configured: boolean
   status: 'connected' | 'not_configured' | 'error_calling_api' | 'exception'
@@ -275,12 +275,14 @@ export interface PlatformsStatusResponse {
     tiktok: PlatformConnectionStatus
     youtube?: PlatformConnectionStatus
     linkedin?: PlatformConnectionStatus
+    pinterest?: PlatformConnectionStatus
+    x?: PlatformConnectionStatus
   }
   message: string
 }
 
 export interface PlatformOfficialMetricsResult {
-  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin'
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin' | 'pinterest' | 'x'
   source: 'official_api' | 'simulated_fallback'
   is_official: boolean
   status: string

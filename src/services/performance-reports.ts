@@ -1,5 +1,18 @@
 import pb from '@/lib/pocketbase/client'
 
+export interface SavedReportTemplate {
+  id?: string
+  user?: string
+  name: string
+  description?: string
+  channels?: string[]
+  sections?: string[]
+  period?: string
+  frequency?: string
+  created?: string
+  updated?: string
+}
+
 export type PerformanceReportType =
   | 'geral'
   | 'engajamento'

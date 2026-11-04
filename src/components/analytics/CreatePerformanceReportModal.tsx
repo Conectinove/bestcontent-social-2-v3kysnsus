@@ -20,11 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Sparkles, Calendar, Layers, Loader2, BarChart3 } from 'lucide-react'
+import {
+  Sparkles,
+  Calendar,
+  Layers,
+  Loader2,
+  BarChart3,
+  BookmarkCheck,
+  PlusCircle,
+  Trash2,
+  Check,
+  LayoutTemplate,
+} from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import {
   createPerformanceReport,
   generateExecutiveSummary,
+  getSavedReportTemplates,
+  createSavedReportTemplate,
+  deleteSavedReportTemplate,
+  type SavedReportTemplate,
   type PerformanceReportRecord,
 } from '@/services/performance-reports'
 
@@ -53,6 +68,8 @@ const ALL_CHANNELS = [
   'Meta Ads (Facebook/Instagram)',
   'TikTok Ads',
   'LinkedIn Ads',
+  'Pinterest Ads',
+  'X (Twitter) Ads',
 ]
 
 export function CreatePerformanceReportModal({
@@ -76,6 +93,122 @@ export function CreatePerformanceReportModal({
   const [executiveSummary, setExecutiveSummary] = useState('')
   const [isGeneratingAi, setIsGeneratingAi] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Modelos Salvos
+  const [savedTemplates, setSavedTemplates] = useState<SavedReportTemplate[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false)
+  const [newTemplateName, setNewTemplateName] = useState('')
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+
+  // Carregar modelos salvos ao abrir o modal
+  React.useEffect(() => {
+    if (open) {
+      loadTemplates()
+    }
+  }, [open, userId])
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true)
+    try {
+      const tpls = await getSavedReportTemplates(userId)
+      setSavedTemplates(tpls)
+    } catch (err) {
+      console.warn('Erro ao carregar modelos de relatório:', err)
+    } finally {
+      setLoadingTemplates(false)
+    }
+  }
+
+  const handleApplyTemplate = (tpl: SavedReportTemplate) => {
+    setSelectedTemplateId(tpl.id || null)
+    if (tpl.channels && tpl.channels.length > 0) {
+      setSelectedChannels(tpl.channels)
+    }
+    if (tpl.period) {
+      if (tpl.period === '7d') setPeriodRange('Últimos 7 Dias')
+      else if (tpl.period === '90d') setPeriodRange('Últimos 90 Dias (Trimestre)')
+      else if (tpl.period === '30d') setPeriodRange('Últimos 30 Dias')
+      else setPeriodRange(tpl.period)
+    }
+    if (tpl.frequency) {
+      setFrequency(tpl.frequency as 'semanal' | 'mensal' | 'avulso')
+    }
+    setTitle(
+      `${tpl.name} — ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`,
+    )
+    toast({
+      title: 'Modelo Aplicado com Sucesso!',
+      description: `Configurações de "${tpl.name}" carregadas em 1 clique.`,
+    })
+  }
+
+  const handleSaveCurrentAsTemplate = async () => {
+    if (!newTemplateName.trim()) {
+      toast({
+        title: 'Nome obrigatório',
+        description: 'Dê um nome ao modelo para salvar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSavingTemplate(true)
+    try {
+      const created = await createSavedReportTemplate({
+        user: userId,
+        name: newTemplateName.trim(),
+        description: `Modelo com ${selectedChannels.length} canais (${periodRange})`,
+        channels: selectedChannels,
+        sections: ['kpis', 'networks', 'audience', 'monetization', 'topPosts'],
+        period:
+          periodRange === 'Últimos 7 Dias'
+            ? '7d'
+            : periodRange === 'Últimos 90 Dias (Trimestre)'
+              ? '90d'
+              : '30d',
+        frequency,
+      })
+
+      setSavedTemplates((prev) => [created, ...prev])
+      setSelectedTemplateId(created.id || null)
+      setNewTemplateName('')
+      setShowSaveTemplateInput(false)
+      toast({
+        title: 'Modelo Salvo!',
+        description: `O modelo "${created.name}" agora está disponível para reuso com 1 clique.`,
+      })
+    } catch (err) {
+      toast({
+        title: 'Erro ao salvar modelo',
+        description: 'Não foi possível gravar o modelo no banco.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSavingTemplate(false)
+    }
+  }
+
+  const handleDeleteTemplate = async (templateId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await deleteSavedReportTemplate(templateId)
+      setSavedTemplates((prev) => prev.filter((t) => t.id !== templateId))
+      if (selectedTemplateId === templateId) {
+        setSelectedTemplateId(null)
+      }
+      toast({
+        title: 'Modelo Removido',
+        description: 'O modelo salvo foi excluído.',
+      })
+    } catch (err) {
+      toast({
+        title: 'Erro ao excluir modelo',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const toggleChannel = (channel: string) => {
     setSelectedChannels((prev) =>
@@ -360,6 +493,140 @@ export function CreatePerformanceReportModal({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* SEÇÃO DE MODELOS SALVOS REUTILIZÁVEIS COM 1 CLIQUE */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-500/10 via-card to-pink-500/5 border border-purple-500/30 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LayoutTemplate className="w-4 h-4 text-purple-600" />
+                <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                  Modelos Salvos ({savedTemplates.length})
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] bg-purple-500/10 text-purple-600 border-purple-500/30 px-1.5 py-0"
+                >
+                  1 Clique
+                </Badge>
+              </div>
+
+              {!showSaveTemplateInput && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSaveTemplateInput(true)}
+                  className="h-7 text-[11px] font-bold text-purple-600 hover:text-purple-700 hover:bg-purple-500/10 gap-1 px-2"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Salvar Atual como Modelo</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Input para Salvar a Configuração Atual como Novo Modelo */}
+            {showSaveTemplateInput && (
+              <div className="p-2.5 rounded-xl bg-background border border-purple-500/40 space-y-2 animate-in fade-in duration-150">
+                <Label htmlFor="tpl-name" className="text-[11px] font-bold text-muted-foreground">
+                  Nome do Novo Modelo Reutilizável
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="tpl-name"
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="Ex: Auditoria Mensal E-commerce"
+                    className="h-8 text-xs"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveCurrentAsTemplate}
+                    disabled={isSavingTemplate}
+                    className="h-8 text-xs bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 shrink-0"
+                  >
+                    {isSavingTemplate ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <BookmarkCheck className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    <span>Salvar</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowSaveTemplateInput(false)
+                      setNewTemplateName('')
+                    }}
+                    className="h-8 text-xs px-2 text-muted-foreground shrink-0"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Salvará os {selectedChannels.length} canais selecionados, o período ({periodRange}
+                  ) e a frequência ({frequency}).
+                </p>
+              </div>
+            )}
+
+            {/* Lista dos modelos para aplicar com 1 clique */}
+            {loadingTemplates ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                <span>Carregando modelos salvos...</span>
+              </div>
+            ) : savedTemplates.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {savedTemplates.map((tpl) => {
+                  const isSelected = selectedTemplateId === tpl.id
+                  return (
+                    <div
+                      key={tpl.id}
+                      onClick={() => handleApplyTemplate(tpl)}
+                      className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer border transition-all ${
+                        isSelected
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                          : 'bg-background hover:bg-purple-500/10 text-foreground border-border/80 hover:border-purple-500/40'
+                      }`}
+                    >
+                      <LayoutTemplate
+                        className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-purple-600'}`}
+                      />
+                      <span className="truncate max-w-[160px]">{tpl.name}</span>
+                      <span
+                        className={`text-[10px] px-1 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}
+                      >
+                        {tpl.channels?.length || 0} canais
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteTemplate(tpl.id!, e)}
+                        title="Excluir modelo"
+                        className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                          isSelected
+                            ? 'hover:bg-white/20 text-white'
+                            : 'hover:bg-destructive/10 text-destructive'
+                        }`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-[11px] text-muted-foreground flex items-center justify-between py-1">
+                <span>
+                  Nenhum modelo salvo ainda. Configure os campos abaixo e clique em "Salvar Atual
+                  como Modelo".
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* Tipo de Relatório (NOVO: Engajamento como tipo de primeira classe) */}
           <div className="space-y-1.5">
             <Label className="text-xs font-bold flex items-center justify-between">
