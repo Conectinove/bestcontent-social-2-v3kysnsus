@@ -5,6 +5,7 @@ import { getTikTokOrganicMetrics, type TikTokOrganicData } from '@/services/tikt
 import { getLinkedInOrganicMetrics, type LinkedInOrganicData } from '@/services/linkedin-organic'
 import { getInstagramOrganicMetrics, type InstagramOrganicData } from '@/services/instagram-organic'
 import { getSubstackOrganicMetrics, type SubstackOrganicData } from '@/services/substack-organic'
+import { getFacebookOrganicMetrics, type FacebookOrganicData } from '@/services/facebook-organic'
 import { getUserIntegrations } from '@/services/user_integrations'
 
 export interface NetworkChannelSummary {
@@ -50,11 +51,11 @@ export interface ConsolidatedSocialHubData {
     engagement: number
   }[]
   tiktokOrganic: TikTokOrganicData | null
-  linkedinOrganic?: LinkedInOrganicData | null
-  instagramOrganic?: InstagramOrganicData | null
-  substackOrganic?: SubstackOrganicData | null
+  linkedinOrganic: LinkedInOrganicData | null
+  instagramOrganic: InstagramOrganicData | null
+  substackOrganic: SubstackOrganicData | null
+  facebookOrganic: FacebookOrganicData | null
 }
-
 export const ALL_SUPPORTED_NETWORKS: {
   network: IntegrationNetwork
   name: string
@@ -384,6 +385,13 @@ export async function getConsolidatedSocialHubData(
     /* intentionally ignored */
   }
 
+  let facebookOrganic: FacebookOrganicData | null = null
+  try {
+    facebookOrganic = await getFacebookOrganicMetrics()
+  } catch {
+    /* intentionally ignored */
+  }
+
   // Buscar posts com dados de conteúdo
   let posts: any[] = []
   try {
@@ -439,6 +447,11 @@ export async function getConsolidatedSocialHubData(
       engagementRate = substackOrganic.metrics.average_open_rate
       isOfficial = substackOrganic.is_live
       badgeLabel = substackOrganic.is_live ? 'Dados Oficiais' : 'Estimativa Calibrada'
+    } else if (meta.network === 'facebook' && facebookOrganic) {
+      followers = facebookOrganic.metrics.followers
+      engagementRate = facebookOrganic.metrics.engagement_rate
+      isOfficial = facebookOrganic.is_official
+      badgeLabel = facebookOrganic.badge_label
     } else if (metricsForNet.length > 0) {
       const sumEng = metricsForNet.reduce((acc, m) => acc + (m.taxa_engajamento || 0), 0)
       engagementRate = Number((sumEng / metricsForNet.length).toFixed(2))
@@ -538,5 +551,6 @@ export async function getConsolidatedSocialHubData(
     linkedinOrganic,
     instagramOrganic,
     substackOrganic,
+    facebookOrganic,
   }
 }

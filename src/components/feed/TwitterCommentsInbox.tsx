@@ -10,7 +10,15 @@ import {
   Heart,
   Clock,
   Check,
+  FileSpreadsheet,
+  FileText,
+  FileCode,
 } from 'lucide-react'
+import {
+  exportCommentsToCSV,
+  exportCommentsToJSON,
+  exportCommentsToMarkdown,
+} from '@/services/comment-export'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -214,6 +222,114 @@ export function TwitterCommentsInbox() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border/60">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const rows = filteredComments.map((c) => ({
+                    id: c.id,
+                    platform: 'Twitter/X' as const,
+                    author_handle: c.author_handle,
+                    author_name: c.author_name,
+                    text: c.text,
+                    post_title: c.post_title,
+                    post_permalink: c.post_permalink,
+                    status: c.status,
+                    likes_count: c.likes_count,
+                    commented_at: c.commented_at,
+                    reply_text: c.reply_text,
+                    replied_at: c.replied_at,
+                    is_official: c.is_official,
+                  }))
+                  exportCommentsToCSV(
+                    rows,
+                    `x_twitter_comentarios_${new Date().toISOString().slice(0, 10)}.csv`,
+                  )
+                  toast({
+                    title: 'CSV exportado com sucesso',
+                    description: `${rows.length} menções do X exportadas com codificação UTF-8 BOM.`,
+                  })
+                }}
+                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 rounded-lg"
+                title="Exportar CSV (compatível com Excel)"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                <span>CSV</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const rows = filteredComments.map((c) => ({
+                    id: c.id,
+                    platform: 'Twitter/X' as const,
+                    author_handle: c.author_handle,
+                    author_name: c.author_name,
+                    text: c.text,
+                    post_title: c.post_title,
+                    post_permalink: c.post_permalink,
+                    status: c.status,
+                    likes_count: c.likes_count,
+                    commented_at: c.commented_at,
+                    reply_text: c.reply_text,
+                    replied_at: c.replied_at,
+                    is_official: c.is_official,
+                  }))
+                  exportCommentsToJSON(
+                    rows,
+                    `x_twitter_comentarios_${new Date().toISOString().slice(0, 10)}.json`,
+                  )
+                  toast({
+                    title: 'JSON exportado com sucesso',
+                    description: `${rows.length} menções do X exportadas em JSON estruturado.`,
+                  })
+                }}
+                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 rounded-lg"
+                title="Exportar JSON estruturado"
+              >
+                <FileCode className="w-3.5 h-3.5 text-sky-500" />
+                <span>JSON</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const rows = filteredComments.map((c) => ({
+                    id: c.id,
+                    platform: 'Twitter/X' as const,
+                    author_handle: c.author_handle,
+                    author_name: c.author_name,
+                    text: c.text,
+                    post_title: c.post_title,
+                    post_permalink: c.post_permalink,
+                    status: c.status,
+                    likes_count: c.likes_count,
+                    commented_at: c.commented_at,
+                    reply_text: c.reply_text,
+                    replied_at: c.replied_at,
+                    is_official: c.is_official,
+                  }))
+                  exportCommentsToMarkdown(
+                    rows,
+                    'Relatório de Menções X (Twitter) — Conectinove',
+                    `x_twitter_comentarios_${new Date().toISOString().slice(0, 10)}.md`,
+                  )
+                  toast({
+                    title: 'Markdown exportado com sucesso',
+                    description: `${rows.length} menções formatadas em Markdown para documentação.`,
+                  })
+                }}
+                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 rounded-lg"
+                title="Exportar Markdown"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-500" />
+                <span>MD</span>
+              </Button>
+            </div>
+
             <Button
               variant="outline"
               size="sm"

@@ -6,12 +6,14 @@ import { GoogleAnalyticsFeedWidget } from './GoogleAnalyticsFeedWidget'
 import { LinkedInFeedWidget } from './LinkedInFeedWidget'
 import { SubstackFeedWidget } from './SubstackFeedWidget'
 import { GoogleBusinessFeedWidget } from './GoogleBusinessFeedWidget'
+import { FacebookFeedWidget } from './FacebookFeedWidget'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export type FeedWidgetNetwork =
   | 'instagram'
   | 'tiktok'
+  | 'facebook'
   | 'youtube'
   | 'analytics'
   | 'linkedin'
@@ -59,6 +61,21 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
           >
             <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
             <span>TikTok</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'facebook' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('facebook')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'facebook'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#1877F2] shrink-0" />
+            <span>Facebook</span>
           </Button>
 
           <Button
@@ -159,6 +176,7 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
       <div className={collapsedMobile ? 'hidden lg:block' : 'block'}>
         {activeTab === 'instagram' && <InstagramFeedWidget />}
         {activeTab === 'tiktok' && <TikTokFeedWidget />}
+        {activeTab === 'facebook' && <FacebookFeedWidget />}
         {activeTab === 'youtube' && <YouTubeFeedWidget />}
         {activeTab === 'analytics' && <GoogleAnalyticsFeedWidget />}
         {activeTab === 'linkedin' && <LinkedInFeedWidget />}

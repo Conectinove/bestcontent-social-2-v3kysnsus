@@ -28,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { InstagramCommentsInbox } from '@/components/feed/InstagramCommentsInbox'
 import { FacebookCommentsInbox } from '@/components/feed/FacebookCommentsInbox'
+import { TwitterCommentsInbox } from '@/components/feed/TwitterCommentsInbox'
 import { useAuth } from '@/context/AuthContext'
 import {
   getConsolidatedSocialHubData,
@@ -42,7 +43,9 @@ export function SocialHubPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [activeTab, setActiveTab] = useState<'overview' | 'comments-ig' | 'comments-fb'>('overview')
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'comments-ig' | 'comments-fb' | 'comments-x'
+  >('overview')
 
   const loadData = async () => {
     setLoading(true)
@@ -163,6 +166,26 @@ export function SocialHubPage() {
           <span>Comentários FB</span>
           <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse ml-0.5" />
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('comments-x')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap min-h-[44px] ${
+            activeTab === 'comments-x'
+              ? 'bg-gradient-to-r from-zinc-800 to-black text-white shadow-xs ring-1 ring-zinc-700'
+              : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+          }`}
+        >
+          <svg
+            className="w-4 h-4 text-foreground dark:text-zinc-200"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          <span>Comentários X</span>
+          <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse ml-0.5" />
+        </button>
       </div>
 
       {activeTab === 'comments-ig' ? (
@@ -172,6 +195,10 @@ export function SocialHubPage() {
       ) : activeTab === 'comments-fb' ? (
         <div className="space-y-6">
           <FacebookCommentsInbox />
+        </div>
+      ) : activeTab === 'comments-x' ? (
+        <div className="space-y-6">
+          <TwitterCommentsInbox />
         </div>
       ) : (
         <>

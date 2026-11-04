@@ -63,9 +63,9 @@ export function CreatePerformanceReportModal({
   onReportCreated,
   currentKpis,
 }: CreatePerformanceReportModalProps) {
-  const [reportType, setReportType] = useState<'geral' | 'engajamento' | 'anuncios' | 'conteudo'>(
-    'engajamento',
-  )
+  const [reportType, setReportType] = useState<
+    'geral' | 'engajamento' | 'anuncios' | 'conteudo' | 'comentarios'
+  >('comentarios')
   const [title, setTitle] = useState(
     'Relatório de Engajamento & Retenção — ' +
       new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
@@ -125,6 +125,7 @@ export function CreatePerformanceReportModal({
     setSaving(true)
     try {
       const isEngagement = reportType === 'engajamento'
+      const isComments = reportType === 'comentarios'
       const avgRate = currentKpis?.avgEngagementRate || 5.4
       const totEng = currentKpis?.totalEngagement || 14850
 
@@ -139,6 +140,52 @@ export function CreatePerformanceReportModal({
         executive_summary: executiveSummary,
         is_scheduled: frequency !== 'avulso',
         engagement_data_json: {
+          commentsData: isComments
+            ? {
+                totalComments: 142,
+                pendingComments: 16,
+                repliedComments: 118,
+                ignoredComments: 8,
+                responseRatePercentage: 88.0,
+                avgResponseTimeHours: 1.8,
+                commentsByPlatform: [
+                  { platform: 'Instagram', total: 78, replied: 66, pending: 8 },
+                  { platform: 'Facebook', total: 42, replied: 36, pending: 5 },
+                  { platform: 'Twitter/X', total: 22, replied: 16, pending: 3 },
+                ],
+                topEngagedComments: [
+                  {
+                    platform: 'Instagram',
+                    author: '@carlos.eduardo_agro',
+                    text: 'Quando começam as inscrições para o curso de IA e Automação?',
+                    likes: 14,
+                    postTitle: 'Revolução da IA no Mercado 2026',
+                    status: 'respondido',
+                  },
+                  {
+                    platform: 'Facebook',
+                    author: 'Mariana Silveira',
+                    text: 'Parabéns Conectinove pelo treinamento em Barretos! Tem certificado reconhecido?',
+                    likes: 11,
+                    postTitle: 'Formatura e Certificação Profissional',
+                    status: 'respondido',
+                  },
+                  {
+                    platform: 'Twitter/X',
+                    author: '@tech_dev_br',
+                    text: 'Essa metodologia da Conectinove mudou o fluxo de captação da nossa agência.',
+                    likes: 8,
+                    postTitle: 'Fluxos de Alta Conversão',
+                    status: 'respondido',
+                  },
+                ],
+                aiRecommendations: [
+                  'Ativar resposta automática para dúvidas frequentes de certificados e início de turmas.',
+                  'Responder menções no Twitter/X em menos de 1 hora para aproveitar o pico de retweets.',
+                  'Encaminhar contatos com alta intenção de matrícula diretamente para o WhatsApp de vendas.',
+                ],
+              }
+            : undefined,
           engagementByNetwork: [
             {
               network: 'Instagram',
@@ -248,10 +295,18 @@ export function CreatePerformanceReportModal({
           bestFormat: 'Carrossel Educativo',
         },
         highlights_json: {
-          topChannel: { name: 'Instagram', engagement: Number((avgRate * 1.15).toFixed(1)) },
-          topFormat: { name: 'Carrossel Educativo', reach: 24500 },
+          topChannel: {
+            name: isComments ? 'Instagram Comentários' : 'Instagram',
+            engagement: isComments ? 88.0 : Number((avgRate * 1.15).toFixed(1)),
+          },
+          topFormat: {
+            name: isComments ? 'Atendimento Rápido Direct & Feed' : 'Carrossel Educativo',
+            reach: isComments ? 142 : 24500,
+          },
           topPost: {
-            title: '5 Erros Silenciosos de IA na Carreira',
+            title: isComments
+              ? 'Dúvidas sobre Matrículas & IA no Mercado'
+              : '5 Erros Silenciosos de IA na Carreira',
             rate: Number((avgRate * 1.6).toFixed(1)),
             channel: 'Instagram',
           },
@@ -313,7 +368,26 @@ export function CreatePerformanceReportModal({
                 Novo tipo: Engajamento
               </span>
             </Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <Button
+                type="button"
+                variant={reportType === 'comentarios' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReportType('comentarios')
+                  setTitle(
+                    'Relatório de Comentários & Atendimento — ' +
+                      new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                  )
+                }}
+                className={`text-xs h-9 font-bold ${
+                  reportType === 'comentarios'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-foreground'
+                }`}
+              >
+                💬 Comentários
+              </Button>
               <Button
                 type="button"
                 variant={reportType === 'engajamento' ? 'default' : 'outline'}
@@ -348,7 +422,7 @@ export function CreatePerformanceReportModal({
                   reportType === 'geral' ? 'bg-purple-600 text-white shadow-xs' : 'text-foreground'
                 }`}
               >
-                📊 Consolidado Geral
+                📊 Geral
               </Button>
               <Button
                 type="button"
@@ -367,7 +441,7 @@ export function CreatePerformanceReportModal({
                     : 'text-foreground'
                 }`}
               >
-                📝 Formatos & Mídia
+                📝 Formatos
               </Button>
               <Button
                 type="button"
@@ -386,7 +460,7 @@ export function CreatePerformanceReportModal({
                     : 'text-foreground'
                 }`}
               >
-                🎯 Tráfego Pago
+                🎯 Anúncios
               </Button>
             </div>
           </div>
