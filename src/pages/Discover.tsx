@@ -231,6 +231,19 @@ export default function Discover() {
     }
   }, [location.hash])
 
+  // Suporte a busca vinda da Command Palette (?q=... ou ?modal=what-to-post)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const qParam = params.get('q')
+    if (qParam) {
+      setSearchQuery(qParam)
+    }
+    const modalParam = params.get('modal')
+    if (modalParam === 'what-to-post') {
+      setIsWhatToPostModalOpen(true)
+    }
+  }, [location.search])
+
   // Load existing ideas & trends from PocketBase
   const loadData = async () => {
     setIsLoading(true)

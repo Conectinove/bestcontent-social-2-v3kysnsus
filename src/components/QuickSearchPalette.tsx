@@ -24,19 +24,21 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+import { useSocial } from '@/context/SocialContext'
+
 export interface QuickSearchPaletteProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-interface TrendingItem {
+export interface TrendingItem {
   id: string
   term: string
   countLabel: string
   category: 'trending' | 'topic'
 }
 
-interface ActionItem {
+export interface ActionItem {
   id: string
   title: string
   subtitle: string
@@ -104,6 +106,7 @@ const INITIAL_TRENDING: TrendingItem[] = [
 export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPaletteProps) {
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
+  const { posts = [] } = useSocial?.() || {}
   const [query, setQuery] = useState('')
   const [recents, setRecents] = useState<string[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -158,19 +161,19 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
       {
         id: 'what-to-post',
         title: 'O que postar hoje?',
-        subtitle: 'Sugestões com IA preditiva e tendências do nicho',
+        subtitle: 'Sugestões com IA preditiva e tendências de conteúdo',
         icon: Sparkles,
         iconColor: 'text-amber-500 bg-amber-500/10',
         badge: 'IA Preditiva',
-        path: '/app/analytics',
+        path: '/app/explorar?modal=what-to-post',
       },
       {
         id: 'create-video',
         title: 'Criar Vídeo com IA',
-        subtitle: 'Roteiros verticais e gancho imperativo de 3s',
+        subtitle: 'Roteiros verticais e gancho magnético de 3s',
         icon: Video,
         iconColor: 'text-purple-500 bg-purple-500/10',
-        path: '/app/image-creator',
+        path: '/app/criar/videos',
       },
       {
         id: 'new-report',
@@ -178,7 +181,7 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
         subtitle: 'Resumo executivo por IA e insights cruzados de canais',
         icon: FileBarChart,
         iconColor: 'text-emerald-500 bg-emerald-500/10',
-        path: '/app/performance',
+        path: '/app/performance?action=new-report',
       },
       {
         id: 'calendar',
@@ -260,6 +263,59 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
     onOpenChange(false)
   }
 
+  // Filtragem de Posts da Biblioteca e Ideias quando o usuário digita
+  const matchingPosts = useMemo(() => {
+    if (!query.trim() || query.trim().length < 2) return []
+    const q = query.toLowerCase()
+    return (posts || [])
+      .filter((p: any) => {
+        const title = (p.content || '').toLowerCase()
+        const caption = (p.caption || '').toLowerCase()
+        const platform = (p.platform || '').toLowerCase()
+        return title.includes(q) || caption.includes(q) || platform.includes(q)
+      })
+      .slice(0, 3)
+  }, [posts, query])
+
+  // Templates recomendados pré-definidos para busca rápida
+  const BUILTIN_TEMPLATES = useMemo(
+    () => [
+      {
+        id: 'tpl-1',
+        title: 'Carrossel Educativo 7 Passos',
+        category: 'Carrossel Instagram',
+        path: '/app/templates',
+      },
+      {
+        id: 'tpl-2',
+        title: 'Story com Enquete de Engajamento',
+        category: 'Stories',
+        path: '/app/templates',
+      },
+      {
+        id: 'tpl-3',
+        title: 'Roteiro de Reels com Gancho 3s',
+        category: 'Vídeo Vertical',
+        path: '/app/criar/videos',
+      },
+      {
+        id: 'tpl-4',
+        title: 'Post de Autoridade e Prova Social',
+        category: 'LinkedIn / Feed',
+        path: '/app/content/new',
+      },
+    ],
+    [],
+  )
+
+  const matchingTemplates = useMemo(() => {
+    if (!query.trim() || query.trim().length < 2) return []
+    const q = query.toLowerCase()
+    return BUILTIN_TEMPLATES.filter(
+      (t) => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q),
+    ).slice(0, 2)
+  }, [BUILTIN_TEMPLATES, query])
+
   // Filtragem conforme a digitação
   const filteredRecents = useMemo(() => {
     if (!query.trim()) return recents
@@ -282,12 +338,17 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
 
   // Lista navegável de itens para teclado (setas cima/baixo + enter)
   const navigableItems = useMemo(() => {
-    const list: Array<{ type: 'recent' | 'trending' | 'action'; data: any }> = []
+    const list: Array<{
+      type: 'recent' | 'trending' | 'action' | 'post' | 'template'
+      data: any
+    }> = []
     filteredRecents.forEach((r) => list.push({ type: 'recent', data: r }))
     filteredTrending.forEach((t) => list.push({ type: 'trending', data: t }))
     filteredActions.forEach((a) => list.push({ type: 'action', data: a }))
+    matchingPosts.forEach((p) => list.push({ type: 'post', data: p }))
+    matchingTemplates.forEach((t) => list.push({ type: 'template', data: t }))
     return list
-  }, [filteredRecents, filteredTrending, filteredActions])
+  }, [filteredRecents, filteredTrending, filteredActions, matchingPosts, matchingTemplates])
 
   // Navegação por teclado
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -313,6 +374,12 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
           handleSelectTerm(item.data.term)
         } else if (item.type === 'action') {
           handleSelectAction(item.data)
+        } else if (item.type === 'post') {
+          onOpenChange(false)
+          navigate(`/app/editor/${item.data.id}`)
+        } else if (item.type === 'template') {
+          onOpenChange(false)
+          navigate(item.data.path)
         }
       } else if (query.trim()) {
         handleSelectTerm(query.trim())
@@ -341,7 +408,7 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="p-0 overflow-hidden max-w-2xl bg-card border border-border/80 shadow-2xl rounded-2xl sm:rounded-3xl gap-0 max-h-[88vh] flex flex-col focus:outline-none"
+        className="p-0 overflow-hidden max-w-2xl bg-card border border-border/80 shadow-2xl rounded-t-3xl sm:rounded-3xl gap-0 max-h-[88vh] flex flex-col focus:outline-none max-sm:fixed max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:right-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:w-full max-sm:max-w-none max-sm:rounded-b-none sm:top-[12%] sm:translate-y-0 sm:max-h-[82vh]"
         onKeyDown={handleKeyDown}
       >
         <DialogTitle className="sr-only">Busca Rápida e Ações (Ctrl+K)</DialogTitle>
@@ -352,7 +419,12 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
         {/* Topo do Modelo DonnaVende: Input com Ícone de Lupa e Badge */}
         <div className="p-3 sm:p-4 border-b border-border/60 bg-muted/20">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-purple-500/40 bg-card shadow-xs focus-within:border-purple-600 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-            <Search className="w-4 h-4 text-purple-600 shrink-0" />
+            {/* Pill de contexto r/mudarcurso (fiel ao visual DonnaVende) */}
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold text-xs shrink-0 border border-purple-500/20">
+              <Search className="w-3 h-3 text-purple-600" />
+              <span>r/mudarcurso</span>
+            </span>
+            <Search className="w-4 h-4 text-purple-600 shrink-0 sm:hidden" />
             <input
               ref={inputRef}
               type="text"
@@ -361,7 +433,7 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
                 setQuery(e.target.value)
                 setSelectedIndex(0)
               }}
-              placeholder="Buscar no MidiaViva..."
+              placeholder="Buscar no Reddit MudarCurso ou MidiaViva..."
               className="flex-1 bg-transparent text-sm sm:text-base text-foreground placeholder:text-muted-foreground outline-none font-medium min-w-0"
               aria-label="Campo de busca rápida"
             />
@@ -553,6 +625,97 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
                       ) : (
                         <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                       )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Seção 4: RESULTADOS NA BIBLIOTECA & TEMPLATES (quando pesquisa ativa) */}
+          {matchingPosts.length > 0 && (
+            <div className="space-y-1.5 pt-1 border-t border-border/50">
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground px-2 flex items-center justify-between">
+                <span>POSTS DA BIBLIOTECA</span>
+                <span className="text-[10px] text-muted-foreground">conteúdo salvo</span>
+              </div>
+              <div className="space-y-1">
+                {matchingPosts.map((post: any, idx) => {
+                  const globalIdx =
+                    filteredRecents.length + filteredTrending.length + filteredActions.length + idx
+                  const isSelected = selectedIndex === globalIdx
+                  return (
+                    <div
+                      key={post.id}
+                      onClick={() => {
+                        onOpenChange(false)
+                        navigate(`/app/editor/${post.id}`)
+                      }}
+                      className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-2 ${
+                        isSelected
+                          ? 'border-purple-500 bg-purple-500/10'
+                          : 'border-border/60 bg-card hover:bg-muted/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <FolderOpen className="w-4 h-4 text-purple-600 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-foreground truncate">
+                            {post.content || post.caption || 'Sem título'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground capitalize">
+                            {post.platform || 'Geral'} • {post.status || 'rascunho'}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0">
+                        Abrir
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {matchingTemplates.length > 0 && (
+            <div className="space-y-1.5 pt-1 border-t border-border/50">
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground px-2 flex items-center justify-between">
+                <span>TEMPLATES SUGERIDOS</span>
+                <span className="text-[10px] text-muted-foreground">modelos prontos</span>
+              </div>
+              <div className="space-y-1">
+                {matchingTemplates.map((tpl, idx) => {
+                  const globalIdx =
+                    filteredRecents.length +
+                    filteredTrending.length +
+                    filteredActions.length +
+                    matchingPosts.length +
+                    idx
+                  const isSelected = selectedIndex === globalIdx
+                  return (
+                    <div
+                      key={tpl.id}
+                      onClick={() => {
+                        onOpenChange(false)
+                        navigate(tpl.path)
+                      }}
+                      className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-2 ${
+                        isSelected
+                          ? 'border-purple-500 bg-purple-500/10'
+                          : 'border-border/60 bg-card hover:bg-muted/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-foreground truncate">{tpl.title}</p>
+                          <p className="text-[10px] text-muted-foreground">{tpl.category}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0">
+                        Usar
+                      </Badge>
                     </div>
                   )
                 })}

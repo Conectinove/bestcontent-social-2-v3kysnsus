@@ -139,6 +139,18 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
         </div>
       </div>
 
+      {/* Mobile Search Button (<md): Abre a Command Palette */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setSearchPaletteOpen(true)}
+        className="md:hidden text-foreground h-10 w-10 min-h-[44px] min-w-[44px] shrink-0 flex items-center justify-center rounded-xl"
+        title="Buscar (Ctrl+K)"
+        aria-label="Abrir busca rápida"
+      >
+        <Search className="w-5 h-5 text-muted-foreground" />
+      </Button>
+
       {/* Right side: New Post CTA, Theme Toggle, Notifications & User Avatar */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Compact CTA buttons on mobile/tablet up to desktop */}
