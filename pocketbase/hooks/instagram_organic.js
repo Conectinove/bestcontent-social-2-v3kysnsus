@@ -190,6 +190,23 @@ routerAdd(
                 profile_views: Math.round(followers * 0.14),
                 engagement_rate: engagementRate,
                 growth_rate_30d: 4.8,
+                stories: {
+                  views_avg: Math.round(followers * 0.085),
+                  retention_rate: 87.2,
+                  replies_30d: Math.round(totalComments * 0.45),
+                  shares_30d: Math.round(totalShares * 0.3),
+                  exits_rate: 3.8,
+                  stories_published_30d: 54,
+                },
+                reels: {
+                  plays_30d: Math.round(totalImpressions * 0.85),
+                  reach_reels: Math.round(totalReach * 0.78),
+                  saves_reels: Math.round(totalSaves * 0.65),
+                  shares_reels: Math.round(totalShares * 0.72),
+                  interactions_reels: Math.round((totalLikes + totalComments) * 0.6),
+                  avg_watch_percentage: 74.2,
+                  reels_published_30d: 12,
+                },
               },
               history: [
                 {
@@ -308,6 +325,23 @@ routerAdd(
         profile_views: Math.round(baselineFollowers * 0.12),
         engagement_rate: baselineRate,
         growth_rate_30d: 4.5,
+        stories: {
+          views_avg: Math.round(baselineFollowers * 0.084),
+          retention_rate: 86.4,
+          replies_30d: 218,
+          shares_30d: 94,
+          exits_rate: 4.2,
+          stories_published_30d: 68,
+        },
+        reels: {
+          plays_30d: Math.round(baselineImpressions * 1.33),
+          reach_reels: Math.round(baselineReach * 1.29),
+          saves_reels: Math.round(baselineSaves * 1.39),
+          shares_reels: Math.round(baselineShares * 1.71),
+          interactions_reels: Math.round((baselineLikes + baselineComments) * 1.48),
+          avg_watch_percentage: 72.8,
+          reels_published_30d: 14,
+        },
       },
       history: [
         {

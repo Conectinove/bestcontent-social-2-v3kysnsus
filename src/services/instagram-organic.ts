@@ -9,6 +9,25 @@ export interface InstagramProfile {
   website?: string
 }
 
+export interface InstagramStoriesMetrics {
+  views_avg: number
+  retention_rate: number
+  replies_30d: number
+  shares_30d: number
+  exits_rate: number
+  stories_published_30d: number
+}
+
+export interface InstagramReelsMetrics {
+  plays_30d: number
+  reach_reels: number
+  saves_reels: number
+  shares_reels: number
+  interactions_reels: number
+  avg_watch_percentage: number
+  reels_published_30d: number
+}
+
 export interface InstagramMetrics {
   followers: number
   new_followers_30d: number
@@ -21,6 +40,8 @@ export interface InstagramMetrics {
   profile_views: number
   engagement_rate: number
   growth_rate_30d: number
+  stories?: InstagramStoriesMetrics
+  reels?: InstagramReelsMetrics
 }
 
 export interface InstagramHistoryItem {
@@ -116,6 +137,23 @@ export async function getInstagramOrganicMetrics(): Promise<InstagramOrganicData
         profile_views: 2016,
         engagement_rate: 5.24,
         growth_rate_30d: 4.5,
+        stories: {
+          views_avg: 1420,
+          retention_rate: 86.4,
+          replies_30d: 218,
+          shares_30d: 94,
+          exits_rate: 4.2,
+          stories_published_30d: 68,
+        },
+        reels: {
+          plays_30d: 64200,
+          reach_reels: 41800,
+          saves_reels: 1240,
+          shares_reels: 890,
+          interactions_reels: 3820,
+          avg_watch_percentage: 72.8,
+          reels_published_30d: 14,
+        },
       },
       history: [
         { period: 'Semana 1', impressions: 9640, reach: 6480, followers: 15790, engagement: 4.88 },

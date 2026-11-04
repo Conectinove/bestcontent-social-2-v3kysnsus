@@ -1991,12 +1991,12 @@ export default function Feed() {
       </div>
 
       {/* =========================================================================
-          FOOTER REFINADO v0.0.80
+          FOOTER REFINADO v0.0.109
           ========================================================================= */}
       <div className="pt-8 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
         <p className="text-center sm:text-left">
           MidiaViva — Powered by{' '}
-          <span className="font-semibold text-foreground">BestContent AI</span> · v0.0.80
+          <span className="font-semibold text-foreground">BestContent AI</span> · v0.0.109
         </p>
         <div className="flex items-center gap-3">
           <button

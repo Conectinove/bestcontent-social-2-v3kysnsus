@@ -10,6 +10,12 @@ import {
   RefreshCw,
   Heart,
   MessageCircle,
+  Film,
+  Play,
+  Bookmark,
+  Share2,
+  Clock,
+  Flame,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -171,6 +177,97 @@ export function InstagramFeedWidget({ compact = false, className = '' }: Instagr
             <span className="text-[10px] font-medium text-muted-foreground">taxa média</span>
           </div>
         </div>
+
+        {/* Stories & Reels Deep Dive */}
+        {!compact && (
+          <div className="space-y-2 pt-1 border-t border-border/50">
+            {/* Bloco Stories */}
+            <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-transparent border border-rose-500/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-md bg-rose-500/20 text-rose-500 flex items-center justify-center">
+                    <Clock className="w-3 h-3" />
+                  </span>
+                  <span className="text-xs font-bold text-foreground">Stories</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 border-rose-500/30 text-rose-600 dark:text-rose-400"
+                >
+                  {data.metrics.stories?.retention_rate || 86.4}% retenção
+                </Badge>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 text-center pt-0.5">
+                <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Média Views</span>
+                  <span className="text-xs font-extrabold text-foreground">
+                    {Number(data.metrics.stories?.views_avg || 1420).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Respostas</span>
+                  <span className="text-xs font-extrabold text-foreground">
+                    {Number(data.metrics.stories?.replies_30d || 218).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Compartilhados</span>
+                  <span className="text-xs font-extrabold text-foreground">
+                    {Number(data.metrics.stories?.shares_30d || 94).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloco Reels */}
+            <div className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent border border-purple-500/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-md bg-purple-500/20 text-purple-500 flex items-center justify-center">
+                    <Film className="w-3 h-3" />
+                  </span>
+                  <span className="text-xs font-bold text-foreground">Reels</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 border-purple-500/30 text-purple-600 dark:text-purple-400"
+                >
+                  <Flame className="w-2.5 h-2.5 mr-0.5 inline" />
+                  {data.metrics.reels?.avg_watch_percentage || 72.8}% conclusão
+                </Badge>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 text-center pt-0.5">
+                <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
+                  <div className="flex items-center justify-center gap-0.5 text-[9px] text-muted-foreground">
+                    <Play className="w-2.5 h-2.5 text-purple-500" />
+                    <span>Plays 30d</span>
+                  </div>
+                  <span className="text-xs font-extrabold text-foreground">
+                    {Number(data.metrics.reels?.plays_30d || 64200).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
+                  <div className="flex items-center justify-center gap-0.5 text-[9px] text-muted-foreground">
+                    <Bookmark className="w-2.5 h-2.5 text-amber-500" />
+                    <span>Salvamentos</span>
+                  </div>
+                  <span className="text-xs font-extrabold text-foreground">
+                    {Number(data.metrics.reels?.saves_reels || 1240).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div className="bg-card/70 rounded-lg p-1.5 border border-border/40">
+                  <div className="flex items-center justify-center gap-0.5 text-[9px] text-muted-foreground">
+                    <Share2 className="w-2.5 h-2.5 text-blue-500" />
+                    <span>Envios</span>
+                  </div>
+                  <span className="text-xs font-extrabold text-foreground">
+                    {Number(data.metrics.reels?.shares_reels || 890).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Micro highlights: likes, comments */}
         {!compact && (

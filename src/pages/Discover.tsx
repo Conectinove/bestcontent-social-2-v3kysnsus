@@ -22,8 +22,10 @@ import {
   X,
   Target,
   SlidersHorizontal,
+  CheckCircle2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { evaluateIdeaRelevance, type SemanticMatchResult } from '@/services/semantic-search'
 import { Input } from '@/components/ui/input'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { Badge } from '@/components/ui/badge'
@@ -321,8 +323,11 @@ export default function Discover() {
     return combined
   }, [dbTrends])
 
-  const filteredIdeas = useMemo(() => {
-    return allIdeas.filter((idea) => {
+  // Busca Semântica Inteligente com normalização, sinônimos, intenções e ranqueamento
+  const { filteredIdeas, semanticMatchesMap } = useMemo(() => {
+    const matchesMap = new Map<string, SemanticMatchResult>()
+
+    const candidates = allIdeas.filter((idea) => {
       // 1. Filtro das abas principais (Todas / Datas / Em alta)
       if (activeFilter === 'dates' && idea.kind !== 'date') return false
       if (activeFilter === 'trending' && idea.kind !== 'trending' && idea.kind !== 'curated') {
@@ -350,20 +355,37 @@ export default function Discover() {
         }
       }
 
-      // 4. Busca por texto em tempo real (título, descrição, categoria, tema-alvo)
+      // 4. Busca semântica inteligente por texto / intenção (ex: "vender mais", "autoridade", "engajar")
       if (searchQuery.trim()) {
-        const q = searchQuery.trim().toLowerCase()
-        const titleMatch = (idea.title || '').toLowerCase().includes(q)
-        const descMatch = (idea.description || '').toLowerCase().includes(q)
-        const catMatch = (idea.category || '').toLowerCase().includes(q)
-        const themeMatch = (idea.targetTheme || '').toLowerCase().includes(q)
-        if (!titleMatch && !descMatch && !catMatch && !themeMatch) {
+        const evaluation = evaluateIdeaRelevance(searchQuery, {
+          title: idea.title,
+          description: idea.description,
+          category: idea.category,
+          targetTheme: idea.targetTheme,
+          format: idea.format,
+          funnelObjective: idea.funnelObjective,
+          badge: idea.badge,
+        })
+
+        if (!evaluation.isMatch) {
           return false
         }
+        matchesMap.set(idea.id, evaluation)
       }
 
       return true
     })
+
+    // Ranqueamento inteligente por score de relevância quando há busca ativa
+    if (searchQuery.trim()) {
+      candidates.sort((a, b) => {
+        const scoreA = matchesMap.get(a.id)?.score || 0
+        const scoreB = matchesMap.get(b.id)?.score || 0
+        return scoreB - scoreA
+      })
+    }
+
+    return { filteredIdeas: candidates, semanticMatchesMap: matchesMap }
   }, [allIdeas, activeFilter, formatFilter, funnelFilter, searchQuery])
 
   const hasActiveCustomFilters =
@@ -941,6 +963,15 @@ export default function Discover() {
 
                     {/* Card Content */}
                     <CardContent className="p-4 sm:p-5 space-y-2">
+                      {/* Badge Curto de Correspondência Semântica por IA quando busca por intenção */}
+                      {semanticMatchesMap.has(idea.id) &&
+                        semanticMatchesMap.get(idea.id)?.matchReason && (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[11px] font-semibold border border-purple-500/20">
+                            <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                            <span>{semanticMatchesMap.get(idea.id)?.matchReason}</span>
+                          </div>
+                        )}
+
                       <h4 className="font-extrabold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
                         {idea.title}
                       </h4>

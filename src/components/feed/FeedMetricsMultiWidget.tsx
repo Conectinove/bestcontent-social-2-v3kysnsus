@@ -8,12 +8,16 @@ import { SubstackFeedWidget } from './SubstackFeedWidget'
 import { GoogleBusinessFeedWidget } from './GoogleBusinessFeedWidget'
 import { FacebookFeedWidget } from './FacebookFeedWidget'
 import { XFeedWidget } from './XFeedWidget'
+import { PinterestFeedWidget } from './PinterestFeedWidget'
+import { ThreadsFeedWidget } from './ThreadsFeedWidget'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export type FeedWidgetNetwork =
   | 'instagram'
   | 'tiktok'
+  | 'threads'
+  | 'pinterest'
   | 'facebook'
   | 'x_twitter'
   | 'youtube'
@@ -63,6 +67,36 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
           >
             <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
             <span>TikTok</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'threads' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('threads')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'threads'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-foreground shrink-0" />
+            <span>Threads</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'pinterest' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('pinterest')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'pinterest'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
+            <span>Pinterest</span>
           </Button>
 
           <Button
@@ -193,6 +227,8 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
       <div className={collapsedMobile ? 'hidden lg:block' : 'block'}>
         {activeTab === 'instagram' && <InstagramFeedWidget />}
         {activeTab === 'tiktok' && <TikTokFeedWidget />}
+        {activeTab === 'threads' && <ThreadsFeedWidget />}
+        {activeTab === 'pinterest' && <PinterestFeedWidget />}
         {activeTab === 'facebook' && <FacebookFeedWidget />}
         {activeTab === 'x_twitter' && <XFeedWidget />}
         {activeTab === 'youtube' && <YouTubeFeedWidget />}

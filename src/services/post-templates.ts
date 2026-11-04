@@ -82,6 +82,20 @@ export interface SuggestTemplatesOptions {
 
 export type FunnelObjective = 'Atração' | 'Autoridade' | 'Conversão' | 'Comunidade'
 
+export interface NetworkBestTimeSlot {
+  network: string
+  time: string
+  reason: string
+}
+
+export interface ExpectedEngagementRange {
+  min: number
+  max: number
+  unit: string
+  benchmarkFormat: string
+  confidenceScore: number
+}
+
 export interface TodayPostIdea {
   id: string
   title: string
@@ -90,6 +104,8 @@ export interface TodayPostIdea {
   caption: string
   hashtags: string[]
   bestTime: string
+  networkBestTimes?: NetworkBestTimeSlot[]
+  expectedEngagement?: ExpectedEngagementRange
   reason: string
   funnelObjective?: FunnelObjective
   concreteAngle?: string
@@ -158,6 +174,19 @@ export async function getWhatToPostToday(
         format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
         estimatedPerformanceScore: 94,
+        expectedEngagement: {
+          min: 320,
+          max: 580,
+          unit: 'interações estimadas (curtidas + salvamentos)',
+          benchmarkFormat: 'Carrossel Educativo',
+          confidenceScore: 92,
+        },
+        networkBestTimes: [
+          { network: 'Instagram', time: '18:30', reason: 'Maior pico de salvamento de carrosséis' },
+          { network: 'LinkedIn', time: '08:45', reason: 'Pauta corporativa e reflexão matinal' },
+          { network: 'Threads', time: '12:15', reason: 'Conversas de intervalo e leitura rápida' },
+          { network: 'Pinterest', time: '20:00', reason: 'Pico de repins e organização de pastas' },
+        ],
         whyNowContext:
           'Tendência de IA corporativa nos últimos 14 dias em alta de +42% nas buscas.',
         concreteAngle:
@@ -180,6 +209,23 @@ export async function getWhatToPostToday(
         format: 'Vídeo Curto / Reels',
         funnelObjective: 'Atração',
         estimatedPerformanceScore: 91,
+        expectedEngagement: {
+          min: 1200,
+          max: 2800,
+          unit: 'visualizações estimadas nos primeiros 3 dias',
+          benchmarkFormat: 'Reels / Shorts',
+          confidenceScore: 89,
+        },
+        networkBestTimes: [
+          {
+            network: 'Instagram',
+            time: '12:00',
+            reason: 'Pausa de almoço com alto consumo de Reels',
+          },
+          { network: 'TikTok', time: '19:30', reason: 'Pico noturno de retenção por algoritmo' },
+          { network: 'YouTube', time: '17:00', reason: 'Consumo pré-noite de Shorts mobile' },
+          { network: 'Threads', time: '13:00', reason: 'Compartilhamento em formato rápido' },
+        ],
         whyNowContext:
           'Vídeos com gancho nos 3s têm 70% mais retenção; horário de almoço é o pico de consumo.',
         concreteAngle:
@@ -206,6 +252,27 @@ export async function getWhatToPostToday(
         format: 'Feed Único / Carrossel',
         funnelObjective: 'Conversão',
         estimatedPerformanceScore: 88,
+        expectedEngagement: {
+          min: 15,
+          max: 38,
+          unit: 'respostas no direct / leads qualificados',
+          benchmarkFormat: 'Post de Conversão Direta',
+          confidenceScore: 86,
+        },
+        networkBestTimes: [
+          {
+            network: 'Instagram',
+            time: '19:15',
+            reason: 'Janela de descanso e abertura de direct',
+          },
+          {
+            network: 'LinkedIn',
+            time: '11:00',
+            reason: 'Decisões comerciais de meio de expediente',
+          },
+          { network: 'Threads', time: '17:30', reason: 'Troca de feedbacks e networking' },
+          { network: 'Facebook', time: '20:15', reason: 'Interação de grupos e comunidade' },
+        ],
         whyNowContext: 'Lacuna de funil: você não postou nada com foco em Conversão há 6 dias.',
         concreteAngle:
           'Apresentação de métricas reais de cliente (antes x depois) com quebra de objeção sobre tempo de implementação.',

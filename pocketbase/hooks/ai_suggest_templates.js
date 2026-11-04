@@ -125,6 +125,31 @@ routerAdd(
         format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
         estimatedPerformanceScore: 94,
+        expectedEngagement: {
+          min: 320,
+          max: 580,
+          unit: 'interações estimadas (curtidas + salvamentos)',
+          benchmarkFormat: 'Carrossel Educativo',
+          confidenceScore: 92,
+        },
+        networkBestTimes: [
+          {
+            network: 'Instagram',
+            time: '18:30',
+            reason: 'Maior taxa de salvamento e retenção de carrosséis',
+          },
+          {
+            network: 'LinkedIn',
+            time: '08:45',
+            reason: 'Pauta corporativa matinal antes do expediente',
+          },
+          { network: 'Threads', time: '12:15', reason: 'Conversas de intervalo e leitura rápida' },
+          {
+            network: 'Pinterest',
+            time: '20:00',
+            reason: 'Pico de repins e organização de pastas temáticas',
+          },
+        ],
         whyNowContext:
           'Tendência de IA em alta nas últimas duas semanas e pico de buscas corporativas nesta terça-feira.',
         concreteAngle:
@@ -147,6 +172,23 @@ routerAdd(
         videoFormat: 'talking_head',
         durationSec: 30,
         estimatedPerformanceScore: 91,
+        expectedEngagement: {
+          min: 1200,
+          max: 2800,
+          unit: 'visualizações estimadas nos primeiros 3 dias',
+          benchmarkFormat: 'Reels / Shorts',
+          confidenceScore: 89,
+        },
+        networkBestTimes: [
+          {
+            network: 'Instagram',
+            time: '12:00',
+            reason: 'Pausa de almoço com alto consumo de Reels',
+          },
+          { network: 'TikTok', time: '19:30', reason: 'Pico noturno de retenção por algoritmo' },
+          { network: 'YouTube', time: '17:00', reason: 'Consumo pré-noite de Shorts mobile' },
+          { network: 'Threads', time: '13:00', reason: 'Compartilhamento em formato rápido' },
+        ],
         whyNowContext:
           'Formato Reels com retenção 22% acima da média nos últimos 14 dias; sua audiência consome mais vídeo curto ao meio-dia.',
         concreteAngle:
@@ -172,6 +214,27 @@ routerAdd(
         format: 'Feed Único / Carrossel',
         funnelObjective: 'Conversão',
         estimatedPerformanceScore: 88,
+        expectedEngagement: {
+          min: 15,
+          max: 38,
+          unit: 'respostas no direct / leads qualificados',
+          benchmarkFormat: 'Post de Conversão Direta',
+          confidenceScore: 86,
+        },
+        networkBestTimes: [
+          {
+            network: 'Instagram',
+            time: '19:15',
+            reason: 'Janela de descanso e abertura de direct',
+          },
+          {
+            network: 'LinkedIn',
+            time: '11:00',
+            reason: 'Decisões comerciais de meio de expediente',
+          },
+          { network: 'Threads', time: '17:30', reason: 'Troca de feedbacks e networking' },
+          { network: 'Facebook', time: '20:15', reason: 'Interação de grupos e comunidade' },
+        ],
         whyNowContext:
           'Lacuna de funil detectada: sua marca não publica nada com foco em Conversão direta há 6 dias.',
         concreteAngle:
@@ -239,14 +302,27 @@ routerAdd(
         '{\n' +
         '  "ideas": [\n' +
         '    {\n' +
-        '      "title": "Título com ângulo concreto",\n' +
-        '      "suggestedModel": "Carrossel Educativo | Talking Head | Prova Social | Debate",\n' +
-        '      "format": "Carrossel (Slides) | Vídeo Curto / Reels | Feed Único | Stories",\n' +
+        '      "title": "Título conciso e atrativo do post",\n' +
+        '      "suggestedModel": "Nome do modelo sugerido",\n' +
+        '      "format": "Carrossel (Slides) | Vídeo Curto / Reels | Feed Único | Thread X",\n' +
         '      "funnelObjective": "Atração | Autoridade | Conversão | Comunidade",\n' +
+        '      "concreteAngle": "Ângulo concreto e direto do conteúdo",\n' +
+        '      "seasonalityContext": "Contexto temporal ou sazonal",\n' +
         '      "estimatedPerformanceScore": 92,\n' +
-        '      "whyNowContext": "Contexto de urgência, sazonalidade ou lacuna de funil (ex: você não posta conversão há 6 dias)",\n' +
-        '      "concreteAngle": "Descrição clara do ângulo e da abordagem concreta do conteúdo",\n' +
-        '      "seasonalityContext": "Como conecta com o mês ou sazonalidade",\n' +
+        '      "expectedEngagement": {\n' +
+        '        "min": 250,\n' +
+        '        "max": 520,\n' +
+        '        "unit": "interações estimadas",\n' +
+        '        "benchmarkFormat": "Carrossel",\n' +
+        '        "confidenceScore": 90\n' +
+        '      },\n' +
+        '      "networkBestTimes": [\n' +
+        '        {"network": "Instagram", "time": "18:30", "reason": "Pico de salvamento"},\n' +
+        '        {"network": "LinkedIn", "time": "08:45", "reason": "Pauta matinal"},\n' +
+        '        {"network": "Threads", "time": "12:15", "reason": "Pausa de almoço"},\n' +
+        '        {"network": "Pinterest", "time": "20:00", "reason": "Organização de pastas"}\n' +
+        '      ],\n' +
+        '      "whyNowContext": "Por que agora? Lacuna ou tendência dos últimos 14 dias",\n' +
         '      "suggestedCta": "CTA específico e persuasivo",\n' +
         '      "caption": "Legenda completa com gancho, corpo, quebra de linha e CTA",\n' +
         '      "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4"],\n' +
@@ -293,6 +369,35 @@ routerAdd(
               estimatedPerformanceScore:
                 Number(item.estimatedPerformanceScore || item.estimated_performance_score) ||
                 (idx === 0 ? 94 : idx === 1 ? 91 : idx === 2 ? 88 : 84),
+              expectedEngagement: item.expectedEngagement ||
+                item.expected_engagement || {
+                  min: idx === 0 ? 320 : idx === 1 ? 1100 : idx === 2 ? 18 : 220,
+                  max: idx === 0 ? 580 : idx === 1 ? 2600 : idx === 2 ? 42 : 450,
+                  unit:
+                    idx === 1
+                      ? 'visualizações nos 3 primeiros dias'
+                      : idx === 2
+                        ? 'mensagens diretas de leads'
+                        : 'interações estimadas',
+                  benchmarkFormat: item.format || 'Post Estratégico',
+                  confidenceScore: idx === 0 ? 92 : idx === 1 ? 89 : idx === 2 ? 86 : 84,
+                },
+              networkBestTimes: Array.isArray(item.networkBestTimes || item.network_best_times)
+                ? item.networkBestTimes || item.network_best_times
+                : [
+                    {
+                      network: 'Instagram',
+                      time: '18:30',
+                      reason: 'Pico de audiência e salvamentos',
+                    },
+                    { network: 'LinkedIn', time: '08:45', reason: 'Janela corporativa matinal' },
+                    { network: 'Threads', time: '12:15', reason: 'Troca de ideias no almoço' },
+                    {
+                      network: 'Pinterest',
+                      time: '20:00',
+                      reason: 'Curadoria de referências e repins',
+                    },
+                  ],
               whyNowContext:
                 item.whyNowContext ||
                 item.why_now_context ||
