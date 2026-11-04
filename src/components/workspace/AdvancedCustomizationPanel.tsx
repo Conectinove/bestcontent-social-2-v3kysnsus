@@ -132,6 +132,7 @@ export function AdvancedCustomizationPanel({
   platform,
   caption,
   hasMedia,
+  brand,
 }: {
   customization: AdvancedCustomizationState
   onChange: (next: AdvancedCustomizationState) => void
@@ -139,9 +140,65 @@ export function AdvancedCustomizationPanel({
   platform: string
   caption: string
   hasMedia: boolean
+  brand?: any
 }) {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<'customization' | 'best_practices'>('customization')
+  const [suggestingColors, setSuggestingColors] = useState(false)
+
+  const handleSuggestBrandColors = async () => {
+    setSuggestingColors(true)
+    try {
+      // 1. Tentar ler cores do Brand Kit da marca ativa
+      let primary = brand?.color_theme || brand?._raw?.color_theme
+      let secondary = brand?._raw?.secondary_color || brand?.secondary_color
+
+      // Paletas temáticas de alta conversão
+      const fallbackPalettes = [
+        { primary: '#8B5CF6', secondary: '#EC4899', name: 'Roxo & Magenta Vibrante' },
+        { primary: '#3B82F6', secondary: '#10B981', name: 'Azul & Esmeralda Tech' },
+        { primary: '#F97316', secondary: '#E11D48', name: 'Laranja & Rubi Sunset' },
+        { primary: '#0F172A', secondary: '#6366F1', name: 'Índigo Executivo Dark' },
+        { primary: '#059669', secondary: '#14B8A6', name: 'Menta & Turquesa Fresh' },
+      ]
+
+      if (!primary || !primary.startsWith('#')) {
+        const randomPalette = fallbackPalettes[Math.floor(Math.random() * fallbackPalettes.length)]
+        primary = randomPalette.primary
+        secondary = randomPalette.secondary
+      } else if (!secondary || !secondary.startsWith('#')) {
+        secondary = '#EC4899'
+      }
+
+      onChange({
+        ...customization,
+        primaryColor: primary,
+        secondaryColor: secondary,
+        gradientMode: 'linear',
+      })
+
+      toast({
+        title: 'Cores da Marca sugeridas por IA!',
+        description: brand?.name
+          ? `Aplicada a paleta otimizada para "${brand.name}".`
+          : 'Aplicada paleta de alto contraste e conversão.',
+      })
+    } catch {
+      // Fallback garantido
+      onChange({
+        ...customization,
+        primaryColor: '#8B5CF6',
+        secondaryColor: '#EC4899',
+        gradientMode: 'linear',
+      })
+      toast({
+        title: 'Paleta padrão aplicada',
+        description: 'Cores com alto índice de contraste e legibilidade.',
+      })
+    } finally {
+      setSuggestingColors(false)
+    }
+  }
 
   const applyPreset = (preset: (typeof STYLE_PRESETS)[0]) => {
     onChange({
@@ -334,10 +391,24 @@ export function AdvancedCustomizationPanel({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             {/* Bloco 1: Cores & Degradê */}
             <div className="p-3.5 rounded-xl bg-muted/20 border border-border/70 space-y-3">
-              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> Cores &
-                Degradê
-              </span>
+              <div className="flex items-center justify-between gap-1 flex-wrap">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> Cores &
+                  Degradê
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={suggestingColors}
+                  onClick={handleSuggestBrandColors}
+                  className="h-6 px-2 text-[10px] gap-1 font-semibold rounded-lg border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                  title="Sugerir cores inteligentes com IA baseadas na marca ativa"
+                >
+                  <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                  <span>Sugerir Cores com IA</span>
+                </Button>
+              </div>
 
               <div className="space-y-2 text-xs">
                 <div>

@@ -48,6 +48,8 @@ import {
   AdvancedCustomizationState,
   DEFAULT_CUSTOMIZATION,
 } from '@/components/workspace/AdvancedCustomizationPanel'
+import { createPost } from '@/services/posts'
+import { Copy } from 'lucide-react'
 import type { PremiumElement } from '@/services/premium-elements'
 
 interface PlacedElement {
@@ -80,6 +82,7 @@ export default function PostEditor() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingAsNew, setSavingAsNew] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [approving, setApproving] = useState(false)
   const [improving, setImproving] = useState(false)
@@ -254,6 +257,46 @@ export default function PostEditor() {
     }
   }
 
+  const handleSaveAsNew = async () => {
+    if (!content.trim()) {
+      toast({ title: 'Atenção', description: 'Escreva o conteúdo do post.' })
+      return
+    }
+    setSavingAsNew(true)
+    try {
+      const data: Record<string, unknown> = {
+        user: user?.id,
+        content: `${content} (Cópia Editada)`.trim(),
+        caption,
+        platform,
+        brand: brandId,
+        status: 'draft',
+      }
+      if (scheduledDate) data.scheduled_date = scheduledDate
+      if (mediaFile) data.media = mediaFile
+      if (placedElements.length > 0) data.script_json = JSON.stringify({ placedElements })
+      const created = await createPost(data)
+      toast({
+        title: 'Salvo como Novo Post!',
+        description:
+          'Uma nova criação independente foi salva na Biblioteca sem sobrescrever o original.',
+      })
+      if (created?.id) {
+        navigate(`/app/editor/${created.id}`)
+      } else {
+        navigate('/app/library')
+      }
+    } catch (err) {
+      toast({
+        title: 'Erro ao salvar novo post',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingAsNew(false)
+    }
+  }
+
   const handleSave = async (publish = false) => {
     if (!postId) return
     if (!content.trim()) {
@@ -404,8 +447,23 @@ export default function PostEditor() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleSaveAsNew}
+                disabled={saving || savingAsNew || publishing || approving}
+                className="text-xs gap-1 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                title="Salvar como cópia sem sobrescrever o post original"
+              >
+                {savingAsNew ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Salvar como Novo Post</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleSave(false)}
-                disabled={saving || publishing || approving}
+                disabled={saving || savingAsNew || publishing || approving}
                 className="text-xs gap-1"
               >
                 {saving ? (
@@ -584,6 +642,7 @@ export default function PostEditor() {
             platform={platform}
             caption={caption || content}
             hasMedia={Boolean(mediaPreview)}
+            brand={selectedBrand}
           />
         ) : (
           <div className="p-3.5 rounded-2xl border border-dashed border-border/80 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">

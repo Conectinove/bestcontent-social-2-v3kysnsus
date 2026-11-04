@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   BookOpen,
@@ -42,8 +42,11 @@ import {
   Megaphone,
   X,
   BarChart3,
+  Upload,
 } from 'lucide-react'
 import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
+import { createTemplate } from '@/services/post-templates'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import { CampaignReportModal } from '@/components/campaigns/CampaignReportModal'
 import {
@@ -229,6 +232,16 @@ export default function Library() {
   const [viewPost, setViewPost] = useState<Post | null>(null)
   const [deleteCandidate, setDeleteCandidate] = useState<Post | null>(null)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  const [importingTemplate, setImportingTemplate] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Seleção múltipla & ações em lote
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -494,6 +507,59 @@ export default function Library() {
     navigate(`/app/editor/${postId}`)
   }
 
+  const handleTriggerImport = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml']
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Formato inválido',
+        description: 'Selecione um arquivo de imagem válido (PNG, JPEG ou SVG).',
+        variant: 'destructive',
+      })
+      e.target.value = ''
+      return
+    }
+
+    setImportingTemplate(true)
+    try {
+      const templateTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+      const created = await createTemplate({
+        title: templateTitle || 'Modelo Importado',
+        category: 'importado',
+        platform: 'all',
+        description: `Modelo importado via biblioteca (${file.name})`,
+        image: file,
+        aspect_ratio: '1:1',
+        is_premium: false,
+        origin: 'importado',
+        brand: activeBrand?.id || undefined,
+      })
+
+      toast({
+        title: 'Modelo importado com sucesso!',
+        description: `O modelo "${created.title || templateTitle}" foi adicionado e já pode ser utilizado no Editor.`,
+      })
+
+      // Limpar o input
+      e.target.value = ''
+      refreshPosts()
+    } catch {
+      toast({
+        title: 'Erro ao importar modelo',
+        description: 'Não foi possível salvar o novo modelo no PocketBase. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setImportingTemplate(false)
+    }
+  }
+
   const handleToggleFavorite = async (post: Post, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
     const nextVal = !post.isFavorite
@@ -714,6 +780,31 @@ export default function Library() {
           >
             <RefreshCw className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span className="truncate">Sincronizar</span>
+          </Button>
+
+          {/* Input oculto para importação de modelos */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml"
+            className="hidden"
+            onChange={handleFileImport}
+          />
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={importingTemplate}
+            onClick={handleTriggerImport}
+            className="rounded-xl border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 hover:bg-purple-100/80 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs font-semibold h-9 px-2.5 sm:px-3.5 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
+            title="Importar modelo gráfico (PNG, JPEG ou SVG)"
+          >
+            {importingTemplate ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+            ) : (
+              <Upload className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span className="truncate">Importar Modelo</span>
           </Button>
 
           <Button
@@ -1363,9 +1454,31 @@ export default function Library() {
       )}
 
       {/* =========================================================================
-          CONTEÚDO: GRID OU LISTA
+          CONTEÚDO: GRID OU LISTA COM SKELETON
           ========================================================================= */}
-      {filteredPosts.length === 0 ? (
+      {isInitialLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card
+              key={`skeleton-${i}`}
+              className="overflow-hidden rounded-2xl border border-border/60 bg-card p-3 space-y-3"
+            >
+              <Skeleton className="w-full aspect-[4/5] rounded-xl" />
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-4 w-3/4 rounded-md" />
+                <Skeleton className="h-3 w-1/2 rounded-md" />
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                <Skeleton className="h-7 w-20 rounded-lg" />
+                <div className="flex gap-1">
+                  <Skeleton className="h-7 w-7 rounded-lg" />
+                  <Skeleton className="h-7 w-7 rounded-lg" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : filteredPosts.length === 0 ? (
         <Card className="p-12 text-center space-y-4 bg-muted/20 border-dashed border-border/80 rounded-2xl">
           <div className="mx-auto w-14 h-14 rounded-2xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shadow-xs">
             <Sparkles className="w-7 h-7" />
@@ -1622,15 +1735,16 @@ export default function Library() {
 
                   {/* Actions row */}
                   <div className="flex items-center justify-between gap-1 pt-1">
-                    {/* Primary action: Abrir / Editar */}
+                    {/* Primary action: Abrir / Editar com IA */}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleOpenEditor(post.id)}
                       className="h-8 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 px-2.5 gap-1 rounded-lg"
+                      title="Editar com IA e personalização avançada"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>Editar</span>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Editar com IA</span>
                     </Button>
 
                     <div className="flex items-center gap-1">
@@ -1861,10 +1975,11 @@ export default function Library() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleOpenEditor(post.id)}
-                    className="h-8 text-xs font-semibold gap-1.5 rounded-xl border-border"
+                    className="h-8 text-xs font-semibold gap-1.5 rounded-xl border-border text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                    title="Editar com IA e personalização avançada"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Editar</span>
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    <span>Editar com IA</span>
                   </Button>
 
                   <Button
@@ -2109,8 +2224,9 @@ export default function Library() {
                           navigate(`/app/editor/${id}`)
                         }}
                         className="bg-purple-600 hover:bg-purple-700 text-white text-xs gap-1.5 rounded-xl font-semibold shadow-xs"
+                        title="Editar com IA e customização avançada"
                       >
-                        <Edit3 className="w-3.5 h-3.5" /> Abrir no Editor
+                        <Sparkles className="w-3.5 h-3.5" /> Editar com IA
                       </Button>
                     </div>
                   </DialogFooter>
