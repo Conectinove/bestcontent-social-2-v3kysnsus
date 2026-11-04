@@ -26,6 +26,7 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { OfflineBanner } from './OfflineBanner'
 import { QuickOnboardingModal } from './QuickOnboardingModal'
+import { MobileNav } from '@/components/navigation/MobileNav'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
@@ -157,10 +158,10 @@ export default function Layout() {
 
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen max-w-full">
           <Header onOpenMobileMenu={() => setMobileOpen(true)} />
-          <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-16 min-w-0 overflow-x-hidden">
+          <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-16 min-w-0 overflow-x-hidden">
             <Outlet />
           </main>
-          <footer className="border-t border-border py-4 px-4 sm:px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
+          <footer className="border-t border-border py-4 px-4 sm:px-6 pb-20 md:pb-4 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
             <span className="text-center sm:text-left font-medium">
               MidiaViva — Powered by BestContent AI · v0.1.01
             </span>
@@ -188,6 +189,9 @@ export default function Layout() {
           </footer>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation & Floating Action Button (FAB) */}
+      <MobileNav onOpenMobileMenu={() => setMobileOpen(true)} />
 
       {/* Quick Onboarding "Vamos agilizar!" Modal */}
       <QuickOnboardingModal open={quickOnboardingOpen} onOpenChange={setQuickOnboardingOpen} />

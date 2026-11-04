@@ -67,6 +67,8 @@ import { MetaAdsFunnelBlock } from '@/components/ads/MetaAdsFunnelBlock'
 import { YouTubeAdsFunnelBlock } from '@/components/ads/YouTubeAdsFunnelBlock'
 import { TikTokAdsFunnelBlock } from '@/components/ads/TikTokAdsFunnelBlock'
 import { LinkedInAdsFunnelBlock } from '@/components/ads/LinkedInAdsFunnelBlock'
+import { PinterestAdsFunnelBlock } from '@/components/ads/PinterestAdsFunnelBlock'
+import { XAdsFunnelBlock } from '@/components/ads/XAdsFunnelBlock'
 import { FunnelAutomationsPanel } from '@/components/funnel/FunnelAutomationsPanel'
 import { pb } from '@/lib/pocketbase/client'
 import { getLinkedInOrganicMetrics, LinkedInOrganicData } from '@/services/linkedin-organic'
@@ -262,6 +264,48 @@ export default function SalesFunnelPage() {
       responsible: 'Ronaldo Barreto',
       notes: leadData.notes,
       priority: 'alta',
+    })
+    setDeals((prev) => [created, ...prev])
+  }
+
+  // Conversão de clique Pinterest Ads em Lead captado
+  const handleConvertPinterestClickToLead = async (leadData: {
+    title: string
+    company: string
+    value: number
+    source: 'Pinterest Ads'
+    notes: string
+  }) => {
+    const created = await createFunnelDeal({
+      title: leadData.title,
+      company: leadData.company,
+      value: leadData.value,
+      stage: 'lead_captado',
+      source: 'Pinterest Ads',
+      responsible: 'Ronaldo Barreto',
+      notes: leadData.notes,
+      priority: 'media',
+    })
+    setDeals((prev) => [created, ...prev])
+  }
+
+  // Conversão de clique X Ads em Lead captado
+  const handleConvertXClickToLead = async (leadData: {
+    title: string
+    company: string
+    value: number
+    source: 'X Ads'
+    notes: string
+  }) => {
+    const created = await createFunnelDeal({
+      title: leadData.title,
+      company: leadData.company,
+      value: leadData.value,
+      stage: 'lead_captado',
+      source: 'X Ads',
+      responsible: 'Ronaldo Barreto',
+      notes: leadData.notes,
+      priority: 'media',
     })
     setDeals((prev) => [created, ...prev])
   }
@@ -1021,13 +1065,15 @@ export default function SalesFunnelPage() {
         )}
       </div>
 
-      {/* Blocos de Performance de Mídia Paga Integrados (Google Ads + Meta Ads + YouTube Ads + TikTok Ads + LinkedIn Ads lado a lado) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+      {/* Blocos de Performance de Mídia Paga Integrados (7 canais: Google, Meta, YouTube, TikTok, LinkedIn, Pinterest, X Ads) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <GoogleAdsFunnelBlock onConvertClickToLead={handleConvertClickToLead} />
         <MetaAdsFunnelBlock onConvertClickToLead={handleConvertMetaClickToLead} />
         <YouTubeAdsFunnelBlock onConvertClickToLead={handleConvertYouTubeClickToLead} />
         <TikTokAdsFunnelBlock onConvertClickToLead={handleConvertTikTokClickToLead} />
         <LinkedInAdsFunnelBlock onConvertClickToLead={handleConvertLinkedInClickToLead} />
+        <PinterestAdsFunnelBlock onConvertClickToLead={handleConvertPinterestClickToLead} />
+        <XAdsFunnelBlock onConvertClickToLead={handleConvertXClickToLead} />
       </div>
 
       {/* Painel de Automações do Funil (Persistidas no Banco) */}
@@ -1829,6 +1875,8 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
     youtube: deals.filter((d) => d.source === 'YouTube Ads'),
     tiktok: deals.filter((d) => d.source === 'TikTok Ads'),
     linkedin: deals.filter((d) => d.source === 'LinkedIn Ads'),
+    pinterest: deals.filter((d) => d.source === 'Pinterest Ads'),
+    x: deals.filter((d) => d.source === 'X Ads'),
   }
 
   const channelsData = [
@@ -1956,6 +2004,56 @@ function ChannelComparisonSection({ deals }: { deals: FunnelDeal[] }) {
             : platformMetrics.linkedin?.conversions || 54,
         ),
       pipelineValue: dealsByChannel.linkedin.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+    },
+    {
+      id: 'pinterest',
+      name: 'Pinterest Ads',
+      tag: 'Visual Search & Shopping',
+      color: '#E60023',
+      badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30',
+      impressions: platformMetrics.pinterest?.impressions || 68400,
+      clicks: platformMetrics.pinterest?.clicks || 2380,
+      ctr: platformMetrics.pinterest?.ctr || 3.48,
+      cpc: platformMetrics.pinterest?.cpc || 0.35,
+      spent: platformMetrics.pinterest?.spent || 833.0,
+      leads:
+        dealsByChannel.pinterest.length > 0
+          ? dealsByChannel.pinterest.length
+          : platformMetrics.pinterest?.conversions || 42,
+      cpl:
+        (platformMetrics.pinterest?.spent || 833.0) /
+        Math.max(
+          1,
+          dealsByChannel.pinterest.length > 0
+            ? dealsByChannel.pinterest.length
+            : platformMetrics.pinterest?.conversions || 42,
+        ),
+      pipelineValue: dealsByChannel.pinterest.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+    },
+    {
+      id: 'x',
+      name: 'X (Twitter) Ads',
+      tag: 'Real-time & Trends',
+      color: '#000000',
+      badgeClass: 'bg-zinc-800/15 text-foreground border-zinc-700/40',
+      impressions: platformMetrics.x?.impressions || 58200,
+      clicks: platformMetrics.x?.clicks || 1740,
+      ctr: platformMetrics.x?.ctr || 2.99,
+      cpc: platformMetrics.x?.cpc || 0.55,
+      spent: platformMetrics.x?.spent || 957.0,
+      leads:
+        dealsByChannel.x.length > 0
+          ? dealsByChannel.x.length
+          : platformMetrics.x?.conversions || 35,
+      cpl:
+        (platformMetrics.x?.spent || 957.0) /
+        Math.max(
+          1,
+          dealsByChannel.x.length > 0
+            ? dealsByChannel.x.length
+            : platformMetrics.x?.conversions || 35,
+        ),
+      pipelineValue: dealsByChannel.x.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
     },
   ]
 

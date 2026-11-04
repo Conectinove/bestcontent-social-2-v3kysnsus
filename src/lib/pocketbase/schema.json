@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-04T15:27:40.475Z",
+  "generatedAt": "2026-11-04T15:49:47.375Z",
   "collections": [
     {
       "name": "users",
@@ -3903,6 +3903,80 @@
         "CREATE INDEX idx_tw_comments_status ON twitter_comments (status)",
         "CREATE INDEX idx_tw_comments_author ON twitter_comments (author_handle)",
         "CREATE INDEX idx_tw_comments_created ON twitter_comments (created)"
+      ]
+    },
+    {
+      "name": "saved_report_templates",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channels",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sections",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "period",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequency",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_saved_templates_user ON saved_report_templates (user)",
+        "CREATE INDEX idx_saved_templates_created ON saved_report_templates (created DESC)"
       ]
     }
   ]

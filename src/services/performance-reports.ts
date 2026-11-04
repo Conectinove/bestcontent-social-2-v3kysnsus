@@ -6,6 +6,7 @@ export type PerformanceReportType =
   | 'anuncios'
   | 'conteudo'
   | 'comentarios'
+  | 'customizado'
 
 export interface PerformanceReportRecord {
   id?: string
@@ -73,6 +74,11 @@ export interface PerformanceReportRecord {
       previousPeriodReach: number
       growthPercentage: number
     }
+  }
+  custom_config_json?: {
+    sections?: string[]
+    saved_template_name?: string
+    metrics_included?: string[]
   }
   is_scheduled?: boolean
   created?: string
@@ -239,6 +245,7 @@ export async function createPerformanceReport(
     engagement_data_json: data.engagement_data_json || {},
     kpis_json: data.kpis_json || {},
     highlights_json: data.highlights_json || {},
+    custom_config_json: data.custom_config_json || {},
     is_scheduled: Boolean(data.is_scheduled),
   }
 
@@ -256,6 +263,7 @@ export async function createPerformanceReport(
     engagement_data_json: rec.engagement_data_json,
     kpis_json: rec.kpis_json,
     highlights_json: rec.highlights_json,
+    custom_config_json: rec.custom_config_json,
     is_scheduled: rec.is_scheduled,
     created: rec.created,
     updated: rec.updated,
@@ -271,6 +279,79 @@ export async function deletePerformanceReport(reportId: string): Promise<boolean
     return true
   } catch (err) {
     console.warn('Erro ao deletar performance_report:', err)
+    return false
+  }
+}
+
+/**
+ * Lista modelos de relatório customizáveis salvos
+ */
+export async function getSavedReportTemplates(userId?: string): Promise<SavedReportTemplate[]> {
+  try {
+    const filter = userId ? `user = "${userId}"` : ''
+    const records = await pb.collection('saved_report_templates').getFullList({
+      filter,
+      sort: '-created',
+    })
+
+    return records.map((r) => ({
+      id: r.id,
+      user: r.user,
+      name: r.name,
+      description: r.description || '',
+      channels: Array.isArray(r.channels) ? r.channels : [],
+      sections: Array.isArray(r.sections) ? r.sections : [],
+      period: r.period || '30d',
+      frequency: r.frequency || 'mensal',
+      created: r.created,
+      updated: r.updated,
+    }))
+  } catch (err) {
+    console.warn('Erro ao listar saved_report_templates:', err)
+    return []
+  }
+}
+
+/**
+ * Cria um novo modelo de relatório customizável reutilizável
+ */
+export async function createSavedReportTemplate(
+  data: Partial<SavedReportTemplate>,
+): Promise<SavedReportTemplate> {
+  const payload = {
+    user: data.user,
+    name: data.name || 'Meu Modelo Customizado',
+    description: data.description || '',
+    channels: data.channels || ['Instagram', 'Meta Ads', 'LinkedIn'],
+    sections: data.sections || ['monetization', 'engagement', 'reach'],
+    period: data.period || '30d',
+    frequency: data.frequency || 'mensal',
+  }
+
+  const rec = await pb.collection('saved_report_templates').create(payload)
+  return {
+    id: rec.id,
+    user: rec.user,
+    name: rec.name,
+    description: rec.description,
+    channels: rec.channels,
+    sections: rec.sections,
+    period: rec.period,
+    frequency: rec.frequency,
+    created: rec.created,
+    updated: rec.updated,
+  }
+}
+
+/**
+ * Exclui um modelo salvo
+ */
+export async function deleteSavedReportTemplate(templateId: string): Promise<boolean> {
+  try {
+    await pb.collection('saved_report_templates').delete(templateId)
+    return true
+  } catch (err) {
+    console.warn('Erro ao deletar saved_report_template:', err)
     return false
   }
 }

@@ -455,14 +455,60 @@ export async function getAdsPlatformsStatus(): Promise<PlatformsStatusResponse> 
           status: 'not_configured',
           requiredSecrets: ['LINKEDIN_ADS_ACCESS_TOKEN', 'LINKEDIN_ADS_AD_ACCOUNT_ID'],
         },
+        pinterest: {
+          platform: 'pinterest',
+          name: 'Pinterest Ads (Business Manager)',
+          configured: false,
+          status: 'not_configured',
+          requiredSecrets: ['PINTEREST_ADS_ACCESS_TOKEN', 'PINTEREST_AD_ACCOUNT_ID'],
+        },
+        x: {
+          platform: 'x',
+          name: 'X (Twitter) Ads',
+          configured: false,
+          status: 'not_configured',
+          requiredSecrets: ['X_ADS_ACCESS_TOKEN', 'X_ADS_ACCOUNT_ID'],
+        },
       },
       message: 'Status obtido em fallback local.',
     }
   }
 }
 
+export async function getPinterestAdsStatus() {
+  try {
+    const res = await pb.send('/backend/v1/ads/pinterest/status', { method: 'GET' })
+    return res
+  } catch {
+    return {
+      platform: 'pinterest',
+      name: 'Pinterest Ads (Business Manager)',
+      configured: false,
+      status: 'not_configured',
+      requiredSecrets: ['PINTEREST_ADS_ACCESS_TOKEN', 'PINTEREST_AD_ACCOUNT_ID'],
+      message: 'Estimativa calibrada ativa.',
+    }
+  }
+}
+
+export async function getXAdsStatus() {
+  try {
+    const res = await pb.send('/backend/v1/ads/x/status', { method: 'GET' })
+    return res
+  } catch {
+    return {
+      platform: 'x',
+      name: 'X (Twitter) Ads',
+      configured: false,
+      status: 'not_configured',
+      requiredSecrets: ['X_ADS_ACCESS_TOKEN', 'X_ADS_ACCOUNT_ID'],
+      message: 'Estimativa calibrada ativa.',
+    }
+  }
+}
+
 export async function getPlatformOfficialMetrics(
-  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin',
+  platform: 'meta' | 'google' | 'tiktok' | 'youtube' | 'linkedin' | 'pinterest' | 'x',
 ): Promise<PlatformOfficialMetricsResult> {
   try {
     const res = await pb.send(`/backend/v1/ads/${platform}/metrics`, { method: 'GET' })

@@ -30,6 +30,7 @@ import { useSocial } from '@/context/SocialContext'
 import { PerformanceReport } from '@/components/analytics/PerformanceReport'
 import { PerformanceDeepAnalytics } from '@/components/analytics/PerformanceDeepAnalytics'
 import { CreatePerformanceReportModal } from '@/components/analytics/CreatePerformanceReportModal'
+import { MonetizationBlock } from '@/components/analytics/MonetizationBlock'
 import {
   getPerformanceReports,
   deletePerformanceReport,
@@ -518,6 +519,11 @@ export default function PerformanceDashboard() {
           </div>
         </Card>
       </div>
+
+      {/* ============================================================
+          BLOCO DE MONETIZAÇÃO E RETORNO DE CONTEÚDO (ROAS, GASTO ADS, RECEITA)
+          ============================================================ */}
+      <MonetizationBlock />
 
       {/* ============================================================
           BLOCO UNIFICADO: Resumo de Audiência Multi-Rede
