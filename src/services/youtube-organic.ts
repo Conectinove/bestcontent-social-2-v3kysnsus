@@ -9,6 +9,20 @@ export interface YouTubeProfile {
   view_count: number
 }
 
+export interface YouTubeTrafficSources {
+  youtube_search: number
+  suggested_videos: number
+  browse_features: number
+  external_sources: number
+}
+
+export interface YouTubeFormatReach {
+  shorts_views: number
+  shorts_share_percentage: number
+  long_form_views: number
+  long_form_share_percentage: number
+}
+
 export interface YouTubeMetrics {
   subscribers: number
   new_subscribers_30d: number
@@ -25,6 +39,12 @@ export interface YouTubeMetrics {
   cta_clicks?: number
   thumbnail_ctr?: number
   thumbnail_impressions?: number
+  // Métricas incrementais de Alcance YouTube
+  unique_viewers?: number
+  total_impressions?: number
+  average_frequency?: number
+  traffic_sources?: YouTubeTrafficSources
+  format_reach?: YouTubeFormatReach
 }
 
 export interface YouTubeRecentVideo {
@@ -120,6 +140,21 @@ export async function getYouTubeOrganicMetrics(): Promise<YouTubeOrganicData> {
         engagement_rate: 7.2,
         ctr_impressions: 8.1,
         likes_30d: 3120,
+        unique_viewers: 30400,
+        total_impressions: 185800,
+        average_frequency: 1.61,
+        traffic_sources: {
+          youtube_search: 38.5,
+          suggested_videos: 31.2,
+          browse_features: 18.4,
+          external_sources: 11.9,
+        },
+        format_reach: {
+          shorts_views: 28362,
+          shorts_share_percentage: 58.0,
+          long_form_views: 20538,
+          long_form_share_percentage: 42.0,
+        },
         comments_30d: 430,
         shares_30d: 610,
       },

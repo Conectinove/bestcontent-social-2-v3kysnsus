@@ -334,3 +334,193 @@ export async function applySmartWeeklyPlan(
 
   return { successCount, errors }
 }
+
+export interface AutoQueueItem {
+  post: any
+  suggestedNetwork: string
+  suggestedFormat: string
+  priorityScore: number
+}
+
+/**
+ * Coleta os posts na fila para agendamento automático:
+ * posts do usuário com status 'draft' ou 'approved', ou sem scheduled_date definida
+ */
+export async function getPostsQueueForAutoScheduling(userId: string): Promise<any[]> {
+  try {
+    const records = await pb.collection('posts').getList(1, 50, {
+      filter: `user = "${userId}" && (status = "draft" || status = "approved")`,
+      sort: '-created',
+    })
+    return records.items
+  } catch (err) {
+    console.warn('Erro ao obter fila de posts para agendamento automático:', err)
+    return []
+  }
+}
+
+/**
+ * Preenche a semana automaticamente:
+ * Pega os posts aprovados/rascunhos da fila e os distribui pelos melhores horários
+ * dos próximos 7 dias, respeitando anti-repetição de formato e marcando com a tag `auto-scheduled-queue`.
+ */
+export async function autoDistributeQueueAcrossWeek(
+  userId: string,
+  postsToSchedule: any[],
+  brandId?: string,
+): Promise<{ scheduledCount: number; errors: string[] }> {
+  let scheduledCount = 0
+  const errors: string[] = []
+
+  if (!postsToSchedule || postsToSchedule.length === 0) {
+    return { scheduledCount: 0, errors: ['Nenhum post na fila para agendar.'] }
+  }
+
+  // Gera mapa de slots dos próximos 7 dias ordenados por maior score de engajamento
+  const now = new Date()
+  const candidateSlots: {
+    targetDate: Date
+    isoDateTime: string
+    dayName: string
+    network: string
+    platform: string
+    score: number
+  }[] = []
+
+  const networks = ['instagram', 'tiktok', 'linkedin', 'youtube', 'twitter']
+  const dayNames = [
+    'Domingo',
+    'Segunda-feira',
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado',
+  ]
+
+  for (let offset = 1; offset <= 7; offset++) {
+    const targetDate = new Date(now.getTime() + offset * 24 * 60 * 60 * 1000)
+    const dayOfWeekIndex = targetDate.getDay() // 0..6
+    const dayName = dayNames[dayOfWeekIndex]
+
+    for (const netKey of networks) {
+      const netConfig = NETWORK_BEST_TIMES_MAP[netKey]
+      if (!netConfig) continue
+      const match = netConfig.days.find((d) => d.offset === offset) || {
+        hour: netConfig.defaultHour,
+        score: 85,
+      }
+      const [hh, mm] = match.hour.split(':')
+      const slotDate = new Date(targetDate)
+      slotDate.setHours(Number(hh || 18), Number(mm || 0), 0, 0)
+
+      let platformName = 'Instagram'
+      if (netKey === 'tiktok') platformName = 'TikTok'
+      else if (netKey === 'linkedin') platformName = 'LinkedIn'
+      else if (netKey === 'youtube') platformName = 'YouTube'
+      else if (netKey === 'twitter') platformName = 'Twitter/X'
+
+      candidateSlots.push({
+        targetDate: slotDate,
+        isoDateTime: slotDate.toISOString(),
+        dayName,
+        network: netKey,
+        platform: platformName,
+        score: match.score,
+      })
+    }
+  }
+
+  // Ordena slots pelo maior potencial de engajamento
+  candidateSlots.sort((a, b) => b.score - a.score)
+
+  // Distribui os posts sem repetir mesmo dia/horário imediato
+  const usedSlotsDates = new Set<string>()
+
+  for (let i = 0; i < postsToSchedule.length; i++) {
+    const post = postsToSchedule[i]
+    // Encontra o melhor slot livre
+    const preferredPlatform = (post.platform || 'Instagram').toLowerCase()
+    let slot = candidateSlots.find(
+      (s) =>
+        !usedSlotsDates.has(s.isoDateTime) &&
+        (s.network === preferredPlatform || s.platform.toLowerCase().includes(preferredPlatform)),
+    )
+
+    if (!slot) {
+      slot = candidateSlots.find((s) => !usedSlotsDates.has(s.isoDateTime))
+    }
+
+    if (!slot) break // slots esgotados
+
+    usedSlotsDates.add(slot.isoDateTime)
+
+    try {
+      // Atualizar tags existentes adicionando 'auto-scheduled-queue'
+      const existingTags = Array.isArray(post.tags) ? post.tags : []
+      const updatedTags = Array.from(
+        new Set([...existingTags, 'auto-scheduled-queue', 'fila-inteligente']),
+      )
+
+      // 1. Atualiza o post para status "scheduled" e data
+      await pb.collection('posts').update(post.id, {
+        status: 'scheduled',
+        scheduled_date: slot.isoDateTime,
+        tags: updatedTags,
+      })
+
+      // 2. Cria ou atualiza scheduled_posts
+      await createScheduledPost({
+        user: userId,
+        post: post.id,
+        scheduled_at: slot.isoDateTime,
+        status: 'pending',
+      })
+
+      scheduledCount++
+    } catch (err: any) {
+      errors.push(
+        `Falha ao agendar post "${post.content?.slice(0, 20)}...": ${err?.message || 'Erro'}`,
+      )
+    }
+  }
+
+  return { scheduledCount, errors }
+}
+
+/**
+ * Remove um post da fila automática:
+ * Restaura o status para 'draft' e remove a tag 'auto-scheduled-queue'
+ */
+export async function removePostFromAutoQueue(
+  postId: string,
+  currentTags: string[] = [],
+): Promise<boolean> {
+  try {
+    const cleanTags = currentTags.filter(
+      (t) => t !== 'auto-scheduled-queue' && t !== 'fila-inteligente',
+    )
+    await pb.collection('posts').update(postId, {
+      status: 'draft',
+      scheduled_date: null,
+      tags: cleanTags,
+    })
+
+    // Tentar remover de scheduled_posts se existir
+    try {
+      const existingSched = await pb.collection('scheduled_posts').getList(1, 1, {
+        filter: `post = "${postId}"`,
+      })
+      if (existingSched.items.length > 0) {
+        await pb.collection('scheduled_posts').delete(existingSched.items[0].id)
+      }
+    } catch (schedErr) {
+      // ignore
+    }
+
+    return true
+  } catch (err) {
+    console.warn('Erro ao remover post da fila automática:', err)
+    return false
+  }
+}

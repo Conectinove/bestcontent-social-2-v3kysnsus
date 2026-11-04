@@ -250,6 +250,105 @@ export function YouTubeFeedWidget({ compact = false, className = '' }: YouTubeFe
               </div>
             </div>
 
+            {/* BLOCO DE ALCANCE YOUTUBE (Impressões Únicas, Frequência, Fontes de Tráfego, Shorts vs Longo) */}
+            <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-foreground uppercase tracking-wider flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3 text-red-500" />
+                  Métricas de Alcance & Impressões
+                </span>
+                <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-background">
+                  Frequência Média: {data.metrics.average_frequency || 1.61}x
+                </Badge>
+              </div>
+
+              {/* Impressões vs Alcance Único */}
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="p-1.5 rounded-lg bg-background/80 border border-border/40">
+                  <span className="text-[10px] text-muted-foreground block">
+                    Esppectadores Únicos
+                  </span>
+                  <p className="text-xs sm:text-sm font-extrabold text-foreground">
+                    {Number(data.metrics.unique_viewers || 30400).toLocaleString('pt-BR')}
+                  </p>
+                  <span className="text-[9px] text-emerald-600 font-medium">
+                    62% do total de views
+                  </span>
+                </div>
+                <div className="p-1.5 rounded-lg bg-background/80 border border-border/40">
+                  <span className="text-[10px] text-muted-foreground block">
+                    Impressões no Feed/Busca
+                  </span>
+                  <p className="text-xs sm:text-sm font-extrabold text-foreground">
+                    {Number(data.metrics.total_impressions || 185800).toLocaleString('pt-BR')}
+                  </p>
+                  <span className="text-[9px] text-purple-600 font-medium">
+                    CTR global: {data.metrics.ctr_impressions || 8.1}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Fontes de Tráfego */}
+              <div className="space-y-1 pt-1 border-t border-border/40">
+                <span className="text-[10px] font-semibold text-muted-foreground block">
+                  Origem do Alcance (Fontes de Tráfego)
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 text-[10px]">
+                  <div className="p-1 rounded bg-background/60 border border-border/30">
+                    <span className="text-muted-foreground block">Pesquisa YT</span>
+                    <span className="font-bold text-foreground">
+                      {data.metrics.traffic_sources?.youtube_search || 38.5}%
+                    </span>
+                  </div>
+                  <div className="p-1 rounded bg-background/60 border border-border/30">
+                    <span className="text-muted-foreground block">Sugeridos</span>
+                    <span className="font-bold text-foreground">
+                      {data.metrics.traffic_sources?.suggested_videos || 31.2}%
+                    </span>
+                  </div>
+                  <div className="p-1 rounded bg-background/60 border border-border/30">
+                    <span className="text-muted-foreground block">Recursos Naveg.</span>
+                    <span className="font-bold text-foreground">
+                      {data.metrics.traffic_sources?.browse_features || 18.4}%
+                    </span>
+                  </div>
+                  <div className="p-1 rounded bg-background/60 border border-border/30">
+                    <span className="text-muted-foreground block">Externo/Social</span>
+                    <span className="font-bold text-foreground">
+                      {data.metrics.traffic_sources?.external_sources || 11.9}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alcance por Formato (Shorts vs Vídeo Longo) */}
+              <div className="pt-1 border-t border-border/40 space-y-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground font-semibold">Alcance por Formato:</span>
+                  <span className="text-[9px] text-foreground font-medium">
+                    Shorts {data.metrics.format_reach?.shorts_share_percentage || 58}% • Longos{' '}
+                    {data.metrics.format_reach?.long_form_share_percentage || 42}%
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-border/60 overflow-hidden flex">
+                  <div
+                    className="h-full bg-rose-500"
+                    style={{
+                      width: `${data.metrics.format_reach?.shorts_share_percentage || 58}%`,
+                    }}
+                    title={`Shorts: ${data.metrics.format_reach?.shorts_views || 28362} views`}
+                  />
+                  <div
+                    className="h-full bg-amber-500"
+                    style={{
+                      width: `${data.metrics.format_reach?.long_form_share_percentage || 42}%`,
+                    }}
+                    title={`Vídeo Longo: ${data.metrics.format_reach?.long_form_views || 20538} views`}
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
               <div className="flex items-center gap-3">
                 <span className="inline-flex items-center gap-1">

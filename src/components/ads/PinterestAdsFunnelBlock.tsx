@@ -178,24 +178,37 @@ export function PinterestAdsFunnelBlock({ onConvertClickToLead }: PinterestAdsFu
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
             <div className="flex items-center justify-between text-muted-foreground mb-1">
-              <span className="text-xs">Impressões / CTR</span>
-              <Eye className="w-3.5 h-3.5 text-red-500" />
+              <span className="text-xs">Impressões / Saves</span>
+              <Eye className="w-3.5 h-3.5" />
             </div>
             <p className="text-lg font-black text-foreground">
               {metrics.impressions.toLocaleString('pt-BR')}
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              CTR médio: <span className="text-red-600 font-semibold">{metrics.ctr}%</span>
+              Saves (Repins): <span className="font-semibold">{metrics.saves}</span>
             </p>
           </div>
 
           <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
             <div className="flex items-center justify-between text-muted-foreground mb-1">
-              <span className="text-xs">Cliques / CPC</span>
-              <MousePointerClick className="w-3.5 h-3.5 text-red-500" />
+              <span className="text-xs">Cliques no Pin / CTR</span>
+              <MousePointerClick className="w-3.5 h-3.5" />
             </div>
             <p className="text-lg font-black text-foreground">
               {metrics.clicks.toLocaleString('pt-BR')}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              CTR: <span className="font-semibold">{metrics.ctr}%</span>
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
+            <div className="flex items-center justify-between text-muted-foreground mb-1">
+              <span className="text-xs">Investimento</span>
+              <DollarSign className="w-3.5 h-3.5" />
+            </div>
+            <p className="text-lg font-black text-foreground">
+              R$ {metrics.spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               CPC médio: <span className="font-semibold">R$ {metrics.cpc.toFixed(2)}</span>
@@ -204,21 +217,8 @@ export function PinterestAdsFunnelBlock({ onConvertClickToLead }: PinterestAdsFu
 
           <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
             <div className="flex items-center justify-between text-muted-foreground mb-1">
-              <span className="text-xs">Investimento</span>
-              <DollarSign className="w-3.5 h-3.5 text-red-500" />
-            </div>
-            <p className="text-lg font-black text-foreground">
-              R$ {metrics.spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Saves (Pins salvos): <span className="font-semibold">{metrics.saves}</span>
-            </p>
-          </div>
-
-          <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
-            <div className="flex items-center justify-between text-muted-foreground mb-1">
               <span className="text-xs">Leads / CPL</span>
-              <TrendingUp className="w-3.5 h-3.5 text-red-500" />
+              <TrendingUp className="w-3.5 h-3.5" />
             </div>
             <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
               {metrics.conversions} leads
@@ -229,6 +229,58 @@ export function PinterestAdsFunnelBlock({ onConvertClickToLead }: PinterestAdsFu
                 {(metrics.spent / (metrics.conversions || 1)).toFixed(2)}
               </span>
             </p>
+          </div>
+        </div>
+
+        {/* Quebra por Formato de Anúncio e Tendência do Período */}
+        <div className="pt-2 border-t border-border/60">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-2">
+            <span className="font-semibold uppercase tracking-wider">
+              Quebra por Formato de Campanha no Pinterest
+            </span>
+            <span className="text-[10px]">
+              Tendência: <strong className="text-emerald-600">+18.2% vs ciclo anterior</strong>
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-foreground block">Pins Padrão (Estáticos)</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Descoberta visual · 42% cliques
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="font-black text-foreground block font-mono">15 leads</span>
+                <span className="text-[10px] text-muted-foreground font-mono">CPC: R$ 0,44</span>
+              </div>
+            </div>
+            <div className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-foreground block">Video Pins & Ideias</span>
+                <span className="text-[10px] text-muted-foreground">Demonstração e tutoriais</span>
+              </div>
+              <div className="text-right">
+                <span className="font-black text-rose-600 dark:text-rose-400 block font-mono">
+                  11 leads
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">CPC: R$ 0,48</span>
+              </div>
+            </div>
+            <div className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-foreground block">Shopping & Carrossel</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Catálogo com link de compra
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="font-black text-emerald-600 dark:text-emerald-400 block font-mono">
+                  6 leads
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">CPC: R$ 0,56</span>
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>

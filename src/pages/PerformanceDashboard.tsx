@@ -895,9 +895,31 @@ export default function PerformanceDashboard() {
                   )}
 
                   {rep.executive_summary && (
-                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed bg-background/60 p-2.5 rounded-xl border border-border/40">
-                      {rep.executive_summary}
-                    </p>
+                    <div className="space-y-1.5 bg-background/60 p-2.5 rounded-xl border border-border/40">
+                      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                        {rep.executive_summary}
+                      </p>
+                      {/* Se tiver narrativa de consultor, hipóteses ou plano de ação datado */}
+                      {rep.engagement_data_json?.isAdvancedAiReport && (
+                        <div className="pt-1.5 border-t border-border/40 space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                              Consultoria IA Ativa
+                            </span>
+                            {rep.engagement_data_json?.actionPlan?.length > 0 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                • {rep.engagement_data_json.actionPlan.length} ações datadas
+                              </span>
+                            )}
+                          </div>
+                          {rep.engagement_data_json?.causalHypotheses?.length > 0 && (
+                            <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium line-clamp-1">
+                              💡 Causal: {rep.engagement_data_json.causalHypotheses[0].reason}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 

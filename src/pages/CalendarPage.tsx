@@ -17,7 +17,12 @@ import {
   FastForward,
 } from 'lucide-react'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
-import { NETWORK_BEST_TIMES_MAP } from '@/services/smart-scheduler'
+import {
+  NETWORK_BEST_TIMES_MAP,
+  getPostsQueueForAutoScheduling,
+  autoDistributeQueueAcrossWeek,
+  removePostFromAutoQueue,
+} from '@/services/smart-scheduler'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { getScheduledPosts, updateScheduledPost } from '@/services/scheduled_posts'
@@ -59,11 +64,16 @@ export default function CalendarPage() {
   const [editTimeValue, setEditTimeValue] = useState('12:00')
   const [editDateValue, setEditDateValue] = useState('')
   const [viewMode, setViewMode] = useState<'calendar' | 'next7days'>('calendar')
+  const [autoQueuePosts, setAutoQueuePosts] = useState<any[]>([])
+  const [loadingAutoQueue, setLoadingAutoQueue] = useState(false)
+  const [isDistributing, setIsDistributing] = useState(false)
 
   const load = useCallback(async () => {
     if (!user?.id) return
     try {
       setScheduled((await getScheduledPosts(user.id)) as any[])
+      const queue = await getPostsQueueForAutoScheduling(user.id)
+      setAutoQueuePosts(queue)
     } catch {
       /* intentionally ignored */
     }
@@ -160,6 +170,60 @@ export default function CalendarPage() {
       toast({
         title: 'Erro ao publicar',
         description: err?.message || 'Falha ao acionar publicação imediata.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Executa o preenchimento automático da semana com os posts da fila
+  const handleAutoFillWeek = async () => {
+    if (!user?.id || autoQueuePosts.length === 0) return
+    setIsDistributing(true)
+    try {
+      const result = await autoDistributeQueueAcrossWeek(
+        user.id,
+        autoQueuePosts,
+        selectedBrandId !== 'all' ? selectedBrandId : undefined,
+      )
+      if (result.scheduledCount > 0) {
+        toast({
+          title: 'Semana preenchida automaticamente!',
+          description: `${result.scheduledCount} posts distribuídos nos melhores horários dos próximos 7 dias.`,
+        })
+      } else {
+        toast({
+          title: 'Nenhum post agendado',
+          description: result.errors[0] || 'Verifique se há posts na fila.',
+          variant: 'destructive',
+        })
+      }
+      await load()
+    } catch (err: any) {
+      toast({
+        title: 'Erro no agendamento automático',
+        description: err?.message || 'Falha ao processar distribuição.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDistributing(false)
+    }
+  }
+
+  // Retira um post da fila automática
+  const handleRemoveFromAutoQueue = async (postId: string, tags: string[] = []) => {
+    try {
+      const ok = await removePostFromAutoQueue(postId, tags)
+      if (ok) {
+        toast({
+          title: 'Post retirado da fila',
+          description: 'O status voltou para rascunho.',
+        })
+        await load()
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao retirar post',
+        description: err?.message || 'Não foi possível alterar o post.',
         variant: 'destructive',
       })
     }
@@ -343,6 +407,21 @@ export default function CalendarPage() {
             <Sparkles className="w-4 h-4 text-pink-500 shrink-0" />
             <span className="truncate">Fila Semanal IA</span>
           </Button>
+
+          {autoQueuePosts.length > 0 && (
+            <Button
+              variant="secondary"
+              onClick={handleAutoFillWeek}
+              disabled={isDistributing}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-2xl h-10 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
+              title="Distribui os posts rascunhos/aprovados pelos melhores horários dos próximos 7 dias"
+            >
+              <Zap className="w-4 h-4 text-amber-300 shrink-0" />
+              <span className="truncate">
+                {isDistributing ? 'Distribuindo...' : `Preencher Semana (${autoQueuePosts.length})`}
+              </span>
+            </Button>
+          )}
 
           <Button
             onClick={() => navigate('/app/content/new')}
