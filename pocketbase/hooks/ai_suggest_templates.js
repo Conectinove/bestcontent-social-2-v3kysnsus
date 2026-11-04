@@ -124,7 +124,9 @@ routerAdd(
         suggestedModel: 'Carrossel Educativo Passo a Passo',
         format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
+        recommendedNetwork: 'Instagram & LinkedIn',
         estimatedPerformanceScore: 94,
+        hook3s: 'Capa Impactante: "90% usam IA errado. O slide 3 é o que custa clientes."',
         expectedEngagement: {
           min: 320,
           max: 580,
@@ -171,12 +173,13 @@ routerAdd(
         format: 'Vídeo Curto (Reels / TikTok)',
         videoFormat: 'talking_head',
         durationSec: 30,
+        recommendedNetwork: 'TikTok & Shorts',
         estimatedPerformanceScore: 91,
         expectedEngagement: {
           min: 1200,
           max: 2800,
-          unit: 'visualizações estimadas nos primeiros 3 dias',
-          benchmarkFormat: 'Reels / Shorts',
+          unit: 'visualizações estimadas (completude 42%+ e retenção 3s)',
+          benchmarkFormat: 'Reels / Shorts / TikTok',
           confidenceScore: 89,
         },
         networkBestTimes: [
@@ -213,6 +216,8 @@ routerAdd(
         suggestedModel: 'Estudo de Caso & Prova Social',
         format: 'Feed Único / Carrossel',
         funnelObjective: 'Conversão',
+        recommendedNetwork: 'Instagram & LinkedIn',
+        hook3s: 'Gancho Visual: Card de métricas reais (antes vs depois) com valor em destaque',
         estimatedPerformanceScore: 88,
         expectedEngagement: {
           min: 15,
@@ -254,6 +259,8 @@ routerAdd(
         suggestedModel: 'Post Reflexivo / Debate Aberto',
         format: 'Stories / Post Interativo',
         funnelObjective: 'Comunidade',
+        recommendedNetwork: 'Instagram & Threads',
+        hook3s: 'Enquete de Abertura: "Você posta por consistência ou por obrigação?"',
         estimatedPerformanceScore: 85,
         whyNowContext:
           'Aumento expressivo no engajamento por comentários à noite; ideal para gerar conexão humana pós-expediente.',
@@ -306,6 +313,7 @@ routerAdd(
         '      "suggestedModel": "Nome do modelo sugerido",\n' +
         '      "format": "Carrossel (Slides) | Vídeo Curto / Reels | Feed Único | Thread X",\n' +
         '      "funnelObjective": "Atração | Autoridade | Conversão | Comunidade",\n' +
+        '      "recommendedNetwork": "Instagram & TikTok | LinkedIn | YouTube Shorts | Threads",\n' +
         '      "concreteAngle": "Ângulo concreto e direto do conteúdo",\n' +
         '      "seasonalityContext": "Contexto temporal ou sazonal",\n' +
         '      "estimatedPerformanceScore": 92,\n' +
@@ -328,7 +336,7 @@ routerAdd(
         '      "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4"],\n' +
         '      "bestTime": "Horário recomendado baseado em audiência",\n' +
         '      "reason": "Justificativa rica citando estilo da marca, anti-repetição e dados",\n' +
-        '      "hook_3s": "Gancho nos primeiros 3s (quando vídeo)",\n' +
+        '      "hook3s": "Gancho nos primeiros 3s ou capa do carrossel",\n' +
         '      "duration_sec": 30\n' +
         '    }\n' +
         '  ]\n' +

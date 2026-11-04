@@ -10,6 +10,10 @@ import {
   RefreshCw,
   Heart,
   MessageCircle,
+  TrendingUp,
+  Percent,
+  UserPlus,
+  Share2,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -172,28 +176,78 @@ export function YouTubeFeedWidget({ compact = false, className = '' }: YouTubeFe
           </div>
         </div>
 
-        {/* Micro highlights: likes, comments */}
+        {/* Engajamento & Retenção Avançada: retenção média %, duração média, balanço de inscritos */}
         {!compact && (
-          <div className="flex items-center justify-between px-2 pt-1 text-[11px] text-muted-foreground border-t border-border/50">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1">
-                <Heart className="w-3 h-3 text-rose-500 fill-rose-500/20" />
+          <div className="space-y-2 pt-1 border-t border-border/50">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center">
+              <div className="p-1.5 rounded-lg bg-muted/30 border border-border/40">
+                <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                  <Percent className="w-2.5 h-2.5 text-red-500" />
+                  <span>Retenção Média</span>
+                </div>
+                <p className="text-xs font-bold text-foreground">
+                  {data.metrics.avg_retention_percentage || 52.8}%
+                </p>
+              </div>
+
+              <div className="p-1.5 rounded-lg bg-muted/30 border border-border/40">
+                <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                  <Clock className="w-2.5 h-2.5 text-amber-500" />
+                  <span>Duração Média</span>
+                </div>
+                <p className="text-xs font-bold text-foreground">
+                  {Math.floor((data.metrics.avg_view_duration_seconds || 188) / 60)}m{' '}
+                  {(data.metrics.avg_view_duration_seconds || 188) % 60}s
+                </p>
+              </div>
+
+              <div className="p-1.5 rounded-lg bg-muted/30 border border-border/40">
+                <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                  <UserPlus className="w-2.5 h-2.5 text-emerald-500" />
+                  <span>Inscritos Líquidos</span>
+                </div>
+                <p className="text-xs font-bold text-foreground">
+                  +
+                  {(data.metrics.new_subscribers_30d || 640) -
+                    (data.metrics.subscribers_lost_30d || 82)}
+                </p>
+              </div>
+
+              <div className="p-1.5 rounded-lg bg-muted/30 border border-border/40">
+                <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                  <TrendingUp className="w-2.5 h-2.5 text-purple-500" />
+                  <span>CTR de Cliques</span>
+                </div>
+                <p className="text-xs font-bold text-foreground">
+                  {data.metrics.ctr_impressions || 8.1}%
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1">
+                  <Heart className="w-3 h-3 text-rose-500 fill-rose-500/20" />
+                  <strong className="text-foreground font-semibold">
+                    {Number(data.metrics.likes_30d || 0).toLocaleString('pt-BR')}
+                  </strong>{' '}
+                  likes
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Share2 className="w-3 h-3 text-cyan-500" />
+                  <strong className="text-foreground font-semibold">
+                    {Number(data.metrics.shares_30d || 610).toLocaleString('pt-BR')}
+                  </strong>{' '}
+                  shares
+                </span>
+              </div>
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                Taxa de engajamento:{' '}
                 <strong className="text-foreground font-semibold">
-                  {Number(data.metrics.likes_30d || 0).toLocaleString('pt-BR')}
-                </strong>{' '}
-                likes
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <MessageCircle className="w-3 h-3 text-blue-500" />
-                <strong className="text-foreground font-semibold">
-                  {Number(data.metrics.comments_30d || 0).toLocaleString('pt-BR')}
-                </strong>{' '}
-                comentários
+                  {data.metrics.engagement_rate || 7.2}%
+                </strong>
               </span>
             </div>
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">
-              YouTube Orgânico
-            </span>
           </div>
         )}
 

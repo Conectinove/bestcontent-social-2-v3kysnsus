@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Target, Megaphone } from 'lucide-react'
+import { Target, Megaphone, Zap } from 'lucide-react'
 import {
   getWhatToPostToday,
   type TodayPostIdea,
@@ -268,6 +268,14 @@ export function WhatToPostTodayModal({
                       <Badge variant="secondary" className="text-[10px]">
                         {idea.format}
                       </Badge>
+                      {idea.recommendedNetwork && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/30 font-semibold"
+                        >
+                          📱 {idea.recommendedNetwork}
+                        </Badge>
+                      )}
                       {idea.funnelObjective && (
                         <Badge
                           variant="outline"
@@ -285,6 +293,18 @@ export function WhatToPostTodayModal({
                       <Flame className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                       <span>{idea.reason}</span>
                     </div>
+
+                    {idea.hook3s && (
+                      <div className="text-[11px] text-foreground/90 flex items-start gap-1.5 pl-5 pt-0.5 bg-amber-500/10 p-1.5 rounded-md border border-amber-500/30">
+                        <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <span>
+                          <strong className="text-amber-600 dark:text-amber-400">
+                            Gancho de Abertura (3s / Capa):
+                          </strong>{' '}
+                          {idea.hook3s}
+                        </span>
+                      </div>
+                    )}
 
                     {idea.concreteAngle && (
                       <div className="text-[11px] text-foreground/90 flex items-start gap-1.5 pl-5 pt-0.5 bg-card/60 p-1.5 rounded-md border border-purple-500/20">

@@ -963,14 +963,22 @@ export default function Discover() {
 
                     {/* Card Content */}
                     <CardContent className="p-4 sm:p-5 space-y-2">
-                      {/* Badge Curto de Correspondência Semântica por IA quando busca por intenção */}
-                      {semanticMatchesMap.has(idea.id) &&
-                        semanticMatchesMap.get(idea.id)?.matchReason && (
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[11px] font-semibold border border-purple-500/20">
-                            <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
-                            <span>{semanticMatchesMap.get(idea.id)?.matchReason}</span>
-                          </div>
-                        )}
+                      {/* Badges de Correspondência Semântica por IA quando busca por intenção */}
+                      {semanticMatchesMap.has(idea.id) && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {semanticMatchesMap.get(idea.id)?.matchReason && (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[10px] font-semibold border border-purple-500/20">
+                              <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                              <span>{semanticMatchesMap.get(idea.id)?.matchReason}</span>
+                            </div>
+                          )}
+                          {semanticMatchesMap.get(idea.id)?.additionalBadge && (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-semibold border border-amber-500/20">
+                              <span>{semanticMatchesMap.get(idea.id)?.additionalBadge}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <h4 className="font-extrabold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
                         {idea.title}

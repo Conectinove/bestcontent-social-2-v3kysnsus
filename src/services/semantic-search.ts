@@ -10,6 +10,7 @@ export interface SemanticMatchResult {
   score: number
   matchedIntentLabel?: string
   matchReason?: string
+  additionalBadge?: string
 }
 
 // Mapa de sinônimos e intenções semânticas de marketing e mídias sociais
@@ -31,22 +32,33 @@ const INTENT_DICTIONARY: IntentCategory[] = [
       'venda',
       'vendas',
       'vender mais',
+      'fazer vendas',
       'conversao',
       'converter',
+      'fechar clientes',
       'oferta',
+      'ofertas',
       'preco',
       'desconto',
       'comprar',
       'lead',
       'leads',
+      'captacao',
       'fechamento',
       'cliente',
       'clientes',
       'contrato',
       'faturamento',
       'lucro',
+      'lucrar',
       'cta',
       'direct',
+      'monetizar',
+      'monetizacao',
+      'proposta',
+      'checkout',
+      'ticket',
+      'alta conversao',
     ],
     funnelTargets: ['conversão', 'conversao'],
   },
@@ -56,9 +68,14 @@ const INTENT_DICTIONARY: IntentCategory[] = [
     canonicalBadge: 'relacionado a: Autoridade',
     keywords: [
       'autoridade',
+      'fazer autoridade',
+      'criar autoridade',
+      'ganhar autoridade',
       'especialista',
       'posicionamento',
+      'se posicionar',
       'credibilidade',
+      'confianca',
       'lideranca',
       'estudo de caso',
       'case',
@@ -67,11 +84,15 @@ const INTENT_DICTIONARY: IntentCategory[] = [
       'expertise',
       'tutorial',
       'educativo',
+      'ensinar',
       'artigo',
       'newsletter',
       'metodo',
       'passo a passo',
       'guia',
+      'mentoria',
+      'referencia',
+      'benchmark',
     ],
     funnelTargets: ['autoridade'],
   },
@@ -82,10 +103,14 @@ const INTENT_DICTIONARY: IntentCategory[] = [
     keywords: [
       'atracao',
       'atrair',
+      'atrair pessoas',
+      'atrair publico',
       'viral',
+      'viralizar',
       'alcance',
       'gancho',
       'hook',
+      'primeiros 3s',
       'reels',
       'shorts',
       'tiktok',
@@ -96,21 +121,29 @@ const INTENT_DICTIONARY: IntentCategory[] = [
       'visibilidade',
       'descobrir',
       'explorar',
+      'bater meta',
+      'topo de funil',
+      'distribuicao',
     ],
     funnelTargets: ['atração', 'atracao'],
   },
   {
     id: 'comunidade_engajamento',
     label: 'Comunidade & Interação',
-    canonicalBadge: 'relacionado a: Comunidade',
+    canonicalBadge: 'relacionado a: Engajamento / Comunidade',
     keywords: [
       'engajar',
-      'engajamento',
+      'engajar mais',
+      'aumentar engajamento',
+      'mais engajamento',
+      'engajamento alto',
       'comunidade',
       'interacao',
+      'interagir',
       'conectar',
       'conexao',
       'debate',
+      'discussao',
       'pergunta',
       'enquete',
       'caixinha',
@@ -121,6 +154,9 @@ const INTENT_DICTIONARY: IntentCategory[] = [
       'proximidade',
       'opniao',
       'opiniao',
+      'fidelizar',
+      'fidelizacao',
+      'comentarios',
     ],
     funnelTargets: ['comunidade'],
   },
@@ -134,13 +170,39 @@ const INTENT_DICTIONARY: IntentCategory[] = [
       'inteligencia artificial',
       'automacao',
       'prompt',
+      'prompts',
       'produtividade',
       'ferramenta',
       'chatgpt',
+      'claude',
+      'midjourney',
       'eficiencia',
       'otimizar',
+      'escala',
+      'escalar conteudo',
+      'sem perder tempo',
+      'rapido',
     ],
     funnelTargets: ['autoridade', 'atração'],
+  },
+  {
+    id: 'retencao_video',
+    label: 'Retenção & Vídeos',
+    canonicalBadge: 'relacionado a: Retenção em Vídeo',
+    keywords: [
+      'retencao',
+      'completude',
+      'watch time',
+      'tempo de tela',
+      'video curto',
+      'reels retencao',
+      'tiktok retencao',
+      'gancho 3s',
+      'nao passar batido',
+      'prender atencao',
+      'atencao',
+    ],
+    funnelTargets: ['atração', 'autoridade'],
   },
 ]
 
@@ -197,6 +259,13 @@ export function evaluateIdeaRelevance(
     }
   }
 
+  if (cleanTheme.includes(cleanQuery) || cleanCat.includes(cleanQuery)) {
+    return {
+      isMatch: true,
+      score: 92,
+    }
+  }
+
   if (fullCorpus.includes(cleanQuery)) {
     return {
       isMatch: true,
@@ -206,41 +275,61 @@ export function evaluateIdeaRelevance(
 
   // 2. Análise por intenção semântica / sinônimos
   let bestIntent: IntentCategory | null = null
+  let secondIntent: IntentCategory | null = null
   let maxIntentScore = 0
 
   for (const intent of INTENT_DICTIONARY) {
     // Se a busca contém alguma palavra-chave da intenção
     const queryHasIntentWord = intent.keywords.some((kw) => {
       const cleanKw = normalizeSemanticText(kw)
-      return cleanQuery.includes(cleanKw) || cleanKw.includes(cleanQuery)
+      return cleanQuery === cleanKw || cleanQuery.includes(cleanKw) || cleanKw.includes(cleanQuery)
     })
 
     if (queryHasIntentWord) {
-      // Verificar se a ideia atende a essa intenção
+      // Ponderação refinada: correspondência em Título (peso 35), Tema/Funil (peso 40), Descrição (peso 25)
       const matchesFunnel = intent.funnelTargets.some((target) =>
         cleanFunnel.includes(normalizeSemanticText(target)),
       )
+
+      const titleMatches = intent.keywords.filter((kw) =>
+        cleanTitle.includes(normalizeSemanticText(kw)),
+      ).length
+
+      const themeMatches = intent.keywords.filter(
+        (kw) =>
+          cleanTheme.includes(normalizeSemanticText(kw)) ||
+          cleanCat.includes(normalizeSemanticText(kw)),
+      ).length
 
       const corpusHasIntentWords = intent.keywords.filter((kw) =>
         fullCorpus.includes(normalizeSemanticText(kw)),
       ).length
 
-      if (matchesFunnel || corpusHasIntentWords > 0) {
-        const score = (matchesFunnel ? 60 : 30) + Math.min(corpusHasIntentWords * 10, 30)
+      if (matchesFunnel || titleMatches > 0 || themeMatches > 0 || corpusHasIntentWords > 0) {
+        let score = matchesFunnel ? 55 : 25
+        score += Math.min(titleMatches * 20, 40)
+        score += Math.min(themeMatches * 15, 30)
+        score += Math.min(corpusHasIntentWords * 5, 20)
+
         if (score > maxIntentScore) {
+          secondIntent = bestIntent
           maxIntentScore = score
           bestIntent = intent
+        } else if (!secondIntent && intent.id !== bestIntent?.id) {
+          secondIntent = intent
         }
       }
     }
   }
 
-  if (bestIntent && maxIntentScore >= 40) {
+  if (bestIntent && maxIntentScore >= 35) {
     return {
       isMatch: true,
-      score: maxIntentScore,
+      score: Math.min(maxIntentScore, 95),
       matchedIntentLabel: bestIntent.label,
       matchReason: bestIntent.canonicalBadge,
+      additionalBadge:
+        secondIntent && secondIntent.id !== bestIntent.id ? secondIntent.canonicalBadge : undefined,
     }
   }
 

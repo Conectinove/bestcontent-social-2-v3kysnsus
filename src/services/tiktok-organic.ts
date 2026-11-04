@@ -12,17 +12,20 @@ export interface TikTokProfile {
 export interface TikTokMetrics {
   followers: number
   views: number
+  video_views_30d: number
   likes: number
-  likes_total?: number
-  shares_30d?: number
-  video_views_30d?: number
+  likes_total: number
   comments: number
   shares: number
+  shares_30d: number
   saves: number
+  avg_watch_time_seconds?: number
+  video_completion_rate?: number
+  retention_at_3s?: number
+  profile_visits_from_video?: number
   engagement_rate: number
   growth_rate_30d: number
 }
-
 export interface TikTokHistoryItem {
   period: string
   views: number
@@ -111,6 +114,10 @@ export async function getTikTokOrganicMetrics(): Promise<TikTokOrganicData> {
         shares: 2340,
         shares_30d: 2340,
         saves: 3890,
+        avg_watch_time_seconds: 18.6,
+        video_completion_rate: 42.8,
+        retention_at_3s: 79.4,
+        profile_visits_from_video: 890,
         engagement_rate: 6.4,
         growth_rate_30d: 5.4,
       },

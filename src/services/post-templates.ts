@@ -104,6 +104,7 @@ export interface TodayPostIdea {
   caption: string
   hashtags: string[]
   bestTime: string
+  recommendedNetwork?: string
   networkBestTimes?: NetworkBestTimeSlot[]
   expectedEngagement?: ExpectedEngagementRange
   reason: string
@@ -173,7 +174,9 @@ export async function getWhatToPostToday(
         suggestedModel: 'Carrossel Educativo Passo a Passo',
         format: 'Carrossel (Slides)',
         funnelObjective: 'Autoridade',
+        recommendedNetwork: 'Instagram & LinkedIn',
         estimatedPerformanceScore: 94,
+        hook3s: 'Capa Impactante: "90% usam IA errado. O slide 3 é o que custa clientes."',
         expectedEngagement: {
           min: 320,
           max: 580,
@@ -204,16 +207,18 @@ export async function getWhatToPostToday(
       },
       {
         id: 'idea-2',
-        title: 'Roteiro de Vídeo Curto com Beats de Tempo (TikTok & Reels)',
-        suggestedModel: 'Roteiro de Vídeo (Beats)',
-        format: 'Vídeo Curto / Reels',
+        title: 'O Gancho Magnético dos 3 Segundos: Roteiro Pronto para Testar Hoje',
+        suggestedModel: 'Talking Head / Reels Dinâmico (30s)',
+        format: 'Vídeo Curto (Reels / TikTok)',
         funnelObjective: 'Atração',
+        recommendedNetwork: 'TikTok & Shorts',
         estimatedPerformanceScore: 91,
+        hook3s: 'Primeiros 3s: "Se você perdeu metade da audiência no início, o erro está aqui!"',
         expectedEngagement: {
           min: 1200,
           max: 2800,
-          unit: 'visualizações estimadas nos primeiros 3 dias',
-          benchmarkFormat: 'Reels / Shorts',
+          unit: 'visualizações estimadas (completude 42%+ e retenção 3s)',
+          benchmarkFormat: 'Reels / Shorts / TikTok',
           confidenceScore: 89,
         },
         networkBestTimes: [
@@ -247,10 +252,12 @@ export async function getWhatToPostToday(
       },
       {
         id: 'idea-3',
-        title: 'Estudo de Caso & Prova Social: O Método de Alta Conversão',
-        suggestedModel: 'Estudo de Caso Comercial',
+        title: 'Estudo de Caso Real: Do Zero a 48 Clientes Qualificados Sem Gastar 1 Real em Ads',
+        suggestedModel: 'Estudo de Caso & Prova Social',
         format: 'Feed Único / Carrossel',
         funnelObjective: 'Conversão',
+        recommendedNetwork: 'Instagram & LinkedIn',
+        hook3s: 'Gancho Visual: Card de métricas reais (antes vs depois) com valor em destaque',
         estimatedPerformanceScore: 88,
         expectedEngagement: {
           min: 15,

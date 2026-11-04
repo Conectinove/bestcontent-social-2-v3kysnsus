@@ -12,9 +12,11 @@ export interface YouTubeProfile {
 export interface YouTubeMetrics {
   subscribers: number
   new_subscribers_30d: number
+  subscribers_lost_30d?: number
   views: number
   watch_time_hours: number
   avg_view_duration_seconds: number
+  avg_retention_percentage?: number
   engagement_rate: number
   ctr_impressions: number
   likes_30d: number
@@ -107,9 +109,11 @@ export async function getYouTubeOrganicMetrics(): Promise<YouTubeOrganicData> {
       metrics: {
         subscribers: 14850,
         new_subscribers_30d: 640,
+        subscribers_lost_30d: 82,
         views: 48900,
         watch_time_hours: 1980,
-        avg_view_duration_seconds: 165,
+        avg_view_duration_seconds: 188,
+        avg_retention_percentage: 52.8,
         engagement_rate: 7.2,
         ctr_impressions: 8.1,
         likes_30d: 3120,
