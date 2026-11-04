@@ -148,13 +148,16 @@ export default function CreatePost() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const initialCaption = location.state?.caption || ''
+  const urlParams = new URLSearchParams(location.search)
+  const urlPrompt = urlParams.get('prompt') || urlParams.get('idea') || ''
+
+  const initialCaption = location.state?.caption || urlPrompt || ''
   const initialBrandId = location.state?.brandId || brands[0]?.id || ''
   const initialTemplate = (location.state?.template as PostTemplate) || null
 
   const [brandId, setBrandId] = useState(initialBrandId)
   const [platform, setPlatform] = useState('Instagram')
-  const [content, setContent] = useState('')
+  const [content, setContent] = useState(urlPrompt)
   const [caption, setCaption] = useState(initialCaption)
   const [scheduledDate, setScheduledDate] = useState(
     new Date(Date.now() + 86400000).toISOString().slice(0, 16),

@@ -465,9 +465,13 @@ export default function ImageCreator() {
   // Carousel ref
   const carouselRef = useRef<HTMLDivElement>(null)
 
-  // 1. Restaurar rascunho persistido do sessionStorage (sobrevive ao retornar ao hub ou recarregar)
+  // 1. Restaurar rascunho e ler query params (ex.: ?prompt=...&format=...)
   useEffect(() => {
     try {
+      const urlParams = new URLSearchParams(window.location.search)
+      const promptParam = urlParams.get('prompt')
+      const formatParam = urlParams.get('format')
+
       const saved = sessionStorage.getItem(DRAFT_STORAGE_KEY)
       if (saved) {
         const data = JSON.parse(saved)
@@ -489,6 +493,24 @@ export default function ImageCreator() {
         if (data.headline) setHeadline(data.headline)
         if (data.scheduledDate) setScheduledDate(data.scheduledDate)
         if (data.artGenerated !== undefined) setArtGenerated(data.artGenerated)
+      }
+
+      // Parâmetros de URL têm precedência ao vir de "Usar ideia"
+      if (promptParam) {
+        setPromptIdea(promptParam)
+        setHeadline(promptParam.slice(0, 60))
+        setCaption(promptParam)
+        setCurrentStep(2)
+      }
+      if (formatParam) {
+        if (formatParam.toLowerCase().includes('story')) {
+          setSelectedFormatId('story-ig')
+        } else if (formatParam.toLowerCase().includes('carrossel')) {
+          setSelectedFormatId('carrossel-ig')
+          setSlidesCount(5)
+        } else {
+          setSelectedFormatId('post-portrait-ig')
+        }
       }
     } catch {
       /* ignore storage errors */

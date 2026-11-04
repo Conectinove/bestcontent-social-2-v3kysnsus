@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Sparkles,
   Video,
@@ -8,25 +8,26 @@ import {
   Calendar as CalendarIcon,
   BookOpen,
   ArrowRight,
-  TrendingUp,
   Bookmark,
   BookmarkCheck,
   Share2,
   Wand2,
-  Clock,
   Layers,
-  ChevronRight,
-  CheckCircle2,
   CalendarDays,
   Zap,
+  Flame,
+  PlusCircle,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { createIdea, getIdeas } from '@/services/ideas'
+import pb from '@/lib/pocketbase/client'
 
 interface SuggestedIdea {
   id: string
@@ -117,27 +118,71 @@ const INSPIRATION_IDEAS: SuggestedIdea[] = [
 
 export default function Discover() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const { selectedBrandId, brands } = useSocial()
 
   const [savedIdeaTitles, setSavedIdeaTitles] = useState<Set<string>>(new Set())
   const [savingId, setSavingId] = useState<string | null>(null)
-  const [activeFilter, setActiveFilter] = useState<'all' | 'dates' | 'trending' | 'curated'>('all')
+  const [activeFilter, setActiveFilter] = useState<'all' | 'dates' | 'trending'>('all')
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbTrends, setDbTrends] = useState<SuggestedIdea[]>([])
 
-  // Load existing ideas from PocketBase
+  // Suporte a âncora direta para rolar até a seção de inspiração se vier com hash #inspiracao
   useEffect(() => {
-    if (!user?.id) return
-    getIdeas(user.id)
-      .then((records) => {
+    if (location.hash === '#inspiracao') {
+      const el = document.getElementById('secao-inspiracao')
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 150)
+      }
+    }
+  }, [location.hash])
+
+  // Load existing ideas & trends from PocketBase
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      const [ideasRes, trendsRes] = await Promise.allSettled([
+        getIdeas(user?.id),
+        pb.collection('trends').getList(1, 6, { sort: '-popularity_score' }),
+      ])
+
+      if (ideasRes.status === 'fulfilled' && Array.isArray(ideasRes.value)) {
         const titles = new Set<string>()
-        records.forEach((r: any) => {
+        ideasRes.value.forEach((r: any) => {
           if (r.title) titles.add(r.title.trim().toLowerCase())
         })
         setSavedIdeaTitles(titles)
-      })
-      .catch(() => {
-        // non-blocking
-      })
+      }
+
+      if (trendsRes.status === 'fulfilled' && trendsRes.value?.items) {
+        const trendsMapped: SuggestedIdea[] = trendsRes.value.items.map((t: any) => ({
+          id: `trend-${t.id}`,
+          kind: 'trending',
+          title: t.title,
+          description:
+            t.description || 'Tendência identificada pela IA com alto potencial de engajamento.',
+          category: 'Tendência IA',
+          badge: `${t.popularity_score || 85}% Relevância`,
+          format: 'Post Feed',
+          coverImage:
+            t.image_url ||
+            'https://img.usecurling.com/p/600/400?q=digital%20marketing%20growth&color=purple',
+          targetTheme: t.title,
+        }))
+        setDbTrends(trendsMapped)
+      }
+    } catch {
+      // non-blocking
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
   }, [user?.id])
 
   const activeBrand = brands.find((b: any) => b.id === selectedBrandId) || brands[0]
@@ -191,19 +236,39 @@ export default function Discover() {
 
   const handleCreateFromIdea = (idea: SuggestedIdea) => {
     const prompt = idea.targetTheme || idea.title
-    navigate(`/app/criar?prompt=${encodeURIComponent(prompt)}&format=${idea.format || 'Post'}`)
+    const fmt = idea.format || 'Post Feed'
+    // Se o formato sugerido for vídeo/reels, vai para o criador de vídeos; se for imagem/carrossel, para imagens
+    if (fmt === 'Reels') {
+      navigate(`/app/criar/videos?prompt=${encodeURIComponent(prompt)}`)
+    } else {
+      navigate(
+        `/app/criar/imagens?prompt=${encodeURIComponent(prompt)}&format=${encodeURIComponent(fmt)}`,
+      )
+    }
   }
 
-  const filteredIdeas = INSPIRATION_IDEAS.filter((idea) => {
-    if (activeFilter === 'all') return true
-    if (activeFilter === 'dates') return idea.kind === 'date'
-    if (activeFilter === 'trending') return idea.kind === 'trending'
-    if (activeFilter === 'curated') return idea.kind === 'curated'
-    return true
-  })
+  // Combina ideias estáticas com tendências vindas do PocketBase sem duplicar títulos
+  const allIdeas = useMemo(() => {
+    const combined = [...INSPIRATION_IDEAS]
+    dbTrends.forEach((trend) => {
+      if (!combined.some((c) => c.title.toLowerCase() === trend.title.toLowerCase())) {
+        combined.push(trend)
+      }
+    })
+    return combined
+  }, [dbTrends])
+
+  const filteredIdeas = useMemo(() => {
+    return allIdeas.filter((idea) => {
+      if (activeFilter === 'all') return true
+      if (activeFilter === 'dates') return idea.kind === 'date'
+      if (activeFilter === 'trending') return idea.kind === 'trending' || idea.kind === 'curated'
+      return true
+    })
+  }, [allIdeas, activeFilter])
 
   return (
-    <div className="space-y-10 pb-12">
+    <div className="space-y-10 pb-12 w-full max-w-full overflow-x-hidden">
       {/* 1. SEÇÃO: Comece por aqui */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -235,7 +300,7 @@ export default function Discover() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Card 1: Novo / Vídeo com IA */}
           <Link
-            to="/app/guided"
+            to="/app/criar/videos"
             className="group relative flex flex-col justify-between p-4 rounded-2xl border border-border bg-card/70 hover:bg-card hover:border-purple-500/50 hover:shadow-lg transition-all duration-200"
           >
             <div>
@@ -262,7 +327,7 @@ export default function Discover() {
 
           {/* Card 2: Popular / Post ou carrossel */}
           <Link
-            to="/app/image-creator"
+            to="/app/criar/imagens"
             className="group relative flex flex-col justify-between p-4 rounded-2xl border border-border bg-card/70 hover:bg-card hover:border-blue-500/50 hover:shadow-lg transition-all duration-200"
           >
             <div>
@@ -288,8 +353,13 @@ export default function Discover() {
           </Link>
 
           {/* Card 3: Inspiração */}
-          <Link
-            to="/app/inspiracao"
+          <a
+            href="#secao-inspiracao"
+            onClick={(e) => {
+              e.preventDefault()
+              const el = document.getElementById('secao-inspiracao')
+              el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
             className="group relative flex flex-col justify-between p-4 rounded-2xl border border-border bg-card/70 hover:bg-card hover:border-amber-500/50 hover:shadow-lg transition-all duration-200"
           >
             <div>
@@ -315,7 +385,7 @@ export default function Discover() {
               <span>Ver ideias</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
-          </Link>
+          </a>
 
           {/* Card 4: Calendário */}
           <Link
@@ -452,8 +522,8 @@ export default function Discover() {
         </div>
       </section>
 
-      {/* 4. SEÇÃO: Inspiração */}
-      <section className="space-y-6">
+      {/* 4. SEÇÃO: Inspiração (âncora #secao-inspiracao) */}
+      <section id="secao-inspiracao" className="space-y-6 scroll-mt-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -461,11 +531,11 @@ export default function Discover() {
               <h2 className="text-xl sm:text-2xl font-black text-foreground">Inspiração</h2>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Tendências, datas, notícias e ideias escolhidas para a MidiaViva
+              Tendências, datas, notícias e ideias com copywriting e formato prontos
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl text-xs">
               <button
                 type="button"
@@ -476,7 +546,7 @@ export default function Discover() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Todas
+                Todas ({allIdeas.length})
               </button>
               <button
                 type="button"
@@ -502,129 +572,184 @@ export default function Discover() {
               </button>
             </div>
 
-            <Link
-              to="/app/inspiracao"
-              className="text-xs font-bold text-primary hover:underline flex items-center gap-1 ml-2 shrink-0"
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={loadData}
+              disabled={isLoading}
+              title="Atualizar ideias"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
             >
-              <span>Ver todas as inspirações</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
 
-        {/* Grid de Ideias & Cards de Inspiração */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredIdeas.map((idea) => {
-            const normalizedTitle = idea.title.trim().toLowerCase()
-            const isSaved = savedIdeaTitles.has(normalizedTitle)
-            const isSaving = savingId === idea.id
-
-            return (
-              <Card
-                key={idea.id}
-                className="group overflow-hidden rounded-2xl border border-border bg-card/70 hover:bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-200 flex flex-col justify-between"
-              >
-                <div>
-                  {/* Imagem de capa com badges */}
-                  <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                    {idea.coverImage ? (
-                      <img
-                        src={idea.coverImage}
-                        alt={idea.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                        <Sparkles className="w-8 h-8 text-primary/40" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                    {/* Top Badges */}
-                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-                      {idea.badge ? (
-                        <Badge className="bg-black/80 backdrop-blur-md text-white border-white/20 text-[11px] font-bold px-2.5 py-0.5">
-                          {idea.badge}
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-primary text-white text-[11px] font-bold">
-                          {idea.category}
-                        </Badge>
-                      )}
-
-                      {idea.format && (
-                        <Badge
-                          variant="outline"
-                          className="bg-black/60 backdrop-blur-md text-white border-white/20 text-[10px] uppercase font-bold"
-                        >
-                          {idea.format}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Author or Date Footer on Image */}
-                    <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white/90 text-xs">
-                      {idea.author && (
-                        <span className="font-semibold text-purple-200">{idea.author}</span>
-                      )}
-                      {idea.dateLabel && (
-                        <span className="inline-flex items-center gap-1 font-bold text-amber-200">
-                          <CalendarDays className="w-3.5 h-3.5" />
-                          {idea.dateLabel}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Card Content */}
-                  <CardContent className="p-4 sm:p-5 space-y-2">
-                    <h4 className="font-extrabold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                      {idea.title}
-                    </h4>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                      {idea.description}
-                    </p>
-                  </CardContent>
-                </div>
-
-                {/* Card Actions */}
-                <div className="p-4 sm:p-5 pt-0 flex items-center justify-between gap-2 border-t border-border/40 mt-2">
-                  <Button
-                    type="button"
-                    variant={isSaved ? 'secondary' : 'outline'}
-                    size="sm"
-                    disabled={isSaving}
-                    onClick={() => handleSaveIdea(idea)}
-                    className="text-xs font-semibold gap-1.5"
-                  >
-                    {isSaved ? (
-                      <>
-                        <BookmarkCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Salva</span>
-                      </>
-                    ) : (
-                      <>
-                        <Bookmark className="w-3.5 h-3.5" />
-                        <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => handleCreateFromIdea(idea)}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold gap-1 shadow-xs"
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                    <span>Usar ideia</span>
-                  </Button>
+        {/* Loading Skeleton */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="overflow-hidden rounded-2xl border border-border bg-card/50">
+                <Skeleton className="aspect-video w-full" />
+                <CardContent className="p-5 space-y-3">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </CardContent>
+                <div className="p-5 pt-0 flex justify-between gap-2 border-t border-border/40 mt-2">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-24" />
                 </div>
               </Card>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        ) : filteredIdeas.length === 0 ? (
+          /* Empty State com Ação */
+          <Card className="p-8 sm:p-12 text-center border-dashed border-2 rounded-2xl bg-card/40 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center">
+              <Lightbulb className="w-6 h-6" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1">
+              <h3 className="font-bold text-lg text-foreground">Nenhuma ideia nesta categoria</h3>
+              <p className="text-sm text-muted-foreground">
+                Tente selecionar outro filtro acima ou crie uma ideia do zero com inteligência
+                artificial.
+              </p>
+            </div>
+            <div className="flex justify-center gap-3 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setActiveFilter('all')}>
+                Ver todas as ideias
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => navigate('/app/criar')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Criar ideia do zero
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          /* Grid de Ideias & Cards de Inspiração */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredIdeas.map((idea) => {
+              const normalizedTitle = idea.title.trim().toLowerCase()
+              const isSaved = savedIdeaTitles.has(normalizedTitle)
+              const isSaving = savingId === idea.id
+
+              return (
+                <Card
+                  key={idea.id}
+                  className="group overflow-hidden rounded-2xl border border-border bg-card/70 hover:bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-200 flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Imagem de capa com badges */}
+                    <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                      {idea.coverImage ? (
+                        <img
+                          src={idea.coverImage}
+                          alt={idea.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                          <Sparkles className="w-8 h-8 text-primary/40" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+                      {/* Top Badges */}
+                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+                        {idea.badge ? (
+                          <Badge className="bg-black/80 backdrop-blur-md text-white border-white/20 text-[11px] font-bold px-2.5 py-0.5">
+                            {idea.badge}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-primary text-white text-[11px] font-bold">
+                            {idea.category}
+                          </Badge>
+                        )}
+
+                        {idea.format && (
+                          <Badge
+                            variant="outline"
+                            className="bg-black/60 backdrop-blur-md text-white border-white/20 text-[10px] uppercase font-bold"
+                          >
+                            {idea.format}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Author or Date Footer on Image */}
+                      <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white/90 text-xs">
+                        {idea.author && (
+                          <span className="font-semibold text-purple-200">{idea.author}</span>
+                        )}
+                        {idea.dateLabel && (
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-200">
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            {idea.dateLabel}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Content */}
+                    <CardContent className="p-4 sm:p-5 space-y-2">
+                      <h4 className="font-extrabold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                        {idea.title}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                        {idea.description}
+                      </p>
+                    </CardContent>
+                  </div>
+
+                  {/* Card Actions */}
+                  <div className="p-4 sm:p-5 pt-0 flex items-center justify-between gap-2 border-t border-border/40 mt-2">
+                    <Button
+                      type="button"
+                      variant={isSaved ? 'secondary' : 'outline'}
+                      size="sm"
+                      disabled={isSaving}
+                      onClick={() => handleSaveIdea(idea)}
+                      className={`text-xs font-semibold gap-1.5 transition-colors ${
+                        isSaved
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : ''
+                      }`}
+                    >
+                      {isSaved ? (
+                        <>
+                          <BookmarkCheck className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Salva</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-3.5 h-3.5" />
+                          <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleCreateFromIdea(idea)}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold gap-1 shadow-xs"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>Usar ideia</span>
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        )}
       </section>
     </div>
   )

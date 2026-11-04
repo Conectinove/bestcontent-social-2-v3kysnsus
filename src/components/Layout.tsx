@@ -162,7 +162,7 @@ export default function Layout() {
           </main>
           <footer className="border-t border-border py-4 px-4 sm:px-6 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
             <span className="text-center sm:text-left font-medium">
-              MidiaViva — Powered by BestContent AI · v0.1.00
+              MidiaViva — Powered by BestContent AI · v0.1.01
             </span>
             <div className="flex items-center gap-4">
               <button

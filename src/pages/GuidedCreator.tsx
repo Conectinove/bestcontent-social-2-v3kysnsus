@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
@@ -363,6 +363,20 @@ export default function GuidedCreator() {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [selectedFormatId, setSelectedFormatId] = useState<string>('reels-shorts-ig')
   const [activeFilter, setActiveFilter] = useState<string>('all')
+
+  // Carrega prompt inicial de query params se houver (?prompt=...)
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search)
+      const promptParam = urlParams.get('prompt')
+      if (promptParam) {
+        setPrompt(promptParam)
+        setStep(3)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   // Dados do vídeo
   const [prompt, setPrompt] = useState('')

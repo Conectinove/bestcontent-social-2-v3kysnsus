@@ -82,6 +82,11 @@ const App = () => (
                 <Route path="/app/criar/imagens" element={<ImageCreator />} />
                 <Route path="/app/criar/flyers" element={<FlyerCreator />} />
                 <Route path="/app/criar/videos" element={<GuidedCreator />} />
+                <Route
+                  path="/app/image-creator"
+                  element={<Navigate to="/app/criar/imagens" replace />}
+                />
+                <Route path="/app/guided" element={<Navigate to="/app/criar/videos" replace />} />
                 <Route path="/app/brands" element={<Brands />} />
                 <Route path="/app/brands/:id" element={<BrandDetail />} />
                 <Route path="/app/library" element={<Library />} />

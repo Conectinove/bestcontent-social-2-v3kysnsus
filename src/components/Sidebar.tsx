@@ -259,7 +259,9 @@ export function Sidebar({
             onClick={onMobileClose}
             className={cn(
               'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              location.pathname === '/app/explorar' || location.pathname === '/app/discover'
+              location.pathname === '/app/explorar' ||
+                location.pathname === '/app/discover' ||
+                location.pathname === '/app/inspiracao'
                 ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
                 : 'text-foreground hover:bg-muted/80 hover:text-foreground',
             )}
@@ -563,11 +565,12 @@ export function Sidebar({
 
           {/* Inspiração */}
           <Link
-            to="/app/discover"
+            to="/app/explorar#inspiracao"
             onClick={onMobileClose}
             className={cn(
               'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              location.pathname === '/app/discover'
+              location.pathname === '/app/inspiracao' ||
+                (location.pathname === '/app/explorar' && location.hash === '#inspiracao')
                 ? 'bg-muted text-foreground font-bold shadow-xs'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
