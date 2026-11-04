@@ -74,7 +74,8 @@ export default function Layout() {
         <div className="hidden md:block border-b border-border bg-card/60 backdrop-blur-md px-4 py-2 sticky top-16 z-10 overflow-x-auto scrollbar-none">
           <nav className="flex items-center gap-1 max-w-7xl mx-auto">
             {[
-              { label: 'Feed', href: '/app/feed', icon: Home, highlight: true },
+              { label: 'Explorar', href: '/app/explorar', icon: Compass, highlight: true },
+              { label: 'Feed', href: '/app/feed', icon: Home },
               { label: 'Visão Geral', href: '/app/visao-geral', icon: LayoutDashboard },
               { label: 'Funil Vendas', href: '/app/funnel', icon: LayoutGrid },
               { label: 'Hub Social', href: '/app/social-hub', icon: Share2 },
@@ -93,12 +94,16 @@ export default function Layout() {
             ].map((item) => {
               const Icon = item.icon
               const active =
-                item.href === '/app/feed'
-                  ? location.pathname === '/app/feed' ||
-                    location.pathname === '/app/feed-comunidade'
-                  : item.href === '/app/visao-geral'
-                    ? location.pathname === '/app/visao-geral'
-                    : location.pathname.startsWith(item.href)
+                item.href === '/app/explorar'
+                  ? location.pathname === '/app/explorar' ||
+                    location.pathname === '/app/discover' ||
+                    location.pathname === '/app/inspiracao'
+                  : item.href === '/app/feed'
+                    ? location.pathname === '/app/feed' ||
+                      location.pathname === '/app/feed-comunidade'
+                    : item.href === '/app/visao-geral'
+                      ? location.pathname === '/app/visao-geral'
+                      : location.pathname.startsWith(item.href)
               return (
                 <Link
                   key={item.href}

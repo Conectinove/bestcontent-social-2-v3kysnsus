@@ -73,7 +73,7 @@ const App = () => (
               {/* Authenticated routes inside Layout */}
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
-                <Route path="/app" element={<Navigate to="/app/feed" replace />} />
+                <Route path="/app" element={<Navigate to="/app/explorar" replace />} />
                 <Route path="/app/feed" element={<Feed />} />
                 <Route path="/app/feed-comunidade" element={<Navigate to="/app/feed" replace />} />
                 <Route path="/app/visao-geral" element={<VisaoGeral />} />
@@ -112,6 +112,8 @@ const App = () => (
                 <Route path="/app/anuncios" element={<AdsPage />} />
                 <Route path="/app/pages" element={<PagesFunis />} />
                 <Route path="/app/discover" element={<Discover />} />
+                <Route path="/app/explorar" element={<Discover />} />
+                <Route path="/app/inspiracao" element={<Discover />} />
                 <Route path="/app/settings" element={<Settings />} />
                 <Route path="/app/indicar" element={<ReferralPage />} />
                 <Route path="/app/subscription" element={<Subscription />} />

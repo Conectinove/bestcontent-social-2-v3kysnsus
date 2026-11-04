@@ -97,7 +97,7 @@ export function Sidebar({
         {/* Brand Logo Header */}
         <div className="h-16 flex items-center px-4 border-b border-sidebar-border justify-between">
           <Link
-            to="/app/feed"
+            to="/app/explorar"
             onClick={onMobileClose}
             className="flex items-center gap-2 overflow-hidden group"
           >
@@ -253,7 +253,30 @@ export function Sidebar({
 
         {/* Navigation Menu */}
         <nav className="p-2 space-y-1 mt-2">
-          {/* Feed da Comunidade (Entrada Principal do Portal) */}
+          {/* Explorar (Home Comece por aqui) */}
+          <Link
+            to="/app/explorar"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/explorar' || location.pathname === '/app/discover'
+                ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
+                : 'text-foreground hover:bg-muted/80 hover:text-foreground',
+            )}
+            title={collapsed ? 'Explorar (Comece por aqui)' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Compass className="w-4 h-4 shrink-0 text-primary" />
+              {!collapsed && <span>Explorar</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-extrabold text-primary bg-primary/15 px-1.5 py-0.5 rounded tracking-wider uppercase border border-primary/30">
+                INÍCIO
+              </span>
+            )}
+          </Link>
+
+          {/* Feed da Comunidade */}
           <Link
             to="/app/feed"
             onClick={onMobileClose}
@@ -269,11 +292,6 @@ export function Sidebar({
               <Home className="w-4 h-4 shrink-0 text-primary" />
               {!collapsed && <span>Feed</span>}
             </div>
-            {!collapsed && (
-              <span className="text-[9px] font-extrabold text-primary bg-primary/15 px-1.5 py-0.5 rounded tracking-wider uppercase border border-primary/30">
-                HOME
-              </span>
-            )}
           </Link>
 
           {/* Visão Geral (Central Operacional) */}

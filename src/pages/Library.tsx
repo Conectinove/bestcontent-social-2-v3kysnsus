@@ -723,7 +723,7 @@ export default function Library() {
             className="rounded-xl border-border bg-card hover:bg-muted text-xs font-semibold h-9 px-2.5 sm:px-3.5 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
           >
             <ImageIcon className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-            <span className="truncate">Banco de Imagens</span>
+            <span className="truncate">Banco de Mídias</span>
           </Button>
 
           <Button
