@@ -101,6 +101,17 @@ export default function SalesFunnelPage() {
   // Modal de exclusão
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
+  // Formatação amigável de moeda (R$ 12,4 mil quando grande)
+  const formatCurrency = (val: number, compact = false) => {
+    if (compact && val >= 1000000) {
+      return `R$ ${(val / 1000000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}M`
+    }
+    if (compact && val >= 10000) {
+      return `R$ ${(val / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
+    }
+    return `R$ ${val.toLocaleString('pt-BR')}`
+  }
+
   // Carregar dados
   const loadDeals = async () => {
     try {
@@ -895,89 +906,119 @@ export default function SalesFunnelPage() {
 
       {/* Grid Superior de 5 KPIs Obrigatórios (1 col em telas < 400px, 2 col sm, 3 col md, 5 col lg) */}
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        {/* KPI 1: Pipeline Total */}
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card space-y-1 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-              Valor Total Pipeline
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-600 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-foreground truncate">
-            R$ {kpis.totalPipelineValue.toLocaleString('pt-BR')}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            {kpis.totalDeals} negócio(s) mapeado(s)
-          </p>
-        </Card>
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card
+              key={i}
+              className="p-4 rounded-2xl border-border/80 bg-card space-y-2 animate-pulse shadow-xs"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-2.5 w-20 bg-muted rounded" />
+                <div className="w-7 h-7 rounded-lg bg-muted" />
+              </div>
+              <div className="h-7 w-28 bg-muted rounded" />
+              <div className="h-3 w-24 bg-muted rounded" />
+            </Card>
+          ))
+        ) : (
+          <>
+            {/* KPI 1: Pipeline Total */}
+            <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card space-y-1 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                  Valor Total Pipeline
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-600 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+              </div>
+              <p
+                className="text-xl sm:text-2xl font-black text-foreground truncate"
+                title={`R$ ${kpis.totalPipelineValue.toLocaleString('pt-BR')}`}
+              >
+                {formatCurrency(kpis.totalPipelineValue, true)}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {kpis.totalDeals} negócio(s) mapeado(s)
+              </p>
+            </Card>
 
-        {/* KPI 2: Valor em Negociação */}
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-orange-500/10 via-card to-card space-y-1 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-              Em Negociação
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-orange-500/15 text-orange-600 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-orange-600 dark:text-orange-400 truncate">
-            R$ {kpis.inNegotiationValue.toLocaleString('pt-BR')}
-          </p>
-          <p className="text-[11px] text-muted-foreground">Propostas & contratos abertos</p>
-        </Card>
+            {/* KPI 2: Valor em Negociação */}
+            <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-orange-500/10 via-card to-card space-y-1 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                  Em Negociação
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-orange-500/15 text-orange-600 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </div>
+              <p
+                className="text-xl sm:text-2xl font-black text-orange-600 dark:text-orange-400 truncate"
+                title={`R$ ${kpis.inNegotiationValue.toLocaleString('pt-BR')}`}
+              >
+                {formatCurrency(kpis.inNegotiationValue, true)}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Propostas & contratos abertos</p>
+            </Card>
 
-        {/* KPI 3: Taxa de Conversão */}
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-emerald-500/10 via-card to-card space-y-1 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-              Taxa de Conversão
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            {kpis.conversionRate}%
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            {kpis.wonCount} ganhos de {kpis.totalDeals}
-          </p>
-        </Card>
+            {/* KPI 3: Taxa de Conversão */}
+            <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-emerald-500/10 via-card to-card space-y-1 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                  Taxa de Conversão
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                {kpis.conversionRate}%
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {kpis.wonCount} ganhos de {kpis.totalDeals}
+              </p>
+            </Card>
 
-        {/* KPI 4: Ticket Médio */}
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-blue-500/10 via-card to-card space-y-1 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-              Ticket Médio
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center">
-              <Target className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-foreground truncate">
-            R$ {kpis.averageTicket.toLocaleString('pt-BR')}
-          </p>
-          <p className="text-[11px] text-muted-foreground">Por contrato fechado</p>
-        </Card>
+            {/* KPI 4: Ticket Médio */}
+            <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-blue-500/10 via-card to-card space-y-1 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                  Ticket Médio
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center">
+                  <Target className="w-4 h-4" />
+                </div>
+              </div>
+              <p
+                className="text-xl sm:text-2xl font-black text-foreground truncate"
+                title={`R$ ${kpis.averageTicket.toLocaleString('pt-BR')}`}
+              >
+                {formatCurrency(kpis.averageTicket, true)}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Por contrato fechado</p>
+            </Card>
 
-        {/* KPI 5: Ganhos no Mês */}
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-pink-500/10 via-card to-card space-y-1 shadow-xs min-[420px]:col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-              Ganhos no Mês
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-pink-500/15 text-pink-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-pink-600 dark:text-pink-400 truncate">
-            R$ {kpis.wonThisMonthValue.toLocaleString('pt-BR')}
-          </p>
-          <p className="text-[11px] text-muted-foreground">Receita faturada neste ciclo</p>
-        </Card>
+            {/* KPI 5: Ganhos no Mês */}
+            <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-pink-500/10 via-card to-card space-y-1 shadow-xs min-[420px]:col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                  Ganhos no Mês
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-pink-500/15 text-pink-600 flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <p
+                className="text-xl sm:text-2xl font-black text-pink-600 dark:text-pink-400 truncate"
+                title={`R$ ${kpis.wonThisMonthValue.toLocaleString('pt-BR')}`}
+              >
+                {formatCurrency(kpis.wonThisMonthValue, true)}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Receita faturada neste ciclo</p>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Blocos de Performance de Mídia Paga Integrados (Google Ads + Meta Ads + YouTube Ads + TikTok Ads + LinkedIn Ads lado a lado) */}
@@ -1254,184 +1295,257 @@ export default function SalesFunnelPage() {
 
       {/* Pipeline Kanban com Drag and Drop */}
       <div className="overflow-x-auto pb-4 scrollbar-thin max-w-full">
-        <div className="flex gap-4 min-w-[1100px] sm:min-w-[1300px]">
-          {FUNNEL_STAGES.map((stage) => {
-            const stageDeals = filteredDeals.filter((d) => d.stage === stage.id)
-            const stageTotalValue = stageDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0)
-            const isDropTarget = dragOverStage === stage.id
-
-            return (
+        {loading ? (
+          <div className="flex gap-4 min-w-[1100px] sm:min-w-[1300px]">
+            {FUNNEL_STAGES.map((s) => (
               <div
-                key={stage.id}
-                onDragOver={(e) => handleDragOver(e, stage.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, stage.id)}
-                className={`flex-1 min-w-[210px] rounded-2xl border transition-all flex flex-col max-h-[750px] ${
-                  isDropTarget
-                    ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/20'
-                    : 'border-border/80 bg-muted/20'
-                }`}
+                key={s.id}
+                className="flex-1 min-w-[210px] rounded-2xl border border-border/80 bg-muted/20 p-3 space-y-3 animate-pulse"
               >
-                {/* Cabeçalho da Coluna */}
-                <div className="p-3 border-b border-border/60 space-y-1 bg-card/60 rounded-t-2xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: stage.color }}
-                      />
-                      <h4 className="font-bold text-xs text-foreground tracking-tight">
-                        {stage.label}
-                      </h4>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 h-5">
-                      {stageDeals.length}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>Total:</span>
-                    <span className="font-bold font-mono text-foreground">
-                      R$ {stageTotalValue.toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-                </div>
+                <div className="h-6 w-24 bg-muted rounded" />
+                <div className="h-28 bg-card rounded-xl border border-border/60" />
+                <div className="h-28 bg-card rounded-xl border border-border/60" />
+              </div>
+            ))}
+          </div>
+        ) : filteredDeals.length === 0 && searchQuery ? (
+          <div className="p-8 text-center bg-card rounded-2xl border border-border/80 space-y-3 my-2">
+            <Search className="w-10 h-10 text-muted-foreground mx-auto" />
+            <h4 className="text-sm font-bold text-foreground">
+              Nenhuma oportunidade encontrada para "{searchQuery}"
+            </h4>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              Tente pesquisar por outro termo ou limpe os filtros para visualizar todas as
+              oportunidades do funil.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('')
+                setSelectedSource('all')
+              }}
+              className="rounded-xl text-xs h-9 min-h-[40px]"
+            >
+              Limpar Filtros
+            </Button>
+          </div>
+        ) : (
+          <div className="flex gap-4 min-w-[1100px] sm:min-w-[1300px]">
+            {FUNNEL_STAGES.map((stage) => {
+              const stageDeals = filteredDeals.filter((d) => d.stage === stage.id)
+              const stageTotalValue = stageDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0)
+              const isDropTarget = dragOverStage === stage.id
 
-                {/* Lista de Cards da Coluna */}
-                <div className="p-2 space-y-2.5 overflow-y-auto flex-1 scrollbar-thin min-h-[160px]">
-                  {stageDeals.length === 0 && (
-                    <div className="h-32 flex flex-col items-center justify-center text-center p-3 border border-dashed border-border/70 rounded-xl">
-                      <p className="text-[11px] text-muted-foreground">Arraste um card aqui</p>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenCreateModal(stage.id)}
-                        className="text-[10px] font-bold text-purple-600 hover:underline mt-1"
+              return (
+                <div
+                  key={stage.id}
+                  onDragOver={(e) => handleDragOver(e, stage.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, stage.id)}
+                  className={`flex-1 min-w-[210px] rounded-2xl border transition-all duration-200 flex flex-col max-h-[750px] ${
+                    isDropTarget
+                      ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30 scale-[1.01]'
+                      : 'border-border/80 bg-muted/20'
+                  }`}
+                >
+                  {/* Cabeçalho da Coluna: Contagem e Valor Somado */}
+                  <div className="p-3 border-b border-border/60 space-y-1.5 bg-card/80 backdrop-blur-xs rounded-t-2xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                          style={{ backgroundColor: stage.color }}
+                        />
+                        <h4 className="font-bold text-xs text-foreground tracking-tight">
+                          {stage.label}
+                        </h4>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold px-2 py-0.5 h-5 bg-background border-border/80"
                       >
-                        + Adicionar
-                      </button>
+                        {stageDeals.length}
+                      </Badge>
                     </div>
-                  )}
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5 border-t border-border/40">
+                      <span className="font-medium text-[10px] uppercase tracking-wider">
+                        Subtotal:
+                      </span>
+                      <span
+                        className="font-black font-mono text-foreground text-xs"
+                        title={`R$ ${stageTotalValue.toLocaleString('pt-BR')}`}
+                      >
+                        R$ {stageTotalValue.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                  </div>
 
-                  {stageDeals.map((deal) => (
-                    <div
-                      key={deal.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, deal.id)}
-                      className={`p-3 rounded-xl bg-card border transition-all cursor-grab active:cursor-grabbing hover:border-purple-500/50 shadow-xs space-y-2 ${
-                        draggedDealId === deal.id ? 'opacity-40 scale-95' : 'opacity-100'
-                      }`}
-                    >
-                      {/* Topo do Card: Origem & Ações */}
-                      <div className="flex items-start justify-between gap-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {deal.source && (
-                            <Badge
-                              variant="secondary"
-                              className="text-[9px] font-bold px-1.5 py-0 h-4 bg-muted text-muted-foreground"
-                            >
-                              {deal.source}
-                            </Badge>
-                          )}
-                          {deal.priority === 'alta' && (
-                            <span className="text-[9px] font-extrabold text-rose-600 bg-rose-500/10 px-1 py-0.2 rounded uppercase">
-                              Alta
-                            </span>
-                          )}
-                        </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-lg -mr-1 -mt-1"
-                            >
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-36 text-xs">
-                            <DropdownMenuItem
-                              onClick={() => handleOpenEditModal(deal)}
-                              className="gap-2 text-xs cursor-pointer"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                              <span>Editar</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteConfirmId(deal.id)}
-                              className="gap-2 text-xs text-rose-600 focus:text-rose-600 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Excluir</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                  {/* Lista de Cards da Coluna */}
+                  <div className="p-2 space-y-2.5 overflow-y-auto flex-1 scrollbar-thin min-h-[160px]">
+                    {stageDeals.length === 0 && (
+                      <div className="h-32 flex flex-col items-center justify-center text-center p-3 border border-dashed border-border/70 rounded-xl bg-card/30">
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                          Nenhum deal nesta etapa
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                          Arraste um card ou adicione
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCreateModal(stage.id)}
+                          className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline mt-2 flex items-center gap-1 min-h-[32px] px-2 py-1 rounded-lg"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Adicionar</span>
+                        </button>
                       </div>
+                    )}
 
-                      {/* Título & Empresa */}
-                      <div>
-                        <h5 className="font-bold text-xs text-foreground leading-snug line-clamp-2">
-                          {deal.title}
-                        </h5>
-                        {deal.company && (
-                          <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
-                            <Building className="w-3 h-3 shrink-0" />
-                            <span>{deal.company}</span>
-                          </p>
-                        )}
-                      </div>
+                    {stageDeals.map((deal) => {
+                      const isDragging = draggedDealId === deal.id
+                      const priorityColor =
+                        deal.priority === 'alta'
+                          ? 'text-rose-600 bg-rose-500/10 border-rose-500/20'
+                          : deal.priority === 'media'
+                            ? 'text-amber-600 bg-amber-500/10 border-amber-500/20'
+                            : 'text-slate-600 bg-slate-500/10 border-slate-500/20'
 
-                      {/* Valor & Responsável */}
-                      <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
-                        <span className="font-black text-purple-600 dark:text-purple-400 font-mono">
-                          R$ {(deal.value || 0).toLocaleString('pt-BR')}
-                        </span>
-                        {deal.responsible && (
-                          <span
-                            className="text-[10px] text-muted-foreground truncate max-w-[90px]"
-                            title={deal.responsible}
-                          >
-                            {deal.responsible.split(' ')[0]}
-                          </span>
-                        )}
-                      </div>
+                      return (
+                        <div
+                          key={deal.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, deal.id)}
+                          className={`p-3 rounded-xl bg-card border transition-all duration-150 cursor-grab active:cursor-grabbing hover:border-purple-500/60 hover:shadow-md space-y-2.5 select-none ${
+                            isDragging
+                              ? 'opacity-40 scale-95 shadow-inner border-dashed border-purple-400 ring-2 ring-purple-400/20'
+                              : 'opacity-100 shadow-xs'
+                          }`}
+                        >
+                          {/* Topo do Card: Origem & Prioridade & Menu */}
+                          <div className="flex items-start justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {deal.source && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] font-bold px-1.5 py-0 h-4 bg-muted/80 text-muted-foreground border border-border/40"
+                                >
+                                  {deal.source}
+                                </Badge>
+                              )}
+                              <span
+                                className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${priorityColor}`}
+                              >
+                                {deal.priority || 'média'}
+                              </span>
+                            </div>
 
-                      {/* Data prevista ou notas */}
-                      {(deal.expected_close_date || deal.notes) && (
-                        <div className="pt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                          {deal.expected_close_date && (
-                            <span className="flex items-center gap-1 font-mono">
-                              <Calendar className="w-3 h-3 text-muted-foreground/70" />
-                              {new Date(deal.expected_close_date).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg -mr-1 -mt-1 shrink-0"
+                                  aria-label="Ações do negócio"
+                                >
+                                  <MoreVertical className="w-3.5 h-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-36 text-xs">
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenEditModal(deal)}
+                                  className="gap-2 text-xs cursor-pointer"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                  <span>Editar</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteConfirmId(deal.id)}
+                                  className="gap-2 text-xs text-rose-600 focus:text-rose-600 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Excluir</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          {/* Título & Empresa */}
+                          <div>
+                            <h5 className="font-bold text-xs text-foreground leading-snug line-clamp-2 hover:text-purple-600 transition-colors">
+                              {deal.title}
+                            </h5>
+                            {deal.company && (
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1 truncate font-medium">
+                                <Building className="w-3 h-3 shrink-0 text-muted-foreground/70" />
+                                <span>{deal.company}</span>
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Valor em R$ & Responsável */}
+                          <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                            <span className="font-black text-purple-600 dark:text-purple-400 font-mono text-sm">
+                              R${' '}
+                              {(Number(deal.value) || 0).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
                               })}
                             </span>
-                          )}
-                          {deal.notes && (
-                            <span className="truncate max-w-[120px] italic">"{deal.notes}"</span>
+                            {deal.responsible && (
+                              <span
+                                className="text-[10px] text-muted-foreground truncate max-w-[95px] bg-muted/50 px-1.5 py-0.5 rounded font-medium"
+                                title={deal.responsible}
+                              >
+                                {deal.responsible.split(' ')[0]}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Data prevista ou notas */}
+                          {(deal.expected_close_date || deal.notes) && (
+                            <div className="pt-1 flex items-center justify-between text-[10px] text-muted-foreground gap-1">
+                              {deal.expected_close_date && (
+                                <span className="flex items-center gap-1 font-mono shrink-0">
+                                  <Calendar className="w-3 h-3 text-muted-foreground/70" />
+                                  {new Date(deal.expected_close_date).toLocaleDateString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                  })}
+                                </span>
+                              )}
+                              {deal.notes && (
+                                <span
+                                  className="truncate italic text-muted-foreground/80 max-w-[120px]"
+                                  title={deal.notes}
+                                >
+                                  "{deal.notes}"
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      )
+                    })}
+                  </div>
 
-                {/* Botão de adicionar direto na coluna */}
-                <div className="p-2 border-t border-border/60 bg-card/40 rounded-b-2xl">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleOpenCreateModal(stage.id)}
-                    className="w-full text-xs h-8 text-muted-foreground hover:text-foreground justify-center gap-1 rounded-xl"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Adicionar Deal</span>
-                  </Button>
+                  {/* Botão de adicionar direto na coluna */}
+                  <div className="p-2 border-t border-border/60 bg-card/40 rounded-b-2xl">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenCreateModal(stage.id)}
+                      className="w-full text-xs h-9 text-muted-foreground hover:text-foreground justify-center gap-1 rounded-xl min-h-[36px]"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span className="font-semibold">Adicionar Deal</span>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Modal de Criação / Edição de Deal */}

@@ -453,13 +453,20 @@ export function Sidebar({
             className={cn(
               'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
               location.pathname === '/app/funnel' || location.pathname === '/app/funil'
-                ? 'bg-muted text-foreground font-bold shadow-xs'
+                ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
             title={collapsed ? 'Funil de Vendas' : undefined}
           >
             <div className="flex items-center gap-3">
-              <Briefcase className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              <Briefcase
+                className={cn(
+                  'w-4 h-4 shrink-0',
+                  location.pathname === '/app/funnel' || location.pathname === '/app/funil'
+                    ? 'text-primary'
+                    : 'text-purple-600 dark:text-purple-400',
+                )}
+              />
               {!collapsed && <span>Funil de Vendas</span>}
             </div>
             {!collapsed && (
@@ -477,13 +484,21 @@ export function Sidebar({
               'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
               location.pathname === '/app/performance' ||
                 location.pathname === '/app/dashboard-performance'
-                ? 'bg-muted text-foreground font-bold shadow-xs'
+                ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
             title={collapsed ? 'Performance' : undefined}
           >
             <div className="flex items-center gap-3">
-              <BarChart3 className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              <BarChart3
+                className={cn(
+                  'w-4 h-4 shrink-0',
+                  location.pathname === '/app/performance' ||
+                    location.pathname === '/app/dashboard-performance'
+                    ? 'text-primary'
+                    : 'text-purple-600 dark:text-purple-400',
+                )}
+              />
               {!collapsed && <span>Performance</span>}
             </div>
             {!collapsed && (
@@ -500,13 +515,20 @@ export function Sidebar({
             className={cn(
               'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
               location.pathname === '/app/students' || location.pathname === '/app/alunos'
-                ? 'bg-muted text-foreground font-bold shadow-xs'
+                ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
             title={collapsed ? 'Alunos Matriculados' : undefined}
           >
             <div className="flex items-center gap-3">
-              <GraduationCap className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              <GraduationCap
+                className={cn(
+                  'w-4 h-4 shrink-0',
+                  location.pathname === '/app/students' || location.pathname === '/app/alunos'
+                    ? 'text-primary'
+                    : 'text-purple-600 dark:text-purple-400',
+                )}
+              />
               {!collapsed && <span>Alunos</span>}
             </div>
             {!collapsed && (

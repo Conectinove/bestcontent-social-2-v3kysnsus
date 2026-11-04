@@ -584,18 +584,63 @@ export default function StudentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {loading && (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-600" />
-                    Carregando alunos matriculados...
-                  </td>
-                </tr>
-              )}
+              {loading &&
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <tr key={`skeleton-${idx}`} className="animate-pulse">
+                    <td className="py-3.5 px-4">
+                      <div className="space-y-1.5">
+                        <div className="h-3.5 w-32 bg-muted rounded" />
+                        <div className="h-2.5 w-44 bg-muted/60 rounded" />
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3.5 w-28 bg-muted rounded mb-1" />
+                      <div className="h-2.5 w-16 bg-muted/60 rounded" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-5 w-20 bg-muted rounded-full" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-2 w-full bg-muted rounded" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="h-3 w-16 bg-muted rounded" />
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="h-7 w-14 bg-muted rounded ml-auto" />
+                    </td>
+                  </tr>
+                ))}
               {!loading && filteredStudents.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground italic">
-                    Nenhum aluno encontrado para os filtros selecionados.
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <div className="max-w-sm mx-auto space-y-2">
+                      <p className="font-semibold text-foreground text-xs">
+                        Nenhum aluno encontrado
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {search || selectedCourse !== 'all' || selectedStatus !== 'all'
+                          ? 'Tente ajustar seus termos de busca ou filtros.'
+                          : 'Você ainda não cadastrou alunos. Comece matriculando o primeiro agora mesmo.'}
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (search || selectedCourse !== 'all' || selectedStatus !== 'all') {
+                            setSearch('')
+                            setSelectedCourse('all')
+                            setSelectedStatus('all')
+                          } else {
+                            handleOpenCreate()
+                          }
+                        }}
+                        className="rounded-xl text-xs h-8 mt-2 bg-purple-600 hover:bg-purple-700 text-white min-h-[36px]"
+                      >
+                        {search || selectedCourse !== 'all' || selectedStatus !== 'all'
+                          ? 'Limpar Filtros'
+                          : 'Matricular Novo Aluno'}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               )}
