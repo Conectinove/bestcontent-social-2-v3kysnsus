@@ -231,6 +231,54 @@ export function XAdsFunnelBlock({ onConvertClickToLead }: XAdsFunnelBlockProps) 
             </p>
           </div>
         </div>
+
+        {/* Quebra por Formato de Anúncio e Tendência do Período */}
+        <div className="pt-2 border-t border-border/60">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-2">
+            <span className="font-semibold uppercase tracking-wider">
+              Quebra por Formato de Campanha no X (Twitter)
+            </span>
+            <span className="text-[10px]">
+              Tendência: <strong className="text-emerald-600">+14.8% vs ciclo anterior</strong>
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-foreground block">Posts Promovidos</span>
+                <span className="text-[10px] text-muted-foreground">Timeline · 54% cliques</span>
+              </div>
+              <div className="text-right">
+                <span className="font-black text-foreground block font-mono">20 leads</span>
+                <span className="text-[10px] text-muted-foreground font-mono">CPC: R$ 0,52</span>
+              </div>
+            </div>
+            <div className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-foreground block">Trending Takeover</span>
+                <span className="text-[10px] text-muted-foreground">Assuntos do Momento</span>
+              </div>
+              <div className="text-right">
+                <span className="font-black text-emerald-600 dark:text-emerald-400 block font-mono">
+                  11 leads
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">CPC: R$ 0,58</span>
+              </div>
+            </div>
+            <div className="p-2.5 rounded-xl bg-card/80 border border-border/60 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-foreground block">Vídeo Promovido</span>
+                <span className="text-[10px] text-muted-foreground">In-feed Video Card</span>
+              </div>
+              <div className="text-right">
+                <span className="font-black text-sky-600 dark:text-sky-400 block font-mono">
+                  4 leads
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">CPC: R$ 0,61</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

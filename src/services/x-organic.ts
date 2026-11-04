@@ -23,6 +23,8 @@ export interface XOrganicMetrics {
   likes_30d: number
   replies_30d: number
   tweets_published_30d: number
+  url_clicks_30d?: number
+  url_ctr?: number
 }
 
 export interface XOrganicTweet {

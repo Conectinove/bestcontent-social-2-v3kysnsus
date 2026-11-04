@@ -25,6 +25,8 @@ export interface TikTokMetrics {
   profile_visits_from_video?: number
   engagement_rate: number
   growth_rate_30d: number
+  comments_answered_ratio?: number
+  retention_peak?: number
 }
 export interface TikTokHistoryItem {
   period: string

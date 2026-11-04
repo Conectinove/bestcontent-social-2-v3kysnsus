@@ -271,6 +271,41 @@ export function InstagramFeedWidget({ compact = false, className = '' }: Instagr
               </div>
             </div>
 
+            {/* Nova Seção: Salvamentos por Formato (Carrossel, Reels e Estático) */}
+            <div className="p-2 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                  <Bookmark className="w-3 h-3 text-amber-500" />
+                  Salvamentos por Formato
+                </span>
+                <span className="text-[10px] text-amber-600 font-semibold">
+                  Carrossel lidera em 68%
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 text-center text-[11px]">
+                <div className="p-1 rounded bg-card/80 border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Carrossel</span>
+                  <span className="font-bold text-foreground">
+                    {Number(data.metrics.saves_by_format?.carrossel || 2640).toLocaleString(
+                      'pt-BR',
+                    )}
+                  </span>
+                </div>
+                <div className="p-1 rounded bg-card/80 border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Reels</span>
+                  <span className="font-bold text-foreground">
+                    {Number(data.metrics.saves_by_format?.reels || 1240).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div className="p-1 rounded bg-card/80 border border-border/40">
+                  <span className="text-[9px] text-muted-foreground block">Post Único</span>
+                  <span className="font-bold text-foreground">
+                    {Number(data.metrics.saves_by_format?.static || 480).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Bloco Reels */}
             <div className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent border border-purple-500/20">
               <div className="flex items-center justify-between mb-1.5">

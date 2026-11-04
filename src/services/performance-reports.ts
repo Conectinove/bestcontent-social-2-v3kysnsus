@@ -32,6 +32,19 @@ export interface PerformanceReportRecord {
   channels_included?: string[]
   executive_summary?: string
   engagement_data_json?: {
+    isAdvancedAiReport?: boolean
+    crossChannelInsights?: string[]
+    prioritizedRecommendations?: {
+      high: string[]
+      medium: string[]
+      low: string[]
+    }
+    nextPeriodProjection?: {
+      growthEstimate: string
+      expectedLeads: string
+      estimatedRoas: string
+      rationale: string
+    }
     engagementByNetwork?: { network: string; rate: number; interactions: number }[]
     engagementByFormat?: { format: string; rate: number; avgInteractions: number }[]
     weeklyEvolution?: { week: string; engagementRate: number; interactions: number }[]

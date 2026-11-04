@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Menu,
@@ -16,7 +16,9 @@ import {
   CreditCard,
   Gift,
   Settings as SettingsIcon,
+  Command,
 } from 'lucide-react'
+import { QuickSearchPalette } from '@/components/QuickSearchPalette'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -55,6 +57,19 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
   const navigate = useNavigate()
   const [publishLoading, setPublishLoading] = useState(false)
   const [editProfileOpen, setEditProfileOpen] = useState(false)
+  const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
+
+  // Atalho global Ctrl+K / ⌘K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -110,16 +125,18 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
         </div>
       </div>
 
-      {/* Middle: Global Search */}
-      <div className="flex-1 max-w-md relative hidden md:block min-w-0">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Pesquisar marcas, ideias ou posts..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-9 text-sm bg-muted/50 border-border focus-visible:ring-primary w-full"
-        />
+      {/* Middle: Global Search (Abre a Command Palette em 1 clique ou com Ctrl+K) */}
+      <div
+        onClick={() => setSearchPaletteOpen(true)}
+        className="flex-1 max-w-md relative hidden md:block min-w-0 cursor-pointer group"
+      >
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-purple-600 transition-colors" />
+        <div className="pl-9 pr-12 h-9 text-sm bg-muted/50 group-hover:bg-muted/80 border border-border group-hover:border-purple-500/50 rounded-xl flex items-center justify-between text-muted-foreground transition-all">
+          <span className="truncate text-xs sm:text-sm">Pesquisar marcas, ideias ou posts...</span>
+          <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-background text-muted-foreground rounded border border-border/80 shadow-xs">
+            <Command className="w-2.5 h-2.5" />K
+          </kbd>
+        </div>
       </div>
 
       {/* Right side: New Post CTA, Theme Toggle, Notifications & User Avatar */}
@@ -303,6 +320,9 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
       </div>
 
       <EditProfileModal open={editProfileOpen} onOpenChange={setEditProfileOpen} />
+
+      {/* Global Quick Search Command Palette (Ctrl+K) */}
+      <QuickSearchPalette open={searchPaletteOpen} onOpenChange={setSearchPaletteOpen} />
     </header>
   )
 }

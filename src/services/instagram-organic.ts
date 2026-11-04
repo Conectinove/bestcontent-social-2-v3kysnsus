@@ -53,6 +53,13 @@ export interface InstagramMetrics {
   stories?: InstagramStoriesMetrics
   reels?: InstagramReelsMetrics
   reach_by_format?: InstagramFormatReachBreakdown
+  saves_by_format?: {
+    reels: number
+    carousels?: number
+    carrossel?: number
+    static_posts?: number
+    static?: number
+  }
 }
 
 export interface InstagramHistoryItem {

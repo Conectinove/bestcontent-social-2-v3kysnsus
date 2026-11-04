@@ -480,6 +480,125 @@ export function WhatToPostTodayModal({
                     </div>
                   </div>
 
+                  {/* Teste A/B de Ganchos com IA Avançada */}
+                  {idea.hookAB && (
+                    <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-foreground flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                          Teste A/B de Ganchos (IA Calibrada)
+                        </span>
+                        <Badge className="bg-purple-600 text-white text-[9px] uppercase font-bold">
+                          Recomendado: Gancho {idea.hookAB.recommendedHook}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div
+                          className={`p-2 rounded-lg border text-[11px] ${
+                            idea.hookAB.recommendedHook === 'A'
+                              ? 'bg-purple-500/10 border-purple-500/40 text-foreground'
+                              : 'bg-muted/40 border-border text-muted-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <strong className="text-purple-600 dark:text-purple-400">
+                              Opção A:
+                            </strong>
+                            {idea.hookAB.recommendedHook === 'A' && (
+                              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-500/10 px-1 rounded">
+                                Testar 1º
+                              </span>
+                            )}
+                          </div>
+                          <p>{idea.hookAB.hookA}</p>
+                        </div>
+                        <div
+                          className={`p-2 rounded-lg border text-[11px] ${
+                            idea.hookAB.recommendedHook === 'B'
+                              ? 'bg-purple-500/10 border-purple-500/40 text-foreground'
+                              : 'bg-muted/40 border-border text-muted-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <strong className="text-purple-600 dark:text-purple-400">
+                              Opção B:
+                            </strong>
+                            {idea.hookAB.recommendedHook === 'B' && (
+                              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-500/10 px-1 rounded">
+                                Testar 1º
+                              </span>
+                            )}
+                          </div>
+                          <p>{idea.hookAB.hookB}</p>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground italic pl-1">
+                        💡 <strong>Justificativa da IA:</strong> {idea.hookAB.rationale}
+                        {idea.hookAB.testTip && ` — ${idea.hookAB.testTip}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Janela de Tendência do Nicho & Sequência Estratégica Sugerida */}
+                  {(idea.nicheTrend || idea.suggestedSequence) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                      {idea.nicheTrend && (
+                        <div className="p-2.5 rounded-lg bg-card/80 border border-border/80 space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-bold text-foreground flex items-center gap-1.5">
+                              <TrendingUp className="w-3.5 h-3.5 text-pink-500" />
+                              Tendência do Nicho
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] border-pink-500/40 text-pink-600"
+                            >
+                              Score {idea.nicheTrend.trendScore}/100
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] font-semibold text-foreground">
+                            {idea.nicheTrend.topic}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Crescimento:{' '}
+                            <strong className="text-emerald-600">
+                              {idea.nicheTrend.growthRate}
+                            </strong>{' '}
+                            · Status: {idea.nicheTrend.windowStatus}
+                          </p>
+                        </div>
+                      )}
+
+                      {idea.suggestedSequence && (
+                        <div className="p-2.5 rounded-lg bg-card/80 border border-border/80 space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-bold text-foreground flex items-center gap-1.5">
+                              <Layers className="w-3.5 h-3.5 text-blue-500" />
+                              Sequência Sugerida (3 Dias)
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-[10px] text-muted-foreground">
+                            <p>
+                              <strong className="text-foreground">Hoje:</strong>{' '}
+                              {idea.suggestedSequence.today.format} (
+                              {idea.suggestedSequence.today.objective})
+                            </p>
+                            <p>
+                              <strong className="text-foreground">Amanhã:</strong>{' '}
+                              {idea.suggestedSequence.tomorrow.format} (
+                              {idea.suggestedSequence.tomorrow.objective})
+                            </p>
+                            <p>
+                              <strong className="text-foreground">Depois:</strong>{' '}
+                              {idea.suggestedSequence.dayAfter.format} (
+                              {idea.suggestedSequence.dayAfter.objective})
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Previsão de Engajamento Esperado & Melhor Horário por Rede */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2.5 rounded-lg bg-card/70 border border-border/70 text-xs">
                     {/* Previsão de Engajamento */}

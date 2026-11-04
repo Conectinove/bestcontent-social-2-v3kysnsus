@@ -109,6 +109,27 @@ export interface VideoGuidelines {
   recommendedNetworkByPerformance?: string
 }
 
+export interface HookABTesting {
+  hookA: string
+  hookB: string
+  recommendedHook: 'A' | 'B'
+  rationale: string
+  testTip?: string
+}
+
+export interface NicheTrendWindow {
+  topic: string
+  trendScore: number // 0-100
+  growthRate: string // ex: "+38% nos últimos 7 dias"
+  windowStatus: 'aquecendo' | 'pico' | 'perene'
+}
+
+export interface SuggestedContentSequence {
+  today: { format: string; objective: string; note: string }
+  tomorrow: { format: string; objective: string; note: string }
+  dayAfter: { format: string; objective: string; note: string }
+}
+
 export interface TodayPostIdea {
   id: string
   title: string
@@ -131,6 +152,9 @@ export interface TodayPostIdea {
   estimatedPerformanceScore?: number
   whyNowContext?: string
   videoGuidelines?: VideoGuidelines | null
+  hookAB?: HookABTesting
+  nicheTrend?: NicheTrendWindow
+  suggestedSequence?: SuggestedContentSequence
 }
 export async function suggestTemplates(
   options: SuggestTemplatesOptions = {},
@@ -211,6 +235,38 @@ export async function getWhatToPostToday(
         seasonalityContext: 'Contexto de produtividade, inovação e consolidação de resultados',
         suggestedCta:
           'Toque em Salvar para auditar seus prompts e processos antes da sua próxima campanha.',
+        hookAB: {
+          hookA: 'Capa Impactante: "90% usam IA errado. O slide 3 é o que custa clientes."',
+          hookB: 'Capa Direta: "5 prompts que profissionais nunca usam (e o que fazer no lugar)."',
+          recommendedHook: 'A',
+          rationale:
+            'O Gancho A ativa curiosidade e senso de perda, gerando +28% de deslizes no slide 1.',
+          testTip:
+            'Use o Gancho A na capa principal e teste o Gancho B como título alternativo no carrossel do LinkedIn.',
+        },
+        nicheTrend: {
+          topic: 'IA Aplicada & Produtividade Sem Alucinação',
+          trendScore: 92,
+          growthRate: '+42% nas buscas nesta semana',
+          windowStatus: 'pico',
+        },
+        suggestedSequence: {
+          today: {
+            format: 'Carrossel Educativo',
+            objective: 'Autoridade',
+            note: 'Publicar hoje às 18:30 para reter e salvar',
+          },
+          tomorrow: {
+            format: 'Reels / Shorts (30s)',
+            objective: 'Atração',
+            note: 'Demonstrar na prática o prompt corrigido',
+          },
+          dayAfter: {
+            format: 'Post Prova Social',
+            objective: 'Conversão',
+            note: 'Abrir vagas ou mentoria nos comentários',
+          },
+        },
         caption:
           'Quem usa IA apenas como buscador está ficando para trás. Deslize para ver os 5 erros que separam amadores de profissionais no uso de automações hoje.\n\n• Slide 1: O erro do prompt genérico\n• Slide 2: Onde a personalização é esquecida\n• Slide 3: O filtro crítico humano essencial\n• Slide 4: A automação que gera valor real\n• Slide 5: Salve para consultar sempre que produzir!\n\nQual desses você mais percebe no mercado? 👇',
         hashtags: ['#inteligenciaartificial', '#carreira', '#estrategia', '#produtividade'],
@@ -228,6 +284,38 @@ export async function getWhatToPostToday(
         recommendedNetwork: 'TikTok & Shorts',
         estimatedPerformanceScore: 91,
         hook3s: 'Primeiros 3s: "Se você perdeu metade da audiência no início, o erro está aqui!"',
+        hookAB: {
+          hookA: 'Primeiros 3s: "Se você perdeu metade da audiência no início, o erro está aqui!"',
+          hookB:
+            'Primeiros 3s: "Pare de gravar Reels até ver como segurar a atenção em 1.8 segundos."',
+          recommendedHook: 'B',
+          rationale:
+            'O Gancho B usa ordem imperativa ("Pare de gravar") que aumenta a taxa de retenção inicial no TikTok em até 36%.',
+          testTip: 'Grave as duas aberturas na mesma sessão e faça o corte A/B no Reels vs TikTok.',
+        },
+        nicheTrend: {
+          topic: 'Retenção Curta e Ganchos de Algoritmo',
+          trendScore: 88,
+          growthRate: '+31% em hashtags de criação de conteúdo',
+          windowStatus: 'aquecendo',
+        },
+        suggestedSequence: {
+          today: {
+            format: 'Reels Dinâmico',
+            objective: 'Atração',
+            note: 'Publicar no almoço (12:00) para pico de alcance',
+          },
+          tomorrow: {
+            format: 'Carrossel Passo a Passo',
+            objective: 'Autoridade',
+            note: 'Aprofundar os 3 roteiros detalhados',
+          },
+          dayAfter: {
+            format: 'Stories com Enquete',
+            objective: 'Comunidade',
+            note: 'Pedir feedbacks e tirar dúvidas',
+          },
+        },
         videoGuidelines: {
           hookExample:
             '"Pare de postar Reels e TikTok sem antes ver esses 3 segundos que salvam o alcance."',
@@ -285,6 +373,40 @@ export async function getWhatToPostToday(
         funnelObjective: 'Conversão',
         recommendedNetwork: 'Instagram & LinkedIn',
         hook3s: 'Gancho Visual: Card de métricas reais (antes vs depois) com valor em destaque',
+        hookAB: {
+          hookA:
+            'Gancho Visual: "Como fechamos 48 novos contratos em 21 dias com tráfego 100% orgânico."',
+          hookB:
+            'Gancho Desafiador: "Você gastaria R$ 5.000 em anúncios se pudesse gerar 48 leads orgânicos assim?"',
+          recommendedHook: 'A',
+          rationale:
+            'O Gancho A traz números específicos (48 contratos, 21 dias) que geram credibilidade instantânea.',
+          testTip:
+            'Coloque o Gancho A na imagem do post e o Gancho B na primeira linha da legenda.',
+        },
+        nicheTrend: {
+          topic: 'Eficiência de CAC & Conversão Orgânica',
+          trendScore: 85,
+          growthRate: '+25% de interesse de pequenos e médios negócios',
+          windowStatus: 'perene',
+        },
+        suggestedSequence: {
+          today: {
+            format: 'Estudo de Caso (Feed Único)',
+            objective: 'Conversão',
+            note: 'Publicar às 19:15 com CTA direto para direct',
+          },
+          tomorrow: {
+            format: 'Stories Bastidores',
+            objective: 'Comunidade',
+            note: 'Mostrar prints do dashboard e responder objeções',
+          },
+          dayAfter: {
+            format: 'Carrossel Técnico',
+            objective: 'Autoridade',
+            note: 'Explicar a metodologia dos 21 dias',
+          },
+        },
         estimatedPerformanceScore: 88,
         expectedEngagement: {
           min: 15,

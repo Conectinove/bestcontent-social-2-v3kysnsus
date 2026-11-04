@@ -22,6 +22,9 @@ export interface YouTubeMetrics {
   likes_30d: number
   comments_30d: number
   shares_30d: number
+  cta_clicks?: number
+  thumbnail_ctr?: number
+  thumbnail_impressions?: number
 }
 
 export interface YouTubeRecentVideo {
