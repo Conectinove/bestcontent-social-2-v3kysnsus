@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   Send,
   FastForward,
+  Zap,
 } from 'lucide-react'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
 import {
