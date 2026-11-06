@@ -130,6 +130,39 @@ export interface SuggestedContentSequence {
   dayAfter: { format: string; objective: string; note: string }
 }
 
+export interface CreativeAngleAnchor {
+  angle: string
+  historicalBasis: string
+  pastTopFormat?: string
+  liftMultiplier?: string
+}
+
+export interface NicheTrendContext {
+  topic: string
+  trendScore: number
+  growthRate: string
+  windowStatus: 'aquecendo' | 'pico' | 'perene'
+  contextualTags?: string[]
+  practicalTip?: string
+}
+
+export interface NetworkPerformanceTier {
+  network: string
+  tier: 'ótimo' | 'bom' | 'moderado'
+  score: number
+  rationale: string
+  metricBenchmark?: string
+}
+
+export interface SeriesSequencePlan {
+  isSeries: boolean
+  seriesTitle: string
+  part: number
+  totalParts: number
+  nextSteps: string[]
+  seriesTheme?: string
+}
+
 export interface TodayPostIdea {
   id: string
   title: string
@@ -155,6 +188,11 @@ export interface TodayPostIdea {
   hookAB?: HookABTesting
   nicheTrend?: NicheTrendWindow
   suggestedSequence?: SuggestedContentSequence
+  // Blocos de Análise Avançada (v0.0.141)
+  creativeAnchor?: CreativeAngleAnchor
+  nicheTrendContext?: NicheTrendContext
+  networkPerformanceForecast?: NetworkPerformanceTier[]
+  seriesSequence?: SeriesSequencePlan
 }
 export async function suggestTemplates(
   options: SuggestTemplatesOptions = {},
