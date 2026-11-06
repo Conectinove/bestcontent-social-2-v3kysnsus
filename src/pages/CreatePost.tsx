@@ -777,20 +777,20 @@ export default function CreatePost() {
           </div>
         </div>
 
-        {/* Ações do cabeçalho: Modelos, Salvar Template, Colaboração, Rascunhos */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        {/* Ações do cabeçalho: Modelos, Salvar Template, Colaboração, Rascunhos - fluído e sem quebra em 360px */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap w-full lg:w-auto">
           <Button
             type="button"
             variant="outline"
             onClick={() => setCollaborationOpen(true)}
-            className="rounded-xl border-border hover:border-purple-500/50 text-foreground hover:bg-purple-500/5 font-semibold text-xs h-10 px-3 gap-2 transition-all"
+            className="flex-1 sm:flex-initial rounded-xl border-border hover:border-purple-500/50 text-foreground hover:bg-purple-500/5 font-semibold text-xs h-9 sm:h-10 px-2.5 sm:px-3 gap-1.5 sm:gap-2 transition-all"
             title="Convidar revisor ou ver comentários"
           >
-            <Users className="w-4 h-4 text-purple-600" />
-            <span className="hidden md:inline">Colaborar</span>
+            <Users className="w-4 h-4 text-purple-600 shrink-0" />
+            <span className="inline">Colaborar</span>
             {assignedReviewerName && (
               <span
-                className="w-2 h-2 rounded-full bg-emerald-500"
+                className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
                 title={`Revisor: ${assignedReviewerName}`}
               />
             )}
@@ -800,30 +800,30 @@ export default function CreatePost() {
             type="button"
             variant="outline"
             onClick={() => setSaveTemplateOpen(true)}
-            className="rounded-xl border-border hover:border-purple-500/50 text-foreground hover:bg-purple-500/5 font-semibold text-xs h-10 px-3 gap-2 transition-all"
+            className="flex-1 sm:flex-initial rounded-xl border-border hover:border-purple-500/50 text-foreground hover:bg-purple-500/5 font-semibold text-xs h-9 sm:h-10 px-2.5 sm:px-3 gap-1.5 sm:gap-2 transition-all"
             title="Salvar estrutura deste post como template próprio"
           >
-            <Bookmark className="w-4 h-4 text-purple-600" />
-            <span className="hidden sm:inline">Salvar como Modelo</span>
+            <Bookmark className="w-4 h-4 text-purple-600 shrink-0" />
+            <span className="inline">Modelo</span>
           </Button>
 
           <Button
             type="button"
             variant="outline"
             onClick={() => setSavedDraftsOpen(true)}
-            className="rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+            className="flex-1 sm:flex-initial rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 font-bold text-xs h-9 sm:h-10 px-2.5 sm:px-3.5 gap-1.5 sm:gap-2 transition-all shadow-2xs"
           >
-            <FileText className="w-4 h-4 text-purple-600" />
+            <FileText className="w-4 h-4 text-purple-600 shrink-0" />
             <span>Rascunhos</span>
             {currentDraftId && (
-              <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse shrink-0" />
             )}
           </Button>
 
           <Button
             type="button"
             onClick={() => setWhatToPostOpen(true)}
-            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs hidden lg:flex"
+            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-9 sm:h-10 px-3 gap-1.5 transition-all shadow-2xs hidden md:flex"
           >
             <Sparkles className="w-4 h-4 text-purple-600" />
             <span>Ideias</span>
@@ -831,9 +831,9 @@ export default function CreatePost() {
 
           <Button
             onClick={() => setTemplateOpen(true)}
-            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 px-4 gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
+            className="w-full sm:w-auto rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-9 sm:h-10 px-3.5 sm:px-4 gap-1.5 sm:gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
           >
-            <Layout className="w-4 h-4" />
+            <Layout className="w-4 h-4 shrink-0" />
             <span>{selectedTemplate ? 'Trocar Modelo' : 'Templates de Post'}</span>
           </Button>
         </div>
@@ -1445,17 +1445,17 @@ export default function CreatePost() {
               </p>
             </div>
 
-            {/* Ações Inferiores de Submissão */}
-            <div className="pt-4 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+            {/* Ações Inferiores de Submissão - empilhamento responsivo a partir de 360px */}
+            <div className="pt-4 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => handleSubmit('draft')}
                   disabled={submitting}
-                  className="text-xs font-semibold rounded-xl h-10 px-4 gap-2 border-border hover:bg-muted"
+                  className="w-full sm:w-auto text-xs font-semibold rounded-xl h-10 px-3 sm:px-4 gap-1.5 border-border hover:bg-muted justify-center"
                 >
-                  <Save className="w-4 h-4 text-muted-foreground" />
+                  <Save className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span>Salvar Rascunho</span>
                 </Button>
 
@@ -1463,31 +1463,31 @@ export default function CreatePost() {
                   type="button"
                   variant="outline"
                   onClick={() => setSaveTemplateOpen(true)}
-                  className="text-xs font-semibold rounded-xl h-10 px-3 gap-1.5 border-dashed border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                  className="w-full sm:w-auto text-xs font-semibold rounded-xl h-10 px-2.5 sm:px-3 gap-1.5 border-dashed border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 justify-center"
                 >
-                  <Bookmark className="w-3.5 h-3.5" />
-                  <span>Salvar como Template</span>
+                  <Bookmark className="w-3.5 h-3.5 shrink-0" />
+                  <span>Como Modelo</span>
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setCollaborationOpen(true)}
-                  className="text-xs font-semibold rounded-xl h-10 px-3.5 gap-1.5 border-border hover:bg-muted"
+                  className="w-full sm:w-auto text-xs font-semibold rounded-xl h-10 px-2.5 sm:px-3.5 gap-1.5 border-border hover:bg-muted justify-center"
                 >
-                  <Users className="w-4 h-4 text-purple-600" />
-                  <span>Revisão / Colaborar</span>
+                  <Users className="w-4 h-4 text-purple-600 shrink-0" />
+                  <span>Colaborar</span>
                 </Button>
 
                 <Button
                   type="button"
                   onClick={() => handleSubmit('published')}
                   disabled={submitting}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl h-10 px-4 gap-2 shadow-sm transition-all"
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl h-10 px-3 sm:px-4 gap-1.5 shadow-sm transition-all justify-center"
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4 shrink-0" />
                   <span>{submitting ? 'Publicando...' : 'Publicar Agora'}</span>
                 </Button>
               </div>

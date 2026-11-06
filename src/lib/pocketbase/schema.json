@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T10:39:42.345Z",
+  "generatedAt": "2026-11-06T10:49:19.503Z",
   "collections": [
     {
       "name": "users",
@@ -4947,6 +4947,84 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "studio_project_versions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "project_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "version_number",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "author_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "author_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "change_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "snapshot",
+          "type": "json",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_spv_project_version ON studio_project_versions (project_id, version_number DESC)"
+      ]
     }
   ]
 }

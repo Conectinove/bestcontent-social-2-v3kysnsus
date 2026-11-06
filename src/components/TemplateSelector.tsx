@@ -226,7 +226,7 @@ export function TemplateSelector({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl border border-purple-500/20 bg-card shadow-2xl">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl border border-purple-500/20 bg-card shadow-2xl">
         {/* Cabeçalho estilo BestContent lilás */}
         <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-border/80 bg-gradient-to-r from-purple-50/50 via-background to-background dark:from-purple-950/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

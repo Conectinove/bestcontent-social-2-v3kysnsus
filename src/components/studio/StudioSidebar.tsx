@@ -26,6 +26,7 @@ export interface StudioSidebarProps {
   onViewAllRecents?: () => void
   onOpenHistoryModal?: () => void
   onOpenCollaborationModal?: () => void
+  onOpenVersionHistoryModal?: () => void
   className?: string
 }
 
@@ -41,6 +42,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   onViewAllRecents,
   onOpenHistoryModal,
   onOpenCollaborationModal,
+  onOpenVersionHistoryModal,
   className = '',
 }) => {
   // Itens padrão de recentes para espelhar exatamente os prints se a lista estiver vazia
@@ -114,16 +116,29 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
           Novo canvas
         </Button>
 
-        {onOpenCollaborationModal && (
-          <Button
-            variant="outline"
-            onClick={onOpenCollaborationModal}
-            className="w-full justify-start gap-2 text-xs h-8 font-medium border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary"
-          >
-            <FolderKanban className="w-3.5 h-3.5 text-primary" />
-            Colaboração em Projeto
-          </Button>
-        )}
+        <div className="space-y-1.5 mt-2">
+          {onOpenCollaborationModal && (
+            <Button
+              variant="outline"
+              onClick={onOpenCollaborationModal}
+              className="w-full justify-start gap-2 text-xs h-8 font-medium border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary"
+            >
+              <FolderKanban className="w-3.5 h-3.5 text-primary" />
+              Colaboração em Projeto
+            </Button>
+          )}
+
+          {onOpenVersionHistoryModal && (
+            <Button
+              variant="outline"
+              onClick={onOpenVersionHistoryModal}
+              className="w-full justify-start gap-2 text-xs h-8 font-medium border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary"
+            >
+              <Video className="w-3.5 h-3.5 text-purple-600" />
+              Histórico de Versões
+            </Button>
+          )}
+        </div>
       </div>
       {/* Menu Principal */}
       <nav className="px-3 py-1 space-y-1 text-sm font-medium">

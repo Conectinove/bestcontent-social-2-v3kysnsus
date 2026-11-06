@@ -105,7 +105,7 @@ export function SaveAsTemplateModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl border border-purple-500/20 bg-card p-6 shadow-2xl">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-purple-500/20 bg-card p-4 sm:p-6 shadow-2xl">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-purple-600/10 text-purple-600 flex items-center justify-center shrink-0">

@@ -206,7 +206,7 @@ export function PostCollaborationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg rounded-2xl border border-purple-500/20 bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg max-h-[88vh] sm:max-h-[90vh] rounded-2xl border border-purple-500/20 bg-card p-4 sm:p-6 shadow-2xl overflow-y-auto">
         <DialogHeader className="space-y-2 border-b border-border/70 pb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-purple-600/10 text-purple-600 flex items-center justify-center shrink-0">

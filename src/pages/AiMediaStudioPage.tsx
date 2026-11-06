@@ -59,12 +59,16 @@ import { ExternalAssetModal } from '@/components/studio/ExternalAssetModal'
 import { PromptHistoryModal } from '@/components/studio/PromptHistoryModal'
 import { VideoTemplatesBar } from '@/components/studio/VideoTemplatesBar'
 import { StudioCollaborationModal } from '@/components/studio/StudioCollaborationModal'
+import { StudioVersionHistoryModal } from '@/components/studio/StudioVersionHistoryModal'
 import { recordStudioPromptHistory } from '@/services/studio-prompt-history'
 
 // Componentes da Interface Estilo Genspark
 import { StudioSidebar } from '@/components/studio/StudioSidebar'
 import { StudioHeroCarousel } from '@/components/studio/StudioHeroCarousel'
 import { StudioFeatureCards } from '@/components/studio/StudioFeatureCards'
+import { AiTemplateRecommender } from '@/components/studio/AiTemplateRecommender'
+import { Download } from 'lucide-react'
+import { downloadAssetMedia } from '@/lib/download-utils'
 import { StudioGenerationBar } from '@/components/studio/StudioGenerationBar'
 import { StudioInspirationGallery } from '@/components/studio/StudioInspirationGallery'
 
@@ -134,6 +138,7 @@ export default function AiMediaStudioPage() {
   const [isExternalAssetModalOpen, setIsExternalAssetModalOpen] = useState(false)
   const [isPromptHistoryModalOpen, setIsPromptHistoryModalOpen] = useState(false)
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false)
+  const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false)
 
   // Modelo ativo na aba corrente
   const currentModel = selectedModels[activeTab] || STUDIO_MODELS.video[0]
@@ -285,6 +290,7 @@ export default function AiMediaStudioPage() {
           onViewAllRecents={() => navigate('/app/library')}
           onOpenHistoryModal={() => setIsPromptHistoryModalOpen(true)}
           onOpenCollaborationModal={() => setIsCollaborationModalOpen(true)}
+          onOpenVersionHistoryModal={() => setIsVersionHistoryModalOpen(true)}
         />
       </div>
 
@@ -333,6 +339,10 @@ export default function AiMediaStudioPage() {
                   setIsCollaborationModalOpen(true)
                   setIsMobileSidebarOpen(false)
                 }}
+                onOpenVersionHistoryModal={() => {
+                  setIsVersionHistoryModalOpen(true)
+                  setIsMobileSidebarOpen(false)
+                }}
               />
             </SheetContent>
           </Sheet>
@@ -367,6 +377,25 @@ export default function AiMediaStudioPage() {
               }}
             />
           )}
+
+          {/* Seção 2.8: IA PARA SUGESTÃO DE TEMPLATES RECOMENDADOS */}
+          <AiTemplateRecommender
+            prompt={prompt}
+            activeTab={activeTab}
+            onApplyTemplate={(templateText, modelId) => {
+              setPrompt(templateText)
+              if (modelId) {
+                const allModels = [
+                  ...(STUDIO_MODELS[activeTab] || []),
+                  ...(STUDIO_MODELS.video || []),
+                  ...(STUDIO_MODELS.image || []),
+                  ...(STUDIO_MODELS.audio || []),
+                ]
+                const found = allModels.find((m) => m.id === modelId)
+                if (found) handleSelectModel(found)
+              }
+            }}
+          />
 
           {/* Seção 3: BARRA DE GERAÇÃO CENTRAL (A peça mais importante) */}
           <StudioGenerationBar
@@ -574,6 +603,24 @@ export default function AiMediaStudioPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      downloadAssetMedia(selectedCreationModal.preview_url, {
+                        mediaType: selectedCreationModal.type,
+                        filename: `studio-${selectedCreationModal.type}-${selectedCreationModal.id}.${
+                          selectedCreationModal.type === 'video' ? 'mp4' : 'jpg'
+                        }`,
+                      })
+                    }}
+                    className="rounded-full text-xs font-bold gap-1.5"
+                    title="Baixar mídia para seu computador ou celular"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Baixar Asset</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
                       navigate('/app/library')
                       setSelectedCreationModal(null)
                     }}
@@ -646,6 +693,28 @@ export default function AiMediaStudioPage() {
               .filter(Boolean) as string[]
             setUploadedAssets(urls)
           }
+        }}
+      />
+
+      {/* Modal de Histórico de Versões do Studio (Item 4 do pedido) */}
+      <StudioVersionHistoryModal
+        open={isVersionHistoryModalOpen}
+        onOpenChange={setIsVersionHistoryModalOpen}
+        projectId="studio-default-project"
+        projectTitle="Projeto de Mídia IA Multicanal"
+        currentSnapshot={{
+          prompt,
+          activeTab,
+          uploadedAssets,
+          canvasSettings: {
+            modelId: currentModel.id,
+            activeTab,
+          },
+        }}
+        onRestoreSnapshot={(snapshot) => {
+          if (snapshot.prompt !== undefined) setPrompt(snapshot.prompt)
+          if (snapshot.activeTab) setActiveTab(snapshot.activeTab)
+          if (snapshot.uploadedAssets) setUploadedAssets(snapshot.uploadedAssets)
         }}
       />
 

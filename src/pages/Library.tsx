@@ -43,7 +43,9 @@ import {
   X,
   BarChart3,
   Upload,
+  Download,
 } from 'lucide-react'
+import { downloadAssetMedia } from '@/lib/download-utils'
 import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
 import { createTemplate } from '@/services/post-templates'
 import { enrichPostWithAi } from '@/services/ai-studio'
@@ -1927,6 +1929,25 @@ export default function Library() {
                         <SlidersHorizontal className="w-3.5 h-3.5" />
                       </Button>
 
+                      {/* Download Asset */}
+                      {mediaUrl && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const isVid = isVideo || mediaUrl.includes('.mp4')
+                            downloadAssetMedia(mediaUrl, {
+                              mediaType: isVid ? 'video' : 'image',
+                              filename: `midiaviva-${post.platform}-${post.id}.${isVid ? 'mp4' : 'jpg'}`,
+                            })
+                          }}
+                          className="h-8 w-8 text-muted-foreground hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg"
+                          title="Baixar Asset / Mídia"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+
                       {/* View details */}
                       <Button
                         variant="ghost"
@@ -2171,6 +2192,25 @@ export default function Library() {
                     </span>
                   </Button>
 
+                  {mediaUrl && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const isVid = isVideo || mediaUrl.includes('.mp4')
+                        downloadAssetMedia(mediaUrl, {
+                          mediaType: isVid ? 'video' : 'image',
+                          filename: `midiaviva-${post.platform}-${post.id}.${isVid ? 'mp4' : 'jpg'}`,
+                        })
+                      }}
+                      className="h-8 text-xs gap-1 rounded-xl text-muted-foreground hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                      title="Baixar Asset / Mídia"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span className="hidden md:inline">Baixar</span>
+                    </Button>
+                  )}
+
                   <Button
                     size="sm"
                     variant="ghost"
@@ -2407,6 +2447,24 @@ export default function Library() {
                     </Button>
 
                     <div className="flex items-center gap-2">
+                      {mediaUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const isVid = isVideo || mediaUrl.includes('.mp4')
+                            downloadAssetMedia(mediaUrl, {
+                              mediaType: isVid ? 'video' : 'image',
+                              filename: `midiaviva-${viewPost.platform}-${viewPost.id}.${isVid ? 'mp4' : 'jpg'}`,
+                            })
+                          }}
+                          className="text-xs gap-1.5 rounded-xl font-semibold text-foreground hover:text-purple-600"
+                          title="Baixar mídia para o dispositivo"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Baixar Asset
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         onClick={() => {

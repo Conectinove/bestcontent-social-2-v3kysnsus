@@ -285,14 +285,14 @@ export function RichTextEditor({
           error ? 'border-rose-500' : 'border-border/80',
         )}
       >
-        {/* Toolbar superior com botões de formatação rica */}
-        <div className="px-3 py-2 border-b border-border/60 bg-muted/30 flex items-center justify-between gap-1 flex-wrap">
-          <div className="flex items-center gap-1 flex-wrap">
+        {/* Toolbar superior com botões de formatação rica - scroll horizontal no mobile para nunca transbordar */}
+        <div className="px-2 sm:px-3 py-1.5 sm:py-2 border-b border-border/60 bg-muted/30 flex items-center justify-between gap-1.5 flex-nowrap overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             <button
               type="button"
               onClick={() => applyFormatting('**', '**', 'negrito')}
               title="Negrito (**texto**)"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <Bold className="w-3.5 h-3.5" />
             </button>
@@ -300,7 +300,7 @@ export function RichTextEditor({
               type="button"
               onClick={() => applyFormatting('*', '*', 'itálico')}
               title="Itálico (*texto*)"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <Italic className="w-3.5 h-3.5" />
             </button>
@@ -308,18 +308,18 @@ export function RichTextEditor({
               type="button"
               onClick={() => applyFormatting('## ', '', 'Título')}
               title="Título de Seção (## Título)"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <Heading2 className="w-3.5 h-3.5" />
             </button>
 
-            <span className="w-px h-4 bg-border/80 mx-1" />
+            <span className="w-px h-4 bg-border/80 mx-0.5 sm:mx-1 shrink-0" />
 
             <button
               type="button"
               onClick={() => insertAtNewLine('• ')}
               title="Lista com Marcadores"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <List className="w-3.5 h-3.5" />
             </button>
@@ -327,7 +327,7 @@ export function RichTextEditor({
               type="button"
               onClick={() => insertAtNewLine('1. ')}
               title="Lista Numerada"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <ListOrdered className="w-3.5 h-3.5" />
             </button>
@@ -335,7 +335,7 @@ export function RichTextEditor({
               type="button"
               onClick={() => insertAtNewLine('> ')}
               title="Citação / Destaque"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <Quote className="w-3.5 h-3.5" />
             </button>
@@ -343,7 +343,7 @@ export function RichTextEditor({
               type="button"
               onClick={insertLink}
               title="Inserir Link [texto](url)"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <Link2 className="w-3.5 h-3.5" />
             </button>
@@ -351,14 +351,14 @@ export function RichTextEditor({
               type="button"
               onClick={() => applyFormatting('`', '`', 'código')}
               title="Código inline (`código`)"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
             >
               <Code className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {/* Abas Escrever vs Prévia */}
-          <div className="flex items-center gap-1 bg-background/80 p-0.5 rounded-xl border border-border/60">
+          <div className="flex items-center gap-0.5 bg-background/80 p-0.5 rounded-xl border border-border/60 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab('write')}
