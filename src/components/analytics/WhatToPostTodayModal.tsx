@@ -30,10 +30,18 @@ import {
   type FunnelObjective,
 } from '@/services/post-templates'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
+import { AdvancedSuggestionBlocks } from '@/components/analytics/AdvancedSuggestionBlocks'
 
 interface WhatToPostTodayModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  brand?: {
+    name?: string
+    niche?: string
+    tone?: string
+    logo?: string
+    [key: string]: any
+  }
   brandName?: string
   brandNiche?: string
   brandTone?: string
@@ -48,9 +56,10 @@ interface WhatToPostTodayModalProps {
 export function WhatToPostTodayModal({
   open,
   onOpenChange,
-  brandName = 'Sua Marca',
-  brandNiche = 'Geral',
-  brandTone = 'Profissional e dinâmico',
+  brand,
+  brandName: brandNameProp,
+  brandNiche: brandNicheProp,
+  brandTone: brandToneProp,
   network = 'Instagram',
   preferredFormats,
   visualStyle,
@@ -58,6 +67,9 @@ export function WhatToPostTodayModal({
   initialObjective,
   onApplyIdea,
 }: WhatToPostTodayModalProps) {
+  const brandName = brandNameProp || brand?.name || 'Sua Marca'
+  const brandNiche = brandNicheProp || brand?.niche || 'Geral'
+  const brandTone = brandToneProp || brand?.tone || 'Profissional e dinâmico'
   const { toast } = useToast()
   const [ideas, setIdeas] = useState<TodayPostIdea[]>([])
   const [loading, setLoading] = useState(false)
@@ -470,6 +482,16 @@ export function WhatToPostTodayModal({
                       </div>
                     )}
                   </div>
+                  {/* Os 4 Blocos Avançados de IA (High Impact) */}
+                  <AdvancedSuggestionBlocks
+                    creativeAngle={idea.creativeAngleDetail}
+                    fallbackConcreteAngle={idea.concreteAngle}
+                    nicheTrend={idea.nicheTrendDetail}
+                    networkForecast={idea.networkPerformanceForecast}
+                    seriesPlan={idea.seriesPlan}
+                    ideaTitle={idea.title}
+                  />
+
                   {/* Legenda sugerida */}
                   <div className="space-y-1.5">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">

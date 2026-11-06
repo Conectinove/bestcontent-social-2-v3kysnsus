@@ -65,6 +65,7 @@ import {
 } from '@/services/community'
 import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
 import { FeedMetricsMultiWidget } from '@/components/feed/FeedMetricsMultiWidget'
+import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 
 // Community creators carousel data
 interface CommunityCreator {
@@ -202,6 +203,7 @@ export default function Feed() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [missionsModalOpen, setMissionsModalOpen] = useState(false)
+  const [whatToPostModalOpen, setWhatToPostModalOpen] = useState(false)
 
   // Scroll ref for community carousel
   const communityCarouselRef = useRef<HTMLDivElement>(null)
@@ -947,7 +949,7 @@ export default function Feed() {
                     <button
                       type="button"
                       onClick={() => setComposerOpen(true)}
-                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1"
+                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1 text-xs"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-primary" />
                       <span>Nova Ideia</span>
@@ -955,10 +957,18 @@ export default function Feed() {
                     <button
                       type="button"
                       onClick={() => setComposerOpen(true)}
-                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1"
+                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1 text-xs"
                     >
                       <ImageIcon className="w-3.5 h-3.5 text-purple-500" />
                       <span>Mídia</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWhatToPostModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 font-bold text-xs py-1 px-2.5 rounded-lg bg-gradient-to-r from-purple-500/15 via-pink-500/15 to-amber-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 hover:border-purple-500/60 hover:scale-[1.02] transition-all"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-purple-500 animate-pulse" />
+                      <span>O que postar hoje? (IA)</span>
                     </button>
                   </div>
 
@@ -1627,15 +1637,29 @@ export default function Feed() {
               ======================================================================= */}
           <div className="space-y-3.5 pt-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
-                Sugestões para Você
-              </h2>
-              <button
-                onClick={() => navigate('/app/discover')}
-                className="text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
-              >
-                Ver todas
-              </button>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
+                  Sugestões para Você
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setWhatToPostModalOpen(true)}
+                  className="text-xs font-bold h-7 rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 gap-1.5"
+                >
+                  <Sparkles className="w-3 h-3 text-purple-500" />
+                  O que postar hoje?
+                </Button>
+                <button
+                  onClick={() => navigate('/app/discover')}
+                  className="text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Ver todas
+                </button>
+              </div>
             </div>
 
             <Card className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs hover:shadow-md transition-shadow">
@@ -2149,6 +2173,13 @@ export default function Feed() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal O Que Postar Hoje? com IA avançada, ganchos A/B, diretrizes de vídeo e os 4 blocos High Impact */}
+      <WhatToPostTodayModal
+        open={whatToPostModalOpen}
+        onOpenChange={setWhatToPostModalOpen}
+        brand={activeBrand}
+      />
     </div>
   )
 }

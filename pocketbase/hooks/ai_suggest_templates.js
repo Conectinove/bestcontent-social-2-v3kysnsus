@@ -156,6 +156,82 @@ routerAdd(
           'Tendência de IA em alta nas últimas duas semanas e pico de buscas corporativas nesta terça-feira.',
         concreteAngle:
           'Auditoria progressiva de 5 slides mostrando o erro amador até a falha que custa clientes para sêniors.',
+        creativeAngleDetail: {
+          angle: 'Auditoria visual de 5 slides do erro amador ao erro de contrato fechado',
+          practicalExample:
+            'Mostre o print real de um prompt genérico que deu resposta errada vs o prompt estruturado em blocos que gerou a proposta final aprovada.',
+          executionSteps: [
+            'Slide 1: Capa com print embaçado e gancho do slide 3',
+            'Slide 2: O prompt básico que todo mundo usa e porque ele falha',
+            'Slide 3: O erro silencioso que perde clientes (destaque vermelho)',
+            'Slide 4: O framework de 3 blocos corrigido passo a passo',
+            'Slide 5: Resumo salvável + CTA para direct',
+          ],
+          historicalBasis:
+            'Carrosséis com contraste visual de prints reais têm 44% mais salvamentos.',
+          liftMultiplier: '+38% de salvamentos',
+        },
+        nicheTrendDetail: {
+          topic: 'IA Aplicada & Produtividade Sem Alucinação Corporativa',
+          trendScore: 94,
+          opportunityTiming: 'Alta agora, pico de buscas estimado nos próximos 5 dias',
+          growthRate: '+42% nas buscas de criadores e agências',
+          windowStatus: 'pico',
+          connectionExplanation:
+            'Conecta o receio de errar com IA corporativa ao desejo de acelerar entregas sem perder autoridade.',
+          practicalTip: 'Foque em prompts para rotinas do dia a dia em vez de conceitos teóricos.',
+        },
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'LinkedIn & Instagram',
+          priorityRationale:
+            'Formato Carrossel Educativo atinge o teto de salvamento no Instagram e gera conversas de contratação no LinkedIn.',
+          networks: [
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '420 - 750 interações (alto salvamento)',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Público ativo para carrossel educativo no feed com CTA de salvar.',
+            },
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '310 - 520 reações e 35+ comentários',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Pauta corporativa quente; PDF/carrossel tem maior alcance na plataforma.',
+            },
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '800 - 1.8k views em formato foto slide',
+              priorityLevel: 'média',
+              rationale: 'Carrossel de fotos no TikTok entrega bem quando a capa é intrigante.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '180 - 390 impressões e retweets',
+              priorityLevel: 'média',
+              rationale: 'Adapte o slide 1 e 3 como mini-thread com as imagens anexadas.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '90 - 240 alcances em grupos e página',
+              priorityLevel: 'baixa',
+              rationale: 'Adequado para repost secundário com link nos comentários.',
+            },
+          ],
+        },
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Mestres da IA no Dia a Dia',
+          currentPart: 1,
+          totalParts: 4,
+          nextEpisodes: [
+            'Parte 2: Os 3 frameworks de prompt que economizam 2h/dia na sua rotina',
+            'Parte 3: Como auditar o resultado da IA e eliminar alucinações antes de postar',
+            'Parte 4: A stack definitiva de automações gratuitas para fechar clientes',
+          ],
+          seriesTheme: 'Produtividade e domínio prático de Inteligência Artificial para criadores',
+        },
         seasonalityContext: currentSeasonalityContext,
         suggestedCta:
           'Toque em Salvar para auditar seus prompts e rotinas antes da sua próxima entrega profissional.',
@@ -196,6 +272,82 @@ routerAdd(
           'Formato Reels com retenção 22% acima da média nos últimos 14 dias; sua audiência consome mais vídeo curto ao meio-dia.',
         concreteAngle:
           'Demonstração prática em 30s de como uma abertura fraca mata o alcance e como reescrever o gancho com psicologia de curiosidade.',
+        creativeAngleDetail: {
+          angle: 'Demonstração em tempo real comparando um gancho fraco vs gancho de alta retenção',
+          practicalExample:
+            'Grave em frente à câmera nos primeiros 5s dizendo uma frase fria, aperte o botão de "pare" com som de fita quebrando, e refaça a mesma abertura com a frase magnética de 3s na tela.',
+          executionSteps: [
+            '0-3s: Gancho dramático com corte e efeito sonoro de impacto',
+            '3-12s: Explique por que a audiência desliza o feed nos primeiros segundos',
+            '12-22s: Mostre o template exato de 3 linhas para preencher',
+            '22-30s: Chamada direta para salvar ou comentar palavra-chave',
+          ],
+          historicalBasis: 'Vídeos com demonstração prática nos primeiros 10s retêm 2.2x mais.',
+          liftMultiplier: '+46% de retenção no TikTok e Reels',
+        },
+        nicheTrendDetail: {
+          topic: 'Short-form Retention Hacking & Micro-Hooks',
+          trendScore: 96,
+          opportunityTiming: 'Alta agora, pico contínuo nos próximos 7 dias',
+          growthRate: '+31% em hashtags de edição dinâmica e criação',
+          windowStatus: 'pico',
+          connectionExplanation:
+            'Aproveita a queda geral de alcance em vídeos sem gancho e entrega o antídoto prático que a audiência busca.',
+          practicalTip: 'Coloque legenda com letras grandes e amarelas nos 3 primeiros segundos.',
+        },
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'TikTok & Instagram (Reels)',
+          priorityRationale:
+            'Vídeos de 30s verticais têm distribuição algorítmica acelerada para não-seguidores no Reels e FYP do TikTok.',
+          networks: [
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '1.4k - 3.8k visualizações (40%+ retenção)',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale:
+                'Algoritmo da FYP favorece cortes a cada 2s e ganchos de curiosidade imediata.',
+            },
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '950 - 2.2k visualizações nos Reels',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Excelente para alcançar novos seguidores e reter audiência no explorar.',
+            },
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '140 - 280 views corporativas',
+              priorityLevel: 'média',
+              rationale:
+                'Publique com uma reflexão em texto sobre comunicação executiva assertiva.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '80 - 190 interações com vídeo nativo',
+              priorityLevel: 'baixa',
+              rationale:
+                'Vídeos curtos no X funcionam melhor acompanhados de resumo em bullet points.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '200 - 450 views em Reels do Facebook',
+              priorityLevel: 'média',
+              rationale: 'Aproveite a sincronização cruzada de Reels do Instagram para a Página.',
+            },
+          ],
+        },
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Roteiros de Alta Retenção (0 a 100k)',
+          currentPart: 1,
+          totalParts: 3,
+          nextEpisodes: [
+            'Parte 2: Os 5 ganchos de curiosidade que funcionam em qualquer nicho',
+            'Parte 3: Como fazer CTA invisível sem parecer vendedor chato',
+          ],
+          seriesTheme: 'Estruturas de roteiro e linguagem corporal para vídeos curtos',
+        },
         seasonalityContext: currentSeasonalityContext,
         hook3s:
           'Se você perdeu mais da metade da sua audiência no primeiro segundo, o problema está aqui!',
@@ -258,6 +410,82 @@ routerAdd(
           'Lacuna de funil detectada: sua marca não publica nada com foco em Conversão direta há 6 dias.',
         concreteAngle:
           'Transparência de bastidores revelando a cadência semanal exata de posts, direct e fechamento de contrato comercial.',
+        creativeAngleDetail: {
+          angle:
+            'Desconstrução analítica de um case real sem adorno, com números abertos e métrica de CAC',
+          practicalExample:
+            'Mostre o print de faturamento ou leads com datas e explique os 3 pontos de contato onde o cliente quase desistiu e o que destravou o fechamento.',
+          executionSteps: [
+            'Card 1: O problema inicial e a métrica estagnada antes',
+            'Card 2: A hipótese testada e a mudança no processo',
+            'Card 3: O resultado real após 21 dias com linha do tempo',
+            'Card 4: Checklist dos 3 aprendizados aplicáveis para a audiência',
+          ],
+          historicalBasis:
+            'Cases com números específicos (ex: 48 clientes, 21 dias) superam posts genéricos em 3.4x no direct.',
+          liftMultiplier: '+3.4x mensagens qualificadas',
+        },
+        nicheTrendDetail: {
+          topic: 'Eficiência de CAC & Crescimento Orgânico em Tempos de Ads Caros',
+          trendScore: 89,
+          opportunityTiming: 'Alta agora, pico nas semanas de fechamento comercial',
+          growthRate: '+25% de interesse em estratégias de aquisição orgânica',
+          windowStatus: 'perene',
+          connectionExplanation:
+            'Responde à dor de empresas que não aguentam mais o leilão caro de anúncios pagos.',
+          practicalTip: 'Evite promessas mágicas; mostre as dificuldades e os números reais.',
+        },
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'LinkedIn & Instagram',
+          priorityRationale:
+            'Decisores B2B e compradores de serviços consomem estudos de caso aprofundados no LinkedIn e direct do Instagram.',
+          networks: [
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '280 - 640 interações e 40+ directs comerciais',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Canal natural para validação de competência profissional e fechamentos.',
+            },
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '350 - 620 interações com direct de compra',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Perfeito para prova social nos Stories e post fixado no Feed.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '90 - 210 impressões',
+              priorityLevel: 'média',
+              rationale: 'Resuma os dados em 3 pontos com print da tabela de resultados.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '150 - 320 alcances orgânicos',
+              priorityLevel: 'baixa',
+              rationale:
+                'Distribuição lenta no feed tradicional, mas forte em grupos especializados.',
+            },
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '300 - 800 views',
+              priorityLevel: 'baixa',
+              rationale: 'Exige adaptação para vídeo dinâmico no estilo "como fiz".',
+            },
+          ],
+        },
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Bastidores de Crescimento Real',
+          currentPart: 1,
+          totalParts: 3,
+          nextEpisodes: [
+            'Parte 2: Os 3 gatilhos de follow-up que recuperaram 12 propostas paradas',
+            'Parte 3: O contrato e o pós-venda que transformam clientes em defensores',
+          ],
+          seriesTheme: 'Cases reais de vendas e conversão orgânica',
+        },
         seasonalityContext: currentSeasonalityContext,
         suggestedCta: 'Comente "METODO" no direct para receber a estrutura detalhada deste caso.',
         caption:
@@ -280,6 +508,81 @@ routerAdd(
           'Aumento expressivo no engajamento por comentários à noite; ideal para gerar conexão humana pós-expediente.',
         concreteAngle:
           'Quebra de tabu contra o mito de postar 5 vezes ao dia sem substância, convidando a comunidade a desabafar e compartilhar a rotina real.',
+        creativeAngleDetail: {
+          angle:
+            'Debate de polarização saudável: consistência diária imperfeita vs produções semanais de cinema',
+          practicalExample:
+            'Abra com a foto da sua mesa bagunçada de trabalho e a pergunta: "Você prefere postar todo dia sem perfeição ou 1x por semana impecável?".',
+          executionSteps: [
+            'Slide 1 / Foto: Imagem autêntica de bastidor sem filtro',
+            'Texto: Comparação entre os dois métodos sem tomar lado de imediato',
+            'Final: Pergunta aberta e resposta pessoal aos 10 primeiros comentários',
+          ],
+          historicalBasis: 'Perguntas reflexivas abertas aumentam a taxa de comentários em até 3x.',
+          liftMultiplier: '+2.8x comentários da comunidade',
+        },
+        nicheTrendDetail: {
+          topic: 'Autenticidade e Anti-Perfeccionismo nas Redes Sociais',
+          trendScore: 87,
+          opportunityTiming: 'Alta agora, pico contínuo à noite',
+          growthRate: '+33% em debates de criadores cansados de algoritmos punitivos',
+          windowStatus: 'aquecendo',
+          connectionExplanation:
+            'Aproxima a marca pessoal dos seguidores ao expor dilemas reais da rotina.',
+          practicalTip:
+            'Responda cada comentário com uma nova pergunta para manter o diálogo vivo.',
+        },
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'Instagram & Threads',
+          priorityRationale:
+            'Perguntas de debate geram cascata de respostas em texto no Threads e alto índice de comentários nos Stories e Feed.',
+          networks: [
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '250 - 580 comentários e compartilhamentos',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Audiência gosta de opinar no direct e nos comentários à noite.',
+            },
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '400 - 1.1k views com duetos e comentários',
+              priorityLevel: 'média',
+              rationale: 'Gera debate forte se transformado em vídeo resposta.',
+            },
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '180 - 410 reações reflexivas',
+              priorityLevel: 'média',
+              rationale: 'Discussão sobre equilíbrio entre trabalho e produção de conteúdo.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '220 - 540 respostas e citações',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Plataforma nativa para debates de opinião e polêmicas saudáveis.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '80 - 210 interações em comunidades',
+              priorityLevel: 'baixa',
+              rationale: 'Boa recepção em grupos fechados do setor.',
+            },
+          ],
+        },
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Diálogos Reais com Criadores',
+          currentPart: 1,
+          totalParts: 4,
+          nextEpisodes: [
+            'Parte 2: Qual métrica você finge que não liga, mas olha todo santo dia?',
+            'Parte 3: O pior conselho de marketing que você já seguiu na prática',
+            'Parte 4: O que ninguém te avisa quando o perfil finalmente viraliza',
+          ],
+          seriesTheme: 'Vulnerabilidade, bastidores e conexão comunitária genuína',
+        },
         seasonalityContext: currentSeasonalityContext,
         suggestedCta:
           'Qual a sua rotina real hoje? Responda nos comentários para trocarmos experiências sinceras.',
@@ -397,7 +700,15 @@ routerAdd(
                     : idx === 2
                       ? 'Atração'
                       : 'Comunidade'),
-              concreteAngle: item.concreteAngle || item.concrete_angle || '',
+              concreteAngle:
+                item.concreteAngle || item.concrete_angle || defaultIdeas[idx]?.concreteAngle || '',
+              creativeAngleDetail:
+                item.creativeAngleDetail || defaultIdeas[idx]?.creativeAngleDetail,
+              nicheTrendDetail: item.nicheTrendDetail || defaultIdeas[idx]?.nicheTrendDetail,
+              networkPerformanceForecast:
+                item.networkPerformanceForecast || defaultIdeas[idx]?.networkPerformanceForecast,
+              seriesPlan: item.seriesPlan || defaultIdeas[idx]?.seriesPlan,
+              hookAB: item.hookAB || defaultIdeas[idx]?.hookAB,
               seasonalityContext:
                 item.seasonalityContext || item.seasonality_context || currentSeasonalityContext,
               estimatedPerformanceScore:
@@ -455,6 +766,7 @@ routerAdd(
               videoGuidelines:
                 item.videoGuidelines ||
                 item.video_guidelines ||
+                defaultIdeas[idx]?.videoGuidelines ||
                 ((item.format && item.format.toLowerCase().includes('vídeo')) ||
                 (item.format && item.format.toLowerCase().includes('video')) ||
                 (item.format && item.format.toLowerCase().includes('reels'))

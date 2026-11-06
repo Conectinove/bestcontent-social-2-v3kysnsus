@@ -130,22 +130,54 @@ export interface SuggestedContentSequence {
   dayAfter: { format: string; objective: string; note: string }
 }
 
-export interface CreativeAngleAnchor {
-  angle: string
-  historicalBasis: string
-  pastTopFormat?: string
-  liftMultiplier?: string
+// 1. Bloco: Ângulo Criativo Concreto (executável com exemplo prático)
+export interface CreativeAngleDetail {
+  angle: string // Tese/ângulo claro do post
+  practicalExample: string // Exemplo prático e executável (ex: "Mostre o antes/depois real de um cliente em 15s...")
+  executionSteps?: string[] // Passos práticos de execução
+  historicalBasis?: string // Racional ou aprendizado passado
+  liftMultiplier?: string // Ex: "+32% de retenção"
 }
 
-export interface NicheTrendContext {
-  topic: string
-  trendScore: number
-  growthRate: string
+// 2. Bloco: Tendência do Nicho & Timing da Oportunidade
+export interface NicheTrendDetail {
+  topic: string // Tópico/tema da tendência no nicho
+  trendScore: number // 0-100
+  opportunityTiming: string // Ex: "Alta agora, pico esperado em 4 dias"
+  growthRate: string // Ex: "+38% em buscas"
   windowStatus: 'aquecendo' | 'pico' | 'perene'
-  contextualTags?: string[]
-  practicalTip?: string
+  connectionExplanation: string // Como este post se conecta à tendência
+  practicalTip?: string // Dica de execução da tendência
 }
 
+// 3. Bloco: Previsão de Desempenho por Rede Principal
+export interface NetworkPerformanceItem {
+  network: 'Instagram' | 'TikTok' | 'LinkedIn' | 'X' | 'Facebook' | string
+  expectedEngagementRange: string // Ex: "420 - 780 interações" ou "1.5k - 3.2k views"
+  priorityLevel: 'alta' | 'média' | 'baixa' | 'primária' // Nível de priorização
+  isRecommendedPriority?: boolean // Se é a rede principal recomendada
+  rationale: string // Justificativa com base nos dados reais ou perfil da rede
+}
+
+export interface NetworkPerformanceForecast {
+  recommendedPriorityNetwork: string // Qual rede priorizar
+  priorityRationale: string // Justificativa geral de priorização
+  networks: NetworkPerformanceItem[] // Previsão para Instagram, TikTok, LinkedIn, X, Facebook
+}
+
+// 4. Bloco: Série — Parte 1 de N
+export interface SeriesEpisodePlan {
+  isSeries: boolean
+  seriesTitle?: string
+  currentPart?: number
+  totalParts?: number
+  nextEpisodes?: string[] // Lista dos próximos episódios/parcelas sugeridos
+  seriesTheme?: string
+}
+
+// Tipos de compatibilidade mantidos
+export interface CreativeAngleAnchor extends CreativeAngleDetail {}
+export interface NicheTrendContext extends NicheTrendDetail {}
 export interface NetworkPerformanceTier {
   network: string
   tier: 'ótimo' | 'bom' | 'moderado'
@@ -153,14 +185,9 @@ export interface NetworkPerformanceTier {
   rationale: string
   metricBenchmark?: string
 }
-
-export interface SeriesSequencePlan {
-  isSeries: boolean
-  seriesTitle: string
+export interface SeriesSequencePlan extends SeriesEpisodePlan {
   part: number
-  totalParts: number
   nextSteps: string[]
-  seriesTheme?: string
 }
 
 export interface TodayPostIdea {
@@ -188,11 +215,17 @@ export interface TodayPostIdea {
   hookAB?: HookABTesting
   nicheTrend?: NicheTrendWindow
   suggestedSequence?: SuggestedContentSequence
-  // Blocos de Análise Avançada (v0.0.141)
-  creativeAnchor?: CreativeAngleAnchor
-  nicheTrendContext?: NicheTrendContext
-  networkPerformanceForecast?: NetworkPerformanceTier[]
-  seriesSequence?: SeriesSequencePlan
+
+  // 4 Blocos Avançados (v0.0.142)
+  creativeAngleDetail?: CreativeAngleDetail
+  nicheTrendDetail?: NicheTrendDetail
+  networkPerformanceForecast?: NetworkPerformanceForecast
+  seriesPlan?: SeriesEpisodePlan
+
+  // Aliases legados / compatibilidade
+  creativeAnchor?: CreativeAngleDetail
+  nicheTrendContext?: NicheTrendDetail
+  seriesSequence?: SeriesEpisodePlan
 }
 export async function suggestTemplates(
   options: SuggestTemplatesOptions = {},
@@ -270,6 +303,86 @@ export async function getWhatToPostToday(
           'Tendência de IA corporativa nos últimos 14 dias em alta de +42% nas buscas.',
         concreteAngle:
           'Auditoria progressiva de 5 slides: do erro amador de prompt até a falha que custa contratos com clientes.',
+        // 1. Bloco Avançado: Ângulo Criativo Concreto
+        creativeAngleDetail: {
+          angle: 'Auditoria visual de 5 slides do erro amador ao erro de fechamento de contrato',
+          practicalExample:
+            'Mostre o print real de um prompt genérico que deu resposta errada vs o prompt estruturado em blocos que gerou a proposta final aprovada.',
+          executionSteps: [
+            'Slide 1: Capa com print embaçado e gancho do slide 3',
+            'Slide 2: O prompt básico que todo mundo usa e porque ele falha',
+            'Slide 3: O erro silencioso que perde contratos (destaque vermelho)',
+            'Slide 4: O framework de 3 blocos corrigido passo a passo',
+            'Slide 5: Resumo salvável + CTA para direct',
+          ],
+          historicalBasis:
+            'Carrosséis com contraste visual de prints reais têm 44% mais salvamentos.',
+          liftMultiplier: '+38% de salvamentos',
+        },
+        // 2. Bloco Avançado: Tendência do Nicho & Timing
+        nicheTrendDetail: {
+          topic: 'IA Aplicada & Produtividade Sem Alucinação Corporativa',
+          trendScore: 94,
+          opportunityTiming: 'Alta agora, pico de buscas estimado nos próximos 5 dias',
+          growthRate: '+42% nas buscas de criadores e agências',
+          windowStatus: 'pico',
+          connectionExplanation:
+            'Conecta o medo de errar com IA corporativa ao desejo urgente de automatizar sem perder autoridade.',
+          practicalTip: 'Foque em prompts para rotinas do dia a dia em vez de conceitos teóricos.',
+        },
+        // 3. Bloco Avançado: Previsão por Rede Principal
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'LinkedIn & Instagram',
+          priorityRationale:
+            'Formato Carrossel Educativo atinge o teto de salvamento no Instagram e gera conversas de contratação no LinkedIn.',
+          networks: [
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '420 - 750 interações (alto salvamento)',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Público ativo para carrossel educativo no feed com CTA de salvar.',
+            },
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '310 - 520 reações e 35+ comentários',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Pauta corporativa quente; PDF/carrossel tem maior alcance na plataforma.',
+            },
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '800 - 1.8k views em formato foto slide',
+              priorityLevel: 'média',
+              rationale: 'Carrossel de fotos no TikTok entrega bem quando a capa é intrigante.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '180 - 390 impressões e retweets',
+              priorityLevel: 'média',
+              rationale: 'Adapte o slide 1 e 3 como mini-thread com as imagens anexadas.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '90 - 240 alcances em grupos e página',
+              priorityLevel: 'baixa',
+              rationale: 'Adequado para repost secundário com link nos comentários.',
+            },
+          ],
+        },
+        // 4. Bloco Avançado: Série — Parte 1 de N
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Mestres da IA no Dia a Dia',
+          currentPart: 1,
+          totalParts: 4,
+          nextEpisodes: [
+            'Parte 2: Os 3 frameworks de prompt que economizam 2h/dia na sua rotina',
+            'Parte 3: Como auditar o resultado da IA e eliminar alucinações antes de postar',
+            'Parte 4: A stack definitiva de automações gratuitas para fechar clientes',
+          ],
+          seriesTheme: 'Produtividade e domínio prático de Inteligência Artificial para criadores',
+        },
         seasonalityContext: 'Contexto de produtividade, inovação e consolidação de resultados',
         suggestedCta:
           'Toque em Salvar para auditar seus prompts e processos antes da sua próxima campanha.',
@@ -388,6 +501,82 @@ export async function getWhatToPostToday(
           'Vídeos com gancho nos 3s têm 70% mais retenção; horário de almoço é o pico de consumo.',
         concreteAngle:
           'Estrutura em 4 tempos (gancho 0-3s, problema 3-15s, demonstração 15-25s e CTA 25-30s) desenhada para reter não-seguidores.',
+        creativeAngleDetail: {
+          angle: 'Demonstração em tempo real comparando um gancho fraco vs gancho de alta retenção',
+          practicalExample:
+            'Grave em frente à câmera nos primeiros 5s dizendo uma frase fria, aperte o botão de "pare" com som de fita quebrando, e refaça a mesma abertura com a frase magnética de 3s na tela.',
+          executionSteps: [
+            '0-3s: Gancho dramático com corte e efeito sonoro de impacto',
+            '3-12s: Explique por que a audiência desliza o feed nos primeiros segundos',
+            '12-22s: Mostre o template exato de 3 linhas para preencher',
+            '22-30s: Chamada direta para salvar ou comentar palavra-chave',
+          ],
+          historicalBasis: 'Vídeos com demonstração prática nos primeiros 10s retêm 2.2x mais.',
+          liftMultiplier: '+46% de retenção no TikTok e Reels',
+        },
+        nicheTrendDetail: {
+          topic: 'Short-form Retention Hacking & Micro-Hooks',
+          trendScore: 96,
+          opportunityTiming: 'Alta agora, pico contínuo nos próximos 7 dias',
+          growthRate: '+31% em hashtags de edição dinâmica e criação',
+          windowStatus: 'pico',
+          connectionExplanation:
+            'Aproveita a queda geral de alcance em vídeos sem gancho e entrega o antídoto prático que a audiência busca.',
+          practicalTip: 'Coloque legenda com letras grandes e amarelas nos 3 primeiros segundos.',
+        },
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'TikTok & Instagram (Reels)',
+          priorityRationale:
+            'Vídeos de 30s verticais têm distribuição algorítmica acelerada para não-seguidores no Reels e FYP do TikTok.',
+          networks: [
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '1.4k - 3.8k visualizações (40%+ retenção)',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale:
+                'Algoritmo da FYP favorece cortes a cada 2s e ganchos de curiosidade imediata.',
+            },
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '950 - 2.2k visualizações nos Reels',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Excelente para alcançar novos seguidores e reter audiência no explorar.',
+            },
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '140 - 280 views corporativas',
+              priorityLevel: 'média',
+              rationale:
+                'Publique com uma reflexão em texto sobre comunicação executiva assertiva.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '80 - 190 interações com vídeo nativo',
+              priorityLevel: 'baixa',
+              rationale:
+                'Vídeos curtos no X funcionam melhor acompanhados de resumo em bullet points.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '200 - 450 views em Reels do Facebook',
+              priorityLevel: 'média',
+              rationale: 'Aproveite a sincronização cruzada de Reels do Instagram para a Página.',
+            },
+          ],
+        },
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Roteiros de Alta Retenção (0 a 100k)',
+          currentPart: 1,
+          totalParts: 3,
+          nextEpisodes: [
+            'Parte 2: Os 5 ganchos de curiosidade que funcionam em qualquer nicho',
+            'Parte 3: Como fazer CTA invisível sem parecer vendedor chato',
+          ],
+          seriesTheme: 'Estruturas de roteiro e linguagem corporal para vídeos curtos',
+        },
         seasonalityContext: 'Alta busca por tutoriais expressos em vídeo dinâmico',
         suggestedCta: 'Comente "QUERO" para receber o roteiro completo no seu direct.',
         caption:
@@ -470,6 +659,82 @@ export async function getWhatToPostToday(
         whyNowContext: 'Lacuna de funil: você não postou nada com foco em Conversão há 6 dias.',
         concreteAngle:
           'Apresentação de métricas reais de cliente (antes x depois) com quebra de objeção sobre tempo de implementação.',
+        creativeAngleDetail: {
+          angle:
+            'Desconstrução analítica de um case real sem adorno, com números abertos e métrica de CAC',
+          practicalExample:
+            'Mostre o print de faturamento ou leads com datas e explique os 3 pontos de contato onde o cliente quase desistiu e o que destravou o fechamento.',
+          executionSteps: [
+            'Card 1: O problema inicial e a métrica estagnada antes',
+            'Card 2: A hipótese testada e a mudança no processo',
+            'Card 3: O resultado real após 21 dias com linha do tempo',
+            'Card 4: Checklist dos 3 aprendizados aplicáveis para a audiência',
+          ],
+          historicalBasis:
+            'Cases com números específicos (ex: 48 clientes, 21 dias) superam posts genéricos em 3.4x no direct.',
+          liftMultiplier: '+3.4x mensagens qualificadas',
+        },
+        nicheTrendDetail: {
+          topic: 'Eficiência de CAC & Crescimento Orgânico em Tempos de Ads Caros',
+          trendScore: 89,
+          opportunityTiming: 'Alta agora, pico nas semanas de fechamento comercial',
+          growthRate: '+25% de interesse em estratégias de aquisição orgânica',
+          windowStatus: 'perene',
+          connectionExplanation:
+            'Responde à dor de empresas que não aguentam mais o leilão caro de anúncios pagos.',
+          practicalTip: 'Evite promessas mágicas; mostre as dificuldades e os números reais.',
+        },
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'LinkedIn & Instagram',
+          priorityRationale:
+            'Decisores B2B e compradores de serviços consomem estudos de caso aprofundados no LinkedIn e direct do Instagram.',
+          networks: [
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '280 - 640 interações e 40+ directs comerciais',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Canal natural para validação de competência profissional e fechamentos.',
+            },
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '350 - 620 interações com direct de compra',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Perfeito para prova social nos Stories e post fixado no Feed.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '90 - 210 impressões',
+              priorityLevel: 'média',
+              rationale: 'Resuma os dados em 3 pontos com print da tabela de resultados.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '150 - 320 alcances orgânicos',
+              priorityLevel: 'baixa',
+              rationale:
+                'Distribuição lenta no feed tradicional, mas forte em grupos especializados.',
+            },
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '300 - 800 views',
+              priorityLevel: 'baixa',
+              rationale: 'Exige adaptação para vídeo dinâmico no estilo "como fiz".',
+            },
+          ],
+        },
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Bastidores de Crescimento Real',
+          currentPart: 1,
+          totalParts: 3,
+          nextEpisodes: [
+            'Parte 2: Os 3 gatilhos de follow-up que recuperaram 12 propostas paradas',
+            'Parte 3: O contrato e o pós-venda que transformam clientes em defensores',
+          ],
+          seriesTheme: 'Cases reais de vendas e conversão orgânica',
+        },
         seasonalityContext: 'Momento propício para fechamentos e decisões comerciais do mês',
         suggestedCta:
           'Clique no link da bio ou mande mensagem para agendar sua sessão estratégica.',
@@ -494,6 +759,81 @@ export async function getWhatToPostToday(
           'Comunidade ativa à noite; momento ideal para puxar respostas e conexão genuína.',
         concreteAngle:
           'Quebra de mito polêmico sobre hacks milagrosos versus consistência real, estimulando desabafos de criadores.',
+        creativeAngleDetail: {
+          angle:
+            'Debate de polarização saudável: consistência diária imperfeita vs produções semanais de cinema',
+          practicalExample:
+            'Abra com a foto da sua mesa bagunçada de trabalho e a pergunta: "Você prefere postar todo dia sem perfeição ou 1x por semana impecável?".',
+          executionSteps: [
+            'Slide 1 / Foto: Imagem autêntica de bastidor sem filtro',
+            'Texto: Comparação entre os dois métodos sem tomar lado de imediato',
+            'Final: Pergunta aberta e resposta pessoal aos 10 primeiros comentários',
+          ],
+          historicalBasis: 'Perguntas reflexivas abertas aumentam a taxa de comentários em até 3x.',
+          liftMultiplier: '+2.8x comentários da comunidade',
+        },
+        nicheTrendDetail: {
+          topic: 'Autenticidade e Anti-Perfeccionismo nas Redes Sociais',
+          trendScore: 87,
+          opportunityTiming: 'Alta agora, pico contínuo à noite',
+          growthRate: '+33% em debates de criadores cansados de algoritmos punitivos',
+          windowStatus: 'aquecendo',
+          connectionExplanation:
+            'Aproxima a marca pessoal dos seguidores ao expor dilemas reais da rotina.',
+          practicalTip:
+            'Responda cada comentário com uma nova pergunta para manter o diálogo vivo.',
+        },
+        networkPerformanceForecast: {
+          recommendedPriorityNetwork: 'Instagram & Threads',
+          priorityRationale:
+            'Perguntas de debate geram cascata de respostas em texto no Threads e alto índice de comentários nos Stories e Feed.',
+          networks: [
+            {
+              network: 'Instagram',
+              expectedEngagementRange: '250 - 580 comentários e compartilhamentos',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Audiência gosta de opinar no direct e nos comentários à noite.',
+            },
+            {
+              network: 'TikTok',
+              expectedEngagementRange: '400 - 1.1k views com duetos e comentários',
+              priorityLevel: 'média',
+              rationale: 'Gera debate forte se transformado em vídeo resposta.',
+            },
+            {
+              network: 'LinkedIn',
+              expectedEngagementRange: '180 - 410 reações reflexivas',
+              priorityLevel: 'média',
+              rationale: 'Discussão sobre equilíbrio entre trabalho e produção de conteúdo.',
+            },
+            {
+              network: 'X',
+              expectedEngagementRange: '220 - 540 respostas e citações',
+              priorityLevel: 'primária',
+              isRecommendedPriority: true,
+              rationale: 'Plataforma nativa para debates de opinião e polêmicas saudáveis.',
+            },
+            {
+              network: 'Facebook',
+              expectedEngagementRange: '80 - 210 interações em comunidades',
+              priorityLevel: 'baixa',
+              rationale: 'Boa recepção em grupos fechados do setor.',
+            },
+          ],
+        },
+        seriesPlan: {
+          isSeries: true,
+          seriesTitle: 'Diálogos Reais com Criadores',
+          currentPart: 1,
+          totalParts: 4,
+          nextEpisodes: [
+            'Parte 2: Qual métrica você finge que não liga, mas olha todo santo dia?',
+            'Parte 3: O pior conselho de marketing que você já seguiu na prática',
+            'Parte 4: O que ninguém te avisa quando o perfil finalmente viraliza',
+          ],
+          seriesTheme: 'Vulnerabilidade, bastidores e conexão comunitária genuína',
+        },
         seasonalityContext: 'Construção de intimidade e engajamento comunitário pós-expediente',
         suggestedCta:
           'Deixe sua opinião nos comentários: você prefere consistência diária ou superproduções pontuais?',
