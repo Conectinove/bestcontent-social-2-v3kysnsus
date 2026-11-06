@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T10:49:19.503Z",
+  "generatedAt": "2026-11-06T11:07:06.958Z",
   "collections": [
     {
       "name": "users",
@@ -5025,6 +5025,163 @@
       "indexes": [
         "CREATE INDEX idx_spv_project_version ON studio_project_versions (project_id, version_number DESC)"
       ]
+    },
+    {
+      "name": "second_brain_docs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "doc_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["documento", "aula_lab", "blog_artigo", "site_landing", "nota_privada"]
+        },
+        {
+          "name": "subtitle",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modules",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "author_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "author_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tags",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_pinned",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_sbd_author ON second_brain_docs (author_id)",
+        "CREATE INDEX idx_sbd_type ON second_brain_docs (doc_type)"
+      ]
+    },
+    {
+      "name": "post_approval_history",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "post_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "action",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["approved", "rejected", "requested_changes", "submitted", "restored"]
+        },
+        {
+          "name": "actor_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "actor_role",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "actor_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "version_label",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_pah_post ON post_approval_history (post_id, created DESC)"]
     }
   ]
 }

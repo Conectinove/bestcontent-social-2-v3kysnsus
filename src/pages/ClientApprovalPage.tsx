@@ -15,6 +15,7 @@ import {
   Send,
   Eye,
   Check,
+  History as HistoryIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,6 +29,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
+import PostApprovalTimeline from '@/components/approval/PostApprovalTimeline'
+import { addApprovalHistoryRecord } from '@/services/approval-history'
 
 interface ReviewPost {
   id: string
@@ -112,6 +115,7 @@ export default function ClientApprovalPage() {
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
   const [batchApproved, setBatchApproved] = useState(false)
+  const [timelinePostId, setTimelinePostId] = useState<string | null>(SAMPLE_POSTS[0].id)
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,7 +136,16 @@ export default function ClientApprovalPage() {
   }
 
   const handleApprove = (id: string) => {
+    const postItem = posts.find((p) => p.id === id)
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'approved' } : p)))
+    addApprovalHistoryRecord({
+      postId: id,
+      action: 'approved',
+      actorName: linkData.clientName || 'Cliente VIP',
+      actorRole: 'Cliente / Aprovador Final',
+      comment: 'Post aprovado diretamente pelo portal do cliente.',
+      versionLabel: 'vFinal (Aprovado)',
+    }).catch(() => {})
     toast({
       title: 'Post aprovado com sucesso!',
       description: 'Sua agência foi notificada da aprovação.',
@@ -152,6 +165,14 @@ export default function ClientApprovalPage() {
         p.id === selectedPost.id ? { ...p, status: 'rejected', feedback: feedbackText } : p,
       ),
     )
+    addApprovalHistoryRecord({
+      postId: selectedPost.id,
+      action: 'requested_changes',
+      actorName: linkData.clientName || 'Cliente VIP',
+      actorRole: 'Cliente / Revisor',
+      comment: feedbackText || 'Ajuste solicitado pelo cliente.',
+      versionLabel: 'vAjuste Solicitado',
+    }).catch(() => {})
     toast({
       title: 'Ajuste solicitado',
       description: 'Sua observação foi salva e encaminhada para a agência.',
@@ -373,30 +394,77 @@ export default function ClientApprovalPage() {
               </div>
 
               {/* Botões de Ação */}
-              <div className="p-5 pt-0 border-t border-border/50 flex items-center justify-between gap-2 mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenReject(post)}
-                  className="rounded-xl text-xs gap-1.5 flex-1 border-rose-300/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Pedir Ajuste</span>
-                </Button>
+              <div className="p-5 pt-0 border-t border-border/50 flex flex-col gap-2 mt-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenReject(post)}
+                    className="rounded-xl text-xs gap-1.5 flex-1 border-rose-300/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Pedir Ajuste</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    onClick={() => handleApprove(post.id)}
+                    disabled={post.status === 'approved'}
+                    className="rounded-xl text-xs gap-1.5 flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{post.status === 'approved' ? 'Aprovado' : 'Aprovar'}</span>
+                  </Button>
+                </div>
 
                 <Button
+                  variant="ghost"
                   size="sm"
-                  onClick={() => handleApprove(post.id)}
-                  disabled={post.status === 'approved'}
-                  className="rounded-xl text-xs gap-1.5 flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  onClick={() => setTimelinePostId(timelinePostId === post.id ? null : post.id)}
+                  className="w-full text-[11px] h-7 text-muted-foreground hover:text-foreground gap-1.5 font-semibold"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{post.status === 'approved' ? 'Aprovado' : 'Aprovar'}</span>
+                  <HistoryIcon className="w-3 h-3 text-purple-400" />
+                  <span>
+                    {timelinePostId === post.id
+                      ? 'Ocultar Histórico'
+                      : 'Ver Histórico de Aprovações'}
+                  </span>
                 </Button>
               </div>
+
+              {/* Timeline embutida quando selecionada */}
+              {timelinePostId === post.id && (
+                <div className="p-4 bg-muted/20 border-t border-border/60">
+                  <PostApprovalTimeline
+                    postId={post.id}
+                    postTitle={post.title}
+                    currentStatus={post.status}
+                    canAddReview={false}
+                    compact
+                  />
+                </div>
+              )}
             </Card>
           ))}
         </div>
+
+        {/* Seção Geral: Histórico de Aprovação do Item em Destaque */}
+        {posts[0] && (
+          <div className="mt-8">
+            <PostApprovalTimeline
+              postId={posts[0].id}
+              postTitle={`Timeline Geral do Item em Destaque: ${posts[0].title}`}
+              currentStatus={posts[0].status}
+              canAddReview={true}
+              onActionComplete={() => {
+                toast({
+                  title: 'Histórico atualizado',
+                  description: 'Novo parecer gravado na timeline oficial do post.',
+                })
+              }}
+            />
+          </div>
+        )}
 
         {/* Rodapé do cliente */}
         <div className="border-t border-border pt-6 text-center space-y-2 text-xs text-muted-foreground">

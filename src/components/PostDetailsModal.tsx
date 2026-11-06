@@ -49,6 +49,8 @@ import {
 } from '@/services/post-metrics'
 import { PostPerformanceCard } from '@/components/analytics/PostPerformanceCard'
 import { IndividualPostReportTrigger } from '@/components/analytics/IndividualPostReportModal'
+import PostApprovalTimeline from '@/components/approval/PostApprovalTimeline'
+import { addApprovalHistoryRecord } from '@/services/approval-history'
 
 interface PostDetailsModalProps {
   open: boolean
@@ -198,6 +200,14 @@ export function PostDetailsModal({
     setApproving(true)
     try {
       await approvePost(post.id, user.id)
+      addApprovalHistoryRecord({
+        postId: post.id,
+        action: 'approved',
+        actorName: user.name || user.email || 'Usuário Atual',
+        actorRole: 'Aprovador Interno',
+        comment: 'Post aprovado via detalhes do post e adicionado à fila.',
+        versionLabel: 'vOficial',
+      }).catch(() => {})
       toast({
         title: 'Post aprovado!',
         description: 'Post aprovado e adicionado à fila de publicação.',
@@ -524,6 +534,16 @@ export function PostDetailsModal({
               <IndividualPostReportTrigger post={post} className="w-full" />
             </div>
           )}
+
+          {/* Histórico Oficial de Aprovações */}
+          <div className="pt-2">
+            <PostApprovalTimeline
+              postId={post.id}
+              postTitle={post.title || post.caption?.slice(0, 40)}
+              currentStatus={post.status}
+              canAddReview={true}
+            />
+          </div>
         </div>
 
         {/* Bottom Modal Actions */}

@@ -57,6 +57,7 @@ import { AIAssistantModal } from '@/components/AIAssistantModal'
 import { TemplateSelector } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { SavedDraftsDrawer, type SavedDraftItem } from '@/components/SavedDraftsDrawer'
+import AiPostSuggestionsWidget from '@/components/guided/AiPostSuggestionsWidget'
 import { RichTextEditor } from '@/components/RichTextEditor'
 import { SaveAsTemplateModal } from '@/components/SaveAsTemplateModal'
 import { PostCollaborationModal } from '@/components/PostCollaborationModal'
@@ -921,6 +922,21 @@ export default function CreatePost() {
           </div>
         </Card>
       )}
+
+      {/* Sugestões de IA Integradas no Fluxo de Criação de Post */}
+      <AiPostSuggestionsWidget
+        currentBrandName={selectedBrand?.name}
+        currentBrandNiche={selectedBrand?.niche}
+        selectedNetwork={platform}
+        onApplySuggestion={({ title, caption: capText }) => {
+          setContent(title)
+          setCaption(capText)
+          toast({
+            title: 'Sugestão de IA aplicada!',
+            description: 'Título, gancho e estrutura de copy foram preenchidos.',
+          })
+        }}
+      />
 
       {/* =========================================================================
           ÁREA PRINCIPAL: EDITOR DE FORMULÁRIO (ESQUERDA) + CANVAS PREVIEW (DIREITA)

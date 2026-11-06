@@ -1,6 +1,7 @@
 import { pb } from '@/lib/pocketbase/client'
 import type { StudioMediaType } from './ai-studio'
 import type { StudioProject } from './studio-collaboration'
+import { createNotification } from './notifications'
 
 export interface StudioProjectVersionSnapshot {
   title: string
@@ -184,6 +185,37 @@ export async function createStudioProjectVersion(params: {
 
   saveLocalVersions([newVersion, ...existingLocal])
 
+  // Dispara notificação no sistema para o autor e colaboradores do projeto
+  try {
+    const notifyUsers = new Set<string>()
+    if (currentUserId && currentUserId !== 'current-user') {
+      notifyUsers.add(currentUserId)
+    }
+    if (project.collaborators && Array.isArray(project.collaborators)) {
+      project.collaborators.forEach((c: any) => {
+        const uid = typeof c === 'string' ? c : c?.user_id || c?.id
+        if (uid) notifyUsers.add(uid)
+      })
+    }
+
+    // Se o set estiver vazio (usuário anônimo/preview), tenta pegar do authStore
+    const fallbackUser = pb.authStore.record?.id
+    if (notifyUsers.size === 0 && fallbackUser) {
+      notifyUsers.add(fallbackUser)
+    }
+
+    notifyUsers.forEach((targetUserId) => {
+      createNotification({
+        user: targetUserId,
+        type: 'approval_flow',
+        actor_name: currentUserName,
+        message: `Nova versão v${nextVersionNumber} criada no projeto "${project.title}": ${versionTitle}.`,
+      }).catch((e) => console.warn('Erro ao notificar versão:', e))
+    })
+  } catch (notifErr) {
+    console.warn('Aviso ao gerar notificação de nova versão:', notifErr)
+  }
+
   try {
     const payload = {
       project_id: project.id,
@@ -279,5 +311,18 @@ export async function createProjectVersion(params: {
 export async function restoreProjectVersion(
   version: StudioProjectVersion,
 ): Promise<StudioProjectVersion> {
+  const currentUserId = pb.authStore.record?.id
+  const currentUserName =
+    (pb.authStore.record as any)?.name || (pb.authStore.record as any)?.username || 'Equipe Studio'
+
+  if (currentUserId) {
+    createNotification({
+      user: currentUserId,
+      type: 'approval_flow',
+      actor_name: currentUserName,
+      message: `Versão v${version.version_number} ("${version.title}") foi restaurada no projeto do Studio.`,
+    }).catch(() => {})
+  }
+
   return version
 }

@@ -27,6 +27,7 @@ export interface StudioSidebarProps {
   onOpenHistoryModal?: () => void
   onOpenCollaborationModal?: () => void
   onOpenVersionHistoryModal?: () => void
+  onOpenSecondBrain?: () => void
   className?: string
 }
 
@@ -43,6 +44,7 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   onOpenHistoryModal,
   onOpenCollaborationModal,
   onOpenVersionHistoryModal,
+  onOpenSecondBrain,
   className = '',
 }) => {
   // Itens padrão de recentes para espelhar exatamente os prints se a lista estiver vazia
@@ -117,6 +119,17 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
         </Button>
 
         <div className="space-y-1.5 mt-2">
+          {onOpenSecondBrain && (
+            <Button
+              variant="default"
+              onClick={onOpenSecondBrain}
+              className="w-full justify-start gap-2 text-xs h-8 font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              Segundo Cérebro
+            </Button>
+          )}
+
           {onOpenCollaborationModal && (
             <Button
               variant="outline"

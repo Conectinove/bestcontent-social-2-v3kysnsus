@@ -31,7 +31,7 @@ export interface RichTextEditorProps {
   error?: string
 }
 
-export function RichTextEditor({
+export const RichTextEditor = React.memo(function RichTextEditor({
   value,
   onChange,
   placeholder = 'Escreva seu conteúdo formatado...',
@@ -421,4 +421,4 @@ export function RichTextEditor({
       {error && <p className="text-[11px] font-semibold text-rose-500 animate-fade-in">{error}</p>}
     </div>
   )
-}
+})

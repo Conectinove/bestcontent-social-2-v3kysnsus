@@ -71,6 +71,7 @@ import { Download } from 'lucide-react'
 import { downloadAssetMedia } from '@/lib/download-utils'
 import { StudioGenerationBar } from '@/components/studio/StudioGenerationBar'
 import { StudioInspirationGallery } from '@/components/studio/StudioInspirationGallery'
+import { SecondBrainCanvas } from '@/components/studio/SecondBrainCanvas'
 
 export default function AiMediaStudioPage() {
   const navigate = useNavigate()
@@ -139,6 +140,7 @@ export default function AiMediaStudioPage() {
   const [isPromptHistoryModalOpen, setIsPromptHistoryModalOpen] = useState(false)
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false)
   const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false)
+  const [isSecondBrainOpen, setIsSecondBrainOpen] = useState(false)
 
   // Modelo ativo na aba corrente
   const currentModel = selectedModels[activeTab] || STUDIO_MODELS.video[0]
@@ -291,6 +293,7 @@ export default function AiMediaStudioPage() {
           onOpenHistoryModal={() => setIsPromptHistoryModalOpen(true)}
           onOpenCollaborationModal={() => setIsCollaborationModalOpen(true)}
           onOpenVersionHistoryModal={() => setIsVersionHistoryModalOpen(true)}
+          onOpenSecondBrain={() => setIsSecondBrainOpen(true)}
         />
       </div>
 
@@ -341,6 +344,10 @@ export default function AiMediaStudioPage() {
                 }}
                 onOpenVersionHistoryModal={() => {
                   setIsVersionHistoryModalOpen(true)
+                  setIsMobileSidebarOpen(false)
+                }}
+                onOpenSecondBrain={() => {
+                  setIsSecondBrainOpen(true)
                   setIsMobileSidebarOpen(false)
                 }}
               />
@@ -737,6 +744,13 @@ export default function AiMediaStudioPage() {
           await loadData()
         }}
       />
+
+      {/* Modal / Dialog do Segundo Cérebro (Full Canvas) */}
+      <Dialog open={isSecondBrainOpen} onOpenChange={setIsSecondBrainOpen}>
+        <DialogContent className="max-w-(--breakpoint-2xl) w-[96vw] h-[92vh] p-0 bg-slate-950 border-slate-800 text-slate-100 overflow-hidden rounded-3xl">
+          <SecondBrainCanvas onClose={() => setIsSecondBrainOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
