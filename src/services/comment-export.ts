@@ -1,16 +1,16 @@
 export interface ExportCommentRow {
   id: string
-  platform: 'Instagram' | 'Facebook' | 'Twitter/X'
+  platform: 'Instagram' | 'Facebook' | 'Twitter/X' | string
   author_handle: string
-  author_name: string
+  author_name?: string
   text: string
-  post_title: string
+  post_title?: string
   post_permalink?: string
-  status: string
-  likes_count: number
-  commented_at: string
+  status?: string
+  likes_count?: number
+  commented_at?: string
   reply_text?: string
-  replied_at?: string
+  replied_at?: string | null
   is_official?: boolean
 }
 
