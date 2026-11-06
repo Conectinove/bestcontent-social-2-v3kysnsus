@@ -259,3 +259,98 @@ export async function setPostReviewStatus(
   }
   return pb.collection('posts').update(postId, payload)
 }
+
+// ============================================================
+// WORKFLOW DE APROVAÇÃO — aprofundamento (migration 0072):
+// pendências de revisão, atribuição de revisor e solicitação de mudança.
+// ============================================================
+
+export interface PendingReviewPost {
+  id: string
+  caption: string
+  content: string
+  platform: string
+  status: string
+  reviewer?: string
+  reviewer_name?: string
+  review_requested?: boolean
+  revision_count?: number
+  created?: string
+  updated?: string
+  expand?: {
+    reviewer?: { id: string; name?: string; email?: string }
+  }
+}
+
+/** Posts aguardando revisão (status em_revisao), com revisor expandido. */
+export async function getPendingReviewPosts(userId?: string): Promise<PendingReviewPost[]> {
+  const filter = userId ? `user = "${userId}" && status = "em_revisao"` : 'status = "em_revisao"'
+  try {
+    const records = await pb.collection('posts').getFullList({
+      filter,
+      sort: '-created',
+      expand: 'reviewer',
+      requestKey: null,
+    })
+    return records as unknown as PendingReviewPost[]
+  } catch (err) {
+    console.warn('Falha ao listar posts pendentes de revisão:', err)
+    return []
+  }
+}
+
+/** Atribui (ou troca) o revisor do post — por relação ou por nome livre. */
+export async function assignPostReviewer(
+  postId: string,
+  reviewerId?: string,
+  reviewerName?: string,
+) {
+  const payload: Record<string, unknown> = {}
+  if (reviewerId) {
+    payload.reviewer = reviewerId
+  }
+  if (reviewerName && reviewerName.trim()) {
+    payload.reviewer_name = reviewerName.trim()
+  }
+  return pb.collection('posts').update(postId, payload)
+}
+
+/**
+ * Solicita mudança: comentário 'ajuste_solicitado' registrado na timeline,
+ * status volta para rascunho e o post é marcado como revisão solicitada.
+ */
+export async function requestPostChanges(input: {
+  postId: string
+  authorName: string
+  text: string
+  userId?: string
+}) {
+  const comment = await addReviewComment({
+    postId: input.postId,
+    userId: input.userId,
+    authorName: input.authorName,
+    text: input.text,
+    kind: 'ajuste_solicitado',
+  })
+  await pb.collection('posts').update(input.postId, {
+    status: 'draft',
+    approval_level: 'Nível 1 (Rascunho)',
+    is_reviewed: false,
+    review_requested: true,
+  })
+  return comment
+}
+
+/** Lista de usuários disponíveis para atribuição de revisão. */
+export async function getReviewerCandidates() {
+  try {
+    const records = await pb.collection('users').getFullList({
+      sort: 'name',
+      requestKey: null,
+    })
+    return records as unknown as { id: string; name?: string; email?: string }[]
+  } catch (err) {
+    console.warn('Falha ao listar revisores candidatos:', err)
+    return []
+  }
+}

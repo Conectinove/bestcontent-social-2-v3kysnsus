@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 import { useSocial } from '@/context/SocialContext'
+import { useAuth } from '@/context/AuthContext'
+import { ReviewPendenciesPanel } from '@/components/review/ReviewPendenciesPanel'
 
 interface AlertItem {
   id: string
@@ -486,6 +488,9 @@ export default function VisaoGeral() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Workflow de aprovação — pendências de revisão (0072) */}
+      <ReviewPendenciesPanel />
     </div>
   )
 }
