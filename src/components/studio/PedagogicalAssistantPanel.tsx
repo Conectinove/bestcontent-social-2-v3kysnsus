@@ -14,6 +14,9 @@ import {
   Mail,
   FileText,
   FileSpreadsheet,
+  Inbox,
+  Cloud,
+  Layers,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +36,15 @@ export interface PedagogicalAssistantPanelProps {
   onRemoveContext: (id: string) => void
   onAddContextItem: (item: ImportedContextItem) => void
   onOpenConnectorsModal: (
-    tab?: 'overview' | 'googledrive' | 'gmail' | 'googledocs' | 'googlesheets',
+    tab?:
+      | 'overview'
+      | 'googledrive'
+      | 'gmail'
+      | 'googledocs'
+      | 'googlesheets'
+      | 'outlook'
+      | 'onedrive'
+      | 'sharepoint',
   ) => void
   onGeneratePrompt: (prompt: string, level: string, system: string) => Promise<void>
   generating?: boolean
@@ -273,14 +284,44 @@ export const PedagogicalAssistantPanel: React.FC<PedagogicalAssistantPanelProps>
               <FileSpreadsheet className="w-3.5 h-3.5" />
             </button>
 
+            {/* Ícone Outlook */}
+            <button
+              type="button"
+              onClick={() => onOpenConnectorsModal('outlook')}
+              title="Microsoft Outlook (E-mails e briefings)"
+              className="w-6 h-6 rounded-md bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[10px] font-black text-cyan-400 hover:scale-110 transition-transform cursor-pointer"
+            >
+              <Inbox className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Ícone OneDrive */}
+            <button
+              type="button"
+              onClick={() => onOpenConnectorsModal('onedrive')}
+              title="Microsoft OneDrive (Arquivos na nuvem)"
+              className="w-6 h-6 rounded-md bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-[10px] font-black text-blue-400 hover:scale-110 transition-transform cursor-pointer"
+            >
+              <Cloud className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Ícone SharePoint */}
+            <button
+              type="button"
+              onClick={() => onOpenConnectorsModal('sharepoint')}
+              title="Microsoft SharePoint (Bases institucionais)"
+              className="w-6 h-6 rounded-md bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[10px] font-black text-teal-400 hover:scale-110 transition-transform cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" />
+            </button>
+
             {/* Botão + Conectar mais */}
             <button
               type="button"
               onClick={() => onOpenConnectorsModal('overview')}
-              title="Ver e conectar mais serviços"
-              className="h-6 px-1.5 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+              title="Ver e conectar mais serviços (Multi-Nuvem)"
+              className="h-6 px-2 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
             >
-              +1
+              +Nuvens
             </button>
           </div>
         </div>

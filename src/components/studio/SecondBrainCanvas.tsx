@@ -25,6 +25,10 @@ import {
   MoreVertical,
   Trash2,
   Edit3,
+  Inbox,
+  Cloud,
+  Layers,
+  GraduationCap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +44,8 @@ import {
 } from '@/services/second-brain'
 import MagicAuthorEditor from './MagicAuthorEditor'
 import { ConnectorsContextModal } from './ConnectorsContextModal'
+import { LessonTemplateGalleryModal } from './LessonTemplateGalleryModal'
+import type { LessonTemplate } from '@/services/lesson-templates'
 import { getConnectedStatus, type SupportedToolkit } from '@/services/google-connectors'
 import { useToast } from '@/hooks/use-toast'
 
@@ -72,7 +78,13 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
     googledrive: false,
     googledocs: false,
     googlesheets: false,
+    outlook: false,
+    one_drive: false,
+    share_point: false,
   })
+
+  // Galeria de Templates de Aulas
+  const [lessonGalleryOpen, setLessonGalleryOpen] = useState(false)
 
   useEffect(() => {
     setConnectorStatuses({
@@ -80,6 +92,9 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
       googledrive: getConnectedStatus('googledrive'),
       googledocs: getConnectedStatus('googledocs'),
       googlesheets: getConnectedStatus('googlesheets'),
+      outlook: getConnectedStatus('outlook' as any),
+      one_drive: getConnectedStatus('one_drive' as any),
+      share_point: getConnectedStatus('share_point' as any),
     })
   }, [connectorsModalOpen])
 
@@ -139,6 +154,23 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
 
     await loadDocs()
     setSelectedDoc(newDoc)
+  }
+
+  const handleApplyLessonTemplate = async (template: LessonTemplate) => {
+    const newDoc = await createSecondBrainDoc({
+      title: template.title,
+      doc_type: template.docType,
+      location: `Templates de Aulas · ${template.category.toUpperCase()}`,
+      modules: template.modules,
+    })
+
+    await loadDocs()
+    setSelectedDoc(newDoc)
+    setLessonGalleryOpen(false)
+    toast({
+      title: 'Template de Aula aplicado com sucesso!',
+      description: `Nota "${template.title}" estruturada e pronta para o Gerar com IA.`,
+    })
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -300,11 +332,20 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
 
               <button
                 type="button"
+                onClick={() => setLessonGalleryOpen(true)}
+                className="w-full text-left px-2 py-1.5 rounded-lg text-purple-300 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/40 transition-all flex items-center gap-2 font-bold"
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-purple-400" />
+                <span>Templates de Aulas (PT-BR)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleCreateNew('aula_lab', 'Laboratório Interativo CTlabs')}
                 className="w-full text-left px-2 py-1.5 rounded-lg text-slate-400 hover:text-purple-300 hover:bg-slate-800/60 transition-all flex items-center gap-2"
               >
                 <LayoutTemplate className="w-3 h-3 text-purple-400" />
-                <span>Templates & Labs</span>
+                <span>Laboratórios & Labs</span>
               </button>
             </div>
           </div>
@@ -366,6 +407,54 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               </p>
             </div>
 
+            {/* Atalho Microsoft Outlook */}
+            <div
+              onClick={() => {
+                setConnectorsInitialTab('outlook' as any)
+                setConnectorsModalOpen(true)
+              }}
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
+                  <Inbox className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Outlook</span>
+                </div>
+                {connectorStatuses.outlook ? (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Conectado
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-500">Conectar</span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400">E-mails e briefings corporativos.</p>
+            </div>
+
+            {/* Atalho Microsoft OneDrive */}
+            <div
+              onClick={() => {
+                setConnectorsInitialTab('onedrive' as any)
+                setConnectorsModalOpen(true)
+              }}
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
+                  <Cloud className="w-3.5 h-3.5 text-blue-400" />
+                  <span>OneDrive</span>
+                </div>
+                {connectorStatuses.one_drive ? (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Ativo
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-500">Conectar</span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400">Documentos e pastas na nuvem Microsoft.</p>
+            </div>
+
             <Button
               type="button"
               variant="ghost"
@@ -376,7 +465,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               }}
               className="w-full justify-start text-[11px] text-purple-400 hover:text-purple-300 h-8 px-2 gap-1.5"
             >
-              <PlusCircle className="w-3.5 h-3.5" />+ Conectar mais contas
+              <PlusCircle className="w-3.5 h-3.5" />+ Conectar mais (SharePoint, Sheets...)
             </Button>
           </div>
         </div>
@@ -469,13 +558,45 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
           )}
         </div>
 
-        {/* Seção "Comece aqui" (Cards de Início do Print 3) */}
+        {/* Seção "Comece aqui" (Cards de Início do Print 3 + Banner de Templates) */}
         <div className="space-y-3">
-          <h2 className="text-sm font-black text-white uppercase tracking-wider font-heading">
-            Comece aqui
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black text-white uppercase tracking-wider font-heading">
+              Comece aqui
+            </h2>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setLessonGalleryOpen(true)}
+              className="h-8 text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl gap-1.5 shadow-md shadow-purple-900/30"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              Galeria de Templates de Aulas (6 Prontos)
+            </Button>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <button
+              type="button"
+              onClick={() => setLessonGalleryOpen(true)}
+              className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/60 to-slate-900 border border-purple-500/40 hover:border-purple-400 hover:bg-purple-900/30 transition-all text-left space-y-3 group shadow-lg shadow-purple-950/20"
+            >
+              <div className="w-10 h-10 rounded-xl bg-purple-600/30 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                <GraduationCap className="w-5 h-5 text-purple-300" />
+              </div>
+              <div>
+                <p className="text-xs text-purple-300 font-semibold flex items-center gap-1">
+                  1 Clique &rarr; Estrutura
+                </p>
+                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-200 transition-colors">
+                  Templates de Aulas PT-BR
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                  Plano de aula, laboratório, tutorial, quiz e roteiro prontos.
+                </p>
+              </div>
+            </button>
+
             <button
               type="button"
               onClick={() => handleCreateNew('documento', 'Nova Nota')}
@@ -672,7 +793,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
           </div>
         </div>
       </main>
-      {/* Modal de Conectores e Importação de Contexto (Gmail, Drive, Docs, Sheets) */}
+      {/* Modal de Conectores e Importação de Contexto (Gmail, Drive, Docs, Sheets, Outlook, OneDrive, SharePoint) */}
       <ConnectorsContextModal
         open={connectorsModalOpen}
         onOpenChange={setConnectorsModalOpen}
@@ -682,9 +803,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             title: 'Contexto importado!',
             description: `"${ctx.title}" pronto para ser usado no seu próximo documento.`,
           })
-          // Cria uma nova nota ou abre editor se desejar
+          // Cria uma nova nota com o título do contexto importado
           handleCreateNew('documento', ctx.title)
         }}
+      />
+
+      {/* Modal de Galeria de Templates de Aulas */}
+      <LessonTemplateGalleryModal
+        open={lessonGalleryOpen}
+        onOpenChange={setLessonGalleryOpen}
+        onSelectTemplate={handleApplyLessonTemplate}
       />
     </div>
   )

@@ -59,6 +59,7 @@ import {
 import { PedagogicalAssistantPanel, type ActiveContextItem } from './PedagogicalAssistantPanel'
 import { AulaHtmlWorkspace } from './AulaHtmlWorkspace'
 import { ConnectorsContextModal } from './ConnectorsContextModal'
+import { AdvancedArtifactEditorModal } from './AdvancedArtifactEditorModal'
 import type { SupportedToolkit } from '@/services/google-connectors'
 
 interface MagicAuthorEditorProps {
@@ -814,60 +815,18 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
         onImportContext={handleImportContextFromConnector}
       />
 
-      {/* MODAL AVANÇADO: Tipo de Artefato (Laboratório, Blog, Site, Documento) */}
-      <Dialog open={advancedModalOpen} onOpenChange={setAdvancedModalOpen}>
-        <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-100 rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-purple-400" />
-              Edição Avançada do Artefato
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Escolha o formato e a finalidade deste documento para que o editor e o motor de IA se
-              adaptem à estrutura desejada:
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 py-2">
-            {[
-              {
-                type: 'aula_lab' as SecondBrainDocType,
-                title: 'Laboratório / Aula',
-                desc: 'Módulos pedagógicos com exercícios práticos e passo a passo.',
-              },
-              {
-                type: 'blog_artigo' as SecondBrainDocType,
-                title: 'Blog / Artigo',
-                desc: 'Estrutura editorial com ganchos, subtítulos e conclusão.',
-              },
-              {
-                type: 'site_landing' as SecondBrainDocType,
-                title: 'Site / Landing Page',
-                desc: 'Seções de conversão, propostas de valor e CTAs persuasivos.',
-              },
-              {
-                type: 'documento' as SecondBrainDocType,
-                title: 'Documento Geral',
-                desc: 'Estrutura livre para notas de projeto e planejamento.',
-              },
-            ].map((opt) => (
-              <button
-                key={opt.type}
-                type="button"
-                onClick={() => handleSelectDocType(opt.type)}
-                className={`p-3.5 rounded-2xl border text-left transition-all ${
-                  currentDoc.doc_type === opt.type
-                    ? 'bg-purple-950/60 border-purple-500 text-white'
-                    : 'bg-slate-800/40 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <div className="text-xs font-bold mb-1">{opt.title}</div>
-                <div className="text-[11px] text-slate-400 leading-snug">{opt.desc}</div>
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* MODAL AVANÇADO COMPLETO: Estruturas dedicadas (Laboratório, Blog, Site), preview ao vivo e exportação HTML */}
+      <AdvancedArtifactEditorModal
+        open={advancedModalOpen}
+        onOpenChange={setAdvancedModalOpen}
+        doc={currentDoc}
+        onApplyArtifact={(updated) => {
+          setCurrentDoc(updated)
+          if (updated.modules.length > 0) {
+            setSelectedModuleId(updated.modules[0].id)
+          }
+        }}
+      />
     </div>
   )
 }

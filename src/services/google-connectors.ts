@@ -19,16 +19,41 @@ export interface GmailMessageItem {
   bodyText?: string
 }
 
-export type SupportedToolkit = 'gmail' | 'googledrive' | 'googledocs' | 'googlesheets'
+export type SupportedToolkit =
+  | 'gmail'
+  | 'googledrive'
+  | 'googledocs'
+  | 'googlesheets'
+  | 'outlook'
+  | 'one_drive'
+  | 'share_point'
 
 export interface ImportedContextItem {
   id: string
-  source: 'googledrive' | 'gmail' | 'googledocs' | 'googlesheets' | 'manual' | 'pedagogico'
+  source:
+    | 'googledrive'
+    | 'gmail'
+    | 'googledocs'
+    | 'googlesheets'
+    | 'outlook'
+    | 'one_drive'
+    | 'share_point'
+    | 'manual'
+    | 'pedagogico'
   title: string
   subtitle?: string
   content: string
   origin?: string
-  type?: 'drive' | 'gmail' | 'docs' | 'sheets' | 'manual' | 'pedagogico'
+  type?:
+    | 'drive'
+    | 'gmail'
+    | 'docs'
+    | 'sheets'
+    | 'outlook'
+    | 'onedrive'
+    | 'sharepoint'
+    | 'manual'
+    | 'pedagogico'
   metadata?: Record<string, any>
   createdAt: string
 }
@@ -144,13 +169,53 @@ export async function readUserDriveFileContent(
 /**
  * Lista mensagens recentes do Gmail do usuário logado
  */
+export interface GmailSearchOptions {
+  query?: string
+  sender?: string
+  period?: 'all' | '7d' | '30d' | '365d'
+  sortBy?: 'date_desc' | 'date_asc' | 'relevance'
+  maxResults?: number
+}
+
+/**
+ * Lista mensagens recentes do Gmail com filtros avançados:
+ * busca por assunto/corpo, filtro de remetente, período e ordenação.
+ */
 export async function searchUserGmailMessages(
-  query = '',
-  maxResults = 10,
+  optionsOrQuery: string | GmailSearchOptions = '',
+  legacyMaxResults = 15,
 ): Promise<GmailMessageItem[]> {
   try {
+    const opts: GmailSearchOptions =
+      typeof optionsOrQuery === 'string'
+        ? { query: optionsOrQuery, maxResults: legacyMaxResults }
+        : optionsOrQuery
+
+    const rawQuery = opts.query?.trim() || ''
+    const sender = opts.sender?.trim() || ''
+    const maxResults = opts.maxResults || 20
+
+    // Monta query combinada do Gmail (ex: "label:INBOX from:maria newer_than:7d")
+    const queryParts: string[] = []
+    if (rawQuery) {
+      queryParts.push(rawQuery)
+    } else {
+      queryParts.push('label:INBOX')
+    }
+
+    if (sender) {
+      queryParts.push(`from:${sender}`)
+    }
+
+    if (opts.period && opts.period !== 'all') {
+      const days = opts.period === '7d' ? '7d' : opts.period === '30d' ? '30d' : '365d'
+      queryParts.push(`newer_than:${days}`)
+    }
+
+    const fullQuery = queryParts.join(' ')
+
     const res = await execute('GMAIL_FETCH_EMAILS', {
-      query: query || 'label:INBOX',
+      query: fullQuery,
       max_results: maxResults,
       include_payload: true,
       verbose: true,
@@ -162,7 +227,7 @@ export async function searchUserGmailMessages(
         data.messages || data.emails || data.data?.messages || (Array.isArray(data) ? data : [])
 
       if (Array.isArray(rawMessages)) {
-        return rawMessages.map((m: any) => {
+        let list: GmailMessageItem[] = rawMessages.map((m: any) => {
           // Extrai assunto dos headers se disponível
           let subject = m.subject || ''
           let from = m.from || ''
@@ -182,11 +247,26 @@ export async function searchUserGmailMessages(
             threadId: m.threadId || m.thread_id,
             subject: subject || m.snippet?.slice(0, 40) || 'Sem assunto',
             snippet: m.snippet || '',
-            from,
-            date,
+            from: from || 'Remetente Gmail',
+            date: date || new Date().toISOString(),
             bodyText: m.body || m.text || m.snippet || '',
           }
         })
+
+        // Filtro adicional de segurança client-side caso a busca retorne resultados mais amplos
+        if (sender) {
+          const s = sender.toLowerCase()
+          list = list.filter((m) => (m.from || '').toLowerCase().includes(s))
+        }
+
+        // Ordenação
+        if (opts.sortBy === 'date_asc') {
+          list.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime())
+        } else if (opts.sortBy === 'date_desc') {
+          list.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+        }
+
+        return list
       }
     }
   } catch (err) {
