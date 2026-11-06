@@ -32,9 +32,9 @@ export function WorkspaceHeader({
   const activeName = PRESETS.find((p) => p.id === activePreset)?.name || 'Personalizado'
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border pb-3 mb-3">
-      <div className="flex items-center gap-2 min-w-0 flex-1">{children}</div>
-      <div className="flex items-center gap-2 shrink-0">
+    <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border/80 pb-3 mb-3">
+      <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">{children}</div>
+      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
         {actions}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

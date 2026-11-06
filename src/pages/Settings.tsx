@@ -59,8 +59,9 @@ import { EditProfileModal } from '@/components/EditProfileModal'
 import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
 import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
-import { Building2, Webhook, Target, Mail, RefreshCw } from 'lucide-react'
+import { Building2, Webhook, Target, Mail, RefreshCw, ShieldCheck } from 'lucide-react'
 import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
+import { MasterSettingsPanel } from '@/components/brandkit/MasterSettingsPanel'
 import {
   getOrganizationSettings,
   saveOrganizationSettings,
@@ -70,6 +71,7 @@ import {
 import { ConnectorButton } from '@/components/skip/ConnectorButton'
 
 type TabKey =
+  | 'master'
   | 'organization'
   | 'account'
   | 'subscription'
@@ -79,6 +81,12 @@ type TabKey =
   | 'about'
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: string }> = [
+  {
+    key: 'master',
+    label: 'Usuário Master',
+    icon: ShieldCheck,
+    description: 'Ativação global das principais funções e módulos do app',
+  },
   {
     key: 'organization',
     label: 'Minha Organização',
@@ -127,8 +135,9 @@ export default function Settings() {
 
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const tabParam = searchParams.get('tab')
+    if (tabParam === 'master') return 'master'
     if (tabParam === 'organization' || tabParam === 'marcas') return 'organization'
-    return 'organization'
+    return 'master'
   })
   const [editProfileOpen, setEditProfileOpen] = useState(
     () => searchParams.get('edit') === 'profile',
@@ -492,6 +501,10 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">{activeTabMeta.description}</p>
                 </div>
               </div>
+
+              {activeTab === 'master' && (
+                <MasterSettingsPanel brandId={(user as any)?.brand_id || undefined} />
+              )}
 
               {activeTab === 'organization' && (
                 <OrganizationBrandManager onAddNewBrand={() => navigate('/app/brands')} />

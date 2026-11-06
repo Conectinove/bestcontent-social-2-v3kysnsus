@@ -129,17 +129,17 @@ export function NetworkHashtagGenerator({
     >
       {/* Cabeçalho do seletor */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <div className="w-6 h-6 rounded-lg bg-purple-600/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
             <Hash className="w-3.5 h-3.5" />
           </div>
-          <span className="text-xs font-bold text-foreground truncate">
-            Sugerir Hashtags por Rede
+          <span className="text-xs font-bold text-foreground whitespace-nowrap">
+            Sugerir Hashtags
           </span>
         </div>
         <Badge
           variant="outline"
-          className="text-[10px] font-mono border-purple-400/40 text-purple-700 dark:text-purple-300 shrink-0"
+          className="text-[10px] font-mono border-purple-400/40 text-purple-700 dark:text-purple-300 shrink-0 whitespace-nowrap"
         >
           {spec.range}
         </Badge>

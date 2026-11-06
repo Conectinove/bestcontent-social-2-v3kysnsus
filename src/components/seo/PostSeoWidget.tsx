@@ -130,26 +130,27 @@ Adicione um gancho forte na primeira linha antes de "...mais", melhore a legibil
   return (
     <Card className={`rounded-2xl border-border bg-card p-4 space-y-3.5 shadow-xs ${className}`}>
       <div className="flex items-center justify-between pb-2 border-b border-border/80">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-            <Search className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+            <Search className="w-4 h-4" />
           </div>
-          <div>
-            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <span>SEO do Post</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-foreground whitespace-nowrap">
+                SEO do Post
+              </span>
               <Badge
                 variant="outline"
-                className={`text-[10px] font-bold px-1.5 py-0 ${scoreBadgeBg}`}
+                className={`text-[10px] font-mono font-bold shrink-0 ${scoreBadgeBg}`}
               >
                 {analysis.score}/100
               </Badge>
-            </h4>
-            <span className="text-[10px] text-muted-foreground capitalize">
-              Otimização para busca no {normNetwork}
-            </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">
+              Otimização Para Busca no {normNetwork.charAt(0).toUpperCase() + normNetwork.slice(1)}
+            </p>
           </div>
         </div>
-
         <div className="text-right">
           <span className={`text-xl font-black ${scoreColor}`}>{analysis.score}</span>
           <span className="text-[10px] text-muted-foreground block font-medium">Score</span>

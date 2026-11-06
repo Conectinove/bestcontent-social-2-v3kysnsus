@@ -48,6 +48,13 @@ import {
   AdvancedCustomizationState,
   DEFAULT_CUSTOMIZATION,
 } from '@/components/workspace/AdvancedCustomizationPanel'
+import {
+  ProfessionalArtStudio,
+  ArtTextLayer,
+  CarouselSlide,
+  AspectRatioFormat,
+} from '@/components/workspace/ProfessionalArtStudio'
+import { CarouselPreviewModal } from '@/components/workspace/CarouselPreviewModal'
 import { createPost } from '@/services/posts'
 import { Copy } from 'lucide-react'
 import type { PremiumElement } from '@/services/premium-elements'
@@ -105,6 +112,31 @@ export default function PostEditor() {
   const [placedElements, setPlacedElements] = useState<PlacedElement[]>([])
   const [customization, setCustomization] =
     useState<AdvancedCustomizationState>(DEFAULT_CUSTOMIZATION)
+  const [textLayers, setTextLayers] = useState<ArtTextLayer[]>([])
+  const [aspectRatio, setAspectRatio] = useState<AspectRatioFormat>('4:5')
+  const [isCarousel, setIsCarousel] = useState(false)
+  const [slides, setSlides] = useState<CarouselSlide[]>([
+    {
+      id: 'slide-1',
+      title: 'Capa Impactante',
+      captionSnippet: 'O grande segredo que ninguém te conta sobre crescimento...',
+      textLayers: [],
+    },
+    {
+      id: 'slide-2',
+      title: 'Passo 1: Diagnóstico Real',
+      captionSnippet: 'Identifique o gargalo antes de acelerar os investimentos.',
+      textLayers: [],
+    },
+    {
+      id: 'slide-3',
+      title: 'Chamada para Ação',
+      captionSnippet: 'Salve este post para consultar quando for planejar.',
+      textLayers: [],
+    },
+  ])
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
+  const [carouselPreviewOpen, setCarouselPreviewOpen] = useState(false)
 
   useEffect(() => {
     if (!postId) return
@@ -126,6 +158,15 @@ export default function PostEditor() {
           try {
             const parsed = JSON.parse(record.script_json)
             if (parsed.placedElements) setPlacedElements(parsed.placedElements)
+            if (parsed.textLayers) setTextLayers(parsed.textLayers)
+            if (parsed.aspectRatio) setAspectRatio(parsed.aspectRatio)
+            if (parsed.isCarousel) setIsCarousel(parsed.isCarousel)
+            if (parsed.slides && Array.isArray(parsed.slides) && parsed.slides.length > 0) {
+              setSlides(parsed.slides)
+            }
+            if (parsed.customization) {
+              setCustomization((prev) => ({ ...prev, ...parsed.customization }))
+            }
           } catch {
             /* intentionally ignored */
           }
@@ -264,6 +305,14 @@ export default function PostEditor() {
     }
     setSavingAsNew(true)
     try {
+      const metadataPayload = {
+        placedElements,
+        textLayers,
+        aspectRatio,
+        isCarousel,
+        slides,
+        customization,
+      }
       const data: Record<string, unknown> = {
         user: user?.id,
         content: `${content} (Cópia Editada)`.trim(),
@@ -271,10 +320,10 @@ export default function PostEditor() {
         platform,
         brand: brandId,
         status: 'draft',
+        script_json: JSON.stringify(metadataPayload),
       }
       if (scheduledDate) data.scheduled_date = scheduledDate
       if (mediaFile) data.media = mediaFile
-      if (placedElements.length > 0) data.script_json = JSON.stringify({ placedElements })
       const created = await createPost(data)
       toast({
         title: 'Salvo como Novo Post!',
@@ -306,16 +355,24 @@ export default function PostEditor() {
     if (publish) setPublishing(true)
     else setSaving(true)
     try {
+      const metadataPayload = {
+        placedElements,
+        textLayers,
+        aspectRatio,
+        isCarousel,
+        slides,
+        customization,
+      }
       const data: Record<string, unknown> = {
         content,
         caption,
         platform,
         brand: brandId,
         status: publish ? 'published' : status,
+        script_json: JSON.stringify(metadataPayload),
       }
       if (scheduledDate) data.scheduled_date = scheduledDate
       if (mediaFile) data.media = mediaFile
-      if (placedElements.length > 0) data.script_json = JSON.stringify({ placedElements })
       await updatePost(postId, data)
       toast({
         title: publish ? 'Publicado!' : 'Salvo!',
@@ -549,116 +606,213 @@ export default function PostEditor() {
       }
     >
       <div className="space-y-3 pb-4">
-        <div
-          ref={canvasRef}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
-          className="relative w-full h-64 rounded-2xl border-2 border-dashed border-border/80 hover:border-primary/50 transition-colors overflow-hidden bg-muted/30 shadow-xs"
-        >
-          {mediaPreview ? (
-            <div className="w-full h-full relative overflow-hidden">
-              <img
-                src={mediaPreview}
-                alt="Preview"
-                className="w-full h-full object-cover transition-all"
-                style={{
-                  filter: `brightness(${customization.brightness}%) contrast(${customization.contrast}%) saturate(${customization.saturation}%) blur(${customization.blur}px)`,
-                }}
-              />
-              {/* Camada de sobreposição configurável */}
-              <div
-                className="absolute inset-0 pointer-events-none transition-all"
-                style={{
-                  backgroundColor:
-                    customization.gradientMode === 'none' ? customization.overlayColor : undefined,
-                  backgroundImage:
-                    customization.gradientMode === 'linear'
-                      ? `linear-gradient(135deg, ${customization.primaryColor}80, ${customization.secondaryColor}80)`
-                      : customization.gradientMode === 'radial'
-                        ? `radial-gradient(circle, ${customization.primaryColor}80, ${customization.secondaryColor}80)`
-                        : undefined,
-                  opacity: customization.overlayOpacity / 100,
-                }}
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <ImageIcon className="w-8 h-8" />
-              <span className="text-xs">Clique para enviar uma imagem</span>
-            </button>
-          )}
-          {placedElements.map((el) => (
-            <div
-              key={el.uid}
-              className="absolute cursor-pointer group/el z-10"
-              style={{ left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)' }}
-              onClick={() => removePlacedElement(el.uid)}
-            >
-              {el.type === 'texture' ? (
-                <div className="w-16 h-16 rounded shadow-lg" style={{ background: el.data }} />
-              ) : (
-                <div
-                  className="w-12 h-12 text-primary pointer-events-none drop-shadow-lg"
-                  dangerouslySetInnerHTML={{ __html: el.data }}
+        {/* Canvas de Pré-visualização da Arte com Suporte a Formato e Camadas */}
+        <div className="flex justify-center">
+          <div
+            ref={canvasRef}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            className={`relative w-full ${
+              aspectRatio === '4:5'
+                ? 'max-w-md aspect-[4/5] max-h-[460px]'
+                : aspectRatio === '9:16'
+                  ? 'max-w-xs aspect-[9/16] max-h-[500px]'
+                  : aspectRatio === '16:9'
+                    ? 'max-w-lg aspect-[16/9] max-h-[320px]'
+                    : 'max-w-md aspect-square max-h-[420px]'
+            } rounded-2xl border-2 border-dashed border-border/80 hover:border-purple-500/50 transition-colors overflow-hidden bg-muted/30 shadow-xs`}
+          >
+            {mediaPreview ? (
+              <div className="w-full h-full relative overflow-hidden">
+                <img
+                  src={mediaPreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover transition-all"
+                  style={{
+                    filter: `brightness(${customization.brightness}%) contrast(${customization.contrast}%) saturate(${customization.saturation}%) blur(${customization.blur}px)`,
+                  }}
                 />
-              )}
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover/el:opacity-100 transition-opacity">
-                <X className="w-2.5 h-2.5" />
+                {/* Camada de sobreposição configurável */}
+                <div
+                  className="absolute inset-0 pointer-events-none transition-all"
+                  style={{
+                    backgroundColor:
+                      customization.gradientMode === 'none'
+                        ? customization.overlayColor
+                        : undefined,
+                    backgroundImage:
+                      customization.gradientMode === 'linear'
+                        ? `linear-gradient(135deg, ${customization.primaryColor}80, ${customization.secondaryColor}80)`
+                        : customization.gradientMode === 'radial'
+                          ? `radial-gradient(circle, ${customization.primaryColor}80, ${customization.secondaryColor}80)`
+                          : undefined,
+                    opacity: customization.overlayOpacity / 100,
+                  }}
+                />
               </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-purple-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-6 text-center"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-bold text-foreground">
+                  Clique para enviar uma imagem
+                </span>
+                <span className="text-[10px] text-muted-foreground max-w-xs">
+                  JPEG, PNG ou WebP até 10MB • Arraste ícones e texturas do painel esquerdo
+                </span>
+              </button>
+            )}
+
+            {/* Camadas de Texto Renderizadas Sobre a Arte */}
+            {textLayers.map((layer) => (
+              <div
+                key={layer.id}
+                className="absolute z-20 pointer-events-none drop-shadow-md px-2 py-0.5 rounded transition-all select-none"
+                style={{
+                  left: `${layer.x}%`,
+                  top: `${layer.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                  color: layer.color,
+                  fontSize: `${layer.fontSize}px`,
+                  fontWeight: layer.fontWeight,
+                  textAlign: layer.align,
+                  backgroundColor: layer.bgColor || 'rgba(0,0,0,0.3)',
+                  backdropFilter: 'blur(2px)',
+                }}
+              >
+                {layer.text}
+              </div>
+            ))}
+
+            {placedElements.map((el) => (
+              <div
+                key={el.uid}
+                className="absolute cursor-pointer group/el z-10"
+                style={{ left: `${el.x}%`, top: `${el.y}%`, transform: 'translate(-50%, -50%)' }}
+                onClick={() => removePlacedElement(el.uid)}
+              >
+                {el.type === 'texture' ? (
+                  <div className="w-16 h-16 rounded shadow-lg" style={{ background: el.data }} />
+                ) : (
+                  <div
+                    className="w-12 h-12 text-primary pointer-events-none drop-shadow-lg"
+                    dangerouslySetInnerHTML={{ __html: el.data }}
+                  />
+                )}
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover/el:opacity-100 transition-opacity">
+                  <X className="w-2.5 h-2.5" />
+                </div>
+              </div>
+            ))}
+
+            {mediaPreview && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white flex items-center gap-1 hover:bg-black/80 transition-colors z-30 font-semibold"
+              >
+                <Upload className="w-3 h-3" /> Trocar Foto
+              </button>
+            )}
+
+            {/* Badge de Indicador de Formato no Canvas */}
+            <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-xs text-white text-[9px] font-mono z-30 pointer-events-none">
+              {aspectRatio} •{' '}
+              {isCarousel ? `Slide ${currentSlideIndex + 1}/${slides.length}` : 'Post Estático'}
             </div>
-          ))}
-          {mediaPreview && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-white flex items-center gap-1 hover:bg-black/80 transition-colors z-20"
-            >
-              <Upload className="w-3 h-3" /> Trocar
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileChange}
-            className="hidden"
-          />
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
         </div>
+
         {placedElements.length > 0 && (
-          <p className="text-[10px] text-muted-foreground">
-            {placedElements.length} elemento(s) na arte • Clique para remover
+          <p className="text-[10px] text-muted-foreground text-center">
+            {placedElements.length} elemento(s) na arte • Clique no elemento para remover
           </p>
         )}
 
-        {/* Painel de Edição Avançada de Personalização & Melhores Práticas (Controlado via Labs) */}
-        {isLabEnabled('canvas-advanced-customization') ? (
-          <AdvancedCustomizationPanel
-            customization={customization}
-            onChange={setCustomization}
-            onReset={() => setCustomization(DEFAULT_CUSTOMIZATION)}
-            platform={platform}
-            caption={caption || content}
-            hasMedia={Boolean(mediaPreview)}
-            brand={selectedBrand}
-          />
-        ) : (
-          <div className="p-3.5 rounded-2xl border border-dashed border-border/80 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              💡 <strong>Edição Avançada do Canvas</strong> está recolhida nas preferências.
-            </span>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => navigate('/app/labs')}
-              className="text-xs text-purple-600 p-0 h-auto font-bold"
-            >
-              Ativar no Labs →
-            </Button>
-          </div>
-        )}
+        {/* Estúdio Profissional de Arte & Slides */}
+        <ProfessionalArtStudio
+          customization={customization}
+          onChangeCustomization={setCustomization}
+          onResetCustomization={() => setCustomization(DEFAULT_CUSTOMIZATION)}
+          platform={platform}
+          caption={caption || content}
+          hasMedia={Boolean(mediaPreview)}
+          brand={selectedBrand}
+          textLayers={textLayers}
+          onChangeTextLayers={setTextLayers}
+          aspectRatio={aspectRatio}
+          onChangeAspectRatio={setAspectRatio}
+          isCarousel={isCarousel}
+          onToggleCarousel={setIsCarousel}
+          slides={slides}
+          currentSlideIndex={currentSlideIndex}
+          onChangeSlideIndex={setCurrentSlideIndex}
+          onAddSlide={() => {
+            const nextSlide: CarouselSlide = {
+              id: `slide-${Date.now()}`,
+              title: `Slide ${slides.length + 1}: Novo Ponto`,
+              captionSnippet: 'Adicione informações chave para engajar seu público...',
+              textLayers: [],
+            }
+            setSlides([...slides, nextSlide])
+            setCurrentSlideIndex(slides.length)
+            toast({ title: 'Slide adicionado', description: `Slide #${slides.length + 1} criado.` })
+          }}
+          onRemoveSlide={(idx) => {
+            if (slides.length <= 1) return
+            const next = slides.filter((_, i) => i !== idx)
+            setSlides(next)
+            setCurrentSlideIndex(Math.max(0, idx - 1))
+            toast({ title: 'Slide removido' })
+          }}
+          onDuplicateSlide={(idx) => {
+            const target = slides[idx]
+            const copy: CarouselSlide = {
+              ...target,
+              id: `slide-${Date.now()}`,
+              title: `${target.title} (Cópia)`,
+            }
+            const next = [...slides]
+            next.splice(idx + 1, 0, copy)
+            setSlides(next)
+            setCurrentSlideIndex(idx + 1)
+            toast({ title: 'Slide duplicado', description: 'Cópia adicionada à sequência.' })
+          }}
+          onMoveSlide={(from, to) => {
+            if (to < 0 || to >= slides.length) return
+            const next = [...slides]
+            const [item] = next.splice(from, 1)
+            next.splice(to, 0, item)
+            setSlides(next)
+            setCurrentSlideIndex(to)
+          }}
+          onUpdateSlide={(idx, patch) => {
+            setSlides(slides.map((s, i) => (i === idx ? { ...s, ...patch } : s)))
+          }}
+          onOpenPreviewCarouselModal={() => setCarouselPreviewOpen(true)}
+        />
+
+        {/* Modal de Prévia do Carrossel */}
+        <CarouselPreviewModal
+          open={carouselPreviewOpen}
+          onOpenChange={setCarouselPreviewOpen}
+          slides={slides}
+          aspectRatio={aspectRatio}
+          customization={customization}
+          baseMediaUrl={mediaPreview}
+        />
       </div>
     </WorkspaceLayout>
   )

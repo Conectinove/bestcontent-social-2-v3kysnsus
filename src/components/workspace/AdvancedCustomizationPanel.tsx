@@ -377,12 +377,14 @@ export function AdvancedCustomizationPanel({
                   key={p.name}
                   type="button"
                   onClick={() => applyPreset(p)}
-                  className="p-2.5 rounded-xl border border-border/80 bg-muted/30 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-left space-y-1 group"
+                  className="p-2.5 rounded-xl border border-border/80 bg-muted/30 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-left flex flex-col justify-between min-h-[76px] group"
                 >
-                  <p className="text-xs font-bold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                  <p className="text-xs font-bold text-foreground leading-tight line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400">
                     {p.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground line-clamp-1">{p.description}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
+                    {p.description}
+                  </p>
                 </button>
               ))}
             </div>
