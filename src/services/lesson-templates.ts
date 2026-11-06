@@ -1,10 +1,20 @@
 import type { SecondBrainModule, SecondBrainDocType } from './second-brain'
 
+export type LessonTemplateCategory =
+  | 'aula'
+  | 'plano_aula'
+  | 'laboratorio'
+  | 'resumo'
+  | 'tutorial'
+  | 'quiz'
+  | 'video'
+  | 'videoaula'
+
 export interface LessonTemplate {
   id: string
   title: string
   subtitle: string
-  category: 'plano_aula' | 'laboratorio' | 'resumo' | 'tutorial' | 'quiz' | 'videoaula'
+  category: LessonTemplateCategory
   badge: string
   suggestedDuration: string
   description: string
