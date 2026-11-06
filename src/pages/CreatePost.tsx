@@ -227,6 +227,11 @@ export default function CreatePost() {
 
   // 1) Contexto de ideia: navegação com state (caption/tema) ou query ?prompt/?idea
   useEffect(() => {
+    // Variações de template chegam com copy curada da IA — não regerar por cima.
+    if ((location.state as { skipAutoCaption?: boolean } | null)?.skipAutoCaption) {
+      autoCaptionRanRef.current = true
+      return
+    }
     if (autoCaptionRanRef.current || !initialCaption.trim()) return
     const stateTopic = (location.state?.caption as string) || ''
     triggerAutoCaption(stateTopic || urlPrompt || initialCaption, 'idea')

@@ -10,7 +10,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { generateTemplateVariations, type TemplateVariation } from '@/services/template-variations'
+import {
+  generateTemplateVariations,
+  applyVariationToTemplate,
+  type TemplateVariation,
+} from '@/services/template-variations'
 import type { PostTemplate } from '@/services/post-templates'
 
 interface TemplateVariationsModalProps {
@@ -18,7 +22,9 @@ interface TemplateVariationsModalProps {
   onOpenChange: (open: boolean) => void
   template: PostTemplate | null
   brandName?: string
+  brandVoice?: string
   styleGuidelines?: Record<string, unknown> | string | null
+  /** Recebe o template já com a variação aplicada + legenda montada para o criador. */
   onUse: (template: PostTemplate, caption: string) => void
 }
 
@@ -27,12 +33,20 @@ export function TemplateVariationsModal({
   onOpenChange,
   template,
   brandName,
+  brandVoice,
   styleGuidelines,
   onUse,
 }: TemplateVariationsModalProps) {
   const [loading, setLoading] = useState(false)
   const [variations, setVariations] = useState<TemplateVariation[]>([])
-  const [source, setSource] = useState<'ia' | 'local'>('local')
+  const [source, setSource] = useState<'ia' | 'fallback'>('fallback')
+
+  // Chave estável para não re-disparar o efeito a cada render com objeto novo.
+  const guidelinesKey = styleGuidelines
+    ? typeof styleGuidelines === 'string'
+      ? styleGuidelines
+      : JSON.stringify(styleGuidelines)
+    : ''
 
   useEffect(() => {
     if (!open || !template) return
@@ -40,11 +54,10 @@ export function TemplateVariationsModal({
     setLoading(true)
     setVariations([])
     generateTemplateVariations({
-      templateName: template.name,
-      category: template.category,
-      network: template.network,
+      template,
       brandName,
-      styleGuidelines,
+      brandVoice,
+      styleGuidelines: guidelinesKey || undefined,
     })
       .then((res) => {
         if (isMounted) {
@@ -61,25 +74,20 @@ export function TemplateVariationsModal({
     return () => {
       isMounted = false
     }
-  }, [open, template?.id, template?.name, brandName, styleGuidelines])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, template?.id, template?.name, brandName, brandVoice, guidelinesKey])
 
   const handleUse = (v: TemplateVariation) => {
     if (!template) return
+    const { layout_data, style_settings } = applyVariationToTemplate(template, v)
     const applied: PostTemplate = {
       ...template,
-      name: `${template.name} · ${v.label.replace('Variação ', '')}`,
-      style_settings: {
-        ...(template.style_settings || {}),
-        palette: v.palette,
-        visual_direction: v.visual_direction,
-        ai_variation: v.id,
-      },
-      layout_data: {
-        ...(template.layout_data || {}),
-        copy_hint: v.caption,
-      },
+      name: `${template.name} · ${v.direction || 'Variação'}`,
+      layout_data,
+      style_settings,
     }
-    onUse(applied, v.caption)
+    const caption = `${v.headline}${v.subhead ? `\n\n${v.subhead}` : ''}\n\n👉 ${v.ctaText}`
+    onUse(applied, caption)
   }
 
   return (
@@ -121,37 +129,55 @@ export function TemplateVariationsModal({
               </span>
             </div>
 
-            {variations.map((v) => (
+            {variations.map((v, i) => (
               <div
-                key={v.id}
+                key={`${v.name}-${i}`}
                 className="p-3.5 rounded-2xl border border-border bg-card hover:border-purple-500/50 transition-colors space-y-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-foreground truncate">{v.label}</span>
+                  <span className="text-xs font-bold text-foreground truncate">{v.name}</span>
                   <div className="flex items-center gap-1 shrink-0">
-                    {v.palette.map((c, idx) => (
+                    {v.colors?.accentColor && (
                       <span
-                        key={idx}
-                        title={c}
+                        title={`Destaque ${v.colors.accentColor}`}
                         className="w-4 h-4 rounded-full border border-border inline-block"
-                        style={{ backgroundColor: c }}
+                        style={{ backgroundColor: v.colors.accentColor }}
                       />
-                    ))}
+                    )}
+                    {v.colors?.bgColor && (
+                      <span
+                        title={`Fundo ${v.colors.bgColor}`}
+                        className="w-4 h-4 rounded-full border border-border inline-block"
+                        style={{ backgroundColor: v.colors.bgColor }}
+                      />
+                    )}
+                    {v.colors?.textColor && (
+                      <span
+                        title={`Texto ${v.colors.textColor}`}
+                        className="w-4 h-4 rounded-full border border-border inline-block"
+                        style={{ backgroundColor: v.colors.textColor }}
+                      />
+                    )}
                   </div>
                 </div>
 
-                <p className="text-xs font-semibold text-foreground line-clamp-2">{v.hook}</p>
-                <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                  {v.body}
-                </p>
+                <p className="text-xs font-bold text-foreground line-clamp-2">{v.headline}</p>
+                {v.subhead && (
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                    {v.subhead}
+                  </p>
+                )}
                 <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
                   <Palette className="w-3 h-3 mt-0.5 shrink-0 text-purple-500" />
-                  <span className="line-clamp-2">{v.visual_direction}</span>
+                  <span className="line-clamp-2">
+                    Direção visual: <span className="font-semibold">{v.direction}</span>
+                    {v.badgeText ? ` · selo: ${v.badgeText}` : ''}
+                  </span>
                 </p>
 
                 <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
                   <span className="text-[10px] text-muted-foreground line-clamp-1 max-w-[60%]">
-                    CTA: {v.cta}
+                    CTA: {v.ctaText}
                   </span>
                   <Button
                     size="sm"

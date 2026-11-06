@@ -16,12 +16,13 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { TemplateSelector, NETWORKS_CONFIG, CATEGORIES_CONFIG } from '@/components/TemplateSelector'
+import { TemplateVariationsModal } from '@/components/templates/TemplateVariationsModal'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import { CampaignReportModal } from '@/components/campaigns/CampaignReportModal'
 import { suggestTemplates, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
 import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3, Wand2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { useEffect } from 'react'
@@ -41,6 +42,8 @@ export default function TemplatesPage() {
   const [activeNetwork, setActiveNetwork] = useState('all')
   const [featuredAiTemplates, setFeaturedAiTemplates] = useState<PostTemplate[]>([])
   const [loadingAi, setLoadingAi] = useState(false)
+  const [variationsOpen, setVariationsOpen] = useState(false)
+  const [variationsTemplate, setVariationsTemplate] = useState<PostTemplate | null>(null)
 
   useEffect(() => {
     getCampaigns(user?.id)
@@ -80,6 +83,16 @@ export default function TemplatesPage() {
 
   const handleSelectTemplate = (template: PostTemplate) => {
     navigate('/app/content/new', { state: { template } })
+  }
+
+  const openVariations = (template: PostTemplate) => {
+    setVariationsTemplate(template)
+    setVariationsOpen(true)
+  }
+
+  const handleUseVariation = (template: PostTemplate, caption: string) => {
+    setVariationsOpen(false)
+    navigate('/app/content/new', { state: { template, caption, skipAutoCaption: true } })
   }
 
   return (
@@ -136,6 +149,21 @@ export default function TemplatesPage() {
               <span className="truncate">Relatório</span>
             </Button>
           )}
+
+          <Button
+            onClick={() => {
+              if (featuredAiTemplates.length > 0) {
+                openVariations(featuredAiTemplates[0])
+              } else {
+                setSelectorOpen(true)
+              }
+            }}
+            className="rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-700 hover:to-purple-700 text-white font-bold text-xs h-10 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-md transition-all flex-1 sm:flex-initial justify-center"
+            title="Gerar variações de copy e visual com IA a partir de um modelo"
+          >
+            <Wand2 className="w-4 h-4 shrink-0" />
+            <span className="truncate">Gerar variações com IA</span>
+          </Button>
 
           <Button
             onClick={() => setWhatToPostOpen(true)}
@@ -263,9 +291,23 @@ export default function TemplatesPage() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px] font-semibold text-purple-600 dark:text-purple-400">
-                  <span>Criar com este modelo</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60 text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openVariations(item)
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-fuchsia-600 dark:text-fuchsia-400 hover:underline"
+                    title="Gerar variações com IA deste modelo"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    Variações IA
+                  </button>
+                  <span className="inline-flex items-center gap-1 shrink-0">
+                    Criar
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </span>
                 </div>
               </div>
             ))}
@@ -313,11 +355,22 @@ export default function TemplatesPage() {
           ))}
       </div>
 
+      {/* Modal de variações com IA */}
+      <TemplateVariationsModal
+        open={variationsOpen}
+        onOpenChange={setVariationsOpen}
+        template={variationsTemplate}
+        brandName={activeBrand?.name}
+        brandVoice={activeBrand?.brandVoice}
+        onUse={handleUseVariation}
+      />
+
       {/* Selector modal */}
       <TemplateSelector
         open={selectorOpen}
         onOpenChange={setSelectorOpen}
         onSelect={handleSelectTemplate}
+        onVariations={openVariations}
         initialNetwork={activeNetwork}
       />
 

@@ -1,4 +1,4 @@
-import { aiAction } from '@/services/ai'
+import pb from '@/lib/pocketbase/client'
 import type { PostTemplate } from '@/services/post-templates'
 
 /**
@@ -144,8 +144,12 @@ export async function generateTemplateVariations(
     .join('\n')
 
   try {
-    const res = await aiAction({ action: 'caption', prompt, maxTokens: 900, temperature: 0.9 })
-    const text = typeof res === 'string' ? res : String((res as any)?.text ?? res ?? '')
+    const res = await pb.send('/backend/v1/ai/improve', {
+      method: 'POST',
+      body: JSON.stringify({ content: prompt }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const text = String((res as any)?.content || (res as any)?.improvedText || '')
     const variations = parseVariations(text)
     return { variations, source: 'ia' }
   } catch {

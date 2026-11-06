@@ -12,6 +12,7 @@ import {
   Tag,
   ArrowRight,
   Clock,
+  Wand2,
 } from 'lucide-react'
 import {
   getTemplates,
@@ -34,6 +35,8 @@ interface TemplateSelectorProps {
   onSelect: (template: PostTemplate) => void
   onSkip?: () => void
   initialNetwork?: string
+  /** Abre o modal de variações com IA para o template escolhido. */
+  onVariations?: (template: PostTemplate) => void
 }
 
 export const NETWORKS_CONFIG: Record<
@@ -106,6 +109,7 @@ export function TemplateSelector({
   onSelect,
   onSkip,
   initialNetwork,
+  onVariations,
 }: TemplateSelectorProps) {
   const { user } = useAuth()
   const { activeBrand } = useSocial()
@@ -197,6 +201,14 @@ export function TemplateSelector({
   const handleSelect = (template: PostTemplate) => {
     onSelect(template)
     onOpenChange(false)
+  }
+
+  const handleVariations = (template: PostTemplate, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onVariations) {
+      onVariations(template)
+      onOpenChange(false)
+    }
   }
 
   // Filtragem local por texto
@@ -657,13 +669,27 @@ export function TemplateSelector({
                         <p className="text-xs font-bold text-foreground truncate">{tpl.name}</p>
                       </div>
 
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 px-2 text-xs font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-xl shrink-0"
-                      >
-                        Usar
-                      </Button>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {onVariations && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => handleVariations(tpl, e)}
+                            className="h-8 px-2 text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/40 rounded-xl"
+                            title="Gerar variações com IA deste modelo"
+                          >
+                            <Wand2 className="w-3.5 h-3.5" />
+                            <span className="sr-only">Variações IA</span>
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 text-xs font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-xl shrink-0"
+                        >
+                          Usar
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )
