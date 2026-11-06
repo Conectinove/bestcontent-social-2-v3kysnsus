@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T05:40:30.951Z",
+  "generatedAt": "2026-11-06T05:59:53.803Z",
   "collections": [
     {
       "name": "users",
@@ -705,6 +705,43 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "recurrence",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["none", "daily", "weekly", "biweekly", "monthly"]
+        },
+        {
+          "name": "recurrence_days",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recurrence_time",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_network",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "queue_position",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "next_run_at",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -4154,6 +4191,103 @@
       "indexes": [
         "CREATE INDEX idx_notifications_user ON notifications (user)",
         "CREATE INDEX idx_notifications_unread ON notifications (user, is_read)"
+      ]
+    },
+    {
+      "name": "response_templates",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (user = @request.auth.id || is_global = true)",
+        "view": "@request.auth.id != '' && (user = @request.auth.id || is_global = true)",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "agradecimento",
+            "objecao_preco",
+            "suporte",
+            "spam",
+            "fora_escopo",
+            "geral"
+          ]
+        },
+        {
+          "name": "network",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "todas",
+            "instagram",
+            "facebook",
+            "twitter",
+            "whatsapp",
+            "linkedin",
+            "tiktok"
+          ]
+        },
+        {
+          "name": "shortcut",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_global",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usage_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_resp_templates_user ON response_templates (user)",
+        "CREATE INDEX idx_resp_templates_cat ON response_templates (category)"
       ]
     }
   ]

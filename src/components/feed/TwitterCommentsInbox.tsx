@@ -32,6 +32,7 @@ import {
   type TwitterCommentStatus,
 } from '@/services/twitter-comments'
 import { generateAiCommentReply } from '@/services/ai-reply'
+import { ResponseTemplateSelector } from '@/components/feed/ResponseTemplateSelector'
 
 function XIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (
@@ -702,6 +703,18 @@ export function TwitterCommentsInbox() {
                               Cancelar
                             </Button>
                           </div>
+                        </div>
+
+                        {/* Templates de resposta salvos pelo usuário */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <ResponseTemplateSelector
+                            network="x"
+                            authorName={comment.author_name || comment.author_handle}
+                            authorHandle={comment.author_handle}
+                            onSelect={(text) =>
+                              setReplyTextMap((prev) => ({ ...prev, [comment.id]: text }))
+                            }
+                          />
                         </div>
 
                         {/* Atalhos de Resposta Rápida */}

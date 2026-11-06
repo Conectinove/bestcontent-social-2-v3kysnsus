@@ -18,6 +18,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
+import { SchedulePostModal } from '@/components/calendar/SchedulePostModal'
+import { ScheduledPostsList } from '@/components/calendar/ScheduledPostsList'
 import {
   NETWORK_BEST_TIMES_MAP,
   getPostsQueueForAutoScheduling,
@@ -64,10 +66,12 @@ export default function CalendarPage() {
   const [editingPostTimeId, setEditingPostTimeId] = useState<string | null>(null)
   const [editTimeValue, setEditTimeValue] = useState('12:00')
   const [editDateValue, setEditDateValue] = useState('')
-  const [viewMode, setViewMode] = useState<'calendar' | 'next7days'>('calendar')
+  const [viewMode, setViewMode] = useState<'calendar' | 'next7days' | 'queue'>('calendar')
   const [autoQueuePosts, setAutoQueuePosts] = useState<any[]>([])
   const [loadingAutoQueue, setLoadingAutoQueue] = useState(false)
   const [isDistributing, setIsDistributing] = useState(false)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [editingScheduleItem, setEditingScheduleItem] = useState<any | null>(null)
 
   const load = useCallback(async () => {
     if (!user?.id) return
@@ -425,11 +429,11 @@ export default function CalendarPage() {
           )}
 
           <Button
-            onClick={() => navigate('/app/content/new')}
+            onClick={() => setScheduleModalOpen(true)}
             className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-2xl h-10 px-3 sm:px-4 gap-1.5 shadow-xs flex-1 sm:flex-initial justify-center"
           >
             <Plus className="w-4 h-4 shrink-0" />
-            <span className="truncate">Agendar Novo Post</span>
+            <span className="truncate">Novo Agendamento</span>
           </Button>
         </div>
       </div>
@@ -599,8 +603,38 @@ export default function CalendarPage() {
               </Badge>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode('queue')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 min-h-[38px] ${
+              viewMode === 'queue'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Fila Completa ({scheduled.length})</span>
+          </button>
         </div>
       </div>
+
+      {/* Visão: Fila Completa de Posts Agendados */}
+      {viewMode === 'queue' && (
+        <ScheduledPostsList
+          scheduledPosts={filtered}
+          onEdit={(s) => {
+            setEditingScheduleItem(s)
+            setScheduleModalOpen(true)
+          }}
+          onDelete={(id) => handleDeleteScheduled(id)}
+          onPublishNow={(s) => handlePublishNow(s)}
+          onNewSchedule={() => {
+            setEditingScheduleItem(null)
+            setScheduleModalOpen(true)
+          }}
+        />
+      )}
 
       {/* Visão de Lista: Próximos 7 Dias com Ações Rápidas & Destaque de Atrasados */}
       {viewMode === 'next7days' ? (
@@ -916,6 +950,17 @@ export default function CalendarPage() {
           </div>
         </Card>
       )}
+
+      {/* Modal Dedicado de Criação e Edição de Agendamento com Recorrência */}
+      <SchedulePostModal
+        open={scheduleModalOpen}
+        onOpenChange={(op) => {
+          setScheduleModalOpen(op)
+          if (!op) setEditingScheduleItem(null)
+        }}
+        editingScheduled={editingScheduleItem}
+        onSuccess={() => load()}
+      />
 
       <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
         <DialogContent className="sm:max-w-md rounded-3xl">

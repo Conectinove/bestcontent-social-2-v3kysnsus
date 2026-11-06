@@ -35,6 +35,7 @@ import {
   type InstagramCommentStatus,
 } from '@/services/instagram-comments'
 import { generateAiCommentReply } from '@/services/ai-reply'
+import { ResponseTemplateSelector } from '@/components/feed/ResponseTemplateSelector'
 
 function formatRelativeTime(dateStr?: string): string {
   if (!dateStr) return 'recente'
@@ -704,6 +705,18 @@ export function InstagramCommentsInbox() {
                               Cancelar
                             </Button>
                           </div>
+                        </div>
+
+                        {/* Templates de resposta salvos pelo usuário */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <ResponseTemplateSelector
+                            network="instagram"
+                            authorName={comment.author_name || comment.author_handle}
+                            authorHandle={comment.author_handle}
+                            onSelect={(text) =>
+                              setReplyTextMap((prev) => ({ ...prev, [comment.id]: text }))
+                            }
+                          />
                         </div>
 
                         {/* Atalhos de Resposta Rápida com Tom Profissional */}

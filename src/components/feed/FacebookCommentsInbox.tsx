@@ -33,6 +33,7 @@ import {
   type FacebookCommentStatus,
 } from '@/services/facebook-comments'
 import { generateAiCommentReply } from '@/services/ai-reply'
+import { ResponseTemplateSelector } from '@/components/feed/ResponseTemplateSelector'
 
 function FacebookIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (
@@ -717,6 +718,18 @@ export function FacebookCommentsInbox() {
                               Cancelar
                             </Button>
                           </div>
+                        </div>
+
+                        {/* Templates de resposta salvos pelo usuário */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <ResponseTemplateSelector
+                            network="facebook"
+                            authorName={comment.author_name || comment.author_handle}
+                            authorHandle={comment.author_handle}
+                            onSelect={(text) =>
+                              setReplyTextMap((prev) => ({ ...prev, [comment.id]: text }))
+                            }
+                          />
                         </div>
 
                         {/* Atalhos de Resposta Rápida */}

@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { InstagramCommentsInbox } from '@/components/feed/InstagramCommentsInbox'
 import { FacebookCommentsInbox } from '@/components/feed/FacebookCommentsInbox'
 import { TwitterCommentsInbox } from '@/components/feed/TwitterCommentsInbox'
+import { ResponseTemplatesManager } from '@/components/feed/ResponseTemplatesManager'
 import { useAuth } from '@/context/AuthContext'
 import {
   getConsolidatedSocialHubData,
@@ -44,7 +45,7 @@ export function SocialHubPage() {
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'comments-ig' | 'comments-fb' | 'comments-x'
+    'overview' | 'comments-ig' | 'comments-fb' | 'comments-x' | 'response-templates'
   >('overview')
 
   const loadData = async () => {
@@ -186,6 +187,19 @@ export function SocialHubPage() {
           <span>Comentários X</span>
           <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse ml-0.5" />
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('response-templates')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap min-h-[44px] ${
+            activeTab === 'response-templates'
+              ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-xs'
+              : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
+          }`}
+        >
+          <Bookmark className="w-4 h-4" />
+          <span>Templates de Resposta</span>
+        </button>
       </div>
 
       {activeTab === 'comments-ig' ? (
@@ -199,6 +213,10 @@ export function SocialHubPage() {
       ) : activeTab === 'comments-x' ? (
         <div className="space-y-6">
           <TwitterCommentsInbox />
+        </div>
+      ) : activeTab === 'response-templates' ? (
+        <div className="space-y-6">
+          <ResponseTemplatesManager />
         </div>
       ) : (
         <>
