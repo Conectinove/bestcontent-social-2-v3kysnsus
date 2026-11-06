@@ -212,7 +212,14 @@ export default function Library() {
 
   const [activeTab, setActiveTab] = useState<
     'all' | 'drafts' | 'scheduled' | 'published' | 'approved'
-  >('all')
+  >(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'drafts' || tabParam === 'rascunhos') return 'drafts'
+    if (tabParam === 'scheduled') return 'scheduled'
+    if (tabParam === 'published') return 'published'
+    if (tabParam === 'approved') return 'approved'
+    return 'all'
+  })
   const [search, setSearch] = useState('')
   const [selectedBrandFilter, setSelectedBrandFilter] = useState('active') // 'active', 'all', or specific brand ID
   const [selectedPlatform, setSelectedPlatform] = useState('all')
@@ -256,13 +263,23 @@ export default function Library() {
   const [metricsMap, setMetricsMap] = useState<Record<string, PostMetric>>({})
   const [multiMetricsMap, setMultiMetricsMap] = useState<Record<string, PostMetric[]>>({})
 
-  // Sincronizar query param com selectedCampaignId
+  // Sincronizar query params de campanha e aba (ex: ?tab=drafts)
   useEffect(() => {
     const fromUrl = searchParams.get('campaign')
     if (fromUrl && fromUrl !== selectedCampaignId) {
       setSelectedCampaignId(fromUrl)
     }
-  }, [searchParams])
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'drafts' || tabParam === 'rascunhos') {
+      setActiveTab('drafts')
+    } else if (tabParam === 'scheduled') {
+      setActiveTab('scheduled')
+    } else if (tabParam === 'published') {
+      setActiveTab('published')
+    } else if (tabParam === 'approved') {
+      setActiveTab('approved')
+    }
+  }, [searchParams, selectedCampaignId])
 
   // Carregar lista de campanhas
   useEffect(() => {

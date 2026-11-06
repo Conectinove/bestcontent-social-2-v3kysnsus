@@ -530,16 +530,112 @@ export default function AiMediaStudioPage() {
               </button>
             </div>
 
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsTemplateModalOpen(true)}
-              className="text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1.5"
-            >
-              <FileCode className="w-3.5 h-3.5" />
-              Usar Modelo de Prompt
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsTemplateModalOpen(true)}
+                className="text-xs font-semibold border-purple-500/40 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1.5 shadow-2xs"
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                <span>
+                  {activeTab === 'video'
+                    ? 'Templates de Vídeo'
+                    : activeTab === 'image'
+                      ? 'Templates de Imagem'
+                      : 'Templates de Áudio'}
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] bg-purple-500/20 text-purple-300 ml-1 py-0 px-1.5 font-mono"
+                >
+                  {
+                    promptTemplates.filter(
+                      (t) => t.category === activeTab || t.category === 'geral',
+                    ).length
+                  }
+                </Badge>
+              </Button>
+            </div>
           </div>
+
+          {/* Atalhos Rápidos de Templates do Tipo Ativo (Catálogo em 1-clique) */}
+          {(() => {
+            const tabTemplates = promptTemplates.filter(
+              (t) => t.category === activeTab || t.category === 'geral',
+            )
+            if (tabTemplates.length === 0) return null
+            return (
+              <div className="mb-3 p-3 rounded-2xl bg-purple-500/5 border border-purple-500/15">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                    <span>
+                      {activeTab === 'video'
+                        ? 'Catálogo de Prompts de Vídeo Prontos'
+                        : activeTab === 'image'
+                          ? 'Catálogo de Prompts de Imagem'
+                          : 'Catálogo de Prompts de Áudio'}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-normal">
+                      · Aplique direto ou preencha as variáveis
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsTemplateModalOpen(true)}
+                    className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>Gerenciar ({tabTemplates.length})</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {tabTemplates.slice(0, 6).map((tmpl) => {
+                    const phs = tmpl.placeholders || []
+                    return (
+                      <button
+                        key={tmpl.id}
+                        type="button"
+                        onClick={() => {
+                          setIsTemplateModalOpen(true)
+                        }}
+                        className="p-2.5 rounded-xl text-left bg-background/80 hover:bg-background border border-border/70 hover:border-purple-500/50 transition-all group flex flex-col justify-between shadow-2xs"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-xs font-bold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 line-clamp-1">
+                              {tmpl.name}
+                            </span>
+                            {tmpl.is_favorite && (
+                              <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                            )}
+                          </div>
+                          {tmpl.description && (
+                            <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight mb-2">
+                              {tmpl.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10px]">
+                          <span className="text-muted-foreground font-mono">
+                            {phs.length > 0
+                              ? `${phs.length} ${phs.length === 1 ? 'variável' : 'variáveis'}`
+                              : 'Pronto'}
+                          </span>
+                          <span className="text-purple-600 dark:text-purple-400 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                            Aplicar <ArrowRight className="w-2.5 h-2.5" />
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Campo de Prompt Grande */}
           <div className="space-y-3">

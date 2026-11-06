@@ -360,7 +360,7 @@ export function Sidebar({
             onClick={onMobileClose}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-              location.pathname === '/app/library'
+              location.pathname === '/app/library' && !location.search.includes('tab=drafts')
                 ? 'bg-muted text-foreground font-bold shadow-xs'
                 : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
             )}
@@ -368,6 +368,29 @@ export function Sidebar({
           >
             <BookOpen className="w-4 h-4 shrink-0" />
             {!collapsed && <span>Biblioteca</span>}
+          </Link>
+
+          {/* Rascunhos Salvos */}
+          <Link
+            to="/app/library?tab=drafts"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/library' && location.search.includes('tab=drafts')
+                ? 'bg-muted text-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Rascunhos Salvos' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-4 h-4 shrink-0 text-purple-500" />
+              {!collapsed && <span>Rascunhos</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                SALVOS
+              </span>
+            )}
           </Link>
 
           {/* Calendário */}

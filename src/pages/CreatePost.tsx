@@ -53,7 +53,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AIAssistantModal } from '@/components/AIAssistantModal'
 import { TemplateSelector } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
+import { SavedDraftsDrawer, type SavedDraftItem } from '@/components/SavedDraftsDrawer'
 import { getTemplate, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
+import { getPost } from '@/services/posts'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
@@ -174,6 +176,10 @@ export default function CreatePost() {
   const [whatToPostOpen, setWhatToPostOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(initialTemplate)
   const [selectedTone, setSelectedTone] = useState<string>('profissional')
+  const [savedDraftsOpen, setSavedDraftsOpen] = useState(false)
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(
+    (location.state?.draftId as string) || null,
+  )
   const [hookVariations, setHookVariations] = useState<HookVariationItem[]>([])
   const [selectedObjective, setSelectedObjective] = useState<string>('engajamento')
   const [captionScores, setCaptionScores] = useState<{
@@ -278,7 +284,43 @@ export default function CreatePost() {
   // ============================================================
   const DRAFT_STORAGE_KEY = 'bestcontent_social2_create_post_draft'
 
+  // Carrega rascunho de URL/state (ex: ?draft=<id>)
   useEffect(() => {
+    const draftIdFromUrl = urlParams.get('draft') || (location.state?.draftId as string)
+    if (!draftIdFromUrl) return
+
+    setCurrentDraftId(draftIdFromUrl)
+    autoCaptionRanRef.current = true // não rodar autocaption por cima de rascunho salvo
+
+    getPost(draftIdFromUrl)
+      .then((record) => {
+        if (!record) return
+        if (record.content) setContent(record.content)
+        if (record.caption) setCaption(record.caption)
+        if (record.platform) setPlatform(record.platform)
+        if (record.brandId) setBrandId(record.brandId)
+        if (record.mediaUrl) setMediaPreviewUrl(record.mediaUrl)
+        if (record.templateId) {
+          getTemplate(record.templateId)
+            .then((tpl) => {
+              if (tpl) setSelectedTemplate(tpl as unknown as PostTemplate)
+            })
+            .catch(() => {})
+        }
+        toast({
+          title: 'Rascunho carregado',
+          description: `Rascunho "${record.content?.slice(0, 30) || 'Sem título'}..." aberto para edição.`,
+        })
+      })
+      .catch((err) => {
+        console.warn('Erro ao carregar rascunho salvo:', err)
+      })
+  }, [location.search, location.state])
+
+  useEffect(() => {
+    // Se veio um rascunho explícito por URL ou state, ignora o local storage
+    if (urlParams.get('draft') || location.state?.draftId) return
+
     try {
       const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
       if (!raw) return
@@ -533,26 +575,41 @@ export default function CreatePost() {
 
     setSubmitting(true)
     try {
-      // Criação principal através do SocialContext
-      const createdRecord = await addPost({
-        brandId: resolvedBrandId,
-        platform,
-        content: content.trim() || caption.trim(),
-        caption: caption.trim(),
-        status,
-        scheduledDate: status === 'scheduled' ? new Date(scheduledDate).toISOString() : undefined,
-        media,
-        templateId: selectedTemplate?.id || '',
-      })
+      let postId = currentDraftId
+
+      if (currentDraftId) {
+        // Atualiza post existente (rascunho existente)
+        await updatePost(currentDraftId, {
+          brand: brandId,
+          platform,
+          content: content.trim() || caption.trim(),
+          caption: caption.trim(),
+          status,
+          scheduled_date:
+            status === 'scheduled' ? new Date(scheduledDate).toISOString() : undefined,
+          template_id: selectedTemplate?.id || '',
+        })
+      } else {
+        // Cria o registro principal do post
+        const createdRecord = await addPost({
+          brandId,
+          platform,
+          content: content.trim() || caption.trim(),
+          caption: caption.trim(),
+          status,
+          scheduledDate: status === 'scheduled' ? new Date(scheduledDate).toISOString() : undefined,
+          media,
+          templateId: selectedTemplate?.id || '',
+        })
+        postId = createdRecord?.id || null
+      }
 
       // Se um modelo foi selecionado, garante a atualização explícita do template_id no banco
-      const postId = createdRecord?.id
       if (postId && selectedTemplate?.id) {
         await updatePost(postId, {
           template_id: selectedTemplate.id,
         })
       }
-
       // Se for agendado, vincula à tabela scheduled_posts
       if (status === 'scheduled' && postId) {
         await createScheduledPost({
@@ -685,8 +742,21 @@ export default function CreatePost() {
           </div>
         </div>
 
-        {/* Botão O que postar hoje? e seleção de template */}
+        {/* Botão O que postar hoje?, Rascunhos Salvos e seleção de template */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSavedDraftsOpen(true)}
+            className="rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+          >
+            <FileText className="w-4 h-4 text-purple-600" />
+            <span>Rascunhos Salvos</span>
+            {currentDraftId && (
+              <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+            )}
+          </Button>
+
           <Button
             type="button"
             onClick={() => setWhatToPostOpen(true)}

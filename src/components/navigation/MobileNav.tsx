@@ -91,7 +91,17 @@ export function MobileNav({ onOpenMobileMenu }: MobileNavProps) {
       iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
       action: () => {
         setSheetOpen(false)
-        navigate('/app/criar')
+        navigate('/app/content/new')
+      },
+    },
+    {
+      title: 'Rascunhos Salvos',
+      desc: 'Retome posts em progresso com 1 clique',
+      icon: BookOpen,
+      iconBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+      action: () => {
+        setSheetOpen(false)
+        navigate('/app/library?tab=drafts')
       },
     },
     {
