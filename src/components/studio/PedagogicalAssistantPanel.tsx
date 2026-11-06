@@ -74,6 +74,7 @@ export const PedagogicalAssistantPanel: React.FC<PedagogicalAssistantPanelProps>
       subtitle: '(Diretriz MudarCurso)',
       content:
         'Método dos 5 Passos e diretrizes MudarCurso: 1. Gancho de atenção e problema real; 2. Fundamentação teórica concisa; 3. Estudo de caso guiado; 4. Prática reflexiva / laboratório interativo; 5. Fechamento, avaliação e plano de ação.',
+      type: 'text',
       createdAt: new Date().toISOString(),
     })
   }
@@ -91,6 +92,7 @@ export const PedagogicalAssistantPanel: React.FC<PedagogicalAssistantPanelProps>
       title: 'Captura de Tela',
       subtitle: '(Exemplo Visual / Slide)',
       content: `Descrição da captura visual: ${desc}`,
+      type: 'text',
       createdAt: new Date().toISOString(),
     })
   }
@@ -105,6 +107,7 @@ export const PedagogicalAssistantPanel: React.FC<PedagogicalAssistantPanelProps>
       title: text.slice(0, 24) + '...',
       subtitle: '(Texto-base)',
       content: text,
+      type: 'text',
       createdAt: new Date().toISOString(),
     })
   }
@@ -122,6 +125,7 @@ export const PedagogicalAssistantPanel: React.FC<PedagogicalAssistantPanelProps>
         title: file.name.slice(0, 24),
         subtitle: `(${file.name.split('.').pop()?.toUpperCase() || 'Arquivo'})`,
         content: `Arquivo anexado: ${file.name}. Tamanho: ${(file.size / 1024).toFixed(1)} KB.`,
+        type: 'text',
         createdAt: new Date().toISOString(),
       })
       setIsUploadingFile(false)

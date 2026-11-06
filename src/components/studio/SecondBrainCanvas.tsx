@@ -37,10 +37,12 @@ import { Card } from '@/components/ui/card'
 import {
   getSecondBrainDocs,
   createSecondBrainDoc,
+  updateSecondBrainDoc,
   deleteSecondBrainDoc,
   askSecondBrain,
   type SecondBrainDoc,
   type SecondBrainDocType,
+  type SecondBrainBlock,
 } from '@/services/second-brain'
 import MagicAuthorEditor from './MagicAuthorEditor'
 import { ConnectorsContextModal } from './ConnectorsContextModal'
@@ -807,7 +809,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
           if (selectedDoc) {
             const contextBlock: SecondBrainBlock = {
               id: `blk-ctx-${Date.now()}`,
-              type: 'context_callout',
+              type: 'callout',
               content: ctx.content,
               caption: `${ctx.subtitle} · Importado via Conectores`,
               isActive: true,
@@ -846,7 +848,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 blocks: [
                   {
                     id: `blk-${Date.now()}-1`,
-                    type: 'context_callout',
+                    type: 'callout',
                     content: ctx.content,
                     caption: `${ctx.subtitle} · Importado via Conectores do Segundo Cérebro`,
                     isActive: true,

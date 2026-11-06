@@ -300,7 +300,8 @@ export async function listSecondBrainDocs(params?: {
           // Busca profunda no conteúdo dos blocos e contexto importado
           return (d.modules || []).some((m) =>
             (m.blocks || []).some((b) => {
-              const text = `${b.content || ''} ${b.caption || ''} ${b.prompt || ''}`.toLowerCase()
+              const text =
+                `${b.content || ''} ${b.caption || ''} ${b.badgeLabel || ''}`.toLowerCase()
               return text.includes(q)
             }),
           )
@@ -330,7 +331,7 @@ export async function listSecondBrainDocs(params?: {
       }
       return (d.modules || []).some((m) =>
         (m.blocks || []).some((b) => {
-          const text = `${b.content || ''} ${b.caption || ''} ${b.prompt || ''}`.toLowerCase()
+          const text = `${b.content || ''} ${b.caption || ''} ${b.badgeLabel || ''}`.toLowerCase()
           return text.includes(q)
         }),
       )

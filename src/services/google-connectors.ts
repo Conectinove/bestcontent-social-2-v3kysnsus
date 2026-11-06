@@ -46,6 +46,7 @@ export interface ImportedContextItem {
     | 'pipedrive'
     | 'hubspot'
     | 'canva'
+    | 'pedagogico'
     | 'manual'
   title: string
   subtitle?: string

@@ -93,6 +93,7 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
       subtitle: '(Diretriz MudarCurso)',
       content:
         'Método dos 5 Passos e diretrizes MudarCurso: 1. Gancho de atenção e problema real; 2. Fundamentação teórica concisa; 3. Estudo de caso guiado; 4. Prática reflexiva / laboratório interativo; 5. Fechamento, avaliação e plano de ação.',
+      type: 'text',
       createdAt: new Date().toISOString(),
     },
   ])

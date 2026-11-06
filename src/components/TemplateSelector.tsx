@@ -13,10 +13,12 @@ import {
   ArrowRight,
   Clock,
   Wand2,
+  Users,
 } from 'lucide-react'
 import {
   getTemplates,
   toggleFavorite,
+  toggleShared,
   suggestTemplates,
   type PostTemplate,
 } from '@/services/post-templates'
@@ -79,9 +81,14 @@ export const NETWORKS_CONFIG: Record<
     badgeClass: 'bg-red-500/10 text-red-600 dark:text-red-400',
   },
   twitter: {
-    label: 'Twitter / X',
+    label: 'X / Twitter',
     iconColor: 'text-slate-800 dark:text-slate-200',
     badgeClass: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  },
+  reels: {
+    label: 'Reels / Shorts',
+    iconColor: 'text-rose-500',
+    badgeClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
   },
 }
 
@@ -134,6 +141,7 @@ export function TemplateSelector({
       else if (norm.includes('tik')) setNetworkFilter('tiktok')
       else if (norm.includes('you')) setNetworkFilter('youtube')
       else if (norm.includes('twit') || norm === 'x') setNetworkFilter('twitter')
+      else if (norm.includes('reel') || norm.includes('short')) setNetworkFilter('reels')
       else setNetworkFilter('all')
     }
   }, [initialNetwork, open])
@@ -223,6 +231,28 @@ export function TemplateSelector({
       return name.includes(q) || net.includes(q) || cat.includes(q) || dim.includes(q)
     })
   }, [templates, searchQuery])
+
+  const handleToggleShare = async (template: PostTemplate, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const newVal = await toggleShared(template.id, !!template.is_shared)
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === template.id ? { ...t, is_shared: newVal } : t)),
+      )
+      toast({
+        title: newVal ? 'Compartilhado com a Equipe' : 'Tornado Privado',
+        description: newVal
+          ? `O modelo "${template.name}" agora pode ser usado por toda a equipe.`
+          : `O modelo "${template.name}" agora é exclusivo da sua conta.`,
+      })
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao atualizar compartilhamento.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -583,21 +613,40 @@ export function TemplateSelector({
                           {dimensions} &middot; {ratio}
                         </span>
 
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleFav(tpl, e)}
-                          className="p-1.5 rounded-full bg-black/50 hover:bg-black/75 text-white backdrop-blur-md transition-colors"
-                          title={tpl.is_favorite ? 'Remover dos favoritos' : 'Favoritar modelo'}
-                        >
-                          <Star
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleShare(tpl, e)}
                             className={cn(
-                              'w-3.5 h-3.5',
-                              tpl.is_favorite
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : 'text-white/80 group-hover:text-yellow-400',
+                              'p-1.5 rounded-full backdrop-blur-md transition-colors',
+                              tpl.is_shared
+                                ? 'bg-purple-600/80 hover:bg-purple-600 text-white'
+                                : 'bg-black/50 hover:bg-black/75 text-white/80 hover:text-white',
                             )}
-                          />
-                        </button>
+                            title={
+                              tpl.is_shared
+                                ? 'Compartilhado com equipe (clique para tornar privado)'
+                                : 'Compartilhar com equipe'
+                            }
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleFav(tpl, e)}
+                            className="p-1.5 rounded-full bg-black/50 hover:bg-black/75 text-white backdrop-blur-md transition-colors"
+                            title={tpl.is_favorite ? 'Remover dos favoritos' : 'Favoritar modelo'}
+                          >
+                            <Star
+                              className={cn(
+                                'w-3.5 h-3.5',
+                                tpl.is_favorite
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-white/80 group-hover:text-yellow-400',
+                              )}
+                            />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Centro do card: Conteúdo visual estilizado fiel ao modelo */}
@@ -655,6 +704,11 @@ export function TemplateSelector({
                           >
                             {netConfig.label}
                           </span>
+                          {tpl.is_shared && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-300 flex items-center gap-1">
+                              <Users className="w-2.5 h-2.5" /> Equipe
+                            </span>
+                          )}
                           {catConfig && (
                             <span
                               className={cn(

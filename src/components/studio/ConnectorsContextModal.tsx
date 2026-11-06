@@ -524,6 +524,7 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
         title: title || 'Documento Google Docs',
         subtitle: 'Google Docs · Documento de Texto',
         content,
+        type: 'docs',
         metadata: { docId },
         createdAt: new Date().toISOString(),
       }
@@ -562,6 +563,7 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
         title: title || 'Planilha Google Sheets',
         subtitle: `Google Sheets · Intervalo ${sheetRangeInput}`,
         content: rowsText,
+        type: 'sheets',
         metadata: { spreadsheetId: sheetId, range: sheetRangeInput },
         createdAt: new Date().toISOString(),
       }

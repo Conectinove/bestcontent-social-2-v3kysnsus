@@ -69,6 +69,11 @@ export const toggleFavorite = async (id: string, current: boolean) => {
   return !current
 }
 
+export const toggleShared = async (id: string, current: boolean) => {
+  await pb.collection('post_templates').update(id, { is_shared: !current })
+  return !current
+}
+
 export const deleteTemplate = (id: string) => pb.collection('post_templates').delete(id)
 
 export interface SuggestTemplatesOptions {
