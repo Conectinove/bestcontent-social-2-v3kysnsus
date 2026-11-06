@@ -19,7 +19,7 @@ import {
   Save,
 } from 'lucide-react'
 import { getPost, updatePost } from '@/services/posts'
-import { improveText, generateCaption } from '@/services/ai'
+import { improveText, generateCaption, generateHashtags } from '@/services/ai'
 import { approvePost } from '@/services/approval'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'

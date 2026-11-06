@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   Send,
   FastForward,
   Zap,
+  Edit3,
 } from 'lucide-react'
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
 import { SchedulePostModal } from '@/components/calendar/SchedulePostModal'
