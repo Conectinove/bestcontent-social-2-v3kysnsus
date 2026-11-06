@@ -98,63 +98,154 @@ export const generateCaption = async (
     /* intentionally ignored */
   }
 
-  // Fallback cliente garantido e resiliente (nunca quebra ou deixa usuário bloqueado)
-  const topic = payload.topic || payload.content || 'Estratégia de Conteúdo'
+  // Fallback cliente garantido, inteligente e adaptado ao CONTEÚDO REAL do post e à REDE ESCOLHIDA
+  const rawContent = (payload.content || payload.topic || '').trim()
+  const rawLines = rawContent
+    .split('\n')
+    .map((l: string) => l.trim())
+    .filter(Boolean)
+  const firstMeaningfulLine = rawLines[0] || 'Estratégia de Conteúdo'
+  const postTheme =
+    firstMeaningfulLine.length > 90 ? firstMeaningfulLine.slice(0, 87) + '...' : firstMeaningfulLine
+  const brandName = payload.brandName ? ` na ${payload.brandName}` : ''
   const plat = (payload.platform || 'instagram').toLowerCase()
   const objective = (payload.objective || payload.funnelObjective || 'engajamento').toLowerCase()
   const tone = payload.tone || 'profissional'
 
-  // Ajuste fino por rede social no fallback cliente
+  // Análise semântica rápida do texto existente para extrair pontos de valor e contexto real
+  const summaryPoints = rawLines.slice(1, 4)
+  const contentHasDetails = summaryPoints.length > 0
+
   let networkBody = ''
-  let networkTags = ['#estrategia', '#conteudointeligente']
+  let networkTags: string[] = []
   let recommendedChars = 950
 
+  // Limites, tom e formatação específicos para as ~13 redes sociais da plataforma
   if (plat.includes('link')) {
-    recommendedChars = 1350
-    networkBody = `Análise prática para tomada de decisão em ${topic}:\n\n• Diagnóstico: A maioria das operações falha na retenção inicial por depender de improviso.\n• Framework: Estruture 3 pilares — clareza de proposta, consistência de publicação e mensuração real de conversão.\n• Execução: Teste hipóteses com dados concretos antes de escalar volume.\n\nQual tem sido o maior gargalo na sua organização hoje?`
-    networkTags = ['#lideranca', '#gestaoestrategica', '#produtividade', '#carreira']
+    // LinkedIn: formato de artigo/post corporativo com quebra de parágrafo, dados e reflexão
+    recommendedChars = 1400
+    networkBody =
+      `Análise prática para tomada de decisão sobre ${postTheme}${brandName}:\n\n` +
+      (contentHasDetails
+        ? `Principais aprendizados que validamos na prática:\n${summaryPoints.map((p: string, i: number) => `• Ponto ${i + 1}: ${p}`).join('\n')}\n\n`
+        : `• Diagnóstico: A maioria das operações falha na retenção inicial por depender de improviso.\n• Framework: Estruture 3 pilares — clareza de proposta, consistência de publicação e mensuração real de conversão.\n• Execução: Teste hipóteses com dados concretos antes de escalar volume.\n\n`) +
+      `No cenário atual, consistência estratégica e comunicação clara superam qualquer métrica de vaidade.\n\nQual tem sido o maior gargalo na sua organização ao aplicar isso?`
+    networkTags = [
+      '#lideranca',
+      '#gestaoestrategica',
+      '#produtividade',
+      '#carreira',
+      '#inovacao',
+      '#b2b',
+    ]
   } else if (plat.includes('tik')) {
+    // TikTok: gancho rápido, menos de 380 caracteres para descrição de vídeo
     recommendedChars = 380
-    networkBody = `O segredo rápido que ninguém te conta sobre ${topic} em menos de 30 segundos! 👇\n\nSe você ajustar só esse detalhe hoje, seu alcance e retenção dobram na mesma hora. Faz o teste e me conta nos comentários!`
-    networkTags = ['#dicasrapidas', '#aprendanotiktok', '#estrategia', '#rotina', '#fyp']
+    networkBody =
+      `O segredo rápido sobre ${postTheme} em menos de 30 segundos! 👇\n\n` +
+      (contentHasDetails ? `${summaryPoints[0]}\n\n` : '') +
+      `Se você ajustar só esse detalhe hoje, sua retenção e alcance dobram. Salve este vídeo e conta aqui nos comentários o que achou!`
+    networkTags = [
+      '#dicasrapidas',
+      '#aprendanotiktok',
+      '#estrategia',
+      '#rotina',
+      '#fyp',
+      '#viralbrasil',
+    ]
   } else if (plat.includes('twit') || plat === 'x' || plat.includes('/x')) {
-    recommendedChars = 260
-    networkBody = `90% erram ao abordar ${topic} tentando complicar o básico.\n\nA regra simples que gera resultado consistente:\n1. Menos fricção\n2. Mais clareza na dor\n3. Conversão sem enrolação`
+    // X (Twitter): ultra-conciso, limite rígido de ~280 caracteres
+    recommendedChars = 280
+    networkBody = `90% erram ao abordar "${postTheme}".\n\nA regra simples que gera resultado:\n1. Menos fricção\n2. Mais clareza na dor\n3. Conversão sem enrolação`
     networkTags = ['#marketing', '#tech', '#insights']
   } else if (plat.includes('face')) {
-    recommendedChars = 820
-    networkBody = `Queremos abrir uma conversa sincera com você sobre ${topic}.\n\nAo longo da nossa jornada, percebemos que o maior obstáculo da comunidade é tentar dar o segundo passo antes de consolidar o primeiro.\n\nCompartilhamos aqui 3 aprendizados fundamentais que você pode aplicar ainda hoje no seu projeto ou negócio!`
-    networkTags = ['#comunidade', '#aprendizado', '#negocioslocais', '#dicaspraticas']
+    // Facebook: tom de conversa e comunidade, incentivo ao compartilhamento
+    recommendedChars = 850
+    networkBody =
+      `Queremos abrir uma conversa sincera com você sobre ${postTheme}${brandName}.\n\n` +
+      (contentHasDetails
+        ? `Separamos os pontos mais importantes para você salvar:\n${summaryPoints.map((p: string) => `👉 ${p}`).join('\n\n')}\n\n`
+        : `Ao longo da nossa jornada, percebemos que o maior obstáculo da comunidade é tentar dar o segundo passo antes de consolidar o primeiro.\n\n`) +
+      `Compartilhamos aqui aprendizados que você pode aplicar ainda hoje no seu projeto ou negócio!`
+    networkTags = [
+      '#comunidade',
+      '#aprendizado',
+      '#negocioslocais',
+      '#dicaspraticas',
+      '#compartilhe',
+    ]
+  } else if (plat.includes('yt') || plat.includes('youtube')) {
+    // YouTube: descrição longa com capítulos e chamada para se inscrever
+    recommendedChars = 1200
+    networkBody =
+      `Neste conteúdo, desvendamos tudo sobre ${postTheme}${brandName}.\n\n` +
+      `📌 O que você vai encontrar:\n` +
+      (contentHasDetails
+        ? summaryPoints.map((p: string, i: number) => `0${i + 1}:00 - ${p}`).join('\n')
+        : `01:00 - Contexto e Cenário\n02:30 - Passo a Passo Prático\n04:00 - Conclusão e Próximos Passos`) +
+      `\n\n🔔 Inscreva-se no canal e ative o sininho para não perder nenhuma atualização!`
+    networkTags = ['#youtubebrasil', '#tutorial', '#conteudodevalor', '#inscritos']
+  } else if (plat.includes('blue') || plat.includes('threads')) {
+    // Threads & Bluesky: texto fluido estilo microblogging dinâmico
+    recommendedChars = 500
+    networkBody =
+      `Opinião que pode ser polêmica sobre ${postTheme}:\n\n` +
+      (contentHasDetails ? `${summaryPoints[0]}\n\n` : '') +
+      `Se você não simplificar o processo, o algoritmo não vai te salvar. Quem aqui já passou por isso?`
+    networkTags = ['#threadsbrasil', '#reflexaododia', '#conteudo']
+  } else if (plat.includes('whats') || plat.includes('zap')) {
+    // WhatsApp: formatação com negrito e tom direto para lista de transmissão/grupos
+    recommendedChars = 600
+    networkBody =
+      `*NOVIDADE IMPORTANTE:* ${postTheme}\n\n` +
+      (contentHasDetails ? summaryPoints.map((p: string) => `✅ ${p}`).join('\n') + '\n\n' : '') +
+      `Toque no link abaixo ou responda esta mensagem para garantir seu acesso direto!`
+    networkTags = []
+  } else if (plat.includes('pinter')) {
+    // Pinterest: foco em busca, ideias salváveis e palavras-chave de nicho
+    recommendedChars = 500
+    networkBody = `Guia definitivo: ${postTheme}.\n\nInspiração prática e ideias organizadas para você salvar na sua pasta e consultar sempre que precisar de referência visual e estratégica.`
+    networkTags = ['#inspiracao', '#organizacao', '#ideiascriativas', '#paineldeinspiracao']
   } else {
-    recommendedChars = 950
-    networkBody = `Quando a maioria tenta avançar com ${topic}, foca no volume bruto de postagens. Mas quem realmente domina a retenção sabe: clareza e intenção batem qualquer quantidade sem estratégia.\n\n3 pontos essenciais para aplicar a partir de hoje:\n1. Elimine o ruído e foque no gancho dos primeiros segundos.\n2. Fale com a dor real de quem decide, não com o público genérico.\n3. Transforme cada publicação em um ativo de autoridade da sua marca.`
+    // Instagram / Feed Geral: estrutura clássica com quebra de linhas para leitura agradável
+    recommendedChars = 1000
+    networkBody =
+      `Quando a maioria tenta avançar com ${postTheme}, foca apenas no volume bruto de postagens. Mas quem realmente domina a retenção sabe: clareza e intenção batem qualquer quantidade sem estratégia.\n\n` +
+      (contentHasDetails
+        ? `3 pontos essenciais que você precisa aplicar:\n${summaryPoints.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n`
+        : `3 pontos essenciais para aplicar a partir de hoje:\n1. Elimine o ruído e foque no gancho dos primeiros segundos.\n2. Fale com a dor real de quem decide, não com o público genérico.\n3. Transforme cada publicação em um ativo de autoridade da sua marca.\n\n`) +
+      `Qualidade percebida constrói audiência fiel e clientes prontos para comprar.`
     networkTags = [
       '#estrategia',
       '#conteudointeligente',
       '#altaperformance',
       '#marketingdeconteudo',
-      `#${plat.replace(/[^a-z0-9]/g, '')}`,
+      `#${plat.replace(/[^a-z0-9]/g, '') || 'instagrambrasil'}`,
     ]
   }
 
-  let fallbackCta =
-    payload.suggestedCta || 'Salva este post para consultar sempre que for produzir conteúdo!'
-  if (!payload.suggestedCta) {
+  let fallbackCta = payload.suggestedCta || ''
+  if (!fallbackCta) {
     if (objective.includes('vend') || objective.includes('conver')) {
-      fallbackCta =
-        '👉 Quer aplicar isso hoje mesmo? Acesse o link da bio ou mande uma mensagem no direct!'
+      fallbackCta = plat.includes('whats')
+        ? '👉 Responda "EU QUERO" aqui no chat para falar diretamente com nosso time!'
+        : '👉 Quer aplicar isso hoje mesmo? Acesse o link da bio ou mande uma mensagem no direct!'
     } else if (objective.includes('engaj') || objective.includes('comunidade')) {
-      fallbackCta = '💬 Qual foi a sua experiência com isso? Conta pra gente nos comentários!'
+      fallbackCta =
+        '💬 Qual foi a sua experiência com isso? Deixe sua opinião nos comentários abaixo!'
     } else if (objective.includes('lead') || objective.includes('atra')) {
-      fallbackCta = '📩 Comente "QUERO" para receber o material detalhado no seu direct!'
+      fallbackCta = '📩 Comente "QUERO" para receber o material completo diretamente no seu direct!'
+    } else {
+      fallbackCta =
+        '📌 Salve este post para consultar sempre que for produzir conteúdo de alto impacto!'
     }
   }
 
   const fallbackHooks = [
-    `O método contra-intuitivo sobre ${topic} que transformou nossa entrega.`,
-    `87% dos criadores erram nisso aqui ao planejar ${topic}.`,
-    `E se a métrica que você mais acompanha for a razão da sua estagnação?`,
-    `Testamos essa virada de chave com ${topic} e o resultado surpreendeu.`,
+    `O método contra-intuitivo sobre ${postTheme} que transformou nossa entrega.`,
+    `87% erram nisso aqui ao planejar ${postTheme}.`,
+    `E se o detalhe que você mais ignora em ${postTheme} for o segredo dos seus resultados?`,
+    `Testamos essa virada de chave em ${postTheme} e o resultado surpreendeu.`,
   ]
 
   const fallbackCaption = `${fallbackHooks[0]}
@@ -163,7 +254,7 @@ ${networkBody}
 
 ${fallbackCta}
 
-${networkTags.join(' ')}`
+${networkTags.join(' ')}`.trim()
 
   return {
     success: true,

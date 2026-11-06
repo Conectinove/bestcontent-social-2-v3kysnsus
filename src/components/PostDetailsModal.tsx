@@ -356,17 +356,23 @@ export function PostDetailsModal({
             </div>
           </div>
 
-          {/* Timeline de Revisão — comentários da equipe (workflow Em Revisão) */}
-          {(isEmRevisao || reviewComments.length > 0) && (
-            <div className="pt-4 border-t border-border/80 space-y-3">
+          {/* Timeline de Colaboração & Revisão da Equipe */}
+          <div className="pt-4 border-t border-border/80 space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-purple-600" />
-                <h4 className="text-sm font-bold text-foreground">Revisão da Equipe</h4>
+                <Users className="w-4 h-4 text-purple-600" />
+                <h4 className="text-sm font-bold text-foreground">Colaboração & Revisão</h4>
                 <Badge variant="outline" className="text-[10px] font-bold">
                   {reviewComments.length}{' '}
                   {reviewComments.length === 1 ? 'comentário' : 'comentários'}
                 </Badge>
               </div>
+              {post.reviewer_name && (
+                <span className="text-[11px] text-purple-700 dark:text-purple-300 font-semibold">
+                  Colaborador: {post.reviewer_name}
+                </span>
+              )}
+            </div>
 
               {/* Timeline */}
               {reviewComments.length > 0 ? (
@@ -495,7 +501,7 @@ export function PostDetailsModal({
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Análise de Performance do Post (quando publicado) */}
           {post.status === 'published' && (

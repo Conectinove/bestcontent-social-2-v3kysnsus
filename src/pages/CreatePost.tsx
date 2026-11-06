@@ -27,11 +27,14 @@ import {
   Layers,
   ArrowRight,
   RotateCcw,
+  Users,
+  Bookmark,
+  Clock,
 } from 'lucide-react'
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { createScheduledPost } from '@/services/scheduled_posts'
-import { updatePost } from '@/services/posts'
+import { updatePost, assignPostReviewer } from '@/services/posts'
 import { getCampaign } from '@/services/campaigns'
 import {
   generateCaption,
@@ -55,6 +58,8 @@ import { TemplateSelector } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { SavedDraftsDrawer, type SavedDraftItem } from '@/components/SavedDraftsDrawer'
 import { RichTextEditor } from '@/components/RichTextEditor'
+import { SaveAsTemplateModal } from '@/components/SaveAsTemplateModal'
+import { PostCollaborationModal } from '@/components/PostCollaborationModal'
 import { getTemplate, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
 import { getPost } from '@/services/posts'
 import { toast } from '@/hooks/use-toast'
@@ -175,6 +180,14 @@ export default function CreatePost() {
   const [publishedPostId, setPublishedPostId] = useState<string | null>(null)
   const [templateOpen, setTemplateOpen] = useState(false)
   const [whatToPostOpen, setWhatToPostOpen] = useState(false)
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false)
+  const [collaborationOpen, setCollaborationOpen] = useState(false)
+  const [assignedReviewerId, setAssignedReviewerId] = useState<string>('')
+  const [assignedReviewerName, setAssignedReviewerName] = useState<string>('')
+  const [scheduleSuccessModal, setScheduleSuccessModal] = useState<{
+    date: string
+    network: string
+  } | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(initialTemplate)
   const [selectedTone, setSelectedTone] = useState<string>('profissional')
   const [savedDraftsOpen, setSavedDraftsOpen] = useState(false)
@@ -622,7 +635,17 @@ export default function CreatePost() {
           post: postId,
           scheduled_at: new Date(scheduledDate).toISOString(),
           status: 'pending',
+          platform: platform.toLowerCase(),
         })
+      }
+
+      // Se houver revisor selecionado, vincula ao post
+      if (postId && assignedReviewerId) {
+        try {
+          await assignPostReviewer(postId, assignedReviewerId, assignedReviewerName)
+        } catch {
+          /* ignore */
+        }
       }
 
       // Limpa rascunho temporário do storage ao salvar com sucesso
@@ -648,7 +671,10 @@ export default function CreatePost() {
       if (status === 'published' && postId) {
         setPublishedPostId(postId)
       } else if (status === 'scheduled') {
-        navigate('/app/calendar')
+        setScheduleSuccessModal({
+          date: scheduledDate,
+          network: platform,
+        })
       } else {
         navigate('/app/library?tab=drafts')
       }
@@ -747,8 +773,36 @@ export default function CreatePost() {
           </div>
         </div>
 
-        {/* Botão O que postar hoje?, Rascunhos Salvos e seleção de template */}
+        {/* Ações do cabeçalho: Modelos, Salvar Template, Colaboração, Rascunhos */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setCollaborationOpen(true)}
+            className="rounded-xl border-border hover:border-purple-500/50 text-foreground hover:bg-purple-500/5 font-semibold text-xs h-10 px-3 gap-2 transition-all"
+            title="Convidar revisor ou ver comentários"
+          >
+            <Users className="w-4 h-4 text-purple-600" />
+            <span className="hidden md:inline">Colaborar</span>
+            {assignedReviewerName && (
+              <span
+                className="w-2 h-2 rounded-full bg-emerald-500"
+                title={`Revisor: ${assignedReviewerName}`}
+              />
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSaveTemplateOpen(true)}
+            className="rounded-xl border-border hover:border-purple-500/50 text-foreground hover:bg-purple-500/5 font-semibold text-xs h-10 px-3 gap-2 transition-all"
+            title="Salvar estrutura deste post como template próprio"
+          >
+            <Bookmark className="w-4 h-4 text-purple-600" />
+            <span className="hidden sm:inline">Salvar como Modelo</span>
+          </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -756,7 +810,7 @@ export default function CreatePost() {
             className="rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
           >
             <FileText className="w-4 h-4 text-purple-600" />
-            <span>Rascunhos Salvos</span>
+            <span>Rascunhos</span>
             {currentDraftId && (
               <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
             )}
@@ -765,10 +819,10 @@ export default function CreatePost() {
           <Button
             type="button"
             onClick={() => setWhatToPostOpen(true)}
-            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs"
+            className="rounded-xl bg-purple-600/10 border border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20 font-bold text-xs h-10 px-3.5 gap-2 transition-all shadow-2xs hidden lg:flex"
           >
             <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>O que postar hoje?</span>
+            <span>Ideias</span>
           </Button>
 
           <Button
@@ -776,7 +830,7 @@ export default function CreatePost() {
             className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 px-4 gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
           >
             <Layout className="w-4 h-4" />
-            <span>{selectedTemplate ? 'Trocar Modelo' : 'Explorar Modelos por Rede'}</span>
+            <span>{selectedTemplate ? 'Trocar Modelo' : 'Templates de Post'}</span>
           </Button>
         </div>
       </div>
@@ -1330,44 +1384,89 @@ export default function CreatePost() {
               )}
             </div>
 
-            {/* Linha 5: Agendamento */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">
-                Data e Horário de Publicação (para agendamento)
-              </label>
-              <div className="relative">
-                <input
-                  aria-label="Data e horário de agendamento"
-                  type="datetime-local"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full text-xs font-semibold bg-muted/60 border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-primary focus:outline-hidden"
-                />
+            {/* Linha 5: Agendamento Integrado (Rede, Data, Horário e Feedback) */}
+            <div className="p-4 rounded-2xl bg-purple-500/5 border border-purple-500/20 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-purple-600" />
+                  Agendamento Direto para Redes Sociais
+                </label>
+                <span className="text-[11px] text-purple-700 dark:text-purple-300 font-semibold flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Dispara para {platform} na data escolhida
+                </span>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                <div className="sm:col-span-8">
+                  <input
+                    aria-label="Data e horário de agendamento"
+                    type="datetime-local"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    className="w-full text-xs font-semibold bg-background border border-border rounded-xl px-3 py-2.5 focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-primary focus:outline-hidden"
+                  />
+                </div>
+                <div className="sm:col-span-4">
+                  <Button
+                    type="button"
+                    onClick={() => handleSubmit('scheduled')}
+                    disabled={submitting}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl h-10 px-3 gap-2 shadow-sm transition-all"
+                  >
+                    {submitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Calendar className="w-4 h-4" />
+                    )}
+                    <span>{submitting ? 'Agendando...' : 'Agendar Post Agora'}</span>
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                O post será salvo na coleção{' '}
+                <code className="font-mono bg-muted px-1 py-0.2 rounded">posts</code> e vinculado
+                automaticamente à coleção{' '}
+                <code className="font-mono bg-muted px-1 py-0.2 rounded">scheduled_posts</code>,
+                aparecendo na grade do Calendário e na Fila Completa.
+              </p>
             </div>
 
             {/* Ações Inferiores de Submissão */}
             <div className="pt-4 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleSubmit('draft')}
-                disabled={submitting}
-                className="text-xs font-semibold rounded-xl h-10 px-4 gap-2 border-border hover:bg-muted"
-              >
-                <Save className="w-4 h-4 text-muted-foreground" />
-                <span>Salvar Rascunho</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSubmit('draft')}
+                  disabled={submitting}
+                  className="text-xs font-semibold rounded-xl h-10 px-4 gap-2 border-border hover:bg-muted"
+                >
+                  <Save className="w-4 h-4 text-muted-foreground" />
+                  <span>Salvar Rascunho</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSaveTemplateOpen(true)}
+                  className="text-xs font-semibold rounded-xl h-10 px-3 gap-1.5 border-dashed border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  <span>Salvar como Template</span>
+                </Button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
-                  onClick={() => handleSubmit('scheduled')}
-                  disabled={submitting}
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl h-10 px-4 gap-2 shadow-sm transition-all"
+                  variant="outline"
+                  onClick={() => setCollaborationOpen(true)}
+                  className="text-xs font-semibold rounded-xl h-10 px-3.5 gap-1.5 border-border hover:bg-muted"
                 >
-                  <Calendar className="w-4 h-4" />
-                  <span>{submitting ? 'Agendando...' : 'Agendar Publicação'}</span>
+                  <Users className="w-4 h-4 text-purple-600" />
+                  <span>Revisão / Colaborar</span>
                 </Button>
 
                 <Button
@@ -1377,7 +1476,7 @@ export default function CreatePost() {
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl h-10 px-4 gap-2 shadow-sm transition-all"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>{submitting ? 'Salvando...' : 'Publicar Agora'}</span>
+                  <span>{submitting ? 'Publicando...' : 'Publicar Agora'}</span>
                 </Button>
               </div>
             </div>
@@ -1612,6 +1711,73 @@ export default function CreatePost() {
           })
         }}
       />
+
+      {/* Modal Salvar Post como Template Próprio */}
+      <SaveAsTemplateModal
+        open={saveTemplateOpen}
+        onOpenChange={setSaveTemplateOpen}
+        currentContent={content}
+        currentCaption={caption}
+        currentPlatform={platform}
+        onTemplateSaved={(tpl) => {
+          setSelectedTemplate(tpl)
+        }}
+      />
+
+      {/* Modal de Colaboração e Revisão no Post */}
+      <PostCollaborationModal
+        open={collaborationOpen}
+        onOpenChange={setCollaborationOpen}
+        postId={publishedPostId || currentDraftId}
+        postTitle={content || caption?.slice(0, 40) || 'Post em criação'}
+        currentReviewerId={assignedReviewerId}
+        currentReviewerName={assignedReviewerName}
+        onReviewerAssigned={(revId, revName) => {
+          setAssignedReviewerId(revId)
+          setAssignedReviewerName(revName)
+        }}
+      />
+
+      {/* Feedback de Agendamento Concluído */}
+      {scheduleSuccessModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-card border border-purple-500/20 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-purple-600/10 text-purple-600 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black tracking-tight text-foreground">
+                Publicação Agendada com Sucesso!
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                O post para{' '}
+                <strong className="text-foreground">{scheduleSuccessModal.network}</strong> está
+                programado para{' '}
+                <strong className="text-foreground">
+                  {new Date(scheduleSuccessModal.date).toLocaleString('pt-BR')}
+                </strong>
+                . Ele já aparece na sua grade de agendamentos e na Fila Completa.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setScheduleSuccessModal(null)}
+                className="flex-1 rounded-xl text-xs h-10"
+              >
+                Continuar no Criador
+              </Button>
+              <Button
+                onClick={() => navigate('/app/calendar')}
+                className="flex-1 rounded-xl text-xs h-10 bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
+              >
+                <Calendar className="w-4 h-4" />
+                Ver no Calendário
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
