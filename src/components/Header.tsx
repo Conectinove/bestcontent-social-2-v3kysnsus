@@ -37,6 +37,14 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { EditProfileModal } from '@/components/EditProfileModal'
 import { getPendingReviewPosts } from '@/services/posts'
+import {
+  getMyNotifications,
+  getUnreadNotificationsCount,
+  markNotificationRead,
+  markAllNotificationsRead as markAllPersistentRead,
+  notificationTypeLabel,
+  type AppNotification,
+} from '@/services/notifications'
 
 interface HeaderProps {
   onOpenMobileMenu: () => void
@@ -62,6 +70,9 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
   // Badge de pendências de revisão (posts em_revisao / review_requested)
   const [pendingReviewCount, setPendingReviewCount] = useState(0)
+  // Notificações persistidas do fluxo de aprovação (migration 0073)
+  const [appNotifications, setAppNotifications] = useState<AppNotification[]>([])
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
 
   useEffect(() => {
     if (!user?.id) return
@@ -83,6 +94,53 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
     }
   }, [user?.id])
 
+  // Sino de notificações persistidas: lista + contagem de não lidas, a cada 60s
+  useEffect(() => {
+    if (!user?.id) return
+    let active = true
+    const load = async () => {
+      const [list, count] = await Promise.all([
+        getMyNotifications(user.id, 30),
+        getUnreadNotificationsCount(user.id),
+      ])
+      if (active) {
+        setAppNotifications(list)
+        setUnreadNotifications(count)
+      }
+    }
+    load()
+    const interval = window.setInterval(load, 60000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [user?.id])
+
+  /** Clique numa notificação: navega ao post e marca como lida. */
+  const openNotification = (item: AppNotification) => {
+    if (!item.is_read) {
+      markNotificationRead(item.id)
+        .then(() => setUnreadNotifications((c) => Math.max(0, c - 1)))
+        .catch(() => undefined)
+      setAppNotifications((prev) =>
+        prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n)),
+      )
+    }
+    const postId = item.expand?.post?.id || item.post
+    if (postId) {
+      navigate(`/app/editor/${postId}`)
+    } else {
+      navigate('/app/library')
+    }
+  }
+
+  const handleMarkAllRead = () => {
+    markAllPersistentRead(user?.id)
+      .then(() => setUnreadNotifications(0))
+      .catch(() => undefined)
+    setAppNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+  }
+
   // Atalho global Ctrl+K / ⌘K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,7 +153,9 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const unreadCount = unreadNotifications
+  const notificationsLabel = notifications.length // contexto mock — mantido para compat
+  void notificationsLabel
 
   const handlePublish = async () => {
     setPublishLoading(true)
@@ -253,7 +313,9 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-pink-500 rounded-full ring-2 ring-background animate-pulse" />
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-pink-500 text-white text-[10px] font-black flex items-center justify-center ring-2 ring-background">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </Button>
           </DropdownMenuTrigger>
@@ -271,31 +333,54 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={markAllNotificationsRead}
+                  onClick={handleMarkAllRead}
                   className="text-xs h-7 text-primary hover:text-primary/80"
                 >
-                  <CheckCheck className="w-3 h-3 mr-1" /> Marcar lidas
+                  <CheckCheck className="w-3 h-3 mr-1" /> Marcar todas
                 </Button>
               )}
             </div>
             <div className="max-h-64 overflow-y-auto divide-y divide-border">
-              {notifications.length === 0 ? (
+              {appNotifications.length === 0 ? (
                 <p className="p-4 text-center text-xs text-muted-foreground">Sem notificações</p>
               ) : (
-                notifications.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`p-3 text-xs space-y-1 transition-colors ${
-                      item.read ? 'opacity-70 bg-transparent' : 'bg-primary/5 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">{item.title}</span>
-                      <span className="text-[10px] text-muted-foreground">{item.time}</span>
-                    </div>
-                    <p className="text-muted-foreground leading-relaxed">{item.message}</p>
-                  </div>
-                ))
+                appNotifications.map((item) => {
+                  const postTitle = item.expand?.post?.caption || item.expand?.post?.content || ''
+                  const timeLabel = item.created
+                    ? new Date(item.created).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: 'short',
+                      })
+                    : ''
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() => openNotification(item)}
+                      className={`w-full text-left p-3 text-xs space-y-1 transition-colors hover:bg-muted/60 ${
+                        item.is_read ? 'opacity-70 bg-transparent' : 'bg-primary/5 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground truncate">
+                          {notificationTypeLabel(item.type)}
+                          {item.actor_name ? ` · ${item.actor_name}` : ''}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {timeLabel}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed line-clamp-2">
+                        {item.message}
+                      </p>
+                      {postTitle && (
+                        <span className="inline-flex items-center text-[10px] text-primary font-semibold">
+                          Abrir post →
+                        </span>
+                      )}
+                    </button>
+                  )
+                })
               )}
             </div>
           </DropdownMenuContent>

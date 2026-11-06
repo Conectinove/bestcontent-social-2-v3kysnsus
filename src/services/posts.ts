@@ -1,5 +1,6 @@
 import pb from '@/lib/pocketbase/client'
 import { generateCaption, generateHashtags } from '@/services/ai'
+import { createNotification } from '@/services/notifications'
 
 export const getPosts = (userId: string, sort = '-created') =>
   pb.collection('posts').getFullList({ filter: `user = "${userId}"`, sort, expand: 'brand' })
@@ -312,7 +313,43 @@ export async function assignPostReviewer(
   if (reviewerName && reviewerName.trim()) {
     payload.reviewer_name = reviewerName.trim()
   }
-  return pb.collection('posts').update(postId, payload)
+  const updated = await pb.collection('posts').update(postId, payload)
+
+  // Notifica o revisor atribuído (fluxo de aprovação, migration 0073).
+  try {
+    if (reviewerId) {
+      await createNotification({
+        user: reviewerId,
+        type: 'review_assigned',
+        post: postId,
+        actor_name: reviewerName || 'Equipe',
+        message: `Você foi atribuído como revisor do post: ${truncatePostRef(updated)}.`,
+      })
+    } else if (reviewerName) {
+      // Revisor externo (sem conta): notifica o autor do post.
+      const post = await pb.collection('posts').getOne(postId)
+      const ownerId = String((post as unknown as { user?: string }).user || '')
+      if (ownerId) {
+        await createNotification({
+          user: ownerId,
+          type: 'review_assigned',
+          post: postId,
+          actor_name: reviewerName,
+          message: `${reviewerName} foi atribuído como revisor do post: ${truncatePostRef(updated)}.`,
+        })
+      }
+    }
+  } catch (err) {
+    console.warn('Falha ao notificar revisor atribuído:', err)
+  }
+
+  return updated
+}
+
+function truncatePostRef(record: unknown): string {
+  const r = record as { caption?: string; content?: string } | null
+  const text = (r?.caption || r?.content || '').trim().slice(0, 80)
+  return text || 'post sem título'
 }
 
 /**
@@ -332,6 +369,24 @@ export async function requestPostChanges(input: {
     text: input.text,
     kind: 'ajuste_solicitado',
   })
+
+  // Notifica o dono do post sobre a mudança solicitada (antes de trocar o status).
+  try {
+    const post = await pb.collection('posts').getOne(input.postId)
+    const ownerId = String((post as unknown as { user?: string }).user || '')
+    if (ownerId) {
+      await createNotification({
+        user: ownerId,
+        type: 'change_requested',
+        post: input.postId,
+        actor_name: input.authorName || 'Equipe',
+        message: `Mudança solicitada em "${truncatePostRef(post)}": ${input.text.slice(0, 180)}`,
+      })
+    }
+  } catch (err) {
+    console.warn('Falha ao notificar mudança solicitada:', err)
+  }
+
   await pb.collection('posts').update(input.postId, {
     status: 'draft',
     approval_level: 'Nível 1 (Rascunho)',

@@ -478,6 +478,36 @@ export function Sidebar({
             )}
           </Link>
 
+          {/* Performance de Campanhas (métricas agregadas por campanha) */}
+          <Link
+            to="/app/campaigns"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/campaigns'
+                ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'Performance de Campanhas' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Megaphone
+                className={cn(
+                  'w-4 h-4 shrink-0',
+                  location.pathname === '/app/campaigns'
+                    ? 'text-primary'
+                    : 'text-purple-600 dark:text-purple-400',
+                )}
+              />
+              {!collapsed && <span>Performance de Campanhas</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                NOVO
+              </span>
+            )}
+          </Link>
+
           {/* Dashboard de Performance */}
           <Link
             to="/app/performance"

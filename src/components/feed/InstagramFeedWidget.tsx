@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getInstagramOrganicMetrics, InstagramOrganicData } from '@/services/instagram-organic'
+import { ReachImpressionsBlock } from './ReachImpressionsBlock'
 
 interface InstagramFeedWidgetProps {
   compact?: boolean
@@ -270,6 +271,15 @@ export function InstagramFeedWidget({ compact = false, className = '' }: Instagr
                 </div>
               </div>
             </div>
+
+            {/* NOVO: Bloco dedicado de Alcance e Impressões com tendência */}
+            <ReachImpressionsBlock
+              reach={Number(data.metrics.reach || 0)}
+              impressions={Number(data.metrics.impressions || 0)}
+              trendPct={Number(data.metrics.growth_rate_30d || 4.5)}
+              official={isOfficial}
+              accent="text-rose-500"
+            />
 
             {/* Nova Seção: Salvamentos por Formato (Carrossel, Reels e Estático) */}
             <div className="p-2 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs">

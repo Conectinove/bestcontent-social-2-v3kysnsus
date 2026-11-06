@@ -2,32 +2,35 @@ import pb from '@/lib/pocketbase/client'
 
 // ============================================================
 // Notificações persistidas do fluxo de aprovação (migration 0073).
+// Coleção `notifications`: user (relation), type (select:
+// review_assigned | change_requested | approval_flow), post (relation
+// opcional), message, actor_name, is_read.
 // Sempre tolerante a falhas: nenhuma função deve quebrar o header.
 // ============================================================
 
-export type AppNotificationType = 'reviewer_assigned' | 'change_requested' | 'info'
+export type AppNotificationType = 'review_assigned' | 'change_requested' | 'approval_flow'
 
 export interface AppNotification {
   id: string
   user?: string
   type?: AppNotificationType | string
   post?: string
-  post_title?: string
   message?: string
   actor_name?: string
-  read?: boolean
+  is_read?: boolean
   created?: string
   updated?: string
+  expand?: {
+    post?: { id: string; caption?: string; content?: string; platform?: string }
+  }
 }
 
 export interface CreateNotificationInput {
-  user?: string
+  user: string
   type?: AppNotificationType | string
   post?: string
-  post_title?: string
-  message?: string
+  message: string
   actor_name?: string
-  read?: boolean
 }
 
 const COLLECTION = 'notifications'
@@ -35,16 +38,18 @@ const COLLECTION = 'notifications'
 export async function createNotification(
   input: CreateNotificationInput,
 ): Promise<AppNotification | null> {
+  if (!input.user || !input.message) return null
   try {
-    const record = await pb.collection(COLLECTION).create({
-      user: input.user || undefined,
-      type: input.type || 'info',
-      post: input.post || '',
-      post_title: (input.post_title || '').slice(0, 300),
+    const payload: Record<string, unknown> = {
+      user: input.user,
+      type: input.type || 'approval_flow',
       message: (input.message || '').slice(0, 600),
       actor_name: (input.actor_name || 'Equipe').slice(0, 120),
-      read: input.read ?? false,
-    })
+      is_read: false,
+    }
+    // Relation só quando há id de post válido — relação vazia quebra o create.
+    if (input.post) payload.post = input.post
+    const record = await pb.collection(COLLECTION).create(payload)
     return record as unknown as AppNotification
   } catch (err) {
     console.warn('Falha ao criar notificação:', err)
@@ -52,12 +57,14 @@ export async function createNotification(
   }
 }
 
+/** Lista as notificações do usuário, mais recentes primeiro. */
 export async function getMyNotifications(userId?: string, limit = 30): Promise<AppNotification[]> {
   if (!userId) return []
   try {
     const records = await pb.collection(COLLECTION).getList(1, limit, {
       filter: `user = "${userId}"`,
       sort: '-created',
+      expand: 'post',
       requestKey: null,
     })
     return (records?.items || []) as unknown as AppNotification[]
@@ -71,7 +78,7 @@ export async function getUnreadNotificationsCount(userId?: string): Promise<numb
   if (!userId) return 0
   try {
     const res = await pb.collection(COLLECTION).getList(1, 1, {
-      filter: `user = "${userId}" && read = false`,
+      filter: `user = "${userId}" && is_read = false`,
       requestKey: null,
     })
     return res?.totalItems || 0
@@ -81,8 +88,9 @@ export async function getUnreadNotificationsCount(userId?: string): Promise<numb
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
+  if (!id) return
   try {
-    await pb.collection(COLLECTION).update(id, { read: true })
+    await pb.collection(COLLECTION).update(id, { is_read: true })
   } catch (err) {
     console.warn('Falha ao marcar notificação como lida:', err)
   }
@@ -92,8 +100,10 @@ export async function markAllNotificationsRead(userId?: string): Promise<void> {
   if (!userId) return
   try {
     const unread = await getMyNotifications(userId, 60)
-    const pendentes = (unread || []).filter((n) => !n.read)
-    await Promise.all(pendentes.map((n) => pb.collection(COLLECTION).update(n.id, { read: true })))
+    const pendentes = (unread || []).filter((n) => !n.is_read)
+    await Promise.all(
+      pendentes.map((n) => pb.collection(COLLECTION).update(n.id, { is_read: true })),
+    )
   } catch (err) {
     console.warn('Falha ao marcar todas as notificações como lidas:', err)
   }
@@ -102,7 +112,7 @@ export async function markAllNotificationsRead(userId?: string): Promise<void> {
 /** Rótulo amigável do tipo de notificação (padrão da casa, pt-BR). */
 export function notificationTypeLabel(type?: string): string {
   switch (type) {
-    case 'reviewer_assigned':
+    case 'review_assigned':
       return 'Revisor atribuído'
     case 'change_requested':
       return 'Mudança solicitada'

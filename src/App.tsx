@@ -41,6 +41,7 @@ import { AdsPage } from './pages/AdsPage'
 import PerformanceDashboard from './pages/PerformanceDashboard'
 import SocialHubPage from './pages/SocialHubPage'
 import { CampaignsDashboard } from './pages/CampaignsDashboard'
+import CampaignPerformancePage from './pages/CampaignPerformancePage'
 import StudentsPage from './pages/StudentsPage'
 import SalesFunnelPage from './pages/SalesFunnelPage'
 import DatabasePage from './pages/DatabasePage'
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="/app/dashboard" element={<Dashboard />} />
                 <Route path="/app/social-hub" element={<SocialHubPage />} />
                 <Route path="/app/hub-social" element={<SocialHubPage />} />
+                <Route path="/app/campaigns" element={<CampaignPerformancePage />} />
                 <Route path="/app/campaigns-dashboard" element={<CampaignsDashboard />} />
                 <Route path="/app/dash-campanhas" element={<CampaignsDashboard />} />
                 <Route path="/app/performance" element={<PerformanceDashboard />} />

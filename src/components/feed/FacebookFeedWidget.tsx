@@ -28,6 +28,7 @@ import {
   FacebookOrganicData,
   FacebookOrganicStatusResponse,
 } from '@/services/facebook-organic'
+import { ReachImpressionsBlock } from './ReachImpressionsBlock'
 
 export function FacebookFeedWidget() {
   const [loading, setLoading] = useState(true)
@@ -207,6 +208,17 @@ export function FacebookFeedWidget() {
               reações/mês
             </p>
           </div>
+        </div>
+
+        {/* NOVO: Bloco dedicado de Alcance e Impressões com tendência */}
+        <div className="mt-4">
+          <ReachImpressionsBlock
+            reach={metrics?.reach_30d ?? 0}
+            impressions={metrics?.impressions_30d ?? 0}
+            trendPct={metrics?.followers_growth_30d ?? 18}
+            official={data?.is_official ?? false}
+            accent="text-[#1877F2]"
+          />
         </div>
 
         {/* Linha Incremental: Salvamentos, Compartilhamentos e Engajamento por Formato */}

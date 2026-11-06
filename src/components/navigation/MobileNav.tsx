@@ -15,6 +15,7 @@ import {
   Search,
   ChevronRight,
   Share2,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -111,6 +112,16 @@ export function MobileNav({ onOpenMobileMenu }: MobileNavProps) {
       action: () => {
         setSheetOpen(false)
         navigate('/app/calendar')
+      },
+    },
+    {
+      title: 'Performance de Campanhas',
+      desc: 'Alcance, impressões e aprovação por campanha',
+      icon: Megaphone,
+      iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+      action: () => {
+        setSheetOpen(false)
+        navigate('/app/campaigns')
       },
     },
     {
