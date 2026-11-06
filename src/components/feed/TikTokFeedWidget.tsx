@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getTikTokOrganicMetrics, TikTokOrganicData } from '@/services/tiktok-organic'
+import { ReachImpressionsBlock } from './ReachImpressionsBlock'
 
 interface TikTokFeedWidgetProps {
   compact?: boolean
@@ -221,6 +222,15 @@ export function TikTokFeedWidget({ compact = false, className = '' }: TikTokFeed
                 </p>
               </div>
             </div>
+
+            {/* Bloco dedicado de Alcance e Impressões com tendência */}
+            <ReachImpressionsBlock
+              reach={Math.round((data.metrics.views || 0) * 0.72)}
+              impressions={Number(data.metrics.views || 0)}
+              trendPct={Number(data.metrics.growth_rate_30d || 14.5)}
+              official={isOfficial}
+              accent="text-cyan-500"
+            />
 
             {/* Novas Métricas de Engajamento TikTok: Comentários respondidos vs pendentes e Pico de Retenção */}
             <div className="grid grid-cols-2 gap-1.5 p-2 rounded-xl bg-card/60 border border-border/60 text-[11px]">

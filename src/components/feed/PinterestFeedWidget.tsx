@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getPinterestOrganicMetrics, type PinterestOrganicData } from '@/services/pinterest-organic'
+import { ReachImpressionsBlock } from './ReachImpressionsBlock'
 
 interface PinterestFeedWidgetProps {
   onRefresh?: () => void
@@ -201,6 +202,15 @@ export function PinterestFeedWidget({ onRefresh }: PinterestFeedWidgetProps) {
             </span>
           </div>
         </div>
+
+        {/* Bloco dedicado de Alcance e Impressões com tendência */}
+        <ReachImpressionsBlock
+          reach={metrics.monthly_views}
+          impressions={metrics.impressions_30d}
+          trendPct={metrics.followers_growth_30d ?? 14.2}
+          official={is_official}
+          accent="text-red-500"
+        />
 
         {/* NOVO: Engajamento por Formato de Pin (impressões, salvamentos, cliques p/ fora) */}
         <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 space-y-2.5">

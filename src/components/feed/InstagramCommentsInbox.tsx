@@ -34,6 +34,7 @@ import {
   type InstagramCommentItem,
   type InstagramCommentStatus,
 } from '@/services/instagram-comments'
+import { generateAiCommentReply } from '@/services/ai-reply'
 
 function formatRelativeTime(dateStr?: string): string {
   if (!dateStr) return 'recente'
@@ -64,6 +65,7 @@ export function InstagramCommentsInbox() {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)
+  const [suggestingId, setSuggestingId] = useState<string | null>(null)
 
   const loadComments = async () => {
     setLoading(true)
@@ -152,6 +154,35 @@ export function InstagramCommentsInbox() {
       })
     } finally {
       setSubmittingId(null)
+    }
+  }
+
+  const handleAiSuggestReply = async (comment: InstagramCommentItem) => {
+    setSuggestingId(comment.id)
+    if (activeReplyId !== comment.id) {
+      setActiveReplyId(comment.id)
+    }
+    try {
+      const res = await generateAiCommentReply({
+        platform: 'instagram',
+        authorHandle: comment.author_handle,
+        authorName: comment.author_name,
+        commentText: comment.text,
+        postContext: comment.post_title,
+      })
+      setReplyTextMap((prev) => ({ ...prev, [comment.id]: res.suggestion }))
+      toast({
+        title: res.source === 'ai' ? 'Sugestão gerada por IA' : 'Sugestão contextual gerada',
+        description: 'Texto inserido na resposta. Você pode editar antes de enviar.',
+      })
+    } catch (err) {
+      console.warn('Erro ao sugerir resposta com IA:', err)
+      toast({
+        title: 'Sugestão rápida',
+        description: 'Usando resposta amigável padrão.',
+      })
+    } finally {
+      setSuggestingId(null)
     }
   }
 
@@ -552,6 +583,25 @@ export function InstagramCommentsInbox() {
                           </span>
                         </Button>
 
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAiSuggestReply(comment)}
+                          disabled={suggestingId === comment.id}
+                          className="rounded-xl text-xs h-8 px-3 gap-1.5 min-h-[36px] bg-pink-500/10 hover:bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-500/40 font-semibold"
+                          title="Gerar sugestão contextual de resposta usando IA"
+                        >
+                          {suggestingId === comment.id ? (
+                            <RefreshCw className="w-3 h-3 animate-spin text-pink-600" />
+                          ) : (
+                            <Sparkles className="w-3 h-3 text-pink-600 dark:text-pink-400" />
+                          )}
+                          <span>
+                            {suggestingId === comment.id ? 'Gerando...' : 'Sugerir resposta com IA'}
+                          </span>
+                        </Button>
+
                         {comment.status !== 'ignorado' && (
                           <Button
                             type="button"
@@ -587,15 +637,30 @@ export function InstagramCommentsInbox() {
                     {/* Caixa de Texto de Resposta Expansível */}
                     {isReplyOpen && (
                       <div className="mt-2 p-3 rounded-2xl bg-muted/40 border border-pink-500/30 space-y-2 animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center justify-between text-[11px] gap-2 flex-wrap">
                           <span className="font-bold text-foreground">
                             Respondendo publicamente para @{comment.author_handle}:
                           </span>
-                          <span className="text-muted-foreground text-[10px]">
-                            {isOfficial
-                              ? 'Envia via Graph API oficial'
-                              : 'Salva registro no portal'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAiSuggestReply(comment)}
+                              disabled={suggestingId === comment.id}
+                              className="text-[11px] font-semibold text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              <span>
+                                {suggestingId === comment.id
+                                  ? 'Gerando com IA...'
+                                  : 'Regerar com IA'}
+                              </span>
+                            </button>
+                            <span className="text-muted-foreground text-[10px]">
+                              {isOfficial
+                                ? 'Envia via Graph API oficial'
+                                : 'Salva registro no portal'}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-2">

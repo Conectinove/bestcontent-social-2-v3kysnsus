@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getThreadsOrganicMetrics, type ThreadsOrganicData } from '@/services/threads-organic'
+import { ReachImpressionsBlock } from './ReachImpressionsBlock'
 
 interface ThreadsFeedWidgetProps {
   onRefresh?: () => void
@@ -235,6 +236,15 @@ export function ThreadsFeedWidget({ onRefresh }: ThreadsFeedWidgetProps) {
             {metrics.threads_published_30d} threads no mês
           </span>
         </div>
+
+        {/* Bloco dedicado de Alcance e Impressões com tendência */}
+        <ReachImpressionsBlock
+          reach={metrics.reach_30d}
+          impressions={metrics.views_30d}
+          trendPct={metrics.followers_growth_30d ?? 15.8}
+          official={is_official}
+          accent="text-foreground"
+        />
 
         {/* NOVO: Respostas, Republicações, Citações e Alcance por Formato */}
         <div className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-2.5">

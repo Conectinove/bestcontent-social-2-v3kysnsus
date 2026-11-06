@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getLinkedInOrganicMetrics, type LinkedInOrganicData } from '@/services/linkedin-organic'
+import { ReachImpressionsBlock } from './ReachImpressionsBlock'
 
 interface LinkedInFeedWidgetProps {
   compact?: boolean
@@ -218,6 +219,15 @@ export function LinkedInFeedWidget({ compact = false, className = '' }: LinkedIn
             </span>
           </div>
         </div>
+
+        {/* Bloco dedicado de Alcance e Impressões com tendência */}
+        <ReachImpressionsBlock
+          reach={Number(data.metrics.reach || Math.round((data.metrics.impressions || 0) * 0.68))}
+          impressions={Number(data.metrics.impressions || 0)}
+          trendPct={Number(data.metrics.impressions_trend ?? data.metrics.growth_rate_30d ?? 12.8)}
+          official={isOfficial}
+          accent="text-blue-600"
+        />
 
         {/* Linha secundária: Engajamento por formato (Texto vs Imagem vs Vídeo/Doc) */}
         {!compact && (

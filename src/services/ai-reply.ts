@@ -90,3 +90,34 @@ export async function suggestAiReply(input: SuggestReplyInput): Promise<SuggestR
 
   return { reply: fallbackReply(input), source: 'fallback' }
 }
+
+export interface GenerateAiCommentReplyInput {
+  platform: 'instagram' | 'facebook' | 'x' | string
+  authorHandle?: string
+  authorName?: string
+  commentText: string
+  postContext?: string
+  brandName?: string
+  brandTone?: string
+}
+
+export interface GenerateAiCommentReplyResult {
+  suggestion: string
+  source: 'ai' | 'fallback'
+}
+
+export async function generateAiCommentReply(
+  input: GenerateAiCommentReplyInput,
+): Promise<GenerateAiCommentReplyResult> {
+  const res = await suggestAiReply({
+    platform: input.platform,
+    commentText: input.commentText,
+    author: input.authorName || (input.authorHandle ? `@${input.authorHandle}` : undefined),
+    brandName: input.brandName,
+    brandTone: input.brandTone,
+  })
+  return {
+    suggestion: res.reply,
+    source: res.source,
+  }
+}

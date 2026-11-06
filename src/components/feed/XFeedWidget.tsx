@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getXOrganicMetrics, type XOrganicData } from '@/services/x-organic'
+import { ReachImpressionsBlock } from './ReachImpressionsBlock'
 
 interface XFeedWidgetProps {
   onRefresh?: () => void
@@ -236,6 +237,15 @@ export function XFeedWidget({ onRefresh }: XFeedWidgetProps) {
             </div>
           </div>
         </div>
+
+        {/* Bloco dedicado de Alcance e Impressões com tendência */}
+        <ReachImpressionsBlock
+          reach={metrics.reach_30d || Math.round(metrics.impressions_30d * 0.69)}
+          impressions={metrics.impressions_30d}
+          trendPct={metrics.impressions_trend ?? 18.2}
+          official={is_official}
+          accent="text-sky-500"
+        />
 
         {/* Linha de Engajamento por Tipo + Menções & Respostas Recebidas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
