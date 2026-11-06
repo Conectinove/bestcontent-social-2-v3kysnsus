@@ -175,6 +175,8 @@ export interface SeriesEpisodePlan {
   seriesTheme?: string
 }
 
+export type SeriesSuggestion = SeriesEpisodePlan
+
 // Tipos de compatibilidade mantidos
 export interface CreativeAngleAnchor extends CreativeAngleDetail {}
 export interface NicheTrendContext extends NicheTrendDetail {}
