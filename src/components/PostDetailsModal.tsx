@@ -25,6 +25,7 @@ import {
   Clock,
   UserPlus,
   Repeat2,
+  Users,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
@@ -374,131 +375,130 @@ export function PostDetailsModal({
               )}
             </div>
 
-              {/* Timeline */}
-              {reviewComments.length > 0 ? (
-                <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
-                  {reviewComments.map((c) => (
-                    <div
-                      key={c.id}
-                      className="p-3 rounded-xl border border-border bg-muted/40 space-y-1"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-6 h-6 rounded-full bg-purple-600/15 text-purple-700 dark:text-purple-300 flex items-center justify-center text-[10px] font-black shrink-0">
-                            {(c.author_name || '?').charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-xs font-bold text-foreground truncate">
-                            {c.author_name || 'Equipe'}
-                          </span>
-                          {c.kind === 'ajuste_solicitado' && (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] px-1.5 py-0 bg-rose-500/10 text-rose-600 border-rose-500/30"
-                            >
-                              Ajuste
-                            </Badge>
-                          )}
-                          {c.kind === 'aprovacao' && (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                            >
-                              Aprovação
-                            </Badge>
-                          )}
+            {/* Timeline */}
+            {reviewComments.length > 0 ? (
+              <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                {reviewComments.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-3 rounded-xl border border-border bg-muted/40 space-y-1"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-purple-600/15 text-purple-700 dark:text-purple-300 flex items-center justify-center text-[10px] font-black shrink-0">
+                          {(c.author_name || '?').charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
-                          <Clock className="w-3 h-3" />
-                          {c.created
-                            ? new Date(c.created).toLocaleString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
-                            : ''}
+                        <span className="text-xs font-bold text-foreground truncate">
+                          {c.author_name || 'Equipe'}
                         </span>
+                        {c.kind === 'ajuste_solicitado' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1.5 py-0 bg-rose-500/10 text-rose-600 border-rose-500/30"
+                          >
+                            Ajuste
+                          </Badge>
+                        )}
+                        {c.kind === 'aprovacao' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                          >
+                            Aprovação
+                          </Badge>
+                        )}
                       </div>
-                      <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line">
-                        {c.text}
-                      </p>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
+                        <Clock className="w-3 h-3" />
+                        {c.created
+                          ? new Date(c.created).toLocaleString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : ''}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Nenhum comentário ainda. Deixe uma nota para a equipe.
-                </p>
-              )}
-
-              {/* Revisor atribuído — seletor com candidatos (migration 0072) */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <UserPlus className="w-4 h-4 text-purple-600" />
-                <span className="text-xs font-bold text-foreground">Revisor:</span>
-                <Select
-                  value={assignedReviewerId || undefined}
-                  onValueChange={handleAssignReviewer}
-                  disabled={assigningReviewer}
-                >
-                  <SelectTrigger className="h-8 w-[220px] text-xs rounded-lg">
-                    <SelectValue
-                      placeholder={assigningReviewer ? 'Atribuindo...' : 'Selecionar revisor...'}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {reviewerCandidates.length === 0 ? (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                        Nenhum usuário disponível
-                      </div>
-                    ) : (
-                      reviewerCandidates.map((c) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs">
-                          {c.name || c.email || c.id}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {post.reviewer_name && !assignedReviewerId && (
-                  <span className="text-[11px] text-muted-foreground">
-                    atual: {post.reviewer_name}
-                  </span>
-                )}
+                    <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line">
+                      {c.text}
+                    </p>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Nenhum comentário ainda. Deixe uma nota para a equipe.
+              </p>
+            )}
 
-              {/* Campo para escrever comentário */}
-              <div className="flex items-start gap-2">
-                <Textarea
-                  value={commentDraft}
-                  onChange={(e) => setCommentDraft(e.target.value)}
-                  placeholder="Escreva um comentário de revisão para a equipe..."
-                  className="min-h-[64px] text-xs rounded-xl resize-none"
-                  disabled={sendingComment}
-                />
-                <div className="flex flex-col gap-1.5">
-                  <Button
-                    size="sm"
-                    onClick={() => handleSendComment('comentario')}
-                    disabled={sendingComment || !commentDraft.trim()}
-                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs h-9 px-3 gap-1.5"
-                  >
-                    {sendingComment ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Send className="w-3.5 h-3.5" />
-                    )}
-                    Enviar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSendComment('ajuste_solicitado')}
-                    disabled={sendingComment || !commentDraft.trim()}
-                    className="text-xs h-8 px-3 gap-1.5 border-rose-500/30 text-rose-600 hover:bg-rose-500/10"
-                  >
-                    Ajuste
-                  </Button>
-                </div>
+            {/* Revisor atribuído — seletor com candidatos (migration 0072) */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <UserPlus className="w-4 h-4 text-purple-600" />
+              <span className="text-xs font-bold text-foreground">Revisor:</span>
+              <Select
+                value={assignedReviewerId || undefined}
+                onValueChange={handleAssignReviewer}
+                disabled={assigningReviewer}
+              >
+                <SelectTrigger className="h-8 w-[220px] text-xs rounded-lg">
+                  <SelectValue
+                    placeholder={assigningReviewer ? 'Atribuindo...' : 'Selecionar revisor...'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {reviewerCandidates.length === 0 ? (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                      Nenhum usuário disponível
+                    </div>
+                  ) : (
+                    reviewerCandidates.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs">
+                        {c.name || c.email || c.id}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {post.reviewer_name && !assignedReviewerId && (
+                <span className="text-[11px] text-muted-foreground">
+                  atual: {post.reviewer_name}
+                </span>
+              )}
+            </div>
+
+            {/* Campo para escrever comentário */}
+            <div className="flex items-start gap-2">
+              <Textarea
+                value={commentDraft}
+                onChange={(e) => setCommentDraft(e.target.value)}
+                placeholder="Escreva um comentário de revisão para a equipe..."
+                className="min-h-[64px] text-xs rounded-xl resize-none"
+                disabled={sendingComment}
+              />
+              <div className="flex flex-col gap-1.5">
+                <Button
+                  size="sm"
+                  onClick={() => handleSendComment('comentario')}
+                  disabled={sendingComment || !commentDraft.trim()}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs h-9 px-3 gap-1.5"
+                >
+                  {sendingComment ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                  Enviar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleSendComment('ajuste_solicitado')}
+                  disabled={sendingComment || !commentDraft.trim()}
+                  className="text-xs h-8 px-3 gap-1.5 border-rose-500/30 text-rose-600 hover:bg-rose-500/10"
+                >
+                  Ajuste
+                </Button>
               </div>
             </div>
           </div>

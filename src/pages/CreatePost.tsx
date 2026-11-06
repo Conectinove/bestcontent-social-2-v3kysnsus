@@ -34,7 +34,7 @@ import {
 import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { createScheduledPost } from '@/services/scheduled_posts'
-import { updatePost, assignPostReviewer } from '@/services/posts'
+import { updatePost, assignPostReviewer, setPostReviewStatus } from '@/services/posts'
 import { getCampaign } from '@/services/campaigns'
 import {
   generateCaption,
@@ -633,16 +633,20 @@ export default function CreatePost() {
         await createScheduledPost({
           user: user?.id,
           post: postId,
+          brand: resolvedBrandId && resolvedBrandId !== 'all' ? resolvedBrandId : undefined,
           scheduled_at: new Date(scheduledDate).toISOString(),
           status: 'pending',
           platform: platform.toLowerCase(),
         })
       }
 
-      // Se houver revisor selecionado, vincula ao post
+      // Se houver revisor selecionado, vincula ao post e marca em_revisao se for rascunho
       if (postId && assignedReviewerId) {
         try {
           await assignPostReviewer(postId, assignedReviewerId, assignedReviewerName)
+          if (status === 'draft') {
+            await setPostReviewStatus(postId, 'em_revisao')
+          }
         } catch {
           /* ignore */
         }
@@ -1719,7 +1723,7 @@ export default function CreatePost() {
         currentContent={content}
         currentCaption={caption}
         currentPlatform={platform}
-        onTemplateSaved={(tpl) => {
+        onSaved={(tpl) => {
           setSelectedTemplate(tpl)
         }}
       />
