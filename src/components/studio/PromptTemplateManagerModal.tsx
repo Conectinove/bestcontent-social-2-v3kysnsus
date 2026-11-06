@@ -66,7 +66,7 @@ export const PromptTemplateManagerModal: React.FC<PromptTemplateManagerModalProp
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [formCategory, setFormCategory] = useState<'video' | 'image' | 'audio' | 'geral'>(
-    currentType,
+    currentType === '3d' ? 'geral' : currentType,
   )
   const [formText, setFormText] = useState('')
   const [formIsFavorite, setFormIsFavorite] = useState(false)
@@ -81,7 +81,7 @@ export const PromptTemplateManagerModal: React.FC<PromptTemplateManagerModalProp
     setEditingTemplate(null)
     setFormName('')
     setFormDesc('')
-    setFormCategory(currentType)
+    setFormCategory(currentType === '3d' ? 'geral' : currentType)
     setFormText(
       currentType === 'video'
         ? 'Câmera dinâmica revelando {produto} com iluminação volumétrica e gancho visual em {tema}. Tom {tom}.'

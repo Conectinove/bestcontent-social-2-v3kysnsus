@@ -5,17 +5,67 @@ export * from './studio-external-media'
 export * from './studio-prompt-templates'
 export * from './studio-metrics'
 
-export type StudioMediaType = 'video' | 'image' | 'audio'
+export type StudioMediaType = 'geral' | 'video' | 'image' | 'audio' | '3d'
+
+export type StudioQualityTier = 'padrao' | 'ultra' | 'mega'
+
+export interface StudioQualityOption {
+  id: StudioQualityTier
+  name: string
+  badge?: string
+  description: string
+  costMultiplier: number
+}
+
+export const STUDIO_QUALITY_OPTIONS: StudioQualityOption[] = [
+  {
+    id: 'padrao',
+    name: 'Padrão',
+    badge: 'Recomendado',
+    description:
+      'DeepSeek V4.1 Flash-1017 — rápido, opção econômica para geração de mídia e tarefas de design do dia a dia.',
+    costMultiplier: 1.0,
+  },
+  {
+    id: 'ultra',
+    name: 'Ultra',
+    description:
+      'Claude Opus 5.5 — planejamento confiável para apresentações complexas e trabalhos de mídia em várias etapas. Usa mais créditos.',
+    costMultiplier: 1.75,
+  },
+  {
+    id: 'mega',
+    name: 'Mega',
+    description:
+      'Claude Fable 5.1 — o modelo mais capaz da Anthropic, ao dobro dos créditos do Ultra. Recomendado para produções de vídeo com mais de 30 segundos.',
+    costMultiplier: 2.8,
+  },
+]
 
 export interface StudioModelOption {
   id: string
   name: string
   provider: string
-  relativeCost: number // Multiplicador relativo em × (ex: 0.63×, 1.0×, 1.35×)
-  badge?: string
+  relativeCost: number // Multiplicador relativo em × (ex: 0.71×, 1.04×)
+  badge?: string // ex: "NOVO" ou "EM ALTA"
+  isNew?: boolean
   description: string
   isPro?: boolean
   supportsExternalApi?: boolean
+  brandIcon?:
+    | 'kling'
+    | 'semente'
+    | 'minimax'
+    | 'eles'
+    | 'gemini'
+    | 'grok'
+    | 'flux'
+    | 'openai'
+    | 'luma'
+    | 'runway'
+    | 'elevenlabs'
+    | 'suno'
+    | 'generic'
 }
 
 export interface StudioCreationRecord {
@@ -62,57 +112,181 @@ export interface CreateStudioMediaParams {
   type: StudioMediaType
   prompt: string
   model: StudioModelOption
+  qualityTier?: StudioQualityTier
   aspectRatio?: string
   stylePreset?: string
   cameraAngle?: string
+  assetUrls?: string[]
 }
 
-// Modelos do AI Media Studio organizados por abas com custo relativo em ×
+// Modelos do AI Media Studio organizados por abas com custo relativo em × exatamente como nos prints do Genspark
 export const STUDIO_MODELS: Record<StudioMediaType, StudioModelOption[]> = {
-  video: [
+  geral: [
     {
-      id: 'kling-v4-turbo',
-      name: 'Kling 4.0 Output Turbo',
-      provider: 'Kling AI',
-      relativeCost: 1.0,
-      badge: 'Padrão da Indústria',
+      id: 'kling-4-0',
+      name: 'Kling 4.0',
+      provider: 'Kuaishou AI',
+      relativeCost: 0.71,
+      badge: 'NOVO',
+      isNew: true,
+      brandIcon: 'kling',
       description: 'Vídeos ultra fluidos, interpolação de quadros e suporte a Start/End frames.',
     },
     {
-      id: 'luma-dream-machine',
-      name: 'Luma Dream Machine Pro',
-      provider: 'Luma Labs',
-      relativeCost: 1.35,
-      badge: 'Câmera Dinâmica',
-      description: 'Movimentos complexos de câmera e física hiper-realista para comerciais.',
-      isPro: true,
+      id: 'semente-2-5',
+      name: 'Semente 2.5',
+      provider: 'ByteDance AI',
+      relativeCost: 1.04,
+      badge: 'NOVO',
+      isNew: true,
+      brandIcon: 'semente',
+      description: 'Modelo de geração multimodal de alta fidelidade cinematográfica.',
     },
     {
-      id: 'runway-gen3-alpha',
-      name: 'Runway Gen-3 Alpha Cinematic',
-      provider: 'Runway',
-      relativeCost: 1.5,
-      badge: 'Cinematográfico',
-      description:
-        'Fidelidade cinematográfica 4K, granulação de película e iluminação volumétrica.',
-      isPro: true,
+      id: 'gemini-omni-flash',
+      name: 'Gemini Omni Flash',
+      provider: 'Google AI',
+      relativeCost: 0.45,
+      brandIcon: 'gemini',
+      description: 'Raciocínio ágil e criação rápida com custos hiper-otimizados.',
     },
     {
-      id: 'hailuo-minimax',
-      name: 'Hailuo MiniMax Fast',
-      provider: 'MiniMax',
-      relativeCost: 0.75,
-      badge: 'Econômico',
-      description: 'Geração veloz para ideação rápida de criativos de reels e stories.',
+      id: 'video-flux-3',
+      name: 'Vídeo FLUX 3',
+      provider: 'Black Forest Labs',
+      relativeCost: 0.76,
+      brandIcon: 'flux',
+      description: 'Fidelidade visual, iluminação volumétrica e realismo superior.',
+    },
+  ],
+  video: [
+    {
+      id: 'kling-4-0',
+      name: 'Kling 4.0',
+      provider: 'Kuaishou AI',
+      relativeCost: 0.71,
+      badge: 'NOVO',
+      isNew: true,
+      brandIcon: 'kling',
+      description: 'Vídeos ultra fluidos, interpolação de quadros e suporte a Start/End frames.',
+    },
+    {
+      id: 'semente-2-5',
+      name: 'Semente 2.5',
+      provider: 'ByteDance AI',
+      relativeCost: 1.04,
+      badge: 'NOVO',
+      isNew: true,
+      brandIcon: 'semente',
+      description: 'Modelo de geração multimodal de alta fidelidade cinematográfica.',
+    },
+    {
+      id: 'rascunho-seedance-2-5',
+      name: 'Rascunho do Seedance 2.5',
+      provider: 'ByteDance AI',
+      relativeCost: 0.47,
+      brandIcon: 'semente',
+      description: 'Prévia em 480p ultra veloz para validar composição e movimentos.',
+    },
+    {
+      id: 'semente-v2',
+      name: 'Semente v2',
+      provider: 'ByteDance AI',
+      relativeCost: 0.68,
+      brandIcon: 'semente',
+      description: 'Versão estável comprovada para vídeos publicitários e de produto.',
+    },
+    {
+      id: 'minimax-h3',
+      name: 'MiniMax H3',
+      provider: 'Hailuo AI',
+      relativeCost: 0.58,
+      brandIcon: 'minimax',
+      description: 'Excelente física de tecidos, cabelos e interações humanas dinâmicas.',
+    },
+    {
+      id: 'minimax-h3-max',
+      name: 'MiniMax H3 Max',
+      provider: 'Hailuo AI',
+      relativeCost: 0.36,
+      brandIcon: 'minimax',
+      description: 'Versão de alta resolução e precisão de cenas com múltiplos atores.',
+    },
+    {
+      id: 'minimax-h3-alta-velocidade',
+      name: 'MiniMax H3 de alta velocidade',
+      provider: 'Hailuo AI',
+      relativeCost: 0.27,
+      brandIcon: 'minimax',
+      description: 'Velocidade máxima para rascunhos em tempo recorde.',
+    },
+    {
+      id: 'minimax-h3-lite',
+      name: 'MiniMax H3 Lite',
+      provider: 'Hailuo AI',
+      relativeCost: 0.18,
+      brandIcon: 'minimax',
+      description: 'O menor custo por segundo para ideação massiva.',
+    },
+    {
+      id: 'eles-3-0',
+      name: 'Eles 3.0',
+      provider: 'Luma Labs Ray-2',
+      relativeCost: 0.89,
+      brandIcon: 'eles',
+      description: 'Controle de câmera avançado e física fotorrealista.',
+    },
+    {
+      id: 'gemini-omni-flash',
+      name: 'Gemini Omni Flash',
+      provider: 'Google AI',
+      relativeCost: 0.45,
+      brandIcon: 'gemini',
+      description: 'Raciocínio ágil e criação rápida com custos hiper-otimizados.',
+    },
+    {
+      id: 'video-grok-imagine',
+      name: 'Vídeo Grok Imagine',
+      provider: 'xAI Grok',
+      relativeCost: 0.63,
+      brandIcon: 'grok',
+      description: 'Criatividade sem limites para conceitos audaciosos e virais.',
+    },
+    {
+      id: 'video-flux-3',
+      name: 'Vídeo FLUX 3',
+      provider: 'Black Forest Labs',
+      relativeCost: 0.76,
+      brandIcon: 'flux',
+      description: 'Fidelidade visual, iluminação volumétrica e realismo superior.',
+    },
+    {
+      id: 'flux-3-max',
+      name: 'FLUX 3 Max',
+      provider: 'Black Forest Labs',
+      relativeCost: 0.76,
+      brandIcon: 'flux',
+      description: 'Renderização em máxima qualidade para pós-produção comercial.',
     },
   ],
   image: [
     {
+      id: 'flux-3-max-image',
+      name: 'FLUX 3 Max Ultra',
+      provider: 'Black Forest Labs',
+      relativeCost: 0.76,
+      badge: 'NOVO',
+      isNew: true,
+      brandIcon: 'flux',
+      description: 'Textura de pele precisa, tipografia integrada nítida e anatomia perfeita.',
+    },
+    {
       id: 'nano-banana-2-flash',
-      name: 'Nano Banana 2 Flash Lite',
+      name: 'Nano Banana 2 Flash',
       provider: 'Genspark Core',
-      relativeCost: 0.63,
+      relativeCost: 0.47,
       badge: 'Recomendado',
+      brandIcon: 'generic',
       description: 'Econômico, veloz e ideal para posts diários de redes sociais.',
       supportsExternalApi: true,
     },
@@ -120,44 +294,30 @@ export const STUDIO_MODELS: Record<StudioMediaType, StudioModelOption[]> = {
       id: 'dall-e-3-hd',
       name: 'DALL·E 3 HD Ultra',
       provider: 'OpenAI Oficial',
-      relativeCost: 1.25,
-      badge: 'API OpenAI Oficial',
+      relativeCost: 1.04,
+      badge: 'Oficial',
+      brandIcon: 'openai',
       description: 'Geração com a API DALL·E 3 oficial quando OPENAI_API_KEY estiver configurada.',
       supportsExternalApi: true,
     },
     {
-      id: 'flux-1-pro',
-      name: 'FLUX.1 Pro Photorealism',
-      provider: 'Black Forest Labs',
-      relativeCost: 1.2,
-      badge: 'Fotorrealismo',
-      description: 'Textura de pele precisa, tipografia integrada nítida e anatomia perfeita.',
-    },
-    {
       id: 'midjourney-v6-1',
-      name: 'Midjourney v6.1 Aesthetic Engine',
+      name: 'Midjourney v6.1 Aesthetic',
       provider: 'Midjourney',
-      relativeCost: 1.4,
-      badge: 'Estilo Artístico',
+      relativeCost: 0.89,
+      brandIcon: 'generic',
       description: 'Estética publicitária refinada com gradientes e iluminação dramática.',
-      isPro: true,
-    },
-    {
-      id: 'sdxl-lightning',
-      name: 'SDXL Lightning Ultra Speed',
-      provider: 'Stability AI',
-      relativeCost: 0.5,
-      badge: 'Ultra Rápido',
-      description: 'Renderização em frações de segundo para testes rápidos de composição.',
     },
   ],
   audio: [
     {
       id: 'gemini-voice-tts',
-      name: 'Gemini Voice Speech TTS',
+      name: 'Gemini Omni Voice TTS',
       provider: 'Google AI',
-      relativeCost: 0.8,
-      badge: 'Voz Fluente',
+      relativeCost: 0.45,
+      badge: 'NOVO',
+      isNew: true,
+      brandIcon: 'gemini',
       description:
         'Locução natural em português brasileiro, entonação comercial e pausas realistas.',
       supportsExternalApi: true,
@@ -166,8 +326,9 @@ export const STUDIO_MODELS: Record<StudioMediaType, StudioModelOption[]> = {
       id: 'openai-tts-hd',
       name: 'OpenAI TTS-1 HD Studio Voice',
       provider: 'OpenAI Oficial',
-      relativeCost: 1.1,
-      badge: 'API OpenAI Oficial',
+      relativeCost: 0.71,
+      badge: 'Oficial',
+      brandIcon: 'openai',
       description: 'Vozes estúdio da OpenAI (alloy/echo/fable/onyx/nova/shimmer) via API oficial.',
       supportsExternalApi: true,
     },
@@ -175,8 +336,8 @@ export const STUDIO_MODELS: Record<StudioMediaType, StudioModelOption[]> = {
       id: 'elevenlabs-multilingual-v2',
       name: 'ElevenLabs Multilingual v2',
       provider: 'ElevenLabs',
-      relativeCost: 1.5,
-      badge: 'Padrão Ouro Dublagem',
+      relativeCost: 1.04,
+      brandIcon: 'elevenlabs',
       description: 'Clonagem e entonação emocional profunda para podcasts e vídeos institucionais.',
       isPro: true,
     },
@@ -184,19 +345,42 @@ export const STUDIO_MODELS: Record<StudioMediaType, StudioModelOption[]> = {
       id: 'suno-v3-soundtrack',
       name: 'Suno v3 Instrumental & Jingles',
       provider: 'Suno AI',
-      relativeCost: 1.3,
-      badge: 'Trilha Sonora',
+      relativeCost: 0.68,
+      brandIcon: 'suno',
       description:
         'Criação de vinhetas, batidas e trilhas sonoras completas com estrutura de estúdio.',
+    },
+  ],
+  '3d': [
+    {
+      id: '3d-box-boxer',
+      name: '3D-BOX Realism Engine',
+      provider: 'MidiaViva 3D Lab',
+      relativeCost: 0.89,
+      badge: 'EM ALTA',
+      brandIcon: 'generic',
+      description: 'Monte em 3D, finalize com física e iluminação realista.',
+    },
+    {
+      id: 'meshy-4-hd',
+      name: 'Meshy 4.0 PBR Texturing',
+      provider: 'Meshy AI',
+      relativeCost: 0.76,
+      badge: 'NOVO',
+      isNew: true,
+      brandIcon: 'generic',
+      description: 'Modelagem 3D rápida com malha poligonal otimizada e texturas PBR.',
     },
   ],
 }
 
 // Custo base por tipo em créditos do ecossistema MidiaViva
 const BASE_CREDITS_PER_TYPE: Record<StudioMediaType, number> = {
+  geral: 50,
   video: 50,
   image: 20,
   audio: 10,
+  '3d': 60,
 }
 
 /**
@@ -215,14 +399,20 @@ export async function createStudioMedia(
     type,
     prompt,
     model,
+    qualityTier = 'padrao',
     aspectRatio = '1:1',
     stylePreset = 'Auto',
     cameraAngle = 'Frontal Dinâmico',
   } = params
 
-  // 1. Cálculo de créditos debitados baseado no custo relativo
-  const baseCredits = BASE_CREDITS_PER_TYPE[type] || 20
-  const creditsDebited = Math.max(1, Math.round(baseCredits * model.relativeCost))
+  // 1. Cálculo de créditos debitados baseado no custo relativo + qualidade escolhida
+  const qualityMultiplier = qualityTier === 'mega' ? 2.8 : qualityTier === 'ultra' ? 1.75 : 1.0
+  const baseCredits =
+    BASE_CREDITS_PER_TYPE[type === 'geral' ? 'video' : type === '3d' ? 'video' : type] || 20
+  const creditsDebited = Math.max(
+    1,
+    Math.round(baseCredits * model.relativeCost * qualityMultiplier),
+  )
 
   // 2. Tenta gerar via API externa real pelo backend (OpenAI DALL·E para imagem, TTS para áudio)
   let externalResult: any = null
@@ -233,7 +423,7 @@ export async function createStudioMedia(
   try {
     externalResult = await requestExternalMediaGeneration({
       prompt,
-      type,
+      type: type === 'image' || type === 'audio' ? type : 'video',
       modelId: model.id,
       style: stylePreset,
     })
@@ -330,9 +520,11 @@ export async function createStudioMedia(
   let postSyncedId: string | undefined = undefined
   try {
     const platformMap: Record<StudioMediaType, 'Instagram' | 'TikTok' | 'YouTube'> = {
+      geral: 'TikTok',
       video: 'TikTok',
       image: 'Instagram',
       audio: 'YouTube',
+      '3d': 'Instagram',
     }
 
     const postPayload = {
@@ -763,9 +955,11 @@ function generateMediaTitle(prompt: string, type: StudioMediaType): string {
     .trim()
     .replace(/[^\w\sÀ-ÿ]/gi, '')
   const typeMap: Record<StudioMediaType, string> = {
+    geral: 'Take Cinematográfico',
     video: 'Take Cinematográfico',
     image: 'Composição Visual',
     audio: 'Locução & Sonora',
+    '3d': 'Modelo & Cena 3D',
   }
   return `${typeMap[type]}: ${cleaned || 'Criação Multimodal'}`
 }

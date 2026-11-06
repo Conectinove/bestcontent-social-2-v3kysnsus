@@ -1,21 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   Sparkles,
   Video,
   Image as ImageIcon,
   Mic,
-  Check,
-  Zap,
-  SlidersHorizontal,
-  ChevronDown,
-  Info,
+  Box,
   Layers,
   ArrowRight,
-  RefreshCw,
-  Clock,
-  Coins,
-  Wand2,
   ExternalLink,
   BookOpen,
   Film,
@@ -26,19 +18,13 @@ import {
   ShieldAlert,
   ShieldCheck,
   Star,
+  Menu,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -46,11 +32,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { toast } from '@/hooks/use-toast'
 import {
   STUDIO_MODELS,
   StudioMediaType,
   StudioModelOption,
+  StudioQualityTier,
   StudioCreationRecord,
   createStudioMedia,
   getStudioCreations,
@@ -68,30 +56,49 @@ import { calculateStudioMetrics, type StudioUsageMetrics } from '@/services/stud
 import { PromptTemplateManagerModal } from '@/components/studio/PromptTemplateManagerModal'
 import { StudioMetricsBlock } from '@/components/studio/StudioMetricsBlock'
 
+// Componentes da Interface Estilo Genspark
+import { StudioSidebar } from '@/components/studio/StudioSidebar'
+import { StudioHeroCarousel } from '@/components/studio/StudioHeroCarousel'
+import { StudioFeatureCards } from '@/components/studio/StudioFeatureCards'
+import { StudioGenerationBar } from '@/components/studio/StudioGenerationBar'
+import { StudioInspirationGallery } from '@/components/studio/StudioInspirationGallery'
+
 export default function AiMediaStudioPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { activeBrand } = useSocial()
 
-  // Estado das abas
+  // Seção da sidebar ativa (inicio, projetos, habilidades, estilos, ajuda)
+  const [activeSection, setActiveSection] = useState('inicio')
+  const [activeHeroTab, setActiveHeroTab] = useState('inicio')
+
+  // Aba da barra de geração (geral, video, image, audio, 3d)
   const [activeTab, setActiveTab] = useState<StudioMediaType>('video')
 
-  // Modelos selecionados por aba
-  const [selectedVideoModel, setSelectedVideoModel] = useState<StudioModelOption>(
-    STUDIO_MODELS.video[0],
-  )
-  const [selectedImageModel, setSelectedImageModel] = useState<StudioModelOption>(
-    STUDIO_MODELS.image[0],
-  )
-  const [selectedAudioModel, setSelectedAudioModel] = useState<StudioModelOption>(
-    STUDIO_MODELS.audio[0],
-  )
+  // Modelo selecionado por aba
+  const [selectedModels, setSelectedModels] = useState<Record<StudioMediaType, StudioModelOption>>({
+    geral: STUDIO_MODELS.geral[0],
+    video: STUDIO_MODELS.video[0], // Kling 4.0
+    image: STUDIO_MODELS.image[0],
+    audio: STUDIO_MODELS.audio[0],
+    '3d': STUDIO_MODELS['3d'][0],
+  })
 
-  // Prompt e configurações
+  // Seletor de qualidade ("Caminho": padrao, ultra, mega)
+  const [selectedQuality, setSelectedQuality] = useState<StudioQualityTier>('padrao')
+
+  // Prompt e configurações avançadas
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState('16:9')
   const [stylePreset, setStylePreset] = useState('Cinematográfico Pro')
   const [cameraAngle, setCameraAngle] = useState('Dinâmica Multi-Shot')
+  const [uploadedAssets, setUploadedAssets] = useState<string[]>([])
+
+  // Modal de configurações da barra de geração
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false)
+
+  // Drawer mobile da sidebar
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   // Estado de execução e créditos
   const [isGenerating, setIsGenerating] = useState(false)
@@ -106,7 +113,7 @@ export default function AiMediaStudioPage() {
     null,
   )
 
-  // Estados das 4 Frentes de Evolução
+  // Status de API externa e métricas
   const [externalApiStatus, setExternalApiStatus] = useState<ExternalMediaApiStatus>({
     configured: false,
     provider: 'OpenAI (DALL·E 3 / TTS-1)',
@@ -118,18 +125,14 @@ export default function AiMediaStudioPage() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
   const [studioMetrics, setStudioMetrics] = useState<StudioUsageMetrics | null>(null)
 
-  // Modelo ativo na aba atual
-  const currentModel =
-    activeTab === 'video'
-      ? selectedVideoModel
-      : activeTab === 'image'
-        ? selectedImageModel
-        : selectedAudioModel
+  // Modelo ativo na aba corrente
+  const currentModel = selectedModels[activeTab] || STUDIO_MODELS.video[0]
 
-  const setModelForCurrentTab = (model: StudioModelOption) => {
-    if (activeTab === 'video') setSelectedVideoModel(model)
-    else if (activeTab === 'image') setSelectedImageModel(model)
-    else setSelectedAudioModel(model)
+  const handleSelectModel = (model: StudioModelOption) => {
+    setSelectedModels((prev) => ({
+      ...prev,
+      [activeTab]: model,
+    }))
   }
 
   // Carregar dados de créditos, criações recentes, templates e status de API externa
@@ -162,16 +165,6 @@ export default function AiMediaStudioPage() {
     loadData()
   }, [loadData])
 
-  // Placeholders contextuais por aba
-  const placeholders: Record<StudioMediaType, string> = {
-    video:
-      'Descreva a cena cinematográfica: "Câmera percorre corredor moderno de aeroporto com iluminação volumétrica e letreiro digital"...',
-    image:
-      'Descreva a imagem de alto impacto: "Banner promocional neon cyberpunk com tipografia flutuante e estética editorial"...',
-    audio:
-      'Insira o texto para locução comercial: "Descubra a nova era da criação com inteligência artificial para o seu negócio"...',
-  }
-
   // Ação de Geração
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -191,9 +184,11 @@ export default function AiMediaStudioPage() {
         type: activeTab,
         prompt: prompt.trim(),
         model: currentModel,
+        qualityTier: selectedQuality,
         aspectRatio,
         stylePreset,
         cameraAngle,
+        assetUrls: uploadedAssets,
       })
 
       // Atualiza lista local e métricas
@@ -231,801 +226,353 @@ export default function AiMediaStudioPage() {
     }
   }
 
+  // Ação de criar Novo Canvas (limpa prompt e assets)
+  const handleNewCanvas = () => {
+    setPrompt('')
+    setUploadedAssets([])
+    toast({
+      title: 'Novo canvas iniciado',
+      description: 'Área de trabalho limpa para uma nova ideia criativa.',
+    })
+  }
+
+  // Aplicação de sugestão vinda do Hero ou dos Cards de Recursos
+  const handleApplySuggestion = (
+    suggestedPrompt: string,
+    type: 'video' | 'image' | 'audio' | '3d',
+  ) => {
+    setPrompt(suggestedPrompt)
+    setActiveTab(type)
+    window.scrollTo({ top: 320, behavior: 'smooth' })
+    toast({
+      title: 'Prompt aplicado!',
+      description: 'Ajuste os detalhes ou clique em "Gerar".',
+    })
+  }
+
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* Top Banner / Navegação Estilo High Impact & Genspark */}
-      <div className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shadow-md">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="font-extrabold text-lg tracking-tight font-heading flex items-center gap-2">
-                  AI Media Studio
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] uppercase font-bold bg-purple-500/10 text-purple-600"
-                  >
-                    High Impact
-                  </Badge>
-                </h1>
-              </div>
-            </div>
-
-            {/* Menu interno estilo estúdio */}
-            <div className="hidden md:flex items-center gap-1 text-sm font-medium">
-              <span className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground font-semibold">
-                Início
-              </span>
-              <a
-                href="#destaques"
-                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground"
-              >
-                Destaques
-              </a>
-              <a
-                href="#inspire-se"
-                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground"
-              >
-                Inspire-se
-              </a>
-              <Link
-                to="/app/library"
-                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground flex items-center gap-1.5"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-purple-600" />
-                Biblioteca Sincronizada
-              </Link>
-            </div>
-          </div>
-
-          {/* Contador de Créditos no topo estilo "125.000 créditos/mês" */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-muted/80 border border-border/80 px-3.5 py-1.5 rounded-full shadow-xs">
-              <Coins className="w-4 h-4 text-amber-500" />
-              <div className="text-xs">
-                <span className="font-bold text-foreground">
-                  {userCredits.planCredits.toLocaleString('pt-BR')}
-                </span>
-                <span className="text-muted-foreground ml-1">/ 125.000 créditos/mês</span>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/app/subscription')}
-              className="hidden sm:flex text-xs font-semibold"
-            >
-              Recarregar
-            </Button>
-          </div>
-        </div>
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      {/* 1. SIDEBAR ESQUERDA FIXA (Desktop) */}
+      <div className="hidden lg:flex h-full">
+        <StudioSidebar
+          activeSection={activeSection}
+          onSelectSection={setActiveSection}
+          onNewCanvas={handleNewCanvas}
+          recentCreations={creations}
+          onSelectRecent={(item) => setSelectedCreationModal(item)}
+          userName={user?.name || 'Ronaldo Barreto'}
+          userEmail={user?.email}
+          onOpenSettings={() => navigate('/app/subscription')}
+          onViewAllRecents={() => navigate('/app/library')}
+        />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        {/* Hero Banner Estilo "START -> END" & "ONE PROMPT. SEVEN SHOTS." */}
-        <div
-          id="destaques"
-          className="relative rounded-3xl overflow-hidden mb-8 border border-border/60 bg-gradient-to-r from-neutral-950 via-neutral-900 to-purple-950 text-white shadow-2xl"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.25),transparent_60%)] pointer-events-none" />
+      {/* 2. ÁREA DE CONTEÚDO PRINCIPAL (Scrollável) */}
+      <main className="flex-1 flex flex-col h-full overflow-y-auto min-w-0">
+        {/* Barra Superior Mobile com Gatilho de Drawer da Sidebar */}
+        <div className="lg:hidden p-3 border-b border-border flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-20">
+          <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Menu className="w-5 h-5" />
+                <span className="font-extrabold text-sm font-heading">Estúdio de mídia de IA</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-72">
+              <StudioSidebar
+                activeSection={activeSection}
+                onSelectSection={(s) => {
+                  setActiveSection(s)
+                  setIsMobileSidebarOpen(false)
+                }}
+                onNewCanvas={() => {
+                  handleNewCanvas()
+                  setIsMobileSidebarOpen(false)
+                }}
+                recentCreations={creations}
+                onSelectRecent={(item) => {
+                  setSelectedCreationModal(item)
+                  setIsMobileSidebarOpen(false)
+                }}
+                userName={user?.name || 'Ronaldo Barreto'}
+                userEmail={user?.email}
+                onOpenSettings={() => {
+                  navigate('/app/subscription')
+                  setIsMobileSidebarOpen(false)
+                }}
+                onViewAllRecents={() => {
+                  navigate('/app/library')
+                  setIsMobileSidebarOpen(false)
+                }}
+              />
+            </SheetContent>
+          </Sheet>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 p-6 sm:p-10 gap-8 items-center relative z-10">
-            <div className="lg:col-span-7 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold uppercase tracking-wider text-purple-300">
-                <Wand2 className="w-3.5 h-3.5" />
-                MidiaViva Next-Gen AI Engine
-              </div>
-
-              <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight font-heading leading-tight">
-                ONE PROMPT. <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-lime-300 to-teal-200">
-                  SEVEN SHOTS.
-                </span>
-              </h2>
-
-              <p className="text-neutral-300 text-sm sm:text-base max-w-xl">
-                Crie vídeos cinematográficos, artes de alto impacto e locuções realistas com
-                controle total de custo relativo e sincronização instantânea na sua Biblioteca.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Badge className="bg-lime-500/20 text-lime-400 border-lime-500/30 text-xs py-1">
-                  KLING 4.0 OUTPUT
-                </Badge>
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-xs py-1">
-                  NANO BANANA 2 FLASH
-                </Badge>
-                <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-xs py-1">
-                  GEMINI 3.8 FLASH TTS
-                </Badge>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5 relative">
-              <div className="relative rounded-2xl overflow-hidden border-2 border-white/15 shadow-2xl bg-black aspect-video flex items-center justify-center group">
-                <img
-                  src="https://img.usecurling.com/p/800/450?q=airport+cinematic+futuristic&color=green"
-                  alt="Prévia de geração"
-                  className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-3 right-3 bg-lime-500 text-black font-extrabold text-[11px] px-2.5 py-1 rounded uppercase tracking-wider shadow-md">
-                  KLING 4.0 OUTPUT · 4× SPEED
-                </div>
-                <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10">
-                  Set the first & last frame · Start → End
-                </div>
-              </div>
-            </div>
-          </div>
+          <Button
+            size="sm"
+            onClick={handleNewCanvas}
+            className="rounded-full h-8 text-xs font-bold"
+          >
+            + Canvas
+          </Button>
         </div>
 
-        {/* Status de Conexão com API Externa (Banner Informativo com suporte a Vídeo/Imagem/Áudio) */}
-        <div className="mb-6 p-4 rounded-2xl border flex flex-col gap-3 text-xs bg-card/70 backdrop-blur-sm border-border/70">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              {externalApiStatus.configured ? (
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-              ) : (
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <ShieldAlert className="w-4 h-4" />
-                </div>
-              )}
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-foreground">
-                    Status das Integrações de Mídia:
-                  </span>
-                  <Badge
-                    variant={externalApiStatus.configured ? 'default' : 'outline'}
-                    className={`text-[10px] font-bold ${
-                      externalApiStatus.configured
-                        ? 'bg-emerald-600 hover:bg-emerald-600 text-white'
-                        : 'border-amber-500/30 text-amber-400'
-                    }`}
-                  >
-                    {externalApiStatus.badge ||
-                      (externalApiStatus.configured
-                        ? 'Dados Oficiais (API Externa)'
-                        : 'Estimativa Calibrada (Modo Local)')}
-                  </Badge>
-                  {externalApiStatus.videoGenerationReady && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] border-purple-500/40 text-purple-400 bg-purple-500/10"
-                    >
-                      🎬 Vídeo: {externalApiStatus.videoProvider || 'API Ativa'}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                  {externalApiStatus.message}
-                </p>
-              </div>
-            </div>
+        {/* Conteúdo Central Estilo Genspark High Impact */}
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full pb-24">
+          {/* Seção 2: HERO CARROSSEL */}
+          <StudioHeroCarousel
+            activeHeroTab={activeHeroTab}
+            onSelectHeroTab={setActiveHeroTab}
+            onApplyPrompt={handleApplySuggestion}
+          />
 
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsTemplateModalOpen(true)}
-                className="text-xs h-8 rounded-xl border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-1.5"
-              >
-                <FileCode className="w-3.5 h-3.5" />
-                Modelos de Prompt ({promptTemplates.length})
-              </Button>
-            </div>
-          </div>
+          {/* Seção 3: BARRA DE GERAÇÃO CENTRAL (A peça mais importante) */}
+          <StudioGenerationBar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            selectedModel={currentModel}
+            onSelectModel={handleSelectModel}
+            selectedQuality={selectedQuality}
+            onSelectQuality={setSelectedQuality}
+            uploadedAssets={uploadedAssets}
+            onAddUploadedAsset={(url) => setUploadedAssets((prev) => [...prev, url])}
+            onRemoveUploadedAsset={(idx) =>
+              setUploadedAssets((prev) => prev.filter((_, i) => i !== idx))
+            }
+            onOpenConfigModal={() => setIsConfigModalOpen(true)}
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+          />
 
-          {/* Guia de segredos e habilitação transparente */}
-          <div className="pt-2.5 border-t border-border/50 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="font-mono font-bold text-foreground">OPENAI_API_KEY</span>
-                <span
-                  className={`text-[10px] font-semibold ${externalApiStatus.openaiConfigured ? 'text-emerald-400' : 'text-muted-foreground'}`}
-                >
-                  {externalApiStatus.openaiConfigured ? '✓ Ativa' : '○ Não configurada'}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-[10px]">
-                Habilita DALL·E 3 (Imagem), TTS-1 (Áudio) e Sora (Vídeo).
-              </p>
-            </div>
+          {/* Seção 6: CARDS DE RECURSOS / PLANOS (Seedance 2.5 + 4 cards do Genspark) */}
+          <StudioFeatureCards
+            userCredits={userCredits.planCredits}
+            totalCreditsLimit={userCredits.totalCreditsLimit}
+            onViewPlans={() => navigate('/app/subscription')}
+            onSelectFeaturePrompt={handleApplySuggestion}
+          />
 
-            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="font-mono font-bold text-foreground">LUMA_API_KEY</span>
-                <span
-                  className={`text-[10px] font-semibold ${externalApiStatus.lumaConfigured ? 'text-emerald-400' : 'text-muted-foreground'}`}
-                >
-                  {externalApiStatus.lumaConfigured ? '✓ Ativa' : '○ Não configurada'}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-[10px]">
-                Habilita Dream Machine Ray-2 (Vídeo Text-to-Video HD).
-              </p>
-            </div>
-
-            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="font-mono font-bold text-foreground">RUNWAY_API_KEY</span>
-                <span
-                  className={`text-[10px] font-semibold ${externalApiStatus.runwayConfigured ? 'text-emerald-400' : 'text-muted-foreground'}`}
-                >
-                  {externalApiStatus.runwayConfigured ? '✓ Ativa' : '○ Não configurada'}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-[10px]">
-                Habilita Runway Gen-4.5 (Vídeo de Alto Impacto).
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Console Central de Criação (Estilo o Popover do Genspark) */}
-        <div className="bg-card border border-border/80 rounded-3xl p-4 sm:p-6 shadow-xl mb-8">
-          {/* Abas: Vídeo · Imagem · Áudio + Botão Modelos de Prompt */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-4 mb-4">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('video')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'video'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                <Video className="w-4 h-4" />
-                <span>Vídeo</span>
-                {externalApiStatus.videoGenerationReady && (
-                  <span
-                    className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                    title={`API de vídeo externa conectada (${externalApiStatus.videoProvider || 'Oficial'})`}
-                  />
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('image')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'image'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4" />
-                <span>Imagem</span>
-                {externalApiStatus.configured && (
-                  <span
-                    className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                    title="API OpenAI ativa para imagens reais"
-                  />
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('audio')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'audio'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                <Mic className="w-4 h-4" />
-                <span>Áudio</span>
-                {externalApiStatus.configured && (
-                  <span
-                    className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                    title="API OpenAI ativa para áudio TTS real"
-                  />
-                )}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsTemplateModalOpen(true)}
-                className="text-xs font-semibold border-purple-500/40 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1.5 shadow-2xs"
-              >
-                <FileCode className="w-3.5 h-3.5" />
-                <span>
-                  {activeTab === 'video'
-                    ? 'Templates de Vídeo'
-                    : activeTab === 'image'
-                      ? 'Templates de Imagem'
-                      : 'Templates de Áudio'}
-                </span>
-                <Badge
-                  variant="secondary"
-                  className="text-[10px] bg-purple-500/20 text-purple-300 ml-1 py-0 px-1.5 font-mono"
-                >
-                  {
-                    promptTemplates.filter(
-                      (t) => t.category === activeTab || t.category === 'geral',
-                    ).length
-                  }
-                </Badge>
-              </Button>
-            </div>
-          </div>
-
-          {/* Atalhos Rápidos de Templates do Tipo Ativo (Catálogo em 1-clique) */}
-          {(() => {
-            const tabTemplates = promptTemplates.filter(
-              (t) => t.category === activeTab || t.category === 'geral',
-            )
-            if (tabTemplates.length === 0) return null
-            return (
-              <div className="mb-3 p-3 rounded-2xl bg-purple-500/5 border border-purple-500/15">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                    <span>
-                      {activeTab === 'video'
-                        ? 'Catálogo de Prompts de Vídeo Prontos'
-                        : activeTab === 'image'
-                          ? 'Catálogo de Prompts de Imagem'
-                          : 'Catálogo de Prompts de Áudio'}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground font-normal">
-                      · Aplique direto ou preencha as variáveis
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsTemplateModalOpen(true)}
-                    className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
-                  >
-                    <span>Gerenciar ({tabTemplates.length})</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {tabTemplates.slice(0, 6).map((tmpl) => {
-                    const phs = tmpl.placeholders || []
-                    return (
-                      <button
-                        key={tmpl.id}
-                        type="button"
-                        onClick={() => {
-                          setIsTemplateModalOpen(true)
-                        }}
-                        className="p-2.5 rounded-xl text-left bg-background/80 hover:bg-background border border-border/70 hover:border-purple-500/50 transition-all group flex flex-col justify-between shadow-2xs"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="text-xs font-bold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 line-clamp-1">
-                              {tmpl.name}
-                            </span>
-                            {tmpl.is_favorite && (
-                              <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
-                            )}
-                          </div>
-                          {tmpl.description && (
-                            <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight mb-2">
-                              {tmpl.description}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10px]">
-                          <span className="text-muted-foreground font-mono">
-                            {phs.length > 0
-                              ? `${phs.length} ${phs.length === 1 ? 'variável' : 'variáveis'}`
-                              : 'Pronto'}
-                          </span>
-                          <span className="text-purple-600 dark:text-purple-400 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                            Aplicar <ArrowRight className="w-2.5 h-2.5" />
-                          </span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })()}
-
-          {/* Campo de Prompt Grande */}
-          <div className="space-y-3">
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={placeholders[activeTab]}
-              rows={4}
-              className="w-full text-base sm:text-lg resize-none rounded-2xl border-border/80 focus-visible:ring-purple-500/30 p-4 font-normal"
+          {/* Seção 5: GALERIA INSPIRE-SE COM FILTROS E BUSCA */}
+          <div id="inspire-se" className="pt-4 border-t border-border/60">
+            <StudioInspirationGallery
+              creations={creations}
+              onSelectCreation={(item) => setSelectedCreationModal(item)}
             />
+          </div>
 
-            {/* Barra de Controles Inferior do Prompt com Seletor de Modelo */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Seletor de Modelo com Custo Relativo (Exato ao print do Genspark) */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="rounded-full h-10 px-4 bg-background border-border/80 hover:bg-accent flex items-center gap-2 shadow-xs"
-                    >
-                      <Sparkles className="w-4 h-4 text-purple-600" />
-                      <span className="font-semibold text-sm max-w-[170px] truncate">
-                        {currentModel.name}
-                      </span>
-                      <Badge variant="secondary" className="text-[11px] font-bold px-1.5 py-0 h-5">
-                        {currentModel.relativeCost}×
-                      </Badge>
-                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-70" />
-                    </Button>
-                  </DropdownMenuTrigger>
-
-                  <DropdownMenuContent
-                    align="start"
-                    className="w-80 p-2 rounded-2xl shadow-2xl border border-border/80 bg-popover"
-                  >
-                    <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border/50 mb-1">
-                      Modelos de {activeTab.toUpperCase()} & Custo Relativo
-                    </div>
-                    {STUDIO_MODELS[activeTab].map((model) => {
-                      const isSelected = currentModel.id === model.id
-                      return (
-                        <DropdownMenuItem
-                          key={model.id}
-                          onClick={() => setModelForCurrentTab(model)}
-                          className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer ${
-                            isSelected
-                              ? 'bg-purple-500/15 font-semibold text-purple-700 dark:text-purple-300'
-                              : ''
-                          }`}
-                        >
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{model.name}</span>
-                              {model.badge && (
-                                <span className="text-[9px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded font-bold">
-                                  {model.badge}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[11px] text-muted-foreground">
-                              {model.provider}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs font-mono font-bold text-muted-foreground">
-                              {model.relativeCost}×
-                            </span>
-                            {isSelected && <Check className="w-4 h-4 text-purple-600 shrink-0" />}
-                          </div>
-                        </DropdownMenuItem>
-                      )
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Modificadores Visuais Complementares */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-full text-xs h-9 text-muted-foreground hover:text-foreground"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
-                      {stylePreset}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="rounded-xl">
-                    <DropdownMenuItem onClick={() => setStylePreset('Cinematográfico Pro')}>
-                      Cinematográfico Pro
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStylePreset('Cyberpunk Neon')}>
-                      Cyberpunk Neon
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStylePreset('Minimalista Clean')}>
-                      Minimalista Clean
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStylePreset('Editorial Revista')}>
-                      Editorial Revista
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {activeTab === 'video' && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-full text-xs h-9 text-muted-foreground hover:text-foreground"
-                      >
-                        <Camera className="w-3.5 h-3.5 mr-1.5" />
-                        {cameraAngle}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="rounded-xl">
-                      <DropdownMenuItem onClick={() => setCameraAngle('Dinâmica Multi-Shot')}>
-                        Dinâmica Multi-Shot
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setCameraAngle('Drone Aéreo Panorâmico')}>
-                        Drone Aéreo Panorâmico
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setCameraAngle('Close-up Foco Seletivo')}>
-                        Close-up Foco Seletivo
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-
-              {/* Botão Gerar em destaque */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  Consome ~
-                  <strong className="text-foreground">
-                    {Math.round(
-                      (activeTab === 'video' ? 50 : activeTab === 'image' ? 20 : 10) *
-                        currentModel.relativeCost,
-                    )}
-                  </strong>{' '}
-                  créditos
-                </span>
-
+          {/* Seção Complementar: Métricas de Uso & Templates da Conta */}
+          {studioMetrics && (
+            <div className="pt-4 border-t border-border/60 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tight font-heading text-foreground">
+                    Performance do Estúdio
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Consumo calibrado e eficiência por tipo de mídia
+                  </p>
+                </div>
                 <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating}
-                  className="rounded-full px-7 font-bold text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/25 min-w-[130px]"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsTemplateModalOpen(true)}
+                  className="rounded-full text-xs font-semibold gap-1.5"
                 >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                      Gerando...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4 mr-1.5 fill-current" />
-                      Gerar
-                    </>
-                  )}
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Templates de Prompt</span>
                 </Button>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Painel de Métricas de Uso do AI Studio (Frente 4) */}
-        <div className="mb-10">
-          <StudioMetricsBlock
-            metrics={studioMetrics}
-            loading={isLoadingCreations}
-            externalStatusBadge={
-              externalApiStatus.configured ? 'OpenAI Integrada' : 'Estimativa Calibrada'
-            }
-          />
-        </div>
-
-        {/* Galeria "Inspire-se" & "Recentes" (Conforme prints anexados) */}
-        <div id="inspire-se" className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
-            <div>
-              <h3 className="text-2xl font-black uppercase tracking-tight font-heading flex items-center gap-2">
-                Inspire-se · Criações do Studio
-                <Badge variant="outline" className="text-xs font-mono">
-                  {creations.length} itens
-                </Badge>
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Todas as criações são sincronizadas na Biblioteca e podem ser publicadas em
-                múltiplos canais.
-              </p>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/app/library')}
-              className="gap-2 font-semibold self-start sm:self-auto"
-            >
-              <BookOpen className="w-4 h-4 text-purple-600" />
-              Abrir Biblioteca Completa
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-
-          {isLoadingCreations ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="h-64 rounded-2xl bg-muted/60 animate-pulse border border-border"
-                />
-              ))}
-            </div>
-          ) : creations.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-card/40">
-              <Sparkles className="w-8 h-8 mx-auto text-muted-foreground mb-3" />
-              <h4 className="font-bold text-base mb-1">Nenhuma criação no Studio ainda</h4>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
-                Digite um prompt acima para criar seu primeiro vídeo, arte ou áudio com IA e
-                sincronizar na Biblioteca.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {creations.map((item) => {
-                return (
-                  <Card
-                    key={item.id}
-                    onClick={() => setSelectedCreationModal(item)}
-                    className="overflow-hidden border-border/80 hover:border-purple-500/50 hover:shadow-xl transition-all cursor-pointer group rounded-2xl flex flex-col bg-card"
-                  >
-                    <div className="relative aspect-video sm:aspect-square bg-neutral-900 overflow-hidden">
-                      <img
-                        src={
-                          item.preview_url ||
-                          'https://img.usecurling.com/p/600/600?q=creative+studio'
-                        }
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                        <Badge
-                          className={`text-[10px] font-bold uppercase shadow-sm ${
-                            item.type === 'video'
-                              ? 'bg-purple-600 text-white'
-                              : item.type === 'audio'
-                                ? 'bg-sky-600 text-white'
-                                : 'bg-pink-600 text-white'
-                          }`}
-                        >
-                          {item.type}
-                        </Badge>
-                      </div>
-
-                      <div className="absolute bottom-2.5 right-2.5 bg-black/80 backdrop-blur-md text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-white/10">
-                        {item.relative_cost}× · {item.credits_used}cr
-                      </div>
-                    </div>
-
-                    <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                      <div>
-                        <h4 className="font-bold text-sm text-foreground line-clamp-1 group-hover:text-purple-600 transition-colors">
-                          {item.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {item.prompt}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span className="font-medium truncate max-w-[140px] text-foreground/80">
-                          {item.model_name}
-                        </span>
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Na Biblioteca</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+              <StudioMetricsBlock metrics={studioMetrics} />
             </div>
           )}
         </div>
-      </div>
+      </main>
 
-      {/* Modal de Gerenciamento de Modelos de Prompt Personalizáveis */}
-      <PromptTemplateManagerModal
-        open={isTemplateModalOpen}
-        onOpenChange={setIsTemplateModalOpen}
-        currentType={activeTab}
-        userId={user?.id || 'demo-user'}
-        templates={promptTemplates}
-        onSelectAndApply={(filledPrompt, defaultModelId) => {
-          setPrompt(filledPrompt)
-          if (defaultModelId) {
-            const found = STUDIO_MODELS[activeTab].find((m) => m.id === defaultModelId)
-            if (found) setModelForCurrentTab(found)
-          }
-        }}
-        onRefreshTemplates={async () => {
-          const tmpls = await getStudioPromptTemplates(user?.id)
-          setPromptTemplates(tmpls)
-        }}
-      />
+      {/* Modal de Configurações Avançadas da Barra de Geração */}
+      <Dialog open={isConfigModalOpen} onOpenChange={setIsConfigModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-extrabold text-lg">Configurações de Geração</DialogTitle>
+            <DialogDescription className="text-xs">
+              Ajuste proporção de tela, pré-definições de iluminação e enquadramento de câmera.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            <div>
+              <label className="font-bold text-foreground block mb-1.5">Proporção de Tela</label>
+              <div className="grid grid-cols-3 gap-2">
+                {['16:9 (Horizontal)', '9:16 (Reels/TikTok)', '1:1 (Quadrado)'].map((ratio) => (
+                  <button
+                    key={ratio}
+                    type="button"
+                    onClick={() => setAspectRatio(ratio.split(' ')[0])}
+                    className={`p-2 rounded-xl border text-center font-bold transition-colors ${
+                      aspectRatio === ratio.split(' ')[0]
+                        ? 'border-foreground bg-muted text-foreground'
+                        : 'border-border text-muted-foreground hover:bg-muted/40'
+                    }`}
+                  >
+                    {ratio}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-foreground block mb-1.5">Estilo Visual</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  'Cinematográfico Pro',
+                  'Fotorrealista 4K',
+                  'Comercial Editorial',
+                  'Estética Cyberpunk',
+                ].map((style) => (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => setStylePreset(style)}
+                    className={`p-2 rounded-xl border text-left font-semibold transition-colors ${
+                      stylePreset === style
+                        ? 'border-foreground bg-muted text-foreground'
+                        : 'border-border text-muted-foreground hover:bg-muted/40'
+                    }`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-foreground block mb-1.5">Ângulo de Câmera</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  'Dinâmica Multi-Shot',
+                  'Close-up Macro',
+                  'Plano Aberto Aéreo',
+                  'Traveling Circular',
+                ].map((cam) => (
+                  <button
+                    key={cam}
+                    type="button"
+                    onClick={() => setCameraAngle(cam)}
+                    className={`p-2 rounded-xl border text-left font-semibold transition-colors ${
+                      cameraAngle === cam
+                        ? 'border-foreground bg-muted text-foreground'
+                        : 'border-border text-muted-foreground hover:bg-muted/40'
+                    }`}
+                  >
+                    {cam}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={() => setIsConfigModalOpen(false)}
+              className="rounded-full text-xs font-bold"
+            >
+              Aplicar configurações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Detalhes da Criação */}
-      <Dialog
-        open={Boolean(selectedCreationModal)}
-        onOpenChange={(open) => !open && setSelectedCreationModal(null)}
-      >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-6">
-          {selectedCreationModal && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge className="bg-purple-600 text-white uppercase text-[10px]">
-                    {selectedCreationModal.type}
-                  </Badge>
-                  <span className="text-xs font-mono text-muted-foreground">
-                    Modelo: {selectedCreationModal.model_name} (
-                    {selectedCreationModal.relative_cost}×)
-                  </span>
-                </div>
-                <DialogTitle className="text-xl font-black font-heading">
-                  {selectedCreationModal.title}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Prompt: "{selectedCreationModal.prompt}"
-                </DialogDescription>
-              </DialogHeader>
+      {selectedCreationModal && (
+        <Dialog
+          open={Boolean(selectedCreationModal)}
+          onOpenChange={(open) => !open && setSelectedCreationModal(null)}
+        >
+          <DialogContent className="sm:max-w-2xl rounded-3xl p-6">
+            <DialogHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className="bg-purple-600 text-white uppercase text-[10px] font-black">
+                  {selectedCreationModal.type.toUpperCase()}
+                </Badge>
+                <span className="text-xs font-bold text-muted-foreground">
+                  Modelo: {selectedCreationModal.model_name}
+                </span>
+              </div>
+              <DialogTitle className="font-black text-xl font-heading">
+                {selectedCreationModal.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                {selectedCreationModal.prompt}
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="space-y-4 my-4">
-                <div className="relative rounded-2xl overflow-hidden aspect-video bg-neutral-900 border border-border">
-                  <img
-                    src={selectedCreationModal.preview_url}
-                    alt={selectedCreationModal.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Sincronizado na Biblioteca com IA Avançada</span>
-                  </div>
-                </div>
-
-                <div className="bg-muted/60 p-4 rounded-2xl border border-border/80">
-                  <h5 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                    Saída Gerada & Roteiro
-                  </h5>
-                  <pre className="text-xs whitespace-pre-wrap font-mono text-foreground leading-relaxed">
-                    {selectedCreationModal.output_content}
-                  </pre>
-                </div>
+            <div className="space-y-4 pt-2">
+              <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-border">
+                <img
+                  src={selectedCreationModal.preview_url}
+                  alt={selectedCreationModal.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
                 <div className="text-xs text-muted-foreground">
                   Créditos debitados:{' '}
-                  <strong className="text-foreground">{selectedCreationModal.credits_used}</strong>
+                  <span className="font-bold text-foreground">
+                    {selectedCreationModal.credits_used}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setSelectedCreationModal(null)}
+                    onClick={() => {
+                      navigate('/app/library')
+                      setSelectedCreationModal(null)
+                    }}
+                    className="rounded-full text-xs font-bold"
                   >
-                    Fechar
+                    Ver na Biblioteca
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-semibold gap-1.5"
                     onClick={() => {
+                      navigate('/app/create')
                       setSelectedCreationModal(null)
-                      navigate('/app/library')
                     }}
+                    className="rounded-full text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white"
                   >
-                    <BookOpen className="w-4 h-4" />
-                    Ver na Biblioteca
+                    Criar Post com Esta Mídia
                   </Button>
                 </div>
               </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal de Templates de Prompt */}
+      <PromptTemplateManagerModal
+        open={isTemplateModalOpen}
+        onOpenChange={setIsTemplateModalOpen}
+        currentType={activeTab}
+        userId={user?.id || 'demo-user'}
+        templates={promptTemplates}
+        onSelectAndApply={(filledPrompt) => {
+          setPrompt(filledPrompt)
+          setIsTemplateModalOpen(false)
+          toast({
+            title: 'Template aplicado!',
+            description: 'Prompt preenchido na barra de criação.',
+          })
+        }}
+        onRefreshTemplates={async () => {
+          await loadData()
+        }}
+      />
     </div>
   )
 }
