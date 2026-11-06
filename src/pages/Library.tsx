@@ -93,6 +93,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ImageBankModal } from '@/components/ImageBankModal'
 import { BulkScheduleModal } from '@/components/calendar/BulkScheduleModal'
+import { importPreviewUrlToImageBank, uploadImageBankAsset } from '@/services/image-bank'
 import {
   getAllPostMetrics,
   getPostMetricsListByPost,
@@ -246,8 +247,11 @@ export default function Library() {
   const [deleteCandidate, setDeleteCandidate] = useState<Post | null>(null)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [importingTemplate, setImportingTemplate] = useState(false)
+  const [syncingDatabase, setSyncingDatabase] = useState(false)
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const manualImageInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -604,6 +608,113 @@ export default function Library() {
     }
   }
 
+  // Sincronizar banco de dados: converter imagens geradas para o banco de imagens interno do PocketBase
+  const handleSyncDatabase = async () => {
+    setSyncingDatabase(true)
+    try {
+      await refreshPosts()
+      // Coleta todas as imagens candidatas geradas nos posts da biblioteca
+      const candidates: Array<{ url: string; title: string; network: string; brand?: string }> = []
+      const seenUrls = new Set<string>()
+
+      for (const p of posts) {
+        const url =
+          p.mediaUrl || (p._raw?.media && typeof p._raw.media === 'string' ? p._raw.media : '')
+        if (url && (url.startsWith('http') || url.startsWith('data:image')) && !seenUrls.has(url)) {
+          seenUrls.add(url)
+          candidates.push({
+            url,
+            title: p.content ? p.content.slice(0, 45) : 'Criação Sincronizada',
+            network: (p.platform || 'todas').toLowerCase(),
+            brand: p.brandId,
+          })
+        }
+      }
+
+      if (candidates.length === 0) {
+        toast({
+          title: 'Banco sincronizado!',
+          description: 'Nenhuma nova imagem de criação pendente para conversão.',
+        })
+        return
+      }
+
+      setSyncProgress({ current: 0, total: candidates.length })
+      let importedCount = 0
+
+      for (let i = 0; i < candidates.length; i++) {
+        const item = candidates[i]
+        setSyncProgress({ current: i + 1, total: candidates.length })
+        try {
+          await importPreviewUrlToImageBank(item.url, {
+            name: item.title,
+            category: 'geral',
+            network: item.network,
+            tags: ['sincronizado_biblioteca', 'criacao', item.network],
+            brand: item.brand,
+          })
+          importedCount++
+        } catch (itemErr) {
+          console.warn('[SyncDatabase] Falha ao importar item individual:', itemErr)
+        }
+      }
+
+      toast({
+        title: 'Sincronização concluída com sucesso!',
+        description: `${importedCount} imagem(ns) gerada(s) convertida(s) e adicionada(s) ao Banco de Imagens Interno.`,
+      })
+    } catch (err) {
+      console.error('[SyncDatabase] Erro geral na sincronização:', err)
+      toast({
+        title: 'Erro na sincronização',
+        description:
+          'Não foi possível completar a sincronização com o banco interno. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSyncingDatabase(false)
+      setSyncProgress(null)
+    }
+  }
+
+  // Upload manual direto para o banco de imagens interno a partir da biblioteca
+  const handleManualImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: 'O tamanho máximo suportado é de 10 MB.',
+        variant: 'destructive',
+      })
+      e.target.value = ''
+      return
+    }
+
+    try {
+      const asset = await uploadImageBankAsset(file, {
+        name: file.name.replace(/\.[^/.]+$/, ''),
+        category: 'geral',
+        network: 'todas',
+        tags: ['upload_manual_biblioteca'],
+        brand: activeBrand?.id,
+      })
+      toast({
+        title: 'Imagem inserida no banco!',
+        description: `"${asset.name}" agora está disponível no Banco de Mídias interno.`,
+      })
+    } catch {
+      toast({
+        title: 'Erro no upload manual',
+        description: 'Não foi possível salvar a imagem no banco interno.',
+        variant: 'destructive',
+      })
+    } finally {
+      e.target.value = ''
+    }
+  }
+
   const handleTriggerImport = () => {
     fileInputRef.current?.click()
   }
@@ -881,13 +992,34 @@ export default function Library() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refreshPosts()}
+            onClick={handleSyncDatabase}
+            disabled={syncingDatabase}
             className="rounded-xl border-border bg-card hover:bg-muted text-xs font-semibold h-9 px-2.5 sm:px-3 gap-1.5 shadow-xs flex-1 sm:flex-initial justify-center"
-            title="Atualizar lista com PocketBase"
+            title="Sincroniza e converte todas as imagens geradas para o Banco de Imagens Interno do PocketBase"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <span className="truncate">Sincronizar</span>
+            <RefreshCw
+              className={cn(
+                'w-3.5 h-3.5 text-muted-foreground shrink-0',
+                syncingDatabase && 'animate-spin text-purple-600',
+              )}
+            />
+            <span className="truncate">
+              {syncingDatabase
+                ? syncProgress
+                  ? `Sincronizando (${syncProgress.current}/${syncProgress.total})...`
+                  : 'Sincronizando...'
+                : 'Sincronizar'}
+            </span>
           </Button>
+
+          {/* Input oculto para upload manual no banco de imagens */}
+          <input
+            ref={manualImageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={handleManualImageUpload}
+          />
 
           {/* Input oculto para importação de modelos */}
           <input

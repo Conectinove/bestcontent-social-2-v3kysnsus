@@ -59,10 +59,24 @@ import { EditProfileModal } from '@/components/EditProfileModal'
 import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
 import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
-import { Building2 } from 'lucide-react'
+import { Building2, Webhook, Target, Mail, RefreshCw } from 'lucide-react'
 import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
+import {
+  getOrganizationSettings,
+  saveOrganizationSettings,
+  testWebhookPing,
+  type OrganizationSettings,
+} from '@/services/organization-settings'
+import { ConnectorButton } from '@/components/skip/ConnectorButton'
 
-type TabKey = 'organization' | 'account' | 'subscription' | 'appearance' | 'integrations' | 'about'
+type TabKey =
+  | 'organization'
+  | 'account'
+  | 'subscription'
+  | 'appearance'
+  | 'integrations'
+  | 'webhooks_ads'
+  | 'about'
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: string }> = [
   {
@@ -93,7 +107,13 @@ const TABS: Array<{ key: TabKey; label: string; icon: typeof User; description: 
     key: 'integrations',
     label: 'Integrações',
     icon: Link2,
-    description: 'Conecte suas redes sociais',
+    description: 'Conecte suas redes sociais e Outlook',
+  },
+  {
+    key: 'webhooks_ads',
+    label: 'Webhooks & Anúncios',
+    icon: Webhook,
+    description: 'URL de webhook customizado e IDs de Ads/Pixels',
   },
   { key: 'about', label: 'Sobre', icon: Info, description: 'Informações do aplicativo' },
 ]
@@ -158,12 +178,102 @@ export default function Settings() {
     name: string
   } | null>(null)
 
+  // Organization settings state (Webhooks customizados + IDs de plataformas de anúncios)
+  const [orgSettings, setOrgSettings] = useState<OrganizationSettings>({
+    custom_webhook_url: '',
+    custom_webhook_secret: '',
+    webhook_events: ['post.published', 'lead.captured'],
+    google_ads_id: '',
+    meta_pixel_id: '',
+    tiktok_pixel_id: '',
+    linkedin_partner_id: '',
+    pinterest_tag_id: '',
+  })
+  const [loadingOrgSettings, setLoadingOrgSettings] = useState(false)
+  const [savingOrgSettings, setSavingOrgSettings] = useState(false)
+  const [testingWebhook, setTestingWebhook] = useState(false)
+  const [webhookTestResult, setWebhookTestResult] = useState<{
+    success: boolean
+    message: string
+  } | null>(null)
+
   // Listen to searchParams changes so clicking sidebar or header updates modal state
   useEffect(() => {
     if (searchParams.get('edit') === 'profile') {
       setEditProfileOpen(true)
     }
   }, [searchParams])
+
+  // Load organization settings (webhook & ads)
+  useEffect(() => {
+    let isMounted = true
+    setLoadingOrgSettings(true)
+    getOrganizationSettings()
+      .then((res) => {
+        if (isMounted) setOrgSettings(res)
+      })
+      .catch((err) => {
+        console.warn('[Settings] Erro ao carregar orgSettings:', err)
+      })
+      .finally(() => {
+        if (isMounted) setLoadingOrgSettings(false)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const handleSaveOrgSettings = async () => {
+    setSavingOrgSettings(true)
+    try {
+      const saved = await saveOrganizationSettings(orgSettings)
+      setOrgSettings(saved)
+      toast({
+        title: 'Configurações salvas no banco!',
+        description: 'Webhook customizado e IDs de anúncios foram atualizados com sucesso.',
+      })
+    } catch {
+      toast({
+        title: 'Erro ao salvar configurações',
+        description: 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingOrgSettings(false)
+    }
+  }
+
+  const handleTestWebhook = async () => {
+    if (!orgSettings.custom_webhook_url) {
+      toast({
+        title: 'URL vazia',
+        description: 'Informe uma URL válida para disparar o teste.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setTestingWebhook(true)
+    setWebhookTestResult(null)
+    try {
+      const res = await testWebhookPing(
+        orgSettings.custom_webhook_url,
+        orgSettings.custom_webhook_secret,
+      )
+      setWebhookTestResult(res)
+      toast({
+        title: res.success ? 'Teste de Webhook bem-sucedido!' : 'Aviso no teste do Webhook',
+        description: res.message,
+        variant: res.success ? 'default' : 'destructive',
+      })
+    } catch (err: any) {
+      setWebhookTestResult({
+        success: false,
+        message: err?.message || 'Falha ao testar webhook',
+      })
+    } finally {
+      setTestingWebhook(false)
+    }
+  }
 
   // Load user integrations from PocketBase
   useEffect(() => {
@@ -1018,6 +1128,51 @@ export default function Settings() {
                     })}
                   </div>
 
+                  {/* Microsoft Outlook integration card */}
+                  <div className="mt-8 pt-6 border-t border-border/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-blue-500" />
+                          <h4 className="text-sm font-bold text-foreground">
+                            E-mail Corporativo & Produtividade (Outlook)
+                          </h4>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-blue-500/30 text-blue-500"
+                          >
+                            Microsoft 365
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Conecte sua conta do Outlook para buscar e-mails, rascunhos e importar
+                          contexto diretamente para o Segundo Cérebro.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#0078D4]/15 border border-[#0078D4]/25 flex items-center justify-center shrink-0">
+                          <span className="font-black text-sm text-[#0078D4]">O</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Microsoft Outlook</p>
+                          <p className="text-xs text-muted-foreground">
+                            Conta conectada individualmente por usuário via Skip Connectors
+                          </p>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <ConnectorButton
+                          toolkit="gmail"
+                          label="Conectar Outlook / E-mail"
+                          className="h-9 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Clarification notice: platform managed & credentials */}
                   <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
                     <Info className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
@@ -1041,6 +1196,286 @@ export default function Settings() {
                       desconectar a qualquer momento.
                     </p>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'webhooks_ads' && (
+                <div className="space-y-6">
+                  {/* Header da seção */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Webhook className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <h3 className="text-base font-bold text-foreground">
+                        Webhooks Customizados & IDs de Anúncios
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] border-purple-500/30 text-purple-600 dark:text-purple-400"
+                      >
+                        Dados Oficiais Persistidos
+                      </Badge>
+                    </div>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      Configure URLs de webhook externas para receber eventos e cadastre os IDs das
+                      plataformas de anúncios para rastreamento e integrações.
+                    </p>
+                  </div>
+
+                  {loadingOrgSettings ? (
+                    <div className="p-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      Carregando configurações...
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Bloco 1: Webhook Customizado */}
+                      <Card className="border border-border/80 shadow-sm rounded-xl overflow-hidden">
+                        <CardContent className="p-5 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                                <Send className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-foreground">
+                                  Webhook Customizado (Eventos)
+                                </h4>
+                                <p className="text-[11px] text-muted-foreground">
+                                  Dispare payloads JSON para seu servidor, Zapier, Make ou n8n
+                                </p>
+                              </div>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px]">
+                              HTTP POST
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-3 pt-2">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>URL do Webhook</span>
+                                <span className="text-[10px] text-muted-foreground font-normal">
+                                  https://seu-endpoint.com/webhook
+                                </span>
+                              </label>
+                              <Input
+                                value={orgSettings.custom_webhook_url || ''}
+                                onChange={(e) =>
+                                  setOrgSettings((prev) => ({
+                                    ...prev,
+                                    custom_webhook_url: e.target.value,
+                                  }))
+                                }
+                                placeholder="https://api.seuservidor.com/v1/midiaviva-webhook"
+                                className="font-mono text-xs"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>Segredo de Assinatura (Secret Key opcional)</span>
+                                <span className="text-[10px] text-muted-foreground font-normal">
+                                  Enviado no header X-MidiaViva-Signature
+                                </span>
+                              </label>
+                              <Input
+                                type="password"
+                                value={orgSettings.custom_webhook_secret || ''}
+                                onChange={(e) =>
+                                  setOrgSettings((prev) => ({
+                                    ...prev,
+                                    custom_webhook_secret: e.target.value,
+                                  }))
+                                }
+                                placeholder="whsec_xxxxxxxxxxxxxxxxxxxx"
+                                className="font-mono text-xs"
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 pt-1">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleTestWebhook}
+                                disabled={testingWebhook || !orgSettings.custom_webhook_url}
+                                className="text-xs gap-1.5"
+                              >
+                                {testingWebhook ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Radio className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                )}
+                                Testar Conexão (Ping)
+                              </Button>
+
+                              {webhookTestResult && (
+                                <div
+                                  className={cn(
+                                    'text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border',
+                                    webhookTestResult.success
+                                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                                      : 'bg-destructive/10 border-destructive/30 text-destructive',
+                                  )}
+                                >
+                                  {webhookTestResult.success ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                  ) : (
+                                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                  )}
+                                  <span>{webhookTestResult.message}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Bloco 2: IDs de Plataformas de Anúncios */}
+                      <Card className="border border-border/80 shadow-sm rounded-xl overflow-hidden">
+                        <CardContent className="p-5 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                                <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-foreground">
+                                  IDs de Plataformas de Anúncios & Pixels
+                                </h4>
+                                <p className="text-[11px] text-muted-foreground">
+                                  Vincule seus identificadores para conversão e campanhas
+                                </p>
+                              </div>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] border-blue-500/30 text-blue-600 dark:text-blue-400"
+                            >
+                              Rastreamento & Ads
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>ID do Google Ads</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  AW-XXXXXXXXX
+                                </span>
+                              </label>
+                              <Input
+                                value={orgSettings.google_ads_id || ''}
+                                onChange={(e) =>
+                                  setOrgSettings((prev) => ({
+                                    ...prev,
+                                    google_ads_id: e.target.value,
+                                  }))
+                                }
+                                placeholder="AW-123456789 ou G-XXXXX"
+                                className="font-mono text-xs"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>Pixel ID do Meta / Facebook</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  16 dígitos numéricos
+                                </span>
+                              </label>
+                              <Input
+                                value={orgSettings.meta_pixel_id || ''}
+                                onChange={(e) =>
+                                  setOrgSettings((prev) => ({
+                                    ...prev,
+                                    meta_pixel_id: e.target.value,
+                                  }))
+                                }
+                                placeholder="1234567890123456"
+                                className="font-mono text-xs"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>TikTok Pixel ID</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Código de evento
+                                </span>
+                              </label>
+                              <Input
+                                value={orgSettings.tiktok_pixel_id || ''}
+                                onChange={(e) =>
+                                  setOrgSettings((prev) => ({
+                                    ...prev,
+                                    tiktok_pixel_id: e.target.value,
+                                  }))
+                                }
+                                placeholder="C1234567890ABC"
+                                className="font-mono text-xs"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>LinkedIn Insight Partner ID</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Partner ID
+                                </span>
+                              </label>
+                              <Input
+                                value={orgSettings.linkedin_partner_id || ''}
+                                onChange={(e) =>
+                                  setOrgSettings((prev) => ({
+                                    ...prev,
+                                    linkedin_partner_id: e.target.value,
+                                  }))
+                                }
+                                placeholder="9876543"
+                                className="font-mono text-xs"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>Pinterest Tag ID</span>
+                                <span className="text-[10px] text-muted-foreground">Tag ID</span>
+                              </label>
+                              <Input
+                                value={orgSettings.pinterest_tag_id || ''}
+                                onChange={(e) =>
+                                  setOrgSettings((prev) => ({
+                                    ...prev,
+                                    pinterest_tag_id: e.target.value,
+                                  }))
+                                }
+                                placeholder="261234567890"
+                                className="font-mono text-xs max-w-sm"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Botão de Salvar */}
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <Button
+                          type="button"
+                          onClick={handleSaveOrgSettings}
+                          disabled={savingOrgSettings}
+                          className="text-xs font-bold gap-1.5 px-6 shadow-md"
+                        >
+                          {savingOrgSettings ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          Salvar Configurações no Banco
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

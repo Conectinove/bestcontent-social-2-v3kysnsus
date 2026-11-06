@@ -122,9 +122,13 @@ export function ImageBankModal({
       setAllAssets(items)
       setVisibleCount(16)
       if (items.length === 0) {
-        setError('Nenhuma imagem encontrada para os filtros aplicados.')
+        // Se a busca ou filtro não retornou itens, não é erro fatal de banco, mas aviso de vazio
+        if (searchQuery.trim() || tab !== 'all' || cat !== 'todas') {
+          setError('Nenhuma imagem encontrada para os filtros aplicados.')
+        }
       }
-    } catch {
+    } catch (err) {
+      console.error('[ImageBankModal] Falha ao carregar banco:', err)
       setError('Não foi possível carregar o banco de imagens. Tente novamente.')
     } finally {
       setLoading(false)

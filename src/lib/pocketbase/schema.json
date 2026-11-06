@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T11:52:19.637Z",
+  "generatedAt": "2026-11-06T12:35:22.624Z",
   "collections": [
     {
       "name": "users",
@@ -1652,11 +1652,11 @@
       "name": "image_bank_assets",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != \"\" && (user = @request.auth.id || is_curated = true)",
-        "view": "@request.auth.id != \"\" && (user = @request.auth.id || is_curated = true)",
-        "create": "@request.auth.id != \"\"",
-        "update": "@request.auth.id != \"\" && user = @request.auth.id",
-        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+        "list": "is_curated = true || @request.auth.id != \"\"",
+        "view": "is_curated = true || @request.auth.id != \"\"",
+        "create": "@request.auth.id != \"\" || is_curated = false",
+        "update": "@request.auth.id != \"\" && (user = @request.auth.id || user = \"\")",
+        "delete": "@request.auth.id != \"\" && (user = @request.auth.id || user = \"\")"
       },
       "fields": [
         {
@@ -5182,6 +5182,88 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_pah_post ON post_approval_history (post_id, created DESC)"]
+    },
+    {
+      "name": "organization_settings",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\"",
+        "view": "@request.auth.id != \"\"",
+        "create": "@request.auth.id != \"\"",
+        "update": "@request.auth.id != \"\"",
+        "delete": "@request.auth.id != \"\""
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "custom_webhook_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "custom_webhook_secret",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "webhook_events",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "google_ads_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "meta_pixel_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tiktok_pixel_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "linkedin_partner_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pinterest_tag_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "extra_settings",
+          "type": "json",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
     }
   ]
 }

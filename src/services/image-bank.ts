@@ -85,10 +85,29 @@ export async function getImageBankAssets(
 
   const filter = filters.length > 0 ? filters.join(' && ') : ''
 
-  const records = await pb.collection('image_bank_assets').getFullList<any>({
-    filter: filter || undefined,
-    sort: '-is_curated,-created',
-  })
+  let records: any[] = []
+  try {
+    records = await pb.collection('image_bank_assets').getFullList<any>({
+      filter: filter || undefined,
+      sort: '-is_curated,-created',
+    })
+  } catch (err) {
+    console.warn(
+      '[image-bank] Erro ao buscar com ordenação composta, tentando sem sort ou sort -created:',
+      err,
+    )
+    try {
+      records = await pb.collection('image_bank_assets').getFullList<any>({
+        filter: filter || undefined,
+        sort: '-created',
+      })
+    } catch (err2) {
+      console.warn('[image-bank] Erro no fallback sort -created:', err2)
+      records = await pb.collection('image_bank_assets').getFullList<any>({
+        filter: filter || undefined,
+      })
+    }
+  }
 
   return records.map((r) => {
     let tagsParsed: string[] = []
@@ -122,6 +141,51 @@ export async function getImageBankAssets(
   })
 }
 
+export async function importPreviewUrlToImageBank(
+  previewUrl: string,
+  data: {
+    name?: string
+    category?: string
+    network?: string
+    tags?: string[]
+    brand?: string
+    width?: number
+    height?: number
+  } = {},
+): Promise<ImageBankAsset> {
+  const payload: Record<string, any> = {
+    name: data.name || 'Arte Gerada Studio',
+    preview_url: previewUrl,
+    category: data.category || 'geral',
+    network: data.network || 'todas',
+    is_curated: false,
+    tags: Array.isArray(data.tags) ? data.tags : ['gerado_studio', 'ia'],
+  }
+  if (pb.authStore.record?.id) {
+    payload.user = pb.authStore.record.id
+  }
+  if (data.brand) payload.brand = data.brand
+  if (data.width) payload.width = data.width
+  if (data.height) payload.height = data.height
+
+  const record = await pb.collection('image_bank_assets').create<any>(payload)
+  return {
+    id: record.id,
+    name: record.name,
+    preview_url: record.preview_url,
+    category: record.category || 'geral',
+    network: record.network || 'todas',
+    tags: Array.isArray(record.tags) ? record.tags : [],
+    is_curated: false,
+    user: record.user,
+    brand: record.brand,
+    width: record.width,
+    height: record.height,
+    created: record.created,
+    updated: record.updated,
+  }
+}
+
 export async function uploadImageBankAsset(
   file: File,
   data: {
@@ -138,7 +202,9 @@ export async function uploadImageBankAsset(
   formData.append('category', data.category || 'geral')
   formData.append('network', data.network || 'todas')
   formData.append('is_curated', 'false')
-  formData.append('user', pb.authStore.record?.id || '')
+  if (pb.authStore.record?.id) {
+    formData.append('user', pb.authStore.record.id)
+  }
   if (data.brand) formData.append('brand', data.brand)
   if (data.tags) formData.append('tags', JSON.stringify(data.tags))
 
