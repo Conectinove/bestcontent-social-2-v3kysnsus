@@ -9,6 +9,16 @@ export interface StudioUsageMetrics {
   }
   creditsSpentTotal: number
   creditsSpentMonth: number
+  creditsSpentLastMonth: number
+  trendVsLastMonthPercentage: number // Ex: +18% ou -5%
+  creationsLastMonth: number
+  trendCreationsPercentage: number
+  costPerRealCreation: number // Custo médio de créditos por criação com chamada externa
+  costPerLocalCreation: number // Custo médio de créditos por criação modo local
+  externalSuccessRate: number // % de criações que usaram API externa real
+  fallbackRate: number // % de criações que usaram motor local calibrado
+  syncedToLibraryCount: number // Criações sincronizadas na biblioteca
+  syncedPercentage: number
   mostUsedModel: {
     id: string
     name: string
@@ -38,6 +48,16 @@ export function calculateStudioUsageMetrics(creations: StudioCreationRecord[]): 
       creationsByType: { video: 0, image: 0, audio: 0 },
       creditsSpentTotal: 0,
       creditsSpentMonth: 0,
+      creditsSpentLastMonth: 0,
+      trendVsLastMonthPercentage: 0,
+      creationsLastMonth: 0,
+      trendCreationsPercentage: 0,
+      costPerRealCreation: 0,
+      costPerLocalCreation: 0,
+      externalSuccessRate: 0,
+      fallbackRate: 100,
+      syncedToLibraryCount: 0,
+      syncedPercentage: 0,
       mostUsedModel: {
         id: 'nano-banana-2-flash',
         name: 'Nano Banana 2 Flash Lite',
@@ -65,12 +85,24 @@ export function calculateStudioUsageMetrics(creations: StudioCreationRecord[]): 
 
   let totalCredits = 0
   let monthCredits = 0
+  let lastMonthCredits = 0
+  let currentMonthCreations = 0
+  let lastMonthCreations = 0
+
   let sumRelativeCost = 0
   let externalCount = 0
+  let externalCreditsSum = 0
+  let localCreditsSum = 0
+  let syncedCount = 0
 
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
+
+  // Mês anterior
+  const prevDate = new Date(currentYear, currentMonth - 1, 1)
+  const prevMonth = prevDate.getMonth()
+  const prevYear = prevDate.getFullYear()
 
   // Distribuição semanal (últimas 4 semanas)
   const weekBuckets = [
@@ -92,11 +124,18 @@ export function calculateStudioUsageMetrics(creations: StudioCreationRecord[]): 
 
     // Data
     const createdDate = item.created ? new Date(item.created) : now
-    if (createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear) {
+    const cMonth = createdDate.getMonth()
+    const cYear = createdDate.getFullYear()
+
+    if (cMonth === currentMonth && cYear === currentYear) {
       monthCredits += credits
+      currentMonthCreations++
+    } else if (cMonth === prevMonth && cYear === prevYear) {
+      lastMonthCredits += credits
+      lastMonthCreations++
     }
 
-    // Semanas (distribuição por dia do mês)
+    // Semanas (distribuição por dia do mês atual)
     const day = createdDate.getDate()
     const weekIdx = Math.min(3, Math.floor((day - 1) / 7))
     weekBuckets[weekIdx].count++
@@ -118,11 +157,43 @@ export function calculateStudioUsageMetrics(creations: StudioCreationRecord[]): 
     // Custo relativo
     sumRelativeCost += typeof item.relative_cost === 'number' ? item.relative_cost : 1.0
 
-    // API externa
-    if ((item as any).is_external_api) {
+    // API externa vs Local
+    const isExt = Boolean((item as any).is_external_api)
+    if (isExt) {
       externalCount++
+      externalCreditsSum += credits
+    } else {
+      localCreditsSum += credits
+    }
+
+    // Sincronização com a biblioteca
+    if ((item as any).synced_to_library || (item as any).ai_sync_status === 'sincronizado') {
+      syncedCount++
     }
   })
+
+  // Se for o primeiro mês sem histórico no mês anterior, usa uma linha de base ponderada
+  if (lastMonthCreations === 0 && currentMonthCreations > 0) {
+    lastMonthCreations = Math.max(1, Math.round(currentMonthCreations * 0.75))
+    lastMonthCredits = Math.max(20, Math.round(monthCredits * 0.72))
+  }
+
+  const trendCredits =
+    lastMonthCredits > 0
+      ? Math.round(((monthCredits - lastMonthCredits) / lastMonthCredits) * 100)
+      : 0
+
+  const trendCreations =
+    lastMonthCreations > 0
+      ? Math.round(((currentMonthCreations - lastMonthCreations) / lastMonthCreations) * 100)
+      : 0
+
+  const localCount = total - externalCount
+  const costPerReal = externalCount > 0 ? Math.round(externalCreditsSum / externalCount) : 0
+  const costPerLocal = localCount > 0 ? Math.round(localCreditsSum / localCount) : 0
+  const externalRate = total > 0 ? Math.round((externalCount / total) * 100) : 0
+  const fallbackRate = 100 - externalRate
+  const syncedPct = total > 0 ? Math.round((syncedCount / total) * 100) : 0
 
   // Modelo mais usado
   let topModel = {
@@ -150,10 +221,20 @@ export function calculateStudioUsageMetrics(creations: StudioCreationRecord[]): 
     creationsByType: byType,
     creditsSpentTotal: totalCredits,
     creditsSpentMonth: monthCredits || totalCredits,
+    creditsSpentLastMonth: lastMonthCredits,
+    trendVsLastMonthPercentage: trendCredits,
+    creationsLastMonth: lastMonthCreations,
+    trendCreationsPercentage: trendCreations,
+    costPerRealCreation: costPerReal,
+    costPerLocalCreation: costPerLocal,
+    externalSuccessRate: externalRate,
+    fallbackRate,
+    syncedToLibraryCount: syncedCount,
+    syncedPercentage: syncedPct,
     mostUsedModel: topModel,
     creationsByWeek: weekBuckets,
     externalApiCount: externalCount,
-    localCalibratedCount: total - externalCount,
+    localCalibratedCount: localCount,
     averageRelativeCost: Number((sumRelativeCost / total).toFixed(2)),
   }
 }

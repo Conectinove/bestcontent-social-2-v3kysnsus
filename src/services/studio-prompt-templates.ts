@@ -77,8 +77,52 @@ export const DEFAULT_STUDIO_TEMPLATES: Omit<StudioPromptTemplate, 'id' | 'user'>
       'Locução dinâmica e envolvente em português brasileiro para {produto}: "Você já parou para pensar em como {tema} pode transformar sua rotina? Descubra o método definitivo agora mesmo."',
     default_model_id: 'gemini-3-8-flash-tts',
     placeholders: ['produto', 'tema'],
+    is_favorite: true,
+    usage_count: 18,
+  },
+  {
+    name: 'Jingle Comercial & Assinatura Sonora',
+    description: 'Roteiro sonoro rítmico com gancho marcante e tagline cantada.',
+    category: 'audio',
+    template_text:
+      'Jingle comercial contagiante e memorável para {produto}. Ritmo {ritmo}, tom {tom}. Letra curta focada no benefício de {tema}, finalizando com o slogan de 3 segundos em alta energia.',
+    default_model_id: 'gemini-3-8-flash-tts',
+    placeholders: ['produto', 'ritmo', 'tom', 'tema'],
+    is_favorite: true,
+    usage_count: 15,
+  },
+  {
+    name: 'Narrativa Documental / Storytelling Intimista',
+    description: 'Voz profunda e cadenciada para vídeos reflexivos e institucionais.',
+    category: 'audio',
+    template_text:
+      'Locução em tom confessional e cinematográfico sobre {tema}. Respiração suave, pausas dramáticas para ressaltar o impacto de {produto}. Ambiente sonoro envolvente no tom {tom}.',
+    default_model_id: 'gemini-3-8-flash-tts',
+    placeholders: ['tema', 'produto', 'tom'],
     is_favorite: false,
-    usage_count: 9,
+    usage_count: 12,
+  },
+  {
+    name: 'Anúncio Falado de Venda Rápida (Direct Response)',
+    description: 'Spot de áudio de 30s com estrutura Dor → Solução → Oferta Urgente.',
+    category: 'audio',
+    template_text:
+      'Spot publicitário em áudio para rádio e streaming. Locutor dinâmico no tom {tom}: "Cansado de perder tempo com {problema}? Apresentamos {produto}, a forma mais rápida de dominar {tema}. Acesse o link agora."',
+    default_model_id: 'gemini-3-8-flash-tts',
+    placeholders: ['problema', 'produto', 'tema', 'tom'],
+    is_favorite: false,
+    usage_count: 14,
+  },
+  {
+    name: 'Vinheta de Abertura / Podcast Intro',
+    description: 'Intro energética com apresentação do host, tema do episódio e patrocinador.',
+    category: 'audio',
+    template_text:
+      'Abertura curta e profissional de podcast: "Seja muito bem-vindo ao podcast oficial! Hoje desvendamos os segredos de {tema} com o apoio especial de {produto}. Prepare-se para insights práticos no tom {tom}."',
+    default_model_id: 'gemini-3-8-flash-tts',
+    placeholders: ['tema', 'produto', 'tom'],
+    is_favorite: false,
+    usage_count: 10,
   },
   {
     name: 'Demonstração de Produto / Unboxing',

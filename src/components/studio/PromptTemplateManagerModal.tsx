@@ -87,7 +87,7 @@ export const PromptTemplateManagerModal: React.FC<PromptTemplateManagerModalProp
         ? 'Câmera dinâmica revelando {produto} com iluminação volumétrica e gancho visual em {tema}. Tom {tom}.'
         : currentType === 'image'
           ? 'Arte de alto contraste destacando {produto}, atmosfera moderna com paleta {tom} sobre {tema}.'
-          : 'Locução enérgica em português brasileiro para {produto}: "Descubra como {tema} transforma sua rotina."',
+          : 'Locução comercial em tom {tom} para {produto}: "Você sabia que dominar {tema} pode alavancar seus resultados hoje mesmo?"',
     )
     setFormIsFavorite(false)
     setView('create')
@@ -495,7 +495,19 @@ export const PromptTemplateManagerModal: React.FC<PromptTemplateManagerModalProp
                     Valor para <span className="font-mono text-purple-400">{`{${ph}}`}</span>:
                   </Label>
                   <Input
-                    placeholder={`Ex: ${ph === 'produto' ? 'Tênis Running Ultralight' : ph === 'tema' ? 'alta performance' : 'enérgico e moderno'}`}
+                    placeholder={
+                      ph === 'produto'
+                        ? 'Ex: Mentoria Digital Pro'
+                        : ph === 'tema'
+                          ? 'Ex: escala de vendas'
+                          : ph === 'tom'
+                            ? 'Ex: entusiasmado e confiante'
+                            : ph === 'ritmo'
+                              ? 'Ex: dinâmico e acelerado'
+                              : ph === 'problema'
+                                ? 'Ex: falta de clientes'
+                                : `Ex: valor para ${ph}`
+                    }
                     value={placeholderValues[ph] || ''}
                     onChange={(e) =>
                       setPlaceholderValues((prev) => ({ ...prev, [ph]: e.target.value }))

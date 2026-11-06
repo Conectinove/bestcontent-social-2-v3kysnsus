@@ -362,50 +362,108 @@ export default function AiMediaStudioPage() {
           </div>
         </div>
 
-        {/* Status de Conexão com API Externa (Banner Informativo) */}
-        <div className="mb-6 p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-card/60 backdrop-blur-sm border-border/70">
-          <div className="flex items-center gap-2.5">
-            {externalApiStatus.configured ? (
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <ShieldCheck className="w-4 h-4" />
+        {/* Status de Conexão com API Externa (Banner Informativo com suporte a Vídeo/Imagem/Áudio) */}
+        <div className="mb-6 p-4 rounded-2xl border flex flex-col gap-3 text-xs bg-card/70 backdrop-blur-sm border-border/70">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              {externalApiStatus.configured ? (
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+              ) : (
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+              )}
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-foreground">
+                    Status das Integrações de Mídia:
+                  </span>
+                  <Badge
+                    variant={externalApiStatus.configured ? 'default' : 'outline'}
+                    className={`text-[10px] font-bold ${
+                      externalApiStatus.configured
+                        ? 'bg-emerald-600 hover:bg-emerald-600 text-white'
+                        : 'border-amber-500/30 text-amber-400'
+                    }`}
+                  >
+                    {externalApiStatus.badge ||
+                      (externalApiStatus.configured
+                        ? 'Dados Oficiais (API Externa)'
+                        : 'Estimativa Calibrada (Modo Local)')}
+                  </Badge>
+                  {externalApiStatus.videoGenerationReady && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-purple-500/40 text-purple-400 bg-purple-500/10"
+                    >
+                      🎬 Vídeo: {externalApiStatus.videoProvider || 'API Ativa'}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  {externalApiStatus.message}
+                </p>
               </div>
-            ) : (
-              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground">Status da Mídia Externa:</span>
-                <Badge
-                  variant={externalApiStatus.configured ? 'default' : 'outline'}
-                  className={`text-[10px] font-bold ${
-                    externalApiStatus.configured
-                      ? 'bg-emerald-600 hover:bg-emerald-600 text-white'
-                      : 'border-amber-500/30 text-amber-400'
-                  }`}
-                >
-                  {externalApiStatus.configured
-                    ? 'Dados Oficiais (OpenAI Ativa)'
-                    : 'Estimativa Calibrada (Modo Local)'}
-                </Badge>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {externalApiStatus.message}
-              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsTemplateModalOpen(true)}
+                className="text-xs h-8 rounded-xl border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-1.5"
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                Modelos de Prompt ({promptTemplates.length})
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsTemplateModalOpen(true)}
-              className="text-xs h-8 rounded-xl border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-1.5"
-            >
-              <FileCode className="w-3.5 h-3.5" />
-              Modelos de Prompt ({promptTemplates.length})
-            </Button>
+          {/* Guia de segredos e habilitação transparente */}
+          <div className="pt-2.5 border-t border-border/50 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="font-mono font-bold text-foreground">OPENAI_API_KEY</span>
+                <span
+                  className={`text-[10px] font-semibold ${externalApiStatus.openaiConfigured ? 'text-emerald-400' : 'text-muted-foreground'}`}
+                >
+                  {externalApiStatus.openaiConfigured ? '✓ Ativa' : '○ Não configurada'}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-[10px]">
+                Habilita DALL·E 3 (Imagem), TTS-1 (Áudio) e Sora (Vídeo).
+              </p>
+            </div>
+
+            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="font-mono font-bold text-foreground">LUMA_API_KEY</span>
+                <span
+                  className={`text-[10px] font-semibold ${externalApiStatus.lumaConfigured ? 'text-emerald-400' : 'text-muted-foreground'}`}
+                >
+                  {externalApiStatus.lumaConfigured ? '✓ Ativa' : '○ Não configurada'}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-[10px]">
+                Habilita Dream Machine Ray-2 (Vídeo Text-to-Video HD).
+              </p>
+            </div>
+
+            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="font-mono font-bold text-foreground">RUNWAY_API_KEY</span>
+                <span
+                  className={`text-[10px] font-semibold ${externalApiStatus.runwayConfigured ? 'text-emerald-400' : 'text-muted-foreground'}`}
+                >
+                  {externalApiStatus.runwayConfigured ? '✓ Ativa' : '○ Não configurada'}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-[10px]">
+                Habilita Runway Gen-4.5 (Vídeo de Alto Impacto).
+              </p>
+            </div>
           </div>
         </div>
 
@@ -425,6 +483,12 @@ export default function AiMediaStudioPage() {
               >
                 <Video className="w-4 h-4" />
                 <span>Vídeo</span>
+                {externalApiStatus.videoGenerationReady && (
+                  <span
+                    className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+                    title={`API de vídeo externa conectada (${externalApiStatus.videoProvider || 'Oficial'})`}
+                  />
+                )}
               </button>
 
               <button

@@ -3,11 +3,16 @@ import { pb } from '@/lib/pocketbase/client'
 export interface StudioExternalMediaStatus {
   configured: boolean
   openaiConfigured?: boolean
+  lumaConfigured?: boolean
+  runwayConfigured?: boolean
   imageGenerationReady?: boolean
   audioTtsReady?: boolean
   videoGenerationReady?: boolean
+  videoProvider?: string
+  videoTech?: 'luma' | 'runway' | 'openai' | 'local'
   hasApiKey: boolean
   provider: string
+  secrets?: Record<string, string>
   badge: 'Dados Oficiais (API Externa)' | 'Estimativa Calibrada (Modo Local)'
   message: string
 }
@@ -31,35 +36,47 @@ export async function getStudioExternalMediaStatus(): Promise<StudioExternalMedi
     const res = await pb.send('/backend/v1/studio/external-media-status', {
       method: 'GET',
     })
-    const isReady = Boolean(res?.openai_configured)
+    const hasAny = Boolean(
+      res?.openai_configured ||
+      res?.luma_configured ||
+      res?.runway_configured ||
+      res?.video_generation_ready,
+    )
     return {
-      configured: isReady,
-      openaiConfigured: isReady,
-      hasApiKey: isReady,
-      provider: 'OpenAI (DALL·E 3 / TTS-1)',
+      configured: hasAny,
+      openaiConfigured: Boolean(res?.openai_configured),
+      lumaConfigured: Boolean(res?.luma_configured),
+      runwayConfigured: Boolean(res?.runway_configured),
+      hasApiKey: hasAny,
+      provider: res?.video_provider || 'OpenAI / Luma / Runway',
       imageGenerationReady: Boolean(res?.image_generation_ready),
       audioTtsReady: Boolean(res?.audio_tts_ready),
       videoGenerationReady: Boolean(res?.video_generation_ready),
+      videoProvider: res?.video_provider,
+      videoTech: res?.video_tech || 'local',
+      secrets: res?.secrets,
       badge:
         res?.badge ||
-        (isReady ? 'Dados Oficiais (API Externa)' : 'Estimativa Calibrada (Modo Local)'),
+        (hasAny ? 'Dados Oficiais (API Externa)' : 'Estimativa Calibrada (Modo Local)'),
       message:
         res?.message ||
-        (isReady
-          ? 'API OpenAI ativa para imagens e áudio.'
-          : 'Modo local ativo com fallback calibrado.'),
+        (hasAny ? 'APIs de mídia externas ativas.' : 'Modo local ativo com fallback calibrado.'),
     }
   } catch (err) {
     return {
       configured: false,
       openaiConfigured: false,
+      lumaConfigured: false,
+      runwayConfigured: false,
       hasApiKey: false,
-      provider: 'OpenAI (DALL·E 3 / TTS-1)',
+      provider: 'OpenAI / Luma / Runway',
       imageGenerationReady: false,
       audioTtsReady: false,
       videoGenerationReady: false,
+      videoProvider: 'Estimativa Calibrada (Modo Local)',
+      videoTech: 'local',
       badge: 'Estimativa Calibrada (Modo Local)',
-      message: 'Modo local calibrado ativo (sem chave OpenAI configurada).',
+      message: 'Modo local calibrado ativo (sem chaves de API externas configuradas).',
     }
   }
 }

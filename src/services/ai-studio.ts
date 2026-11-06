@@ -238,10 +238,13 @@ export async function createStudioMedia(
       style: stylePreset,
     })
 
-    if (externalResult?.success && externalResult?.isExternalApi && externalResult?.previewUrl) {
+    if (externalResult?.success && externalResult?.isExternalApi) {
       isExternalApi = true
-      apiProvider = externalResult.apiProvider || 'OpenAI'
-      customPreviewUrl = externalResult.previewUrl
+      apiProvider =
+        externalResult.apiProvider || (type === 'video' ? 'Luma / Runway / Sora' : 'OpenAI')
+      if (externalResult.previewUrl) {
+        customPreviewUrl = externalResult.previewUrl
+      }
     }
   } catch (extErr) {
     console.log('Tentativa de API externa falhou, caindo no fallback local:', extErr)
