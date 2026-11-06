@@ -885,25 +885,78 @@ export default function PerformanceDashboard() {
 
                   {/* Highlights específicos se for métricas consolidadas ou engajamento */}
                   {rep.report_type === 'consolidadas' && (
-                    <div className="grid grid-cols-3 gap-1.5 text-center p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                      <div>
-                        <p className="text-[9px] text-muted-foreground">Alcance Total</p>
-                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                          {(rep.kpis_json?.totalReach || 184500).toLocaleString('pt-BR')}
-                        </p>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-1.5 text-center p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                        <div>
+                          <p className="text-[9px] text-muted-foreground">Alcance Total</p>
+                          <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                            {(rep.kpis_json?.totalReach || 184500).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-muted-foreground">Engajamento</p>
+                          <p className="text-xs font-black text-teal-600 dark:text-teal-400">
+                            {rep.kpis_json?.avgEngagementRate || 5.8}%
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-muted-foreground">Crescimento</p>
+                          <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                            +{rep.highlights_json?.comparison?.growthPercentage || 18.4}%
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[9px] text-muted-foreground">Engajamento</p>
-                        <p className="text-xs font-black text-teal-600 dark:text-teal-400">
-                          {rep.kpis_json?.avgEngagementRate || 5.8}%
-                        </p>
+
+                      {/* Comparativo lado a lado e destaques */}
+                      <div className="p-2 rounded-xl bg-muted/40 border border-border/50 space-y-1.5 text-[10px]">
+                        <div className="flex items-center justify-between font-semibold">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Award className="w-3 h-3 text-amber-500" />
+                            Melhor Rede:
+                          </span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {rep.highlights_json?.topChannel?.name || 'Instagram & WhatsApp'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between font-semibold">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-purple-500" />
+                            Melhor Formato:
+                          </span>
+                          <span className="text-purple-600 dark:text-purple-400 font-bold truncate max-w-[140px]">
+                            {rep.highlights_json?.topFormat?.name || 'Carrossel / Disparos VIP'}
+                          </span>
+                        </div>
+                        {rep.highlights_json?.underperformingChannel && (
+                          <div className="flex items-center justify-between font-semibold text-[9px] pt-1 border-t border-border/40">
+                            <span className="text-muted-foreground">Canal a otimizar:</span>
+                            <span className="text-amber-600 dark:text-amber-400">
+                              {rep.highlights_json.underperformingChannel.name} (
+                              {rep.highlights_json.underperformingChannel.engagement}% eng.)
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-[9px] text-muted-foreground">Crescimento</p>
-                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                          +{rep.highlights_json?.comparison?.growthPercentage || 18.4}%
-                        </p>
-                      </div>
+
+                      {/* Insights textuais gerados */}
+                      {Array.isArray(rep.highlights_json?.insights) &&
+                        rep.highlights_json.insights.length > 0 && (
+                          <div className="p-2 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-1">
+                            <p className="text-[10px] font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              Insights da Análise
+                            </p>
+                            <ul className="space-y-0.5 text-[9px] text-muted-foreground">
+                              {rep.highlights_json.insights
+                                .slice(0, 2)
+                                .map((ins: string, idx: number) => (
+                                  <li key={idx} className="line-clamp-2">
+                                    • {ins}
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        )}
                     </div>
                   )}
 

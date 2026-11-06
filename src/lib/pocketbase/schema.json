@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T06:21:42.168Z",
+  "generatedAt": "2026-11-06T06:35:21.920Z",
   "collections": [
     {
       "name": "users",
@@ -4224,35 +4224,6 @@
           "system": false
         },
         {
-          "name": "category",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": [
-            "agradecimento",
-            "objecao_preco",
-            "suporte",
-            "spam",
-            "fora_escopo",
-            "geral"
-          ]
-        },
-        {
-          "name": "network",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": [
-            "todas",
-            "instagram",
-            "facebook",
-            "twitter",
-            "whatsapp",
-            "linkedin",
-            "tiktok"
-          ]
-        },
-        {
           "name": "shortcut",
           "type": "text",
           "required": false,
@@ -4283,6 +4254,65 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "replies_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "response_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_used_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "agradecimento",
+            "objecao_preco",
+            "suporte",
+            "spam",
+            "fora_escopo",
+            "geral",
+            "follow_up",
+            "promocao",
+            "pos_venda",
+            "reativacao",
+            "depoimento",
+            "comentario_negativo",
+            "indicacao"
+          ]
+        },
+        {
+          "name": "network",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "todas",
+            "instagram",
+            "facebook",
+            "twitter",
+            "whatsapp",
+            "linkedin",
+            "tiktok",
+            "youtube",
+            "pinterest",
+            "threads",
+            "bluesky",
+            "snapchat"
+          ]
         }
       ],
       "indexes": [

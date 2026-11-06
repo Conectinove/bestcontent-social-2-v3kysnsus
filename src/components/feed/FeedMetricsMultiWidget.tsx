@@ -6,6 +6,8 @@ import { GoogleAnalyticsFeedWidget } from './GoogleAnalyticsFeedWidget'
 import { LinkedInFeedWidget } from './LinkedInFeedWidget'
 import { SubstackFeedWidget } from './SubstackFeedWidget'
 import { GoogleBusinessFeedWidget } from './GoogleBusinessFeedWidget'
+import { BlueskyFeedWidget } from './BlueskyFeedWidget'
+import { SnapchatFeedWidget } from './SnapchatFeedWidget'
 import { FacebookFeedWidget } from './FacebookFeedWidget'
 import { XFeedWidget } from './XFeedWidget'
 import { PinterestFeedWidget } from './PinterestFeedWidget'
@@ -30,6 +32,8 @@ export type FeedWidgetNetwork =
   | 'linkedin'
   | 'substack'
   | 'gbp'
+  | 'bluesky'
+  | 'snapchat'
 
 interface FeedMetricsMultiWidgetProps {
   className?: string
@@ -242,6 +246,36 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
             <span className="hidden sm:inline">Google Meu Negócio</span>
             <span className="sm:hidden">GBP</span>
           </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'bluesky' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('bluesky')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'bluesky'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#0285FF] shrink-0" />
+            <span>Bluesky</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'snapchat' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('snapchat')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'snapchat'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#FFFC00] shrink-0 border border-black/20" />
+            <span>Snapchat</span>
+          </Button>
         </div>
 
         {/* Mobile toggle button */}
@@ -276,6 +310,8 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
         {activeTab === 'linkedin' && <LinkedInFeedWidget />}
         {activeTab === 'substack' && <SubstackFeedWidget />}
         {activeTab === 'gbp' && <GoogleBusinessFeedWidget />}
+        {activeTab === 'bluesky' && <BlueskyFeedWidget />}
+        {activeTab === 'snapchat' && <SnapchatFeedWidget />}
       </div>
     </div>
   )

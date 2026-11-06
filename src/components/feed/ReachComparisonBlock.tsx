@@ -34,6 +34,9 @@ export function ReachComparisonBlock({ className = '' }: ReachComparisonBlockPro
             'threads',
             'whatsapp',
             'substack',
+            'google_business',
+            'bluesky',
+            'snapchat',
           ]
           const filtered = data.channels.filter((c) => primaryNetworkSlugs.includes(c.network))
           // Ordenar por alcance decrescente

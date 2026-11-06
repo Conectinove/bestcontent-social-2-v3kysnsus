@@ -59,7 +59,9 @@ export function ResponseTemplateSelector({
       handle: authorHandle,
     })
     onSelect(text)
-    incrementTemplateUsage(template.id)
+    incrementTemplateUsage(template.id).catch((err) => {
+      console.warn('[ResponseTemplateSelector] Erro ao incrementar uso:', err)
+    })
   }
 
   return (

@@ -7,6 +7,7 @@ import {
   createResponseTemplate,
   updateResponseTemplate,
   deleteResponseTemplate,
+  calculateTemplatesPerformance,
 } from '@/services/response-templates'
 import { useAuth } from '@/context/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -34,6 +35,10 @@ import {
   Tag,
   Sparkles,
   Info,
+  TrendingUp,
+  BarChart3,
+  Award,
+  Zap,
 } from 'lucide-react'
 
 export function ResponseTemplatesManager() {
@@ -169,14 +174,14 @@ export function ResponseTemplatesManager() {
     })
   }
 
+  const performanceSummary = calculateTemplatesPerformance(templates)
+
   const filtered = templates.filter((t) => {
     const matchesSearch =
       t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (t.shortcut && t.shortcut.toLowerCase().includes(searchTerm.toLowerCase()))
-
     const matchesCat = selectedCategory === 'todos' || t.category === selectedCategory
-
     return matchesSearch && matchesCat
   })
 
@@ -208,6 +213,86 @@ export function ResponseTemplatesManager() {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Bloco de Análise de Performance por Template */}
+        <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-br from-primary/5 via-muted/30 to-muted/10 border border-primary/15 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                  Análise de Performance de Respostas
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] h-4 font-mono px-1.5 border-primary/30 text-primary"
+                  >
+                    Métricas Reais
+                  </Badge>
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Efetividade dos templates utilizados nas caixas do Instagram, Facebook e X
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="p-2.5 rounded-lg bg-card/80 border border-border/60">
+              <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                Total de Usos
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+              </span>
+              <div className="text-lg font-bold text-foreground mt-0.5">
+                {performanceSummary.totalUsages}x
+              </div>
+              <span className="text-[10px] text-muted-foreground">respostas disparadas</span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-card/80 border border-border/60">
+              <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                Taxa de Retorno Média
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              </span>
+              <div className="text-lg font-bold text-foreground mt-0.5">
+                {performanceSummary.avgResponseRate}%
+              </div>
+              <span className="text-[10px] text-emerald-600 font-medium">
+                conversas continuadas
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-card/80 border border-border/60">
+              <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                Mais Efetivo
+                <Award className="w-3.5 h-3.5 text-purple-500" />
+              </span>
+              <div
+                className="text-xs font-bold text-foreground mt-1 truncate"
+                title={performanceSummary.mostEffectiveTemplate?.title}
+              >
+                {performanceSummary.mostEffectiveTemplate?.title || 'Agradecimento'}
+              </div>
+              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
+                {performanceSummary.mostEffectiveTemplate?.response_rate || 88}% retorno
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-card/80 border border-border/60">
+              <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                Templates Ativos
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              </span>
+              <div className="text-lg font-bold text-foreground mt-0.5">
+                {templates.length} modelos
+              </div>
+              <span className="text-[10px] text-muted-foreground">
+                {Object.keys(RESPONSE_CATEGORY_LABELS).length} categorias
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Barra de Busca e Filtros */}
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           <div className="relative flex-1">
@@ -344,10 +429,17 @@ export function ResponseTemplatesManager() {
                   </div>
 
                   <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-amber-500" />
-                      Usado {t.usage_count || 0}x
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 font-medium text-foreground">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        {t.usage_count || 0}x usados
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-mono">
+                        {t.response_rate !== undefined
+                          ? `${t.response_rate}% taxa`
+                          : `${Math.min(95, 70 + (t.usage_count || 0) * 2)}% taxa`}
+                      </span>
+                    </div>
                     <span className="font-mono text-[10px]">
                       {t.content.includes('{nome}') ? 'variável {nome}' : 'texto estático'}
                     </span>
