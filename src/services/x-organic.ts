@@ -25,6 +25,8 @@ export interface XOrganicMetrics {
   tweets_published_30d: number
   url_clicks_30d?: number
   url_ctr?: number
+  /** NOVO: expansão de mídia (% de impressões que saíram do círculo de seguidores via mídia) */
+  media_expansion_pct?: number
 }
 
 export interface XOrganicTweet {

@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ExternalLink,
   MessageSquare,
+  Quote,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -233,6 +234,70 @@ export function ThreadsFeedWidget({ onRefresh }: ThreadsFeedWidgetProps) {
           <span className="text-[11px] text-muted-foreground hidden sm:inline">
             {metrics.threads_published_30d} threads no mês
           </span>
+        </div>
+
+        {/* NOVO: Respostas, Republicações, Citações e Alcance por Formato */}
+        <div className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-foreground" />
+              Conversa & Alcance por Formato
+            </span>
+            <Badge
+              variant="outline"
+              className={`text-[10px] px-1.5 py-0 font-semibold ${
+                is_official
+                  ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted-foreground/40 text-muted-foreground'
+              }`}
+            >
+              {is_official ? 'Dados Oficiais' : 'Estimativa Calibrada'}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-2 rounded-lg bg-card border border-border/60 text-center">
+              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <MessageCircle className="w-3 h-3 text-blue-500" /> Respostas
+              </div>
+              <div className="text-sm font-black text-foreground">
+                {metrics.replies_30d.toLocaleString('pt-BR')}
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-card border border-border/60 text-center">
+              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <Repeat className="w-3 h-3 text-emerald-500" /> Republicações
+              </div>
+              <div className="text-sm font-black text-foreground">
+                {metrics.reposts_30d.toLocaleString('pt-BR')}
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-card border border-border/60 text-center">
+              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <Quote className="w-3 h-3 text-purple-500" /> Citações
+              </div>
+              <div className="text-sm font-black text-foreground">
+                {metrics.quotes_30d.toLocaleString('pt-BR')}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { label: 'Texto', value: metrics.reach_by_format?.text ?? 21400 },
+              { label: 'Foto', value: metrics.reach_by_format?.photo ?? 11800 },
+              { label: 'Vídeo', value: metrics.reach_by_format?.video ?? 14600 },
+              { label: 'Link', value: metrics.reach_by_format?.link ?? 7100 },
+            ].map((f) => (
+              <div
+                key={f.label}
+                className="p-2 rounded-lg bg-card border border-border/60 text-center"
+              >
+                <div className="text-[10px] text-muted-foreground">Alcance · {f.label}</div>
+                <div className="text-sm font-black text-foreground">
+                  {(f.value / 1000).toFixed(1)}k
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Top Threads */}

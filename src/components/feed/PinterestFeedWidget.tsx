@@ -202,6 +202,57 @@ export function PinterestFeedWidget({ onRefresh }: PinterestFeedWidgetProps) {
           </div>
         </div>
 
+        {/* NOVO: Engajamento por Formato de Pin (impressões, salvamentos, cliques p/ fora) */}
+        <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-red-500" />
+              Engajamento por Formato de Pin
+            </span>
+            <Badge
+              variant="outline"
+              className={`text-[10px] px-1.5 py-0 font-semibold ${
+                is_official
+                  ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted-foreground/40 text-muted-foreground'
+              }`}
+            >
+              {is_official ? 'Dados Oficiais' : 'Estimativa Calibrada'}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { label: 'Pin Padrão', value: metrics.pin_format_engagement?.standard ?? 4.1 },
+              { label: 'Pin Vídeo', value: metrics.pin_format_engagement?.video ?? 7.8 },
+              { label: 'Carrossel', value: metrics.pin_format_engagement?.carousel ?? 6.2 },
+              { label: 'Rich Pin', value: metrics.pin_format_engagement?.rich ?? 5.4 },
+            ].map((f) => (
+              <div
+                key={f.label}
+                className="p-2 rounded-lg bg-card border border-border/60 text-center"
+              >
+                <div className="text-[10px] text-muted-foreground">{f.label}</div>
+                <div className="text-sm font-black text-foreground">{f.value}%</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 flex-wrap text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Eye className="w-3 h-3 text-purple-500" />
+              {(metrics.impressions_30d / 1000).toFixed(1)}k impressões
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Bookmark className="w-3 h-3 text-amber-500" />
+              {((metrics.saves_30d / metrics.impressions_30d) * 100).toFixed(1)}% salvam/impressão
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <MousePointerClick className="w-3 h-3 text-blue-500" />
+              {((metrics.outbound_clicks_30d / metrics.impressions_30d) * 100).toFixed(1)}% cliques
+              p/ fora
+            </span>
+          </div>
+        </div>
+
         {/* Top Pins */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">

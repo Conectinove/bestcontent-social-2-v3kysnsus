@@ -12,6 +12,13 @@ export interface PinterestOrganicMetrics {
   engagement_rate: number
   pins_published_30d: number
   boards_count: number
+  /** NOVO: taxa de engajamento (%) por formato de Pin (opcional — fallback calibrado no widget) */
+  pin_format_engagement?: {
+    standard: number
+    video: number
+    carousel: number
+    rich: number
+  }
 }
 
 export interface PinterestTopPin {

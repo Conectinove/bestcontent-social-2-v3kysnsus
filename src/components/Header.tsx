@@ -17,6 +17,7 @@ import {
   Gift,
   Settings as SettingsIcon,
   Command,
+  Clock,
 } from 'lucide-react'
 import { QuickSearchPalette } from '@/components/QuickSearchPalette'
 import { useSocial } from '@/context/SocialContext'
@@ -35,6 +36,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { EditProfileModal } from '@/components/EditProfileModal'
+import { getPendingReviewPosts } from '@/services/posts'
 
 interface HeaderProps {
   onOpenMobileMenu: () => void
@@ -58,6 +60,28 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
   const [publishLoading, setPublishLoading] = useState(false)
   const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
+  // Badge de pendências de revisão (posts em_revisao / review_requested)
+  const [pendingReviewCount, setPendingReviewCount] = useState(0)
+
+  useEffect(() => {
+    if (!user?.id) return
+    let active = true
+    const load = () => {
+      getPendingReviewPosts(user.id)
+        .then((list) => {
+          if (active) setPendingReviewCount(list.length)
+        })
+        .catch(() => {
+          /* silencioso — badge não deve quebrar o header */
+        })
+    }
+    load()
+    const interval = window.setInterval(load, 60000) // atualiza a cada 60s
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [user?.id])
 
   // Atalho global Ctrl+K / ⌘K
   useEffect(() => {
@@ -184,6 +208,23 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
             <span className="hidden xs:inline sm:hidden">POST</span>
           </Button>
         </div>
+
+        {/* Badge de pendências de revisão — clica e vai para a Visão Geral (painel de pendências) */}
+        {pendingReviewCount > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/app/overview?pendencias=1')}
+            className="h-10 w-10 min-h-[44px] min-w-[44px] relative text-amber-600 hover:text-amber-700 shrink-0 rounded-xl"
+            title={`${pendingReviewCount} ${pendingReviewCount === 1 ? 'post aguardando revisão' : 'posts aguardando revisão'}`}
+            aria-label="Pendências de revisão"
+          >
+            <Clock className="w-4 h-4" />
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center ring-2 ring-background">
+              {pendingReviewCount > 99 ? '99+' : pendingReviewCount}
+            </span>
+          </Button>
+        )}
 
         {/* Theme Toggle */}
         <Button

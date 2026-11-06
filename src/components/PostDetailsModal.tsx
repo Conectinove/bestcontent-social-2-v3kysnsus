@@ -1,4 +1,11 @@
 import { useState, useEffect } from 'react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -16,6 +23,8 @@ import {
   MessageSquare,
   Send,
   Clock,
+  UserPlus,
+  Repeat2,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
@@ -24,6 +33,9 @@ import {
   addReviewComment,
   getReviewComments,
   setPostReviewStatus,
+  assignPostReviewer,
+  requestPostChanges,
+  getReviewerCandidates,
   ReviewCommentRecord,
 } from '@/services/posts'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
@@ -60,6 +72,68 @@ export function PostDetailsModal({
   const [commentDraft, setCommentDraft] = useState('')
   const [sendingComment, setSendingComment] = useState(false)
   const [movingToApproved, setMovingToApproved] = useState(false)
+  // Workflow de aprovação: revisor atribuído + Solicitar mudança
+  const [reviewerCandidates, setReviewerCandidates] = useState<
+    { id: string; name?: string; email?: string }[]
+  >([])
+  const [assignedReviewerId, setAssignedReviewerId] = useState<string>('')
+  const [assigningReviewer, setAssigningReviewer] = useState(false)
+  const [requestingChanges, setRequestingChanges] = useState(false)
+
+  // Carrega candidatos a revisor quando o modal abre (e o revisor já atribuído)
+  useEffect(() => {
+    if (!open || !post?.id) return
+    let active = true
+    getReviewerCandidates().then((list) => {
+      if (active) setReviewerCandidates(list || [])
+    })
+    setAssignedReviewerId(post.reviewer || post.reviewer_id || '')
+    return () => {
+      active = false
+    }
+  }, [open, post?.id])
+
+  const handleAssignReviewer = async (reviewerId: string) => {
+    if (!post?.id || !reviewerId) return
+    setAssignedReviewerId(reviewerId)
+    setAssigningReviewer(true)
+    try {
+      const chosen = reviewerCandidates.find((c) => c.id === reviewerId)
+      await assignPostReviewer(post.id, reviewerId, chosen?.name || chosen?.email)
+      toast({
+        title: 'Revisor atribuído!',
+        description: `${chosen?.name || chosen?.email || 'Usuário'} agora responde pela revisão deste post.`,
+      })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+      setAssignedReviewerId(post.reviewer || '')
+    } finally {
+      setAssigningReviewer(false)
+    }
+  }
+
+  const handleRequestChanges = async () => {
+    if (!post?.id || !user?.id) return
+    setRequestingChanges(true)
+    try {
+      await requestPostChanges({
+        postId: post.id,
+        userId: user.id,
+        authorName: user.name || user.email || 'Equipe',
+        text: commentDraft.trim() || 'Mudança solicitada pela equipe de revisão.',
+      })
+      setCommentDraft('')
+      toast({
+        title: 'Mudança solicitada!',
+        description: 'O post voltou para Rascunho com a solicitação registrada na timeline.',
+      })
+      onOpenChange(false)
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setRequestingChanges(false)
+    }
+  }
 
   useEffect(() => {
     if (!post?.id) return
@@ -351,6 +425,41 @@ export function PostDetailsModal({
                 </p>
               )}
 
+              {/* Revisor atribuído — seletor com candidatos (migration 0072) */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <UserPlus className="w-4 h-4 text-purple-600" />
+                <span className="text-xs font-bold text-foreground">Revisor:</span>
+                <Select
+                  value={assignedReviewerId || undefined}
+                  onValueChange={handleAssignReviewer}
+                  disabled={assigningReviewer}
+                >
+                  <SelectTrigger className="h-8 w-[220px] text-xs rounded-lg">
+                    <SelectValue
+                      placeholder={assigningReviewer ? 'Atribuindo...' : 'Selecionar revisor...'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reviewerCandidates.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Nenhum usuário disponível
+                      </div>
+                    ) : (
+                      reviewerCandidates.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs">
+                          {c.name || c.email || c.id}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {post.reviewer_name && !assignedReviewerId && (
+                  <span className="text-[11px] text-muted-foreground">
+                    atual: {post.reviewer_name}
+                  </span>
+                )}
+              </div>
+
               {/* Campo para escrever comentário */}
               <div className="flex items-start gap-2">
                 <Textarea
@@ -458,6 +567,22 @@ export function PostDetailsModal({
                 Aprovar
               </Button>
             )}
+            {/* Solicitar mudança — volta o post para Rascunho com comentário na timeline */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRequestChanges}
+              disabled={requestingChanges}
+              className="text-xs gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+              title="Devolve o post para Rascunho e registra a solicitação na timeline de revisão"
+            >
+              {requestingChanges ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Repeat2 className="w-3.5 h-3.5" />
+              )}
+              Solicitar mudança
+            </Button>
             <Button size="sm" className="bg-primary text-white text-xs gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> Publicar
             </Button>

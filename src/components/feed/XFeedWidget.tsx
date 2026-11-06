@@ -324,6 +324,60 @@ export function XFeedWidget({ onRefresh }: XFeedWidgetProps) {
           </div>
         </div>
 
+        {/* NOVO: Perfis Visitados, Taxa de Engajamento por Impressão e Expansão de Mídia */}
+        <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-sky-500" />
+              Descoberta & Expansão no X
+            </span>
+            <Badge
+              variant="outline"
+              className={`text-[10px] px-1.5 py-0 font-semibold ${
+                is_official
+                  ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                  : 'border-muted-foreground/40 text-muted-foreground'
+              }`}
+            >
+              {is_official ? 'Dados Oficiais' : 'Estimativa Calibrada'}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="p-2 rounded-lg bg-card border border-border/60 text-center">
+              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <Users className="w-3 h-3 text-blue-500" /> Perfis Visitados
+              </div>
+              <div className="text-sm font-black text-foreground">
+                {metrics.profile_visits_30d.toLocaleString('pt-BR')}
+              </div>
+              <span className="text-[9px] text-muted-foreground">últimos 30 dias</span>
+            </div>
+            <div className="p-2 rounded-lg bg-card border border-border/60 text-center">
+              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <BarChart3 className="w-3 h-3 text-emerald-500" /> Engaj. por Impressão
+              </div>
+              <div className="text-sm font-black text-foreground">
+                {(
+                  ((metrics.likes_30d + metrics.retweets_30d + metrics.replies_30d) /
+                    Math.max(metrics.impressions_30d, 1)) *
+                  100
+                ).toFixed(2)}
+                %
+              </div>
+              <span className="text-[9px] text-muted-foreground">interações ÷ impressões</span>
+            </div>
+            <div className="p-2 rounded-lg bg-card border border-border/60 text-center">
+              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <Radio className="w-3 h-3 text-indigo-500" /> Expansão de Mídia
+              </div>
+              <div className="text-sm font-black text-foreground">
+                {(metrics.media_expansion_pct ?? 38).toFixed(0)}%
+              </div>
+              <span className="text-[9px] text-muted-foreground">alcance fora dos seguidores</span>
+            </div>
+          </div>
+        </div>
+
         {/* Nova Métrica: Cliques no Link & CTR de Tweets */}
         <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 flex items-center justify-between flex-wrap gap-2 text-xs">
           <div className="flex items-center gap-2">

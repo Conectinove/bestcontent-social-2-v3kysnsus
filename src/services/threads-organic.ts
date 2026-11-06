@@ -11,6 +11,13 @@ export interface ThreadsOrganicMetrics {
   quotes_30d: number
   engagement_rate: number
   threads_published_30d: number
+  /** NOVO: alcance por formato de publicação (opcional — fallback calibrado no widget) */
+  reach_by_format?: {
+    text: number
+    photo: number
+    video: number
+    link: number
+  }
 }
 
 export interface ThreadsTopPost {
