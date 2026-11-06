@@ -33,6 +33,7 @@ export default {
       fontFamily: {
         sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
         display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
+        archivo: ['Archivo Black', 'Poppins', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -98,6 +99,10 @@ export default {
       boxShadow: {
         subtle: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
         elevation: '0 4px 20px rgba(0, 0, 0, 0.05)',
+        hi: '0 1px 2px rgba(0,0,0,0.06), 0 6px 16px -4px rgba(0,0,0,0.1), 0 14px 40px -10px rgba(124,58,237,0.14)',
+        'hi-hover':
+          '0 2px 6px -1px rgba(0,0,0,0.08), 0 10px 28px -6px rgba(0,0,0,0.12), 0 22px 60px -12px rgba(124,58,237,0.24)',
+        'hi-float': '0 4px 10px -2px rgba(0,0,0,0.18), 0 10px 28px -6px rgba(124,58,237,0.4)',
       },
       transitionTimingFunction: {
         apple: 'cubic-bezier(0.42, 0, 0.58, 1)',

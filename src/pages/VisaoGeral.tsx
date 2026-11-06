@@ -164,9 +164,7 @@ export default function VisaoGeral() {
               </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-              Visão Geral
-            </h1>
+            <h1 className="hi-title text-xl sm:text-3xl text-foreground">Visão Geral</h1>
 
             {/* Badge cinza "CENTRAL OPERACIONAL" */}
             <Badge
@@ -312,13 +310,13 @@ export default function VisaoGeral() {
           ========================================================================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Agendados (7d) */}
-        <Card className="rounded-2xl border border-border/70 bg-card shadow-xs">
+        <Card className="hi-card rounded-2xl">
           <CardContent className="p-5 flex flex-col justify-between h-[124px]">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <Calendar className="w-4 h-4 text-purple-500" />
               <span>Agendados (7d)</span>
             </div>
-            <p className="text-3xl font-black text-foreground">{scheduledCount}</p>
+            <p className="hi-metric text-3xl text-foreground">{scheduledCount}</p>
           </CardContent>
         </Card>
 
@@ -329,7 +327,7 @@ export default function VisaoGeral() {
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               <span>Publicados (7d)</span>
             </div>
-            <p className="text-3xl font-black text-foreground">{publishedCount}</p>
+            <p className="hi-metric text-3xl text-foreground">{publishedCount}</p>
           </CardContent>
         </Card>
 
@@ -340,7 +338,7 @@ export default function VisaoGeral() {
               <PenTool className="w-4 h-4 text-purple-500" />
               <span>Rascunhos</span>
             </div>
-            <p className="text-3xl font-black text-foreground">{draftCount}</p>
+            <p className="hi-metric text-3xl text-foreground">{draftCount}</p>
           </CardContent>
         </Card>
 
@@ -352,7 +350,7 @@ export default function VisaoGeral() {
               <span>Marcas ativas</span>
             </div>
             <div>
-              <p className="text-3xl font-black text-foreground">{activeBrandsRatio}</p>
+              <p className="hi-metric text-3xl text-foreground">{activeBrandsRatio}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">com posts nos últimos 30d</p>
             </div>
           </CardContent>
@@ -362,10 +360,12 @@ export default function VisaoGeral() {
       {/* =========================================================================
           CARD: PRÓXIMAS PUBLICAÇÕES
           ========================================================================= */}
-      <Card className="rounded-2xl border border-border/70 bg-card shadow-xs overflow-hidden">
+      <Card className="hi-card rounded-2xl overflow-hidden">
         <div className="p-5 border-b border-border/60 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-foreground">Próximas publicações</h2>
+            <h2 className="font-archivo text-base text-foreground uppercase tracking-tight">
+              Próximas publicações
+            </h2>
             <p className="text-xs text-muted-foreground">Agendado para os próximos 7 dias</p>
           </div>
 
@@ -389,9 +389,11 @@ export default function VisaoGeral() {
       {/* =========================================================================
           CARD: PERFORMANCE DAS MARCAS
           ========================================================================= */}
-      <Card className="rounded-2xl border border-border/70 bg-card shadow-xs overflow-hidden">
+      <Card className="hi-card rounded-2xl overflow-hidden">
         <div className="p-5 border-b border-border/60">
-          <h2 className="text-base font-bold text-foreground">Performance das marcas</h2>
+          <h2 className="font-archivo text-base text-foreground uppercase tracking-tight">
+            Performance das marcas
+          </h2>
           <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
         </div>
 

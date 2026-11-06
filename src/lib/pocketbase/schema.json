@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T00:57:02.584Z",
+  "generatedAt": "2026-11-06T04:13:12.691Z",
   "collections": [
     {
       "name": "users",
@@ -460,7 +460,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["draft", "scheduled", "published", "approved"]
+          "selectValues": ["draft", "scheduled", "published", "approved", "em_revisao"]
         },
         {
           "name": "tags",
@@ -544,6 +544,12 @@
         {
           "name": "campaign_format",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_style",
+          "type": "json",
           "required": false,
           "system": false
         }
@@ -2181,6 +2187,19 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "style_guidelines",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "style_pattern",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["grid_split", "floating", "high_impact", "classico"]
         }
       ],
       "indexes": [
@@ -3977,6 +3996,89 @@
       "indexes": [
         "CREATE INDEX idx_saved_templates_user ON saved_report_templates (user)",
         "CREATE INDEX idx_saved_templates_created ON saved_report_templates (created DESC)"
+      ]
+    },
+    {
+      "name": "review_comments",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "post",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "author_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "author_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "iteration",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "kind",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["comentario", "ajuste_solicitado", "aprovacao"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["aberto", "resolvido"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_review_comments_post ON review_comments (post)",
+        "CREATE INDEX idx_review_comments_created ON review_comments (created)"
       ]
     }
   ]

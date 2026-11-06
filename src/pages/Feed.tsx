@@ -674,7 +674,7 @@ export default function Feed() {
           ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Card 1: Criador Dedicado */}
-        <Card className="rounded-2xl border border-border/70 bg-card shadow-xs hover:shadow-md transition-shadow overflow-hidden">
+        <Card className="hi-card rounded-2xl overflow-hidden">
           <CardContent className="p-3.5 sm:p-5 flex items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
               <div className="relative shrink-0">
@@ -707,7 +707,7 @@ export default function Feed() {
             <div className="pl-3 sm:pl-4 border-l border-border/60 flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Zap className="w-4 h-4 text-amber-500 fill-amber-500/20 stroke-[2.2] shrink-0" />
               <div className="text-left">
-                <p className="text-base sm:text-lg font-black leading-none text-foreground">1</p>
+                <p className="hi-metric text-base sm:text-lg leading-none text-foreground">1</p>
                 <p className="text-[9px] sm:text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                   DIAS
                 </p>
@@ -719,7 +719,7 @@ export default function Feed() {
         {/* Card 2: MISSÕES */}
         <Card
           onClick={() => setMissionsModalOpen(true)}
-          className="rounded-2xl border border-border/70 bg-card shadow-xs hover:shadow-md hover:border-primary/40 transition-all cursor-pointer group overflow-hidden"
+          className="hi-card rounded-2xl cursor-pointer group overflow-hidden"
         >
           <CardContent className="p-3.5 sm:p-5 flex items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
@@ -750,7 +750,7 @@ export default function Feed() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            <h2 className="text-sm sm:text-base font-bold text-foreground tracking-tight">
+            <h2 className="font-archivo text-sm sm:text-base text-foreground uppercase tracking-tight">
               Últimos posts da comunidade
             </h2>
           </div>
@@ -825,7 +825,7 @@ export default function Feed() {
           {/* =====================================================================
               COMPOSER RÁPIDO ("No que você está pensando?")
               ===================================================================== */}
-          <Card className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 shadow-md overflow-hidden">
+          <Card className="hi-card rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 overflow-hidden">
             <CardContent className="p-4 sm:p-5 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/30 overflow-hidden">
@@ -988,7 +988,7 @@ export default function Feed() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Flame className="w-5 h-5 text-primary" />
-                <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                <h2 className="hi-title text-base sm:text-lg text-foreground">
                   Feed da Comunidade
                 </h2>
                 <Badge className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-extrabold px-2 py-0.5 uppercase">
