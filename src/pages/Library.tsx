@@ -90,6 +90,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ImageBankModal } from '@/components/ImageBankModal'
+import { BulkScheduleModal } from '@/components/calendar/BulkScheduleModal'
 import {
   getAllPostMetrics,
   getPostMetricsListByPost,
@@ -256,6 +257,7 @@ export default function Library() {
   // Seleção múltipla & ações em lote
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkScheduleOpen, setBulkScheduleOpen] = useState(false)
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
   const [aiSyncingId, setAiSyncingId] = useState<string | null>(null)
 
@@ -1150,6 +1152,18 @@ export default function Library() {
                 <SelectItem value="published">Marcar como Publicado</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="default"
+              size="sm"
+              disabled={bulkActionLoading}
+              onClick={() => setBulkScheduleOpen(true)}
+              className="h-8 text-xs font-bold rounded-xl gap-1.5 bg-purple-600 hover:bg-purple-700 text-white shadow-xs"
+              title="Agendar todos os posts selecionados em lote com data inicial e intervalo"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Agendar em Massa</span>
+            </Button>
 
             <Button
               variant="outline"
@@ -2706,6 +2720,19 @@ export default function Library() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* =========================================================================
+          MODAL DE AGENDAMENTO EM MASSA
+          ========================================================================= */}
+      <BulkScheduleModal
+        open={bulkScheduleOpen}
+        onOpenChange={setBulkScheduleOpen}
+        posts={posts.filter((p) => selectedIds.includes(p.id))}
+        onSuccess={() => {
+          refreshPosts()
+          setSelectedIds([])
+        }}
+      />
 
       {/* =========================================================================
           MODAL DE CONFIRMAÇÃO DE EXCLUSÃO EM LOTE

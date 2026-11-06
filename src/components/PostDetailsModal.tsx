@@ -68,6 +68,7 @@ export function PostDetailsModal({
   const [approving, setApproving] = useState(false)
   const [metrics, setMetrics] = useState<PostMetric | null>(null)
   const [networkMetricsList, setNetworkMetricsList] = useState<PostMetric[]>([])
+  const [metricsLoading, setMetricsLoading] = useState(false)
   // Workflow "Em Revisão": timeline de comentários da equipe
   const [reviewComments, setReviewComments] = useState<ReviewCommentRecord[]>([])
   const [commentDraft, setCommentDraft] = useState('')
@@ -139,32 +140,38 @@ export function PostDetailsModal({
   useEffect(() => {
     if (!post?.id) return
     if (post.status === 'published') {
+      setMetricsLoading(true)
       // Buscar métricas da lista multi-rede
-      getPostMetricsListByPost(post.id).then((list) => {
-        if (list && list.length > 0) {
-          setNetworkMetricsList(list)
-          setMetrics(list[0])
-        } else {
-          // Fallback multi-rede baseado em targetNetworks ou plataforma
-          const targetNets =
-            Array.isArray(post.targetNetworks) && post.targetNetworks.length > 0
-              ? post.targetNetworks
-              : [post.platform || 'Instagram']
-          const simulatedList = getSimulatedMultiNetworkMetrics(
-            post.id,
-            targetNets,
-            post.created || post.createdAt,
-          )
-          setNetworkMetricsList(simulatedList)
-          setMetrics(
-            simulatedList[0] ||
-              getSimulatedMetricFallback(post.id, post.platform, post.created || post.createdAt),
-          )
-        }
-      })
+      getPostMetricsListByPost(post.id)
+        .then((list) => {
+          if (list && list.length > 0) {
+            setNetworkMetricsList(list)
+            setMetrics(list[0])
+          } else {
+            // Fallback multi-rede baseado em targetNetworks ou plataforma
+            const targetNets =
+              Array.isArray(post.targetNetworks) && post.targetNetworks.length > 0
+                ? post.targetNetworks
+                : [post.platform || 'Instagram']
+            const simulatedList = getSimulatedMultiNetworkMetrics(
+              post.id,
+              targetNets,
+              post.created || post.createdAt,
+            )
+            setNetworkMetricsList(simulatedList)
+            setMetrics(
+              simulatedList[0] ||
+                getSimulatedMetricFallback(post.id, post.platform, post.created || post.createdAt),
+            )
+          }
+        })
+        .finally(() => {
+          setMetricsLoading(false)
+        })
     } else {
       setMetrics(null)
       setNetworkMetricsList([])
+      setMetricsLoading(false)
     }
   }, [post?.id, post?.status, post?.platform, post?.created, post?.createdAt, post?.targetNetworks])
 
@@ -509,6 +516,7 @@ export function PostDetailsModal({
               <PostPerformanceCard
                 metrics={metrics}
                 networkMetricsList={networkMetricsList}
+                loading={metricsLoading}
                 brandAverageRate={5.1}
                 brandId={post.brandId || post.brand}
               />

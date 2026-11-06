@@ -231,17 +231,30 @@ export function NetworkHashtagGenerator({
             </div>
           </div>
 
-          {/* Tags agrupadas */}
-          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1.5 bg-card/80 rounded-lg border border-border/60">
+          {/* Tags agrupadas — clicáveis individualmente para inserir em 1 clique */}
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-card/90 rounded-lg border border-border/60">
             {generatedTags.map((tag, idx) => (
-              <span
+              <button
                 key={idx}
-                className="text-[11px] font-mono text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded"
+                type="button"
+                onClick={() => {
+                  onApplyHashtags(tag, activeNetwork)
+                  toast({
+                    title: 'Hashtag adicionada!',
+                    description: `Adicionado ${tag} à sua legenda.`,
+                  })
+                }}
+                className="text-[11px] font-mono text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-600 hover:text-white px-2 py-0.5 rounded-md cursor-pointer transition-all border border-purple-500/20 active:scale-95"
+                title={`Clique para inserir ${tag} diretamente na legenda`}
               >
-                {tag}
-              </span>
+                {tag} <span className="opacity-60 text-[9px]">+</span>
+              </button>
             ))}
           </div>
+          <p className="text-[10px] text-muted-foreground italic">
+            Dica: Clique em qualquer hashtag individual para inseri-la, ou em &quot;Aplicar
+            1-Clique&quot; para inserir todas.
+          </p>
         </div>
       )}
     </div>

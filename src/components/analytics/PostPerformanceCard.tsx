@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { PostMetric } from '@/services/post-metrics'
 import { useNavigate } from 'react-router-dom'
 
@@ -100,6 +101,7 @@ const NETWORK_LABELS: Record<string, { label: string; badgeClass: string }> = {
 interface PostPerformanceCardProps {
   metrics: PostMetric | null
   networkMetricsList?: PostMetric[]
+  loading?: boolean
   brandAverageRate?: number
   className?: string
   brandId?: string
@@ -109,6 +111,7 @@ interface PostPerformanceCardProps {
 export function PostPerformanceCard({
   metrics,
   networkMetricsList = [],
+  loading = false,
   brandAverageRate = 4.8,
   className = '',
   brandId,
@@ -159,6 +162,32 @@ export function PostPerformanceCard({
     return allList.find((m) => m.rede === selectedNetwork) || consolidatedMetric
   }, [selectedNetwork, allList, consolidatedMetric])
 
+  if (loading) {
+    return (
+      <div
+        className={`rounded-2xl border border-purple-500/30 bg-purple-50/30 dark:bg-purple-950/20 p-4 sm:p-5 space-y-4 ${className}`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="w-9 h-9 rounded-xl" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </div>
+          <Skeleton className="h-7 w-28 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-16 rounded-xl" />
+        </div>
+        <Skeleton className="h-20 rounded-xl" />
+      </div>
+    )
+  }
+
   if (!activeMetric) {
     return (
       <div
@@ -202,12 +231,19 @@ export function PostPerformanceCard({
           <div>
             <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
               <span>Performance por Rede</span>
-              {activeMetric.is_simulated && (
+              {activeMetric.is_official ? (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 px-1.5 py-0"
+                  className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 px-2 py-0 font-bold"
                 >
-                  Estimativa Baseline
+                  ✓ Dados Oficiais
+                </Badge>
+              ) : (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 px-2 py-0 font-bold"
+                >
+                  ⚡ Estimativa Calibrada
                 </Badge>
               )}
             </h4>

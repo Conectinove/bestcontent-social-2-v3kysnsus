@@ -12,6 +12,11 @@ export interface PostMetric {
   salvamentos: number
   taxa_engajamento: number
   is_simulated: boolean
+  curtidas?: number
+  comentarios?: number
+  compartilhamentos?: number
+  is_official?: boolean
+  post_id?: string
   data?: string
   created?: string
   updated?: string

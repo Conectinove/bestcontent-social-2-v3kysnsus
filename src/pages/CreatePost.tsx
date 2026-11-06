@@ -1296,18 +1296,26 @@ export default function CreatePost() {
                 <span className="font-mono">{caption.length} caracteres</span>
               </div>
 
-              {/* Gerador de Hashtags com chips por rede social (Controlado por Labs) */}
-              {isLabEnabled('network-hashtag-generator') && (
-                <NetworkHashtagGenerator
-                  contentSource={`${content} ${caption}`.trim()}
-                  selectedNetwork={platform}
-                  onNetworkChange={() => {}}
-                  onApplyHashtags={(tags) => {
-                    setCaption((prev) => (prev ? `${prev}\n\n${tags}` : tags))
-                  }}
-                  currentHashtags={caption}
-                />
-              )}
+              {/* Gerador de Hashtags com IA por rede social (Sempre visível ao redor da legenda + compatível com Labs) */}
+              <NetworkHashtagGenerator
+                contentSource={`${content} ${caption}`.trim()}
+                selectedNetwork={platform}
+                onNetworkChange={(net) => {
+                  const map: Record<string, string> = {
+                    instagram: 'Instagram',
+                    tiktok: 'TikTok',
+                    linkedin: 'LinkedIn',
+                    twitter: 'Twitter/X',
+                    youtube: 'YouTube',
+                    facebook: 'Facebook',
+                  }
+                  if (map[net]) setPlatform(map[net])
+                }}
+                onApplyHashtags={(tags) => {
+                  setCaption((prev) => (prev ? `${prev}\n\n${tags}` : tags))
+                }}
+                currentHashtags={caption}
+              />
 
               {/* Widget de SEO Social em tempo real (Controlado por Labs) */}
               {isLabEnabled('seo-social-widget') && (
