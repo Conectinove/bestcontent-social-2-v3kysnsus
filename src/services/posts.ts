@@ -159,3 +159,103 @@ export async function togglePostReviewed(id: string, isReviewed: boolean, review
 export async function bulkDeletePosts(ids: string[]) {
   return Promise.all(ids.map((id) => pb.collection('posts').delete(id)))
 }
+
+// ============================================================
+// WORKFLOW "EM REVISÃO" — comentários da equipe no post
+// Persistidos de verdade na coleção `review_comments` (migration 0071)
+// ============================================================
+
+export type ReviewCommentKind = 'comentario' | 'ajuste_solicitado' | 'aprovacao'
+
+export interface ReviewCommentRecord {
+  id: string
+  post: string
+  user: string
+  author_id: string
+  author_name: string
+  text: string
+  iteration: number
+  kind: ReviewCommentKind
+  status: 'aberto' | 'resolvido'
+  created: string
+  updated: string
+}
+
+export async function addReviewComment(input: {
+  postId: string
+  userId?: string
+  authorName: string
+  text: string
+  kind?: ReviewCommentKind
+}): Promise<ReviewCommentRecord> {
+  if (!input.postId) throw new Error('Post inválido para comentário de revisão.')
+  const text = (input.text || '').trim()
+  if (!text) throw new Error('Escreva o comentário antes de enviar.')
+
+  // Iteração atual do post (quantas revisões já aconteceram)
+  let iteration = 1
+  try {
+    const post = await pb.collection('posts').getOne(input.postId)
+    iteration = Math.max(1, Number(post?.revision_count) || 1)
+  } catch {
+    /* usa iteração padrão */
+  }
+
+  const record = await pb.collection('review_comments').create({
+    post: input.postId,
+    user: input.userId || undefined,
+    author_id: input.userId || '',
+    author_name: input.authorName || 'Equipe',
+    text,
+    iteration,
+    kind: input.kind || 'comentario',
+    status: input.kind === 'aprovacao' ? 'resolvido' : 'aberto',
+  })
+
+  // Incrementa o contador de revisões do post
+  try {
+    const post = await pb.collection('posts').getOne(input.postId)
+    await pb.collection('posts').update(input.postId, {
+      revision_count: (Number(post?.revision_count) || 0) + 1,
+    })
+  } catch {
+    /* não bloqueia o comentário se o contador falhar */
+  }
+
+  return record as unknown as ReviewCommentRecord
+}
+
+export async function getReviewComments(postId: string): Promise<ReviewCommentRecord[]> {
+  if (!postId) return []
+  try {
+    const records = await pb.collection('review_comments').getFullList({
+      filter: `post = "${postId}"`,
+      sort: 'created',
+      requestKey: null,
+    })
+    return records as unknown as ReviewCommentRecord[]
+  } catch (err) {
+    console.warn('Falha ao carregar comentários de revisão:', err)
+    return []
+  }
+}
+
+/**
+ * Transição de status do workflow de aprovação.
+ * Em Revisão (em_revisao) → Aprovado (approved) e também os outros caminhos.
+ */
+export async function setPostReviewStatus(
+  postId: string,
+  status: 'draft' | 'scheduled' | 'published' | 'approved' | 'em_revisao',
+) {
+  const payload: Record<string, unknown> = { status }
+  if (status === 'approved') {
+    payload.approval_level = 'Nível 2 (Aprovado)'
+    payload.is_reviewed = true
+  }
+  if (status === 'em_revisao') {
+    payload.approval_level = 'Nível 1 (Em Revisão)'
+    payload.is_reviewed = false
+  }
+  return pb.collection('posts').update(postId, payload)
+}

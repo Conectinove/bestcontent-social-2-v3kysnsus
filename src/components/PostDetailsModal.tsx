@@ -3,10 +3,29 @@ import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit3, Share2, Sparkles, Copy, CheckCircle2, Loader2, FlaskConical, X } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Edit3,
+  Share2,
+  Sparkles,
+  Copy,
+  CheckCircle2,
+  Loader2,
+  FlaskConical,
+  X,
+  MessageSquare,
+  Send,
+  Clock,
+} from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { approvePost } from '@/services/approval'
+import {
+  addReviewComment,
+  getReviewComments,
+  setPostReviewStatus,
+  ReviewCommentRecord,
+} from '@/services/posts'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   getPostMetricsByPost,
@@ -36,6 +55,11 @@ export function PostDetailsModal({
   const [approving, setApproving] = useState(false)
   const [metrics, setMetrics] = useState<PostMetric | null>(null)
   const [networkMetricsList, setNetworkMetricsList] = useState<PostMetric[]>([])
+  // Workflow "Em Revisão": timeline de comentários da equipe
+  const [reviewComments, setReviewComments] = useState<ReviewCommentRecord[]>([])
+  const [commentDraft, setCommentDraft] = useState('')
+  const [sendingComment, setSendingComment] = useState(false)
+  const [movingToApproved, setMovingToApproved] = useState(false)
 
   useEffect(() => {
     if (!post?.id) return
@@ -69,6 +93,22 @@ export function PostDetailsModal({
     }
   }, [post?.id, post?.status, post?.platform, post?.created, post?.createdAt, post?.targetNetworks])
 
+  // Carrega a timeline de comentários de revisão sempre que o modal abre
+  useEffect(() => {
+    if (!open || !post?.id) {
+      setReviewComments([])
+      setCommentDraft('')
+      return
+    }
+    let active = true
+    getReviewComments(post.id).then((list) => {
+      if (active) setReviewComments(list)
+    })
+    return () => {
+      active = false
+    }
+  }, [open, post?.id])
+
   if (!post) return null
 
   const handleApprove = async () => {
@@ -93,18 +133,83 @@ export function PostDetailsModal({
     toast({ title: 'Copiado!', description: 'Texto da legenda copiado.' })
   }
 
+  // Envia um comentário de revisão para a timeline (persistido em review_comments)
+  const handleSendComment = async (kind: 'comentario' | 'ajuste_solicitado' = 'comentario') => {
+    if (!post?.id || !commentDraft.trim()) return
+    setSendingComment(true)
+    try {
+      const created = await addReviewComment({
+        postId: post.id,
+        userId: user?.id,
+        authorName: user?.name || user?.email || 'Equipe',
+        text: commentDraft,
+        kind,
+      })
+      setReviewComments((prev) => [...prev, created])
+      setCommentDraft('')
+      toast({
+        title: 'Comentário registrado!',
+        description: 'A equipe pode ver o comentário na timeline de revisão.',
+      })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setSendingComment(false)
+    }
+  }
+
+  // Transição Em Revisão → Aprovado
+  const handleMoveToApproved = async () => {
+    if (!post?.id || !user?.id) return
+    setMovingToApproved(true)
+    try {
+      await setPostReviewStatus(post.id, 'approved')
+      // Registra a aprovação na timeline
+      try {
+        const approvalComment = await addReviewComment({
+          postId: post.id,
+          userId: user?.id,
+          authorName: user?.name || user?.email || 'Equipe',
+          text: 'Post aprovado pela equipe.',
+          kind: 'aprovacao',
+        })
+        setReviewComments((prev) => [...prev, approvalComment])
+      } catch {
+        /* aprovação já persistida — segue mesmo se o comentário falhar */
+      }
+      toast({
+        title: 'Post aprovado!',
+        description: 'Status alterado de Em Revisão para Aprovado.',
+      })
+      onOpenChange(false)
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setMovingToApproved(false)
+    }
+  }
+
+  const isEmRevisao = post.status === 'em_revisao'
+  const reviewBadgeClass = isEmRevisao
+    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30'
+    : ''
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl overflow-hidden">
         {/* Top Header Card */}
         <div className="p-4 bg-muted/40 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs font-semibold">
+            <Badge variant="secondary" className={`text-xs font-semibold ${reviewBadgeClass}`}>
               {post.status === 'published'
                 ? 'Publicado'
                 : post.status === 'scheduled'
                   ? 'Agendado'
-                  : 'Rascunho'}
+                  : post.status === 'em_revisao'
+                    ? 'Em Revisão'
+                    : post.status === 'approved'
+                      ? 'Aprovado'
+                      : 'Rascunho'}
             </Badge>
             <span className="text-xs text-muted-foreground">• 1 slide</span>
           </div>
@@ -177,6 +282,112 @@ export function PostDetailsModal({
             </div>
           </div>
 
+          {/* Timeline de Revisão — comentários da equipe (workflow Em Revisão) */}
+          {(isEmRevisao || reviewComments.length > 0) && (
+            <div className="pt-4 border-t border-border/80 space-y-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-purple-600" />
+                <h4 className="text-sm font-bold text-foreground">Revisão da Equipe</h4>
+                <Badge variant="outline" className="text-[10px] font-bold">
+                  {reviewComments.length}{' '}
+                  {reviewComments.length === 1 ? 'comentário' : 'comentários'}
+                </Badge>
+              </div>
+
+              {/* Timeline */}
+              {reviewComments.length > 0 ? (
+                <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                  {reviewComments.map((c) => (
+                    <div
+                      key={c.id}
+                      className="p-3 rounded-xl border border-border bg-muted/40 space-y-1"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6 h-6 rounded-full bg-purple-600/15 text-purple-700 dark:text-purple-300 flex items-center justify-center text-[10px] font-black shrink-0">
+                            {(c.author_name || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-xs font-bold text-foreground truncate">
+                            {c.author_name || 'Equipe'}
+                          </span>
+                          {c.kind === 'ajuste_solicitado' && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] px-1.5 py-0 bg-rose-500/10 text-rose-600 border-rose-500/30"
+                            >
+                              Ajuste
+                            </Badge>
+                          )}
+                          {c.kind === 'aprovacao' && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                            >
+                              Aprovação
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
+                          <Clock className="w-3 h-3" />
+                          {c.created
+                            ? new Date(c.created).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : ''}
+                        </span>
+                      </div>
+                      <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line">
+                        {c.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum comentário ainda. Deixe uma nota para a equipe.
+                </p>
+              )}
+
+              {/* Campo para escrever comentário */}
+              <div className="flex items-start gap-2">
+                <Textarea
+                  value={commentDraft}
+                  onChange={(e) => setCommentDraft(e.target.value)}
+                  placeholder="Escreva um comentário de revisão para a equipe..."
+                  className="min-h-[64px] text-xs rounded-xl resize-none"
+                  disabled={sendingComment}
+                />
+                <div className="flex flex-col gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={() => handleSendComment('comentario')}
+                    disabled={sendingComment || !commentDraft.trim()}
+                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs h-9 px-3 gap-1.5"
+                  >
+                    {sendingComment ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    Enviar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleSendComment('ajuste_solicitado')}
+                    disabled={sendingComment || !commentDraft.trim()}
+                    className="text-xs h-8 px-3 gap-1.5 border-rose-500/30 text-rose-600 hover:bg-rose-500/10"
+                  >
+                    Ajuste
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Análise de Performance do Post (quando publicado) */}
           {post.status === 'published' && (
             <div className="pt-2 border-t border-border/80 space-y-2">
@@ -215,6 +426,22 @@ export function PostDetailsModal({
             <Button variant="outline" size="sm" className="text-xs gap-1.5">
               <Share2 className="w-3.5 h-3.5" /> Compartilhar
             </Button>
+            {post.status === 'em_revisao' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMoveToApproved}
+                disabled={movingToApproved}
+                className="text-xs gap-1.5 border-purple-500/30 text-purple-600 hover:bg-purple-500/10"
+              >
+                {movingToApproved ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
+                Aprovar (sair de Em Revisão)
+              </Button>
+            )}
             {(post.status === 'draft' || post.status === 'scheduled') && (
               <Button
                 variant="outline"

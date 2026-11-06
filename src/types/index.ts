@@ -80,6 +80,8 @@ export interface CampaignRecord {
   formats: string[]
   status: 'draft' | 'active' | 'completed' | 'archived'
   total_credits?: number
+  style_guidelines?: Record<string, unknown> | string | null
+  style_pattern?: string | null
   created: string
   updated: string
   expand?: {

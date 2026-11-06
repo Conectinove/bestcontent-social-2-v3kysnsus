@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Database,
   Plus,
@@ -35,6 +35,8 @@ import { toast } from '@/hooks/use-toast'
 import {
   getCollectionsOverview,
   exportCollectionToCSV,
+  importCsvToCollection,
+  type CsvImportError,
   type CollectionSummary,
 } from '@/services/data-management'
 import { createStudent } from '@/services/students'
@@ -51,6 +53,12 @@ export default function DatabasePage() {
   // Modais de Inserção Manual
   const [insertModalCollection, setInsertModalCollection] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Importação CSV (posts e post_metrics)
+  const csvInputRef = useRef<HTMLInputElement | null>(null)
+  const [csvTargetCollection, setCsvTargetCollection] = useState<string | null>(null)
+  const [isImportingCsv, setIsImportingCsv] = useState(false)
+  const [csvErrors, setCsvErrors] = useState<CsvImportError[]>([])
 
   // Estados dos formulários de inserção manual
   // 1. Aluno
@@ -133,6 +141,55 @@ export default function DatabasePage() {
       })
     } finally {
       setIsExporting(null)
+    }
+  }
+
+  // Importação CSV
+  const handleImportCsv = async (file: File, collectionName: string, label: string) => {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      toast({
+        title: 'Arquivo inválido',
+        description: 'Selecione um arquivo .csv (exportado com ; ou , como separador).',
+        variant: 'destructive',
+      })
+      return
+    }
+    setIsImportingCsv(true)
+    setCsvErrors([])
+    try {
+      const text = await file.text()
+      const result = await importCsvToCollection(collectionName as 'posts' | 'post_metrics', text)
+      if (result.errors.length > 0) {
+        setCsvErrors(result.errors.slice(0, 10))
+        if (result.imported > 0) {
+          toast({
+            title: 'Importação parcialmente concluída',
+            description: `${result.imported} de ${result.imported + result.errors.length} linhas gravadas em ${label}. Veja os erros abaixo.`,
+          })
+        } else {
+          toast({
+            title: 'Nenhuma linha importada',
+            description: result.errors[0]?.message || 'Verifique as colunas do arquivo.',
+            variant: 'destructive',
+          })
+        }
+      } else {
+        toast({
+          title: 'Importação concluída!',
+          description: `${result.imported} registro(s) gravado(s) em ${label}.`,
+        })
+      }
+      await loadCollections()
+    } catch (err) {
+      console.error('Erro na importação CSV:', err)
+      toast({
+        title: 'Falha na importação',
+        description: err instanceof Error ? err.message : 'Não foi possível ler o arquivo CSV.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsImportingCsv(false)
+      setCsvTargetCollection(null)
     }
   }
 
@@ -241,6 +298,23 @@ export default function DatabasePage() {
 
   return (
     <div className="space-y-6 pb-16 animate-fade-in text-foreground">
+      {/* Input de arquivo CSV — acionado pelos botões "Importar" das coleções posts/post_metrics */}
+      <input
+        ref={csvInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file && csvTargetCollection) {
+            const label =
+              collections.find((c) => c.name === csvTargetCollection)?.label || csvTargetCollection
+            handleImportCsv(file, csvTargetCollection, label)
+          }
+        }}
+      />
+
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
@@ -333,6 +407,36 @@ export default function DatabasePage() {
           </div>
         </div>
 
+        {/* Erros da última importação CSV */}
+        {csvErrors.length > 0 && (
+          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+              <p className="text-sm font-bold text-rose-700 dark:text-rose-400">
+                Linhas com problema na importação
+              </p>
+            </div>
+            <ul className="space-y-1">
+              {csvErrors.map((e, i) => (
+                <li key={i} className="text-xs text-foreground/90">
+                  <span className="font-mono font-bold text-rose-600">
+                    {e.row > 0 ? `Linha ${e.row}` : 'Cabeçalho'}:
+                  </span>{' '}
+                  {e.message}
+                </li>
+              ))}
+            </ul>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCsvErrors([])}
+              className="text-xs h-7 text-muted-foreground"
+            >
+              Ocultar
+            </Button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {collections.map((col) => (
             <Card
@@ -417,6 +521,27 @@ export default function DatabasePage() {
                     )}
                     <span>CSV</span>
                   </Button>
+
+                  {(col.name === 'posts' || col.name === 'post_metrics') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCsvTargetCollection(col.name)
+                        csvInputRef.current?.click()
+                      }}
+                      disabled={isImportingCsv}
+                      className="rounded-xl text-xs h-9 px-3 gap-1.5 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 font-semibold min-h-[36px]"
+                      title="Importar registros de um arquivo CSV"
+                    >
+                      {isImportingCsv && csvTargetCollection === col.name ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                      )}
+                      <span>Importar</span>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

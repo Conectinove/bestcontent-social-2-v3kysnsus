@@ -388,7 +388,7 @@ export default function PerformanceDashboard() {
               Consolidado Multi-Rede · Instagram, TikTok, LinkedIn, YouTube & Mais
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+          <h1 className="hi-title text-2xl sm:text-3xl text-foreground tracking-tight flex items-center gap-2.5">
             <span>Dashboard de Performance Unificado</span>
             <BarChart3 className="w-7 h-7 text-purple-600 dark:text-purple-400" />
           </h1>
@@ -454,7 +454,7 @@ export default function PerformanceDashboard() {
 
       {/* Grid de Destaque Superior: 4 KPIs Principais (com Skeleton se estiver carregando) */}
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card space-y-1 shadow-xs">
+        <Card className="hi-card p-4 rounded-2xl border-border/80 bg-gradient-to-br from-purple-500/10 via-card to-card space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
               Posts Publicados
@@ -466,7 +466,7 @@ export default function PerformanceDashboard() {
           {loading ? (
             <Skeleton className="h-8 w-20 rounded-lg" />
           ) : (
-            <p className="text-2xl font-black text-foreground">{publishedPosts}</p>
+            <p className="hi-metric text-2xl text-foreground">{publishedPosts}</p>
           )}
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{totalPosts} criados no total</span>
@@ -474,7 +474,7 @@ export default function PerformanceDashboard() {
           </div>
         </Card>
 
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-emerald-500/10 via-card to-card space-y-1 shadow-xs">
+        <Card className="hi-card p-4 rounded-2xl border-border/80 bg-gradient-to-br from-emerald-500/10 via-card to-card space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
               Engajamento Total
@@ -496,7 +496,7 @@ export default function PerformanceDashboard() {
           </div>
         </Card>
 
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-blue-500/10 via-card to-card space-y-1 shadow-xs">
+        <Card className="hi-card p-4 rounded-2xl border-border/80 bg-gradient-to-br from-blue-500/10 via-card to-card space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
               Taxa Média de Resposta
@@ -508,14 +508,14 @@ export default function PerformanceDashboard() {
           {loading ? (
             <Skeleton className="h-8 w-16 rounded-lg" />
           ) : (
-            <p className="text-2xl font-black text-foreground">{avgEngagementRate}%</p>
+            <p className="hi-metric text-2xl text-foreground">{avgEngagementRate}%</p>
           )}
           <div className="text-[11px] text-muted-foreground truncate">
             <span>Benchmark: LinkedIn 6.1% · Insta 5.2%</span>
           </div>
         </Card>
 
-        <Card className="p-4 rounded-2xl border-border/80 bg-gradient-to-br from-pink-500/10 via-card to-card space-y-1 shadow-xs">
+        <Card className="hi-card p-4 rounded-2xl border-border/80 bg-gradient-to-br from-pink-500/10 via-card to-card space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
               Alcance Consolidado
@@ -527,7 +527,7 @@ export default function PerformanceDashboard() {
           {loading ? (
             <Skeleton className="h-8 w-28 rounded-lg" />
           ) : (
-            <p className="text-2xl font-black text-foreground">
+            <p className="hi-metric text-2xl text-foreground">
               {totalReach.toLocaleString('pt-BR')}
             </p>
           )}

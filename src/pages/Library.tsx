@@ -659,24 +659,24 @@ export default function Library() {
           ESTATÍSTICAS RÁPIDAS NO TOPO DA BIBLIOTECA
           ========================================================================= */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+        <div className="hi-card p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Total Geral
             </p>
-            <p className="text-xl font-black text-foreground mt-0.5">{counts.all}</p>
+            <p className="hi-metric text-xl text-foreground mt-0.5">{counts.all}</p>
           </div>
           <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
             <BookOpen className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+        <div className="hi-card p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Publicados
             </p>
-            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+            <p className="hi-metric text-xl text-emerald-600 dark:text-emerald-400 mt-0.5">
               {counts.published}
             </p>
           </div>
@@ -685,12 +685,12 @@ export default function Library() {
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+        <div className="hi-card p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Agendados
             </p>
-            <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5">
+            <p className="hi-metric text-xl text-blue-600 dark:text-blue-400 mt-0.5">
               {counts.scheduled}
             </p>
           </div>
@@ -699,12 +699,12 @@ export default function Library() {
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+        <div className="hi-card p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Aprovados
             </p>
-            <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5">
+            <p className="hi-metric text-xl text-purple-600 dark:text-purple-400 mt-0.5">
               {counts.approved}
             </p>
           </div>
@@ -713,12 +713,12 @@ export default function Library() {
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+        <div className="hi-card p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Rascunhos
             </p>
-            <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
+            <p className="hi-metric text-xl text-amber-600 dark:text-amber-400 mt-0.5">
               {counts.drafts}
             </p>
           </div>
@@ -727,12 +727,12 @@ export default function Library() {
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-between">
+        <div className="hi-card p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Favoritos
             </p>
-            <p className="text-xl font-black text-amber-500 mt-0.5">{counts.favorites}</p>
+            <p className="hi-metric text-xl text-amber-500 mt-0.5">{counts.favorites}</p>
           </div>
           <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
             <Star className="w-4 h-4 fill-amber-500" />
@@ -751,7 +751,7 @@ export default function Library() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+                <h1 className="hi-title text-2xl sm:text-3xl text-foreground">
                   Biblioteca de Criações
                 </h1>
                 <Badge

@@ -32,6 +32,7 @@ import { useSocial } from '@/context/SocialContext'
 import { useAuth } from '@/context/AuthContext'
 import { createScheduledPost } from '@/services/scheduled_posts'
 import { updatePost } from '@/services/posts'
+import { getCampaign } from '@/services/campaigns'
 import {
   generateCaption,
   generateHashtags,
@@ -52,7 +53,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AIAssistantModal } from '@/components/AIAssistantModal'
 import { TemplateSelector } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
-import type { PostTemplate, TodayPostIdea } from '@/services/post-templates'
+import { getTemplate, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
@@ -309,6 +310,68 @@ export default function CreatePost() {
     )
   }, [brandId, platform, content, caption, scheduledDate, selectedTemplate])
 
+  // ============================================================
+  // PRESET DE CAMPANHA — ao entrar com ?campaign=<id> (ou state),
+  // lê style_guidelines da campanha (migration 0071) e aplica
+  // automaticamente como preset de cores/modelo do post.
+  // ============================================================
+  const [campaignPreset, setCampaignPreset] = useState<Record<string, string>>({})
+  const [campaignPresetName, setCampaignPresetName] = useState('')
+  const campaignPresetApplied = useRef(false)
+
+  useEffect(() => {
+    if (campaignPresetApplied.current) return
+    const campaignId = urlParams.get('campaign') || (location.state?.campaignId as string) || ''
+    if (!campaignId) return
+    campaignPresetApplied.current = true
+    ;(async () => {
+      try {
+        const campaign = await getCampaign(campaignId)
+        const raw = campaign.style_guidelines
+        let guidelines: Record<string, any> = {}
+        if (typeof raw === 'string' && raw.trim()) {
+          try {
+            guidelines = JSON.parse(raw)
+          } catch {
+            guidelines = {}
+          }
+        } else if (raw && typeof raw === 'object') {
+          guidelines = raw as Record<string, any>
+        }
+
+        const colors: Record<string, string> = {}
+        for (const key of ['bgColor', 'accentColor', 'ctaColor', 'textColor', 'gradient']) {
+          const value = guidelines[key] ?? guidelines?.colors?.[key]
+          if (typeof value === 'string' && value.trim()) colors[key] = value.trim()
+        }
+
+        // Template indicado nas diretrizes (quando o usuário ainda não escolheu um)
+        const templateId = (guidelines.template_id || guidelines.templateId) as string | undefined
+        if (templateId && !selectedTemplate) {
+          try {
+            const tpl = await getTemplate(templateId)
+            setSelectedTemplate(tpl as unknown as PostTemplate)
+            setCampaignPreset(colors)
+          } catch {
+            /* template indicado não existe — segue só com as cores */
+          }
+        }
+
+        if (Object.keys(colors).length > 0 || templateId) {
+          setCampaignPreset(colors)
+          setCampaignPresetName(campaign.name || 'Campanha')
+          toast({
+            title: 'Preset da campanha aplicado',
+            description: `Diretrizes visuais de "${campaign.name || 'campanha'}" carregadas automaticamente.`,
+          })
+        }
+      } catch (err) {
+        console.warn('Não foi possível carregar o preset da campanha:', err)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Seleciona marca ativa
   const selectedBrand = useMemo(() => {
     return brands.find((b: any) => b.id === brandId) || brands[0] || null
@@ -534,7 +597,11 @@ export default function CreatePost() {
   }
 
   // Configurações visuais do modelo para o Preview Canvas
-  const tplStyles = (selectedTemplate?.style_settings as Record<string, any>) || {}
+  // (cores do preset da campanha, quando carregado, têm prioridade)
+  const tplStyles = {
+    ...((selectedTemplate?.style_settings as Record<string, any>) || {}),
+    ...(Object.keys(campaignPreset).length > 0 ? campaignPreset : {}),
+  }
   const tplLayout = (selectedTemplate?.layout_data as Record<string, any>) || {}
   const tplBg = tplStyles.bgColor || (selectedTemplate ? '#0F0B1E' : undefined)
   const tplAccent = tplStyles.accentColor || '#9333EA'
@@ -597,7 +664,7 @@ export default function CreatePost() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              <h1 className="hi-title text-2xl sm:text-3xl tracking-tight text-foreground">
                 Criar Novo Post
               </h1>
               <Badge
@@ -636,7 +703,7 @@ export default function CreatePost() {
 
       {/* Banner de Modelo Ativo */}
       {selectedTemplate && (
-        <Card className="p-4 border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 rounded-2xl shadow-xs transition-all">
+        <Card className="hi-card p-4 border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 rounded-2xl transition-all">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
               <div
