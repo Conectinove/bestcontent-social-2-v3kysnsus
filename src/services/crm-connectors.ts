@@ -27,17 +27,19 @@ export async function fetchPipedriveData(query?: string): Promise<{
   const activities: CrmRecordItem[] = []
 
   try {
-    const dealsRes = await execute({
-      toolkit: 'pipedrive',
-      tool: 'pipedrive_get_deals',
-      arguments: query ? { term: query } : {},
-    })
+    const dealsRes = await execute(
+      'PIPEDRIVE_GET_ALL_DEALS',
+      query ? { status: 'all_not_deleted' } : { limit: 20 },
+    )
 
-    const rawDeals = Array.isArray(dealsRes?.data)
-      ? dealsRes.data
-      : Array.isArray(dealsRes?.deals)
-        ? dealsRes.deals
-        : []
+    const dealsData = dealsRes?.data as any
+    const rawDeals = Array.isArray(dealsData?.data)
+      ? dealsData.data
+      : Array.isArray(dealsData?.deals)
+        ? dealsData.deals
+        : Array.isArray(dealsData)
+          ? dealsData
+          : []
 
     rawDeals.forEach((d: any) => {
       deals.push({
@@ -57,17 +59,16 @@ export async function fetchPipedriveData(query?: string): Promise<{
   }
 
   try {
-    const personsRes = await execute({
-      toolkit: 'pipedrive',
-      tool: 'pipedrive_get_persons',
-      arguments: query ? { term: query } : {},
-    })
+    const personsRes = await execute('PIPEDRIVE_GET_ALL_PERSONS', { limit: 20 })
 
-    const rawPersons = Array.isArray(personsRes?.data)
-      ? personsRes.data
-      : Array.isArray(personsRes?.persons)
-        ? personsRes.persons
-        : []
+    const personsData = personsRes?.data as any
+    const rawPersons = Array.isArray(personsData?.data)
+      ? personsData.data
+      : Array.isArray(personsData?.persons)
+        ? personsData.persons
+        : Array.isArray(personsData)
+          ? personsData
+          : []
 
     rawPersons.forEach((p: any) => {
       contacts.push({
@@ -86,17 +87,19 @@ export async function fetchPipedriveData(query?: string): Promise<{
   }
 
   try {
-    const activitiesRes = await execute({
-      toolkit: 'pipedrive',
-      tool: 'pipedrive_get_activities',
-      arguments: {},
-    })
+    const activitiesRes = await execute(
+      'PIPEDRIVE_GET_ALL_ACTIVITIES_ASSIGNED_TO_A_PARTICULAR_USER',
+      { limit: 20 },
+    )
 
-    const rawActivities = Array.isArray(activitiesRes?.data)
-      ? activitiesRes.data
-      : Array.isArray(activitiesRes?.activities)
-        ? activitiesRes.activities
-        : []
+    const actsData = activitiesRes?.data as any
+    const rawActivities = Array.isArray(actsData?.data)
+      ? actsData.data
+      : Array.isArray(actsData?.activities)
+        ? actsData.activities
+        : Array.isArray(actsData)
+          ? actsData
+          : []
 
     rawActivities.forEach((a: any) => {
       activities.push({
@@ -188,17 +191,19 @@ export async function fetchHubspotData(query?: string): Promise<{
   const companies: CrmRecordItem[] = []
 
   try {
-    const contactsRes = await execute({
-      toolkit: 'hubspot',
-      tool: 'hubspot_get_contacts',
-      arguments: query ? { query } : {},
+    const contactsRes = await execute('HUBSPOT_READ_APAGE_OF_OBJECTS_BY_TYPE', {
+      objectType: 'contacts',
+      limit: 20,
     })
 
-    const raw = Array.isArray(contactsRes?.results)
-      ? contactsRes.results
-      : Array.isArray(contactsRes?.contacts)
-        ? contactsRes.contacts
-        : []
+    const contactsData = contactsRes?.data as any
+    const raw = Array.isArray(contactsData?.results)
+      ? contactsData.results
+      : Array.isArray(contactsData?.contacts)
+        ? contactsData.contacts
+        : Array.isArray(contactsData)
+          ? contactsData
+          : []
 
     raw.forEach((c: any) => {
       const props = c.properties || {}
@@ -220,17 +225,19 @@ export async function fetchHubspotData(query?: string): Promise<{
   }
 
   try {
-    const dealsRes = await execute({
-      toolkit: 'hubspot',
-      tool: 'hubspot_get_deals',
-      arguments: query ? { query } : {},
+    const dealsRes = await execute('HUBSPOT_READ_APAGE_OF_OBJECTS_BY_TYPE', {
+      objectType: 'deals',
+      limit: 20,
     })
 
-    const raw = Array.isArray(dealsRes?.results)
-      ? dealsRes.results
-      : Array.isArray(dealsRes?.deals)
-        ? dealsRes.deals
-        : []
+    const dealsData = dealsRes?.data as any
+    const raw = Array.isArray(dealsData?.results)
+      ? dealsData.results
+      : Array.isArray(dealsData?.deals)
+        ? dealsData.deals
+        : Array.isArray(dealsData)
+          ? dealsData
+          : []
 
     raw.forEach((d: any) => {
       const props = d.properties || {}

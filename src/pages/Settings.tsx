@@ -1165,9 +1165,9 @@ export default function Settings() {
                       </div>
                       <div className="shrink-0">
                         <ConnectorButton
-                          toolkit="gmail"
-                          label="Conectar Outlook / E-mail"
-                          className="h-9 text-xs"
+                          toolkit="outlook"
+                          name="Outlook"
+                          className="[&>button]:h-9 [&>button]:text-xs [&>button]:rounded-lg [&>button]:border-blue-500/30"
                         />
                       </div>
                     </div>

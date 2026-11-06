@@ -20,17 +20,16 @@ export async function fetchCanvaAssets(query?: string): Promise<{
   const designs: CanvaAssetItem[] = []
 
   try {
-    const res = await execute({
-      toolkit: 'canva',
-      tool: 'canva_search_designs',
-      arguments: query ? { query } : {},
-    })
+    const res = await execute('CANVA_LIST_USER_DESIGNS', query ? { query } : {})
 
-    const items = Array.isArray(res?.items)
-      ? res.items
-      : Array.isArray(res?.designs)
-        ? res.designs
-        : []
+    const dataObj = res?.data as any
+    const items = Array.isArray(dataObj?.items)
+      ? dataObj.items
+      : Array.isArray(dataObj?.designs)
+        ? dataObj.designs
+        : Array.isArray(dataObj)
+          ? dataObj
+          : []
 
     items.forEach((item: any) => {
       designs.push({
