@@ -106,7 +106,20 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
       const created = await createProjectVersion({
         projectId,
         title: newVersionTitle.trim(),
+        change_summary: newVersionNotes.trim(),
         changeNotes: newVersionNotes.trim(),
+        snapshot: {
+          title: projectTitle,
+          description: newVersionNotes.trim(),
+          current_type: (currentSnapshot?.activeTab as any) || 'video',
+          prompt: currentSnapshot?.prompt || '',
+          attached_assets: (currentSnapshot?.uploadedAssets || []).map((u, i) => ({
+            id: `att-${i}`,
+            name: `Asset ${i + 1}`,
+            url: typeof u === 'string' ? u : u.url,
+            type: typeof u === 'string' ? 'media' : u.type,
+          })),
+        },
         snapshotData: {
           prompt: currentSnapshot?.prompt || '',
           activeTab: currentSnapshot?.activeTab || 'video',
@@ -114,13 +127,15 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
           canvasSettings: currentSnapshot?.canvasSettings || {},
           savedAt: new Date().toISOString(),
         },
+        author_id: user?.id,
+        author_name: user?.name || user?.email || 'Criador',
         authorId: user?.id,
         authorName: user?.name || user?.email || 'Criador',
       })
 
       toast({
         title: 'Nova versão salva!',
-        description: `Versão #${created.versionNumber} registrada no histórico com sucesso.`,
+        description: `Versão #${created.version_number} registrada no histórico com sucesso.`,
       })
 
       setNewVersionTitle('')
@@ -152,10 +167,25 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
 
     try {
       await restoreProjectVersion(version)
-      onRestoreSnapshot(version.snapshotData, version.title)
+      // snapshot na interface StudioProjectVersion carrega { prompt, current_type, attached_assets, ... }
+      const snapshotPayload: Record<string, any> = {
+        prompt: version.snapshot?.prompt || '',
+        activeTab:
+          version.snapshot?.current_type || (version.snapshot as any)?.activeTab || 'video',
+        uploadedAssets:
+          version.snapshot?.attached_assets?.map((a) =>
+            typeof a === 'string' ? a : a.url || a.name,
+          ) ||
+          (version.snapshot as any)?.uploadedAssets ||
+          [],
+        modelId: version.snapshot?.model_id,
+        qualityTier: version.snapshot?.quality_tier,
+        ...version.snapshot,
+      }
+      onRestoreSnapshot(snapshotPayload, version.title)
       toast({
         title: 'Versão restaurada!',
-        description: `Projeto revertido com sucesso para a versão #${version.versionNumber} (${version.title}).`,
+        description: `Projeto revertido com sucesso para a versão #${version.version_number} (${version.title}).`,
       })
       onOpenChange(false)
     } catch (err) {
@@ -294,7 +324,7 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                     <div className="flex items-center justify-between gap-1 mb-1">
                       <span className="text-xs font-black text-foreground flex items-center gap-1.5 truncate">
                         <span className="px-1.5 py-0.5 rounded-md bg-purple-600 text-white text-[10px]">
-                          v{v.versionNumber}
+                          v{v.version_number}
                         </span>
                         <span className="truncate">{v.title}</span>
                       </span>
@@ -308,19 +338,19 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                       </span>
                     </div>
 
-                    {v.changeNotes && (
+                    {v.change_summary && (
                       <p className="text-[11px] text-muted-foreground line-clamp-1 italic mb-1.5">
-                        "{v.changeNotes}"
+                        "{v.change_summary}"
                       </p>
                     )}
 
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/40">
                       <span className="flex items-center gap-1 truncate">
                         <User className="w-3 h-3" />
-                        <span className="truncate">{v.authorName || 'Autor'}</span>
+                        <span className="truncate">{v.author_name || 'Autor'}</span>
                       </span>
                       <span className="capitalize text-purple-600 font-semibold">
-                        Aba: {v.snapshotData?.activeTab || 'Geral'}
+                        Aba: {v.snapshot?.current_type || (v.snapshot as any)?.activeTab || 'Geral'}
                       </span>
                     </div>
                   </div>
@@ -337,7 +367,7 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="text-sm font-black text-foreground">
-                        v{selectedVersion.versionNumber} &middot; {selectedVersion.title}
+                        v{selectedVersion.version_number} &middot; {selectedVersion.title}
                       </h4>
                       <Badge
                         variant="outline"
@@ -347,7 +377,7 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Criado por {selectedVersion.authorName} em{' '}
+                      Criado por {selectedVersion.author_name || 'Autor'} em{' '}
                       {new Date(selectedVersion.created).toLocaleString('pt-BR')}
                     </p>
                   </div>
@@ -361,12 +391,12 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                   </Button>
                 </div>
 
-                {selectedVersion.changeNotes && (
+                {selectedVersion.change_summary && (
                   <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 text-xs">
                     <span className="font-bold text-foreground block mb-0.5">
                       Notas da Mudança:
                     </span>
-                    <p className="text-muted-foreground">{selectedVersion.changeNotes}</p>
+                    <p className="text-muted-foreground">{selectedVersion.change_summary}</p>
                   </div>
                 )}
 
@@ -377,7 +407,7 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                     <span>Prompt no Snapshot:</span>
                   </span>
                   <div className="p-3 rounded-xl bg-card border border-border font-mono text-xs text-foreground whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto">
-                    {selectedVersion.snapshotData?.prompt || (
+                    {selectedVersion.snapshot?.prompt || (
                       <span className="text-muted-foreground italic">
                         Nenhum texto de prompt registrado nesta versão.
                       </span>
@@ -392,7 +422,9 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                       Aba / Tipo de Criação
                     </span>
                     <span className="font-bold text-foreground capitalize">
-                      {selectedVersion.snapshotData?.activeTab || 'Geral'}
+                      {selectedVersion.snapshot?.current_type ||
+                        (selectedVersion.snapshot as any)?.activeTab ||
+                        'Geral'}
                     </span>
                   </div>
                   <div className="p-2.5 rounded-xl border border-border bg-card">
@@ -400,7 +432,10 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                       Assets Vinculados
                     </span>
                     <span className="font-bold text-foreground">
-                      {selectedVersion.snapshotData?.uploadedAssets?.length || 0} anexo(s)
+                      {selectedVersion.snapshot?.attached_assets?.length ||
+                        (selectedVersion.snapshot as any)?.uploadedAssets?.length ||
+                        0}{' '}
+                      anexo(s)
                     </span>
                   </div>
                 </div>
@@ -438,7 +473,7 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                               : 'bg-card text-muted-foreground border-border hover:bg-muted'
                           }`}
                         >
-                          v{v.versionNumber} ({v.title.slice(0, 15)}...)
+                          v{v.version_number} ({v.title.slice(0, 15)}...)
                         </button>
                       ))}
                   </div>
@@ -447,25 +482,25 @@ export const StudioVersionHistoryModal: React.FC<StudioVersionHistoryModalProps>
                     <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/25 space-y-2 text-xs">
                       <div className="flex items-center justify-between font-bold text-purple-700 dark:text-purple-300">
                         <span>
-                          Comparando v{selectedVersion.versionNumber} vs v
-                          {compareVersion.versionNumber}
+                          Comparando v{selectedVersion.version_number} vs v
+                          {compareVersion.version_number}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div className="p-2 rounded-lg bg-card border border-border">
                           <span className="font-bold block text-foreground">
-                            v{selectedVersion.versionNumber}:
+                            v{selectedVersion.version_number}:
                           </span>
                           <p className="line-clamp-3 font-mono text-muted-foreground">
-                            {selectedVersion.snapshotData?.prompt || '(Vazio)'}
+                            {selectedVersion.snapshot?.prompt || '(Vazio)'}
                           </p>
                         </div>
                         <div className="p-2 rounded-lg bg-card border border-border">
                           <span className="font-bold block text-foreground">
-                            v{compareVersion.versionNumber}:
+                            v{compareVersion.version_number}:
                           </span>
                           <p className="line-clamp-3 font-mono text-muted-foreground">
-                            {compareVersion.snapshotData?.prompt || '(Vazio)'}
+                            {compareVersion.snapshot?.prompt || '(Vazio)'}
                           </p>
                         </div>
                       </div>

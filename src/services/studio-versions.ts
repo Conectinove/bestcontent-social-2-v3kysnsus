@@ -244,29 +244,35 @@ export async function createProjectVersion(params: {
   projectId: string
   title: string
   changeNotes?: string
-  snapshotData: Record<string, any>
+  change_summary?: string
+  snapshotData?: Record<string, any>
+  snapshot?: StudioProjectVersionSnapshot | Record<string, any>
   authorId?: string
+  author_id?: string
   authorName?: string
+  author_name?: string
 }): Promise<StudioProjectVersion> {
+  const summary = params.change_summary || params.changeNotes || ''
+  const snapRaw = (params.snapshot || params.snapshotData || {}) as Record<string, any>
   const pseudoProject: StudioProject = {
     id: params.projectId,
     title: params.title,
-    description: params.changeNotes,
-    current_type: (params.snapshotData.activeTab as any) || 'video',
-    prompt: params.snapshotData.prompt || '',
-    model_id: params.snapshotData.canvasSettings?.selectedModel?.id || 'kling-4-0',
-    quality_tier: 'padrao',
-    attached_assets: params.snapshotData.uploadedAssets || [],
+    description: summary,
+    current_type: (snapRaw.current_type || snapRaw.activeTab || 'video') as any,
+    prompt: snapRaw.prompt || '',
+    model_id: snapRaw.model_id || snapRaw.canvasSettings?.selectedModel?.id || 'kling-4-0',
+    quality_tier: snapRaw.quality_tier || 'padrao',
+    attached_assets: snapRaw.attached_assets || snapRaw.uploadedAssets || [],
     collaborators: [],
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
-    status: 'em_andamento',
+    status: snapRaw.status || 'em_andamento',
   }
   return createStudioProjectVersion({
     project: pseudoProject,
     title: params.title,
-    description: params.changeNotes,
-    changeSummary: params.changeNotes,
+    description: summary,
+    changeSummary: summary,
   })
 }
 
