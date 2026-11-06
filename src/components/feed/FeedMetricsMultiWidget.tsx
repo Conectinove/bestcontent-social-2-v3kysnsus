@@ -15,6 +15,7 @@ import { ThreadsFeedWidget } from './ThreadsFeedWidget'
 import { WhatsAppFeedWidget } from './WhatsAppFeedWidget'
 import { EmailMarketingFeedWidget } from './EmailMarketingFeedWidget'
 import { ReachComparisonBlock } from './ReachComparisonBlock'
+import { NetworkEngagementBlock } from './NetworkEngagementBlock'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -47,6 +48,29 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
     <div className={`space-y-2.5 ${className}`}>
       {/* Bloco dedicado comparativo de Alcance Multi-Redes */}
       <ReachComparisonBlock />
+
+      {/* Bloco comparativo de Engajamento por Rede Social com taxa, tendência e benchmark */}
+      <NetworkEngagementBlock
+        onSelectNetwork={(net) => {
+          const map: Record<string, FeedWidgetNetwork> = {
+            instagram: 'instagram',
+            tiktok: 'tiktok',
+            threads: 'threads',
+            pinterest: 'pinterest',
+            facebook: 'facebook',
+            twitter: 'x_twitter',
+            youtube: 'youtube',
+            whatsapp: 'whatsapp',
+            email: 'email',
+            linkedin: 'linkedin',
+            substack: 'substack',
+            google_business: 'gbp',
+            bluesky: 'bluesky',
+            snapchat: 'snapchat',
+          }
+          if (map[net]) setActiveTab(map[net])
+        }}
+      />
 
       {/* Network selector tabs */}
       <div className="flex items-center justify-between gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/80 overflow-hidden">
