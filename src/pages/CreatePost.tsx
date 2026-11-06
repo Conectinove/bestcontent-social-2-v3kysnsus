@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Sparkles,
@@ -182,8 +182,90 @@ export default function CreatePost() {
     toneApplied?: string
     recommendedChars?: number
   } | null>(null)
+  // Geração automática de legenda (contexto de ideia ou tema digitado)
+  const [autoCaptionState, setAutoCaptionState] = useState<'idle' | 'queued' | 'running' | 'done'>(
+    'idle',
+  )
+  const [autoCaptionTopic, setAutoCaptionTopic] = useState('')
+  const autoCaptionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoCaptionRanRef = useRef(false)
+  const aiActionRef = useRef<(type: string, overridePlatform?: string) => Promise<void>>(
+    async () => {},
+  )
+  const aiLoadingRef = useRef<string | null>(null)
   // Validação inline
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
+
+  // ============================================================
+  // GERAÇÃO AUTOMÁTICA DE LEGENDA COM IA
+  // Dispara sozinha (sem clique extra) quando o usuário entra com
+  // contexto de ideia (state/URL, ex.: "Usar ideia" na Explorar) ou
+  // digita um tema — reutiliza exatamente o aiAction('caption')
+  // existente, mantendo indicador, regenerar, variação por rede e
+  // fallback local do generateCaption.
+  // ============================================================
+  const triggerAutoCaption = (topic: string, reason: 'idea' | 'theme') => {
+    if (!topic.trim()) return
+    autoCaptionRanRef.current = true
+    setAutoCaptionTopic(topic.trim())
+    setAutoCaptionState('queued')
+    if (autoCaptionTimer.current) clearTimeout(autoCaptionTimer.current)
+    autoCaptionTimer.current = setTimeout(
+      () => {
+        autoCaptionTimer.current = null
+        if (aiLoadingRef.current) {
+          setAutoCaptionState('idle')
+          return
+        }
+        setAutoCaptionState('running')
+        aiActionRef.current('caption')
+      },
+      reason === 'idea' ? 400 : 1400,
+    )
+  }
+
+  // 1) Contexto de ideia: navegação com state (caption/tema) ou query ?prompt/?idea
+  useEffect(() => {
+    if (autoCaptionRanRef.current || !initialCaption.trim()) return
+    const stateTopic = (location.state?.caption as string) || ''
+    triggerAutoCaption(stateTopic || urlPrompt || initialCaption, 'idea')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 2) Tema digitado no campo de título/ideia (sem clique extra)
+  useEffect(() => {
+    if (autoCaptionRanRef.current) return
+    const topic = content.trim()
+    if (topic.length < 12 || caption.trim()) return
+    triggerAutoCaption(topic, 'theme')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content])
+
+  // Sempre usa a versão mais recente do handler e do estado de loading
+  useEffect(() => {
+    aiActionRef.current = aiAction
+    aiLoadingRef.current = aiLoading
+  })
+
+  useEffect(() => {
+    return () => {
+      if (autoCaptionTimer.current) clearTimeout(autoCaptionTimer.current)
+    }
+  }, [])
+
+  // Marca como concluída quando a IA termina de escrever a legenda
+  useEffect(() => {
+    if (autoCaptionState !== 'running') return
+    if (aiLoading === null) setAutoCaptionState('done')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiLoading])
+
+  // Edição manual do usuário encerra os avisos da geração automática
+  useEffect(() => {
+    if (autoCaptionState === 'idle' || autoCaptionState === 'running') return
+    if (caption.trim() && caption.trim() !== autoCaptionTopic) setAutoCaptionState('idle')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caption])
 
   // ============================================================
   // PERSISTÊNCIA DO RASCUNHO — restaura ao voltar para a etapa
@@ -309,6 +391,7 @@ export default function CreatePost() {
     setAiLoading(type)
     try {
       if (type === 'caption') {
+        // Legenda: sempre regenera por cima da anterior (não bloqueia por caption preenchida)
         const brandNiche = (selectedBrand as any)?.niche || (selectedBrand as any)?.segment || ''
         const brandName = selectedBrand?.name || ''
         const r = await generateCaption({
@@ -780,6 +863,28 @@ export default function CreatePost() {
                 </div>
               </div>
 
+              {/* Indicador de geração automática de legenda (ideia/tema → IA dispara sozinha) */}
+              {(autoCaptionState === 'queued' || autoCaptionState === 'running') && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/25">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600 shrink-0" />
+                  <p className="text-[11px] font-semibold text-purple-700 dark:text-purple-300">
+                    {autoCaptionState === 'queued' ? 'Preparando geração' : 'Gerando'}{' '}
+                    automaticamente a legenda com IA
+                    {autoCaptionTopic ? ` para “${autoCaptionTopic.slice(0, 70)}”` : ''}… Você pode
+                    continuar editando — regenerar depois com 1 clique.
+                  </p>
+                </div>
+              )}
+              {autoCaptionState === 'done' && caption.trim() && (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                    Legenda gerada automaticamente pela IA. Não gostou? Use “Regenerar” ou escolha
+                    outra rede abaixo.
+                  </p>
+                </div>
+              )}
+
               {/* Barra de Ação da IA com Seleção Rápida de Rede e Regeneração */}
               <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/10 via-card to-card border border-purple-500/30 space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -974,7 +1079,16 @@ export default function CreatePost() {
               <Textarea
                 placeholder="Escreva a legenda detalhada, storytelling ou gere com a IA..."
                 value={caption}
-                onChange={(e) => setCaption(e.target.value)}
+                onChange={(e) => {
+                  // Edição manual cancela a geração automática ainda não disparada
+                  if (autoCaptionState === 'queued') {
+                    if (autoCaptionTimer.current) clearTimeout(autoCaptionTimer.current)
+                    autoCaptionTimer.current = null
+                    autoCaptionRanRef.current = true
+                    setAutoCaptionState('idle')
+                  }
+                  setCaption(e.target.value)
+                }}
                 className="min-h-[110px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">

@@ -102,6 +102,11 @@ export interface PerformanceReportRecord {
       }[]
       aiRecommendations: string[]
     }
+    individualPost?: {
+      postId?: string
+      network?: string
+      captionPreview?: string
+    }
   }
   kpis_json?: {
     totalPosts?: number
