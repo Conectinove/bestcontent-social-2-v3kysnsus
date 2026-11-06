@@ -22,15 +22,24 @@ export interface ScheduledPostRecord {
     post?: {
       id: string
       title?: string
+      content?: string
       caption?: string
       status?: string
       scheduled_at?: string
       image_url?: string
       brand?: string
+      expand?: {
+        brand?: {
+          id: string
+          name: string
+          color_theme?: string
+        }
+      }
     }
     brand?: {
       id: string
       name: string
+      color_theme?: string
     }
   }
 }

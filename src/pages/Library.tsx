@@ -50,6 +50,10 @@ import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
 import { createTemplate } from '@/services/post-templates'
 import { enrichPostWithAi } from '@/services/ai-studio'
 import { AiEnrichmentCard } from '@/components/library/AiEnrichmentCard'
+import {
+  LibraryFilterBar,
+  LibraryAdvancedFiltersState,
+} from '@/components/library/LibraryFilterBar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import { CampaignReportModal } from '@/components/campaigns/CampaignReportModal'
@@ -229,6 +233,15 @@ export default function Library() {
   const [selectedPlatform, setSelectedPlatform] = useState('all')
   const [selectedFormat, setSelectedFormat] = useState('all') // 'all', 'flyer', 'video', 'post'
   const [selectedTag, setSelectedTag] = useState('all')
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    'all' | 'today' | '7days' | '30days' | '90days' | 'this_year'
+  >('all')
+  const [selectedEngagementLevel, setSelectedEngagementLevel] = useState<
+    'all' | 'has_engagement' | 'high_engagement' | 'no_engagement'
+  >('all')
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'draft' | 'scheduled' | 'published' | 'approved'
+  >('all')
   const [onlyFavorites, setOnlyFavorites] = useState(false)
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>(() => {
     return searchParams.get('campaign') || 'all'
@@ -366,6 +379,50 @@ export default function Library() {
         if (activeTab === 'published' && post.status !== 'published') return false
         if (activeTab === 'approved' && post.status !== 'approved') return false
 
+        // Status filter dedicado
+        if (statusFilter !== 'all' && post.status !== statusFilter) return false
+
+        // Period filter (por data de criação ou agendamento)
+        if (selectedPeriod !== 'all') {
+          const postDate = new Date(post._raw?.created || post.scheduledDate || 0)
+          if (!isNaN(postDate.getTime())) {
+            const now = new Date()
+            const diffMs = now.getTime() - postDate.getTime()
+            const diffDays = diffMs / (1000 * 60 * 60 * 24)
+
+            if (selectedPeriod === 'today') {
+              const isSameDay =
+                postDate.getDate() === now.getDate() &&
+                postDate.getMonth() === now.getMonth() &&
+                postDate.getFullYear() === now.getFullYear()
+              if (!isSameDay) return false
+            } else if (selectedPeriod === '7days' && diffDays > 7) {
+              return false
+            } else if (selectedPeriod === '30days' && diffDays > 30) {
+              return false
+            } else if (selectedPeriod === '90days' && diffDays > 90) {
+              return false
+            } else if (selectedPeriod === 'this_year') {
+              if (postDate.getFullYear() !== now.getFullYear()) return false
+            }
+          }
+        }
+
+        // Engagement filter
+        if (selectedEngagementLevel !== 'all') {
+          const metric = metricsMap[post.id]
+          const totalInteractions = metric
+            ? (metric.curtidas || (metric as any).likes || 0) +
+              (metric.comentarios || (metric as any).comments || 0) +
+              (metric.compartilhamentos || (metric as any).shares || 0) +
+              (metric.salvamentos || (metric as any).saves || 0)
+            : 0
+
+          if (selectedEngagementLevel === 'has_engagement' && totalInteractions <= 0) return false
+          if (selectedEngagementLevel === 'high_engagement' && totalInteractions < 50) return false
+          if (selectedEngagementLevel === 'no_engagement' && totalInteractions > 0) return false
+        }
+
         // Brand filter
         if (selectedBrandFilter === 'active' && activeBrand) {
           if (post.brandId !== activeBrand.id) return false
@@ -471,6 +528,10 @@ export default function Library() {
   }, [
     posts,
     activeTab,
+    statusFilter,
+    selectedPeriod,
+    selectedEngagementLevel,
+    metricsMap,
     selectedBrandFilter,
     activeBrand,
     selectedPlatform,
@@ -1505,107 +1566,38 @@ export default function Library() {
           </Select>
         </div>
 
-        {/* Advanced Filters Popover */}
-        <div className="md:col-span-2 flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                aria-label="Abrir mais filtros de formato e ordenação"
-                className="w-full h-10 text-xs font-semibold gap-2 rounded-xl border-border/80 bg-card hover:bg-muted shadow-xs"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Mais Filtros</span>
-                {(selectedFormat !== 'all' || sortOrder !== 'newest') && (
-                  <span className="w-2 h-2 rounded-full bg-purple-600" />
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-4 space-y-3.5 rounded-2xl shadow-xl" align="end">
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-purple-600" /> Filtros Refinados
-                </h4>
-                {(selectedFormat !== 'all' || sortOrder !== 'newest') && (
-                  <button
-                    onClick={() => {
-                      setSelectedFormat('all')
-                      setSortOrder('newest')
-                    }}
-                    className="text-[11px] text-purple-600 hover:underline"
-                  >
-                    Resetar
-                  </button>
-                )}
-              </div>
-
-              {/* Tag Filter */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-muted-foreground">
-                  Etiqueta / Tag
-                </label>
-                <Select value={selectedTag} onValueChange={setSelectedTag}>
-                  <SelectTrigger aria-label="Selecionar Tag" className="h-8 text-xs rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as tags</SelectItem>
-                    {allAvailableTags.map((tag) => (
-                      <SelectItem key={tag} value={tag} className="capitalize">
-                        #{tag}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Format Filter */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-muted-foreground">
-                  Tipo de Formato
-                </label>
-                <Select value={selectedFormat} onValueChange={setSelectedFormat}>
-                  <SelectTrigger aria-label="Selecionar Formato" className="h-8 text-xs rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os formatos</SelectItem>
-                    <SelectItem value="flyer">Flyers e Banners (Retrato)</SelectItem>
-                    <SelectItem value="video">Vídeos, Reels, Shorts & TikTok</SelectItem>
-                    <SelectItem value="carousel">Carrosséis (Educativo, Antes & Depois)</SelectItem>
-                    <SelectItem value="talking_head">Talking Head (Roteiro 9:16)</SelectItem>
-                    <SelectItem value="ugc">UGC & Prova Social</SelectItem>
-                    <SelectItem value="interactive">
-                      Interativo / Enquete / Comunidade / Collab
-                    </SelectItem>
-                    <SelectItem value="post">Posts de Feed Quadrados / Retrato</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sort Order */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-muted-foreground">
-                  Ordenação Temporal
-                </label>
-                <Select
-                  value={sortOrder}
-                  onValueChange={(val: 'newest' | 'oldest') => setSortOrder(val)}
-                >
-                  <SelectTrigger
-                    aria-label="Selecionar Ordenação"
-                    className="h-8 text-xs rounded-lg"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Mais recentes primeiro</SelectItem>
-                    <SelectItem value="oldest">Mais antigos primeiro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </PopoverContent>
-          </Popover>
+        {/* Advanced Filters Popover com Filtros Combináveis e Contagem */}
+        <div className="md:col-span-2 flex items-center justify-end">
+          <LibraryFilterBar
+            filters={{
+              status: statusFilter,
+              format: selectedFormat,
+              period: selectedPeriod,
+              engagementLevel: selectedEngagementLevel,
+              tag: selectedTag,
+              sortOrder,
+            }}
+            onChange={(updates) => {
+              if (updates.status !== undefined) setStatusFilter(updates.status)
+              if (updates.format !== undefined) setSelectedFormat(updates.format)
+              if (updates.period !== undefined) setSelectedPeriod(updates.period)
+              if (updates.engagementLevel !== undefined)
+                setSelectedEngagementLevel(updates.engagementLevel)
+              if (updates.tag !== undefined) setSelectedTag(updates.tag)
+              if (updates.sortOrder !== undefined) setSortOrder(updates.sortOrder)
+            }}
+            onReset={() => {
+              setStatusFilter('all')
+              setSelectedFormat('all')
+              setSelectedPeriod('all')
+              setSelectedEngagementLevel('all')
+              setSelectedTag('all')
+              setSortOrder('newest')
+            }}
+            totalCount={posts.length}
+            filteredCount={filteredPosts.length}
+            allAvailableTags={allAvailableTags}
+          />
         </div>
       </div>
 

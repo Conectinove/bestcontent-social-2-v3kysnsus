@@ -20,6 +20,7 @@ import {
 import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModal'
 import { SchedulePostModal } from '@/components/calendar/SchedulePostModal'
 import { ScheduledPostsList } from '@/components/calendar/ScheduledPostsList'
+import { CalendarScheduleView } from '@/components/calendar/CalendarScheduleView'
 import {
   NETWORK_BEST_TIMES_MAP,
   getPostsQueueForAutoScheduling,
@@ -582,8 +583,8 @@ export default function CalendarPage() {
                 : 'bg-card text-muted-foreground hover:text-foreground border border-border/60'
             }`}
           >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Grade Mensal</span>
+            <CalendarIcon className="w-3.5 h-3.5" />
+            <span>Calendário Interativo (Mês/Semana)</span>
           </button>
 
           <button
@@ -632,6 +633,17 @@ export default function CalendarPage() {
           onNewSchedule={() => {
             setEditingScheduleItem(null)
             setScheduleModalOpen(true)
+          }}
+        />
+      )}
+
+      {/* Visão: Calendário Interativo Mês / Semana com Arrastar e Soltar */}
+      {viewMode === 'calendar' && (
+        <CalendarScheduleView
+          scheduledPosts={filtered}
+          onPostRescheduled={() => load()}
+          onSelectPost={(s) => {
+            setSelectedDay([s])
           }}
         />
       )}
@@ -869,87 +881,7 @@ export default function CalendarPage() {
             )}
           </div>
         </div>
-      ) : (
-        <Card className="p-5 rounded-2xl border border-border/80 bg-card shadow-xs overflow-x-auto">
-          <div className="min-w-[600px]">
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground mb-2">
-              {DAYS.map((d) => (
-                <div key={d}>{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1.5">
-              {Array.from({ length: firstDay }).map((_, i) => (
-                <div key={`e-${i}`} className="h-24 bg-muted/20 rounded-md" />
-              ))}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const dayNum = i + 1
-                const dayPosts = getPostsForDay(dayNum)
-                const isToday =
-                  dayNum === new Date().getDate() &&
-                  month === new Date().getMonth() &&
-                  year === new Date().getFullYear()
-                return (
-                  <div
-                    key={dayNum}
-                    onClick={() => dayPosts.length > 0 && setSelectedDay(dayPosts)}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      setDragOver(dayNum)
-                    }}
-                    onDragLeave={() => setDragOver(null)}
-                    onDrop={() => handleDrop(dayNum)}
-                    draggable={false}
-                    className={`h-28 p-2 rounded-xl border flex flex-col justify-between transition-all cursor-pointer ${isToday ? 'border-primary ring-2 ring-primary/30 bg-purple-500/5' : dragOver === dayNum ? 'border-primary bg-primary/10' : 'border-border/70 hover:border-primary/50 bg-card/60 shadow-2xs'}`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span
-                        className={`text-xs font-semibold ${isToday ? 'text-primary font-bold' : ''}`}
-                      >
-                        {dayNum}
-                      </span>
-                      {dayPosts.length > 0 && (
-                        <Badge className="bg-primary text-white text-[9px] px-1">
-                          {dayPosts.length}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="space-y-1 overflow-hidden">
-                      {dayPosts.slice(0, 2).map((s) => {
-                        const post = s.expand?.post
-                        const brand = post?.expand?.brand
-                        return (
-                          <div
-                            key={s.id}
-                            draggable
-                            onDragStart={() => setDragId(s.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1 rounded bg-muted text-[10px] truncate font-medium flex items-center gap-1 cursor-move hover:bg-primary/10"
-                          >
-                            <span
-                              className="w-1.5 h-1.5 rounded-full shrink-0"
-                              style={{ backgroundColor: brand?.color_theme || '#BF2A95' }}
-                            />
-                            <span className="truncate flex-1">
-                              {post?.caption || post?.content || 'Post'}
-                            </span>
-                            <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 shrink-0 font-mono">
-                              ⏰{' '}
-                              {new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </Card>
-      )}
+      ) : null}
 
       {/* Modal Dedicado de Criação e Edição de Agendamento com Recorrência */}
       <SchedulePostModal

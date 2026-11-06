@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { CrmContactModal } from '@/components/crm/CrmContactModal'
 import { CrmContactDrawer } from '@/components/crm/CrmContactDrawer'
+import { CrmPerformanceIntegration } from '@/components/crm/CrmPerformanceIntegration'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -308,6 +309,18 @@ export default function CrmPage() {
           </Button>
         </div>
       </div>
+
+      {/* Integração de Relatório de Performance ao CRM */}
+      <CrmPerformanceIntegration
+        currentFilteredCount={filteredContacts.length}
+        onFilterByCampaignOrSource={(val) => {
+          setSearchQuery(val)
+          toast({
+            title: 'Filtro por Campanha Aplicado',
+            description: `Exibindo leads associados a "${val}".`,
+          })
+        }}
+      />
 
       {/* Cartões de Métricas / KPIs Principais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

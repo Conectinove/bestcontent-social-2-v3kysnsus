@@ -71,6 +71,7 @@ import {
 } from '@/services/community'
 import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
 import { FeedMetricsMultiWidget } from '@/components/feed/FeedMetricsMultiWidget'
+import { FeedControlPanel } from '@/components/feed/FeedControlPanel'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -753,8 +754,63 @@ export default function Feed() {
     ]
   }, [])
 
+  // Importa todos os itens pendentes do feed para a biblioteca
+  const handleImportAllPending = async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Faça login para importar',
+        description: 'É necessário estar autenticado para salvar itens na biblioteca.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsImportingToLibrary(true)
+    try {
+      const itemsToImport: FeedItemToImport[] = topics.map((t) => ({
+        id: t.id,
+        title: t.title,
+        content: t.content,
+        image_url: t.image_url,
+        category: t.expand?.category?.name,
+        tags: Array.isArray(t.tags) ? t.tags : undefined,
+        authorName: t.expand?.user?.name || 'Comunidade',
+      }))
+
+      const result = await importFeedItemsToLibrary(itemsToImport, user.id, activeBrand?.id)
+
+      toast({
+        title: 'Importação em lote concluída! 📚',
+        description: `${result.importedCount} importados · ${result.existingCount} já existiam${
+          result.errors > 0 ? ` · ${result.errors} erros` : ''
+        }`,
+      })
+
+      setSelectedTopicIds([])
+    } catch (err: any) {
+      toast({
+        title: 'Erro na importação',
+        description: err?.message || 'Falha ao importar itens pendentes.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsImportingToLibrary(false)
+    }
+  }
+
   return (
     <div className="space-y-6 pb-12 animate-fade-in text-foreground">
+      {/* Painel de Controle do Feed & Curadoria */}
+      <FeedControlPanel
+        topics={topics}
+        libraryPosts={posts}
+        selectedCount={selectedTopicIds.length}
+        onImportSelected={handleImportSelectedToLibrary}
+        onImportAllPending={handleImportAllPending}
+        onClearSelection={() => setSelectedTopicIds([])}
+        isImporting={isImportingToLibrary}
+      />
+
       {/* =========================================================================
           TOP ROW: 2 Cards (Criador Dedicado & Missões)
           ========================================================================= */}
