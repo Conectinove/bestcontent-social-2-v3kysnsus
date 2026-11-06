@@ -102,6 +102,9 @@ export default function PostEditor() {
   const [captionVariations, setCaptionVariations] = useState<
     Array<{ title: string; text: string; cta?: string }>
   >([])
+  const [hookVariations, setHookVariations] = useState<
+    Array<{ hook: string; type: string; explanation?: string }>
+  >([])
   const [content, setContent] = useState('')
   const [caption, setCaption] = useState('')
   const [platform, setPlatform] = useState('Instagram')
@@ -219,6 +222,73 @@ export default function PostEditor() {
     }
   }
 
+  const handleGenerateFullPackage = async () => {
+    const textTheme = content.trim() || caption.trim()
+    const activeBrand = brands.find((b: any) => b.id === brandId)
+    const brandNiche = (activeBrand as any)?.niche || (activeBrand as any)?.segment || 'Geral'
+    const brandName = activeBrand?.name || 'Minha Marca'
+    const effectiveTopic = textTheme || `Dicas e estratégias práticas para ${brandNiche}`
+
+    setImproving(true)
+    try {
+      const [res, hashRes] = await Promise.all([
+        generateCaption({
+          content: effectiveTopic,
+          topic: effectiveTopic,
+          platform: platform.toLowerCase(),
+          tone: captionTone,
+          brandName,
+          brandNiche,
+          variations: true,
+        }) as any,
+        generateHashtags({
+          content: effectiveTopic,
+          platform: platform.toLowerCase(),
+        }).catch(() => ({ hashtags: [] })),
+      ])
+
+      if (!content.trim()) {
+        const firstHook = res?.hook_variations?.[0]?.hook || ''
+        const titleGenerated = firstHook
+          ? firstHook
+              .replace(/[#*👉🔥✨💡🚀]/g, '')
+              .trim()
+              .slice(0, 85)
+          : `Como Ter Mais Resultados em ${brandNiche}`
+        setContent(titleGenerated)
+      }
+
+      const rawTags = (hashRes as any)?.hashtags || res?.hashtags || []
+      const tagsStr = Array.isArray(rawTags)
+        ? rawTags.map((t: string) => (t.startsWith('#') ? t : `#${t}`)).join(' ')
+        : ''
+
+      let cap = (res?.caption || '').trim()
+      if (tagsStr && !cap.includes('#')) {
+        cap = `${cap}\n\n${tagsStr}`.trim()
+      }
+      if (cap) {
+        setCaption(cap)
+      }
+
+      if (Array.isArray(res?.variations) && res.variations.length > 0) {
+        setCaptionVariations(res.variations)
+      }
+      if (Array.isArray(res?.hook_variations) && res.hook_variations.length > 0) {
+        setHookVariations(res.hook_variations)
+      }
+
+      toast({
+        title: '✨ Post Completo Gerado!',
+        description: 'Título, legenda, hashtags e variações aplicados com sucesso.',
+      })
+    } catch (err) {
+      toast({ title: 'Erro na IA', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setImproving(false)
+    }
+  }
+
   const handleGenerateVariations = async () => {
     const textTheme = caption.trim() || content.trim()
     if (!textTheme) {
@@ -248,6 +318,9 @@ export default function PostEditor() {
       } else if (res.caption) {
         setCaption(res.caption)
         toast({ title: 'Legenda gerada!', description: 'Texto atualizado com IA.' })
+      }
+      if (Array.isArray(res.hook_variations) && res.hook_variations.length > 0) {
+        setHookVariations(res.hook_variations)
       }
     } catch {
       toast({
@@ -426,6 +499,76 @@ export default function PostEditor() {
       case 'caption':
         return (
           <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent border border-purple-500/25">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">Gerador Completo com IA</h4>
+                  <p className="text-[10px] text-muted-foreground">
+                    Título + Legenda + Hashtags + 3 Ganchos
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleGenerateFullPackage}
+                disabled={improving}
+                className="text-xs bg-purple-600 hover:bg-purple-700 text-white gap-1.5 h-8 px-3 rounded-xl shadow-xs"
+              >
+                {improving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+                <span>Gerar com IA</span>
+              </Button>
+            </div>
+
+            {/* Variações de Gancho em 1-clique */}
+            {hookVariations.length > 0 && (
+              <div className="p-3 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-900/40 space-y-2 animate-in fade-in-50">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />3 Variações de Gancho (1-clique para
+                    aplicar):
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setHookVariations([])}
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Dispensar
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {hookVariations.map((v, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        const lines = caption.split('\n')
+                        const newCaption = [v.hook, ...lines.slice(1)].join('\n')
+                        setCaption(newCaption)
+                        toast({
+                          title: 'Gancho aplicado!',
+                          description: `Variação "${v.type}" aplicada ao topo da legenda.`,
+                        })
+                      }}
+                      className="p-2 text-left rounded-lg bg-card hover:bg-muted/80 border border-border/80 transition-all text-xs group"
+                    >
+                      <span className="font-bold text-purple-600 dark:text-purple-400 block text-[10px] uppercase">
+                        {v.type}
+                      </span>
+                      <p className="text-foreground font-medium text-[11px] mt-0.5">{v.hook}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <CaptionWidget
               caption={caption}
               setCaption={setCaption}

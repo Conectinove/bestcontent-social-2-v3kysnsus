@@ -895,131 +895,236 @@ export default function CalendarPage() {
       />
 
       <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
-        <DialogContent className="sm:max-w-md rounded-3xl">
+        <DialogContent className="sm:max-w-lg rounded-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4 text-primary" />
-              Posts Agendados ({selectedDay?.length || 0})
+            <DialogTitle className="text-base font-black flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-primary" />
+                Detalhes do Agendamento ({selectedDay?.length || 0})
+              </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 my-2">
+          <div className="space-y-4 my-2">
             {selectedDay?.map((s) => {
               const post = s.expand?.post
               const brand = post?.expand?.brand
+              const scheduledDateObj = new Date(s.scheduled_at)
+              const statusStr = s.status || post?.status || 'scheduled'
+              const authorName =
+                post?.expand?.author?.name || post?.author_name || user?.name || 'Autor'
+
+              // Detecta formato se existir
+              let formatLabel = (post?.platform || 'POST').toUpperCase()
+              try {
+                const meta =
+                  typeof post?._raw?.script_json === 'string'
+                    ? JSON.parse(post._raw.script_json)
+                    : post?._raw?.script_json
+                if (meta?.type) formatLabel = String(meta.type).toUpperCase()
+                else if (post?._raw?.duration > 0) formatLabel = 'VÍDEO'
+              } catch {
+                /* ignore */
+              }
+
               return (
                 <div
                   key={s.id}
-                  className="p-3.5 rounded-2xl bg-muted/50 space-y-2 text-xs border border-border/70 shadow-xs"
+                  className="p-4 rounded-2xl bg-card border border-border/80 space-y-3 text-xs shadow-xs"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
+                  {/* Cabeçalho do Card: Marca, Rede, Formato e Status */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-border/60">
+                    <div className="flex items-center gap-2">
                       <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: brand?.color_theme || '#BF2A95' }}
+                        className="w-3 h-3 rounded-full shrink-0 shadow-2xs"
+                        style={{ backgroundColor: brand?.color_theme || '#9333EA' }}
                       />
-                      <span className="font-semibold">{brand?.name || 'Marca'}</span>
+                      <span className="font-bold text-foreground text-sm">
+                        {brand?.name || 'Marca sem nome'}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge
                         variant="outline"
-                        className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20 font-bold"
+                        className="text-[10px] uppercase font-black bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
                       >
-                        ⏰ Agendado para{' '}
-                        {new Date(s.scheduled_at).toLocaleDateString('pt-BR', {
+                        {post?.platform || 'Instagram'}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[10px] uppercase font-bold">
+                        {formatLabel}
+                      </Badge>
+                      <Badge
+                        className={`text-[10px] font-bold ${
+                          statusStr === 'published'
+                            ? 'bg-emerald-600 text-white'
+                            : statusStr === 'approved'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-primary/20 text-primary border border-primary/30'
+                        }`}
+                      >
+                        {statusStr === 'published'
+                          ? 'Publicado'
+                          : statusStr === 'approved'
+                            ? 'Aprovado'
+                            : 'Agendado'}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Informações de Agendamento e Autor */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-muted/50 border border-border/50 text-[11px]">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
+                        Data e Hora Prevista:
+                      </span>
+                      <strong className="text-foreground font-mono">
+                        {scheduledDateObj.toLocaleDateString('pt-BR', {
                           day: '2-digit',
-                          month: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
                         })}{' '}
                         às{' '}
-                        {new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
+                        {scheduledDateObj.toLocaleTimeString('pt-BR', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px]">
-                        {post?.platform}
-                      </Badge>
+                      </strong>
                     </div>
-                  </div>{' '}
-                  <p className="text-foreground leading-relaxed">
-                    {post?.caption || post?.content}
-                  </p>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
+                        Criador / Autor:
+                      </span>
+                      <strong className="text-foreground">{authorName}</strong>
+                    </div>
+                  </div>
+
+                  {/* Legenda Resumida / Conteúdo do Post */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Legenda / Conteúdo:
+                    </span>
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/50 text-foreground text-xs leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
+                      {post?.caption || post?.content || 'Post sem legenda definida.'}
+                    </div>
+                  </div>
+
+                  {/* Mini-painel de Reagendamento (Date & Time Picker) */}
                   {editingPostTimeId === s.id ? (
-                    <div className="p-2.5 rounded-xl bg-card border border-primary/40 space-y-2 mt-2">
-                      <p className="text-[11px] font-bold text-foreground">
-                        Ajustar Data e Horário:
+                    <div className="p-3 rounded-xl bg-purple-500/10 border border-primary/40 space-y-2 mt-2">
+                      <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-primary" />
+                        Reagendar Post (Nova Data e Hora):
                       </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="date"
-                          value={editDateValue}
-                          onChange={(e) => setEditDateValue(e.target.value)}
-                          className="text-xs bg-muted border border-border rounded-lg px-2 py-1 text-foreground"
-                        />
-                        <input
-                          type="time"
-                          value={editTimeValue}
-                          onChange={(e) => setEditTimeValue(e.target.value)}
-                          className="text-xs bg-muted border border-border rounded-lg px-2 py-1 text-foreground"
-                        />
+                      <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                            Nova Data
+                          </label>
+                          <input
+                            type="date"
+                            value={editDateValue}
+                            onChange={(e) => setEditDateValue(e.target.value)}
+                            className="w-full text-xs bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                            Novo Horário
+                          </label>
+                          <input
+                            type="time"
+                            value={editTimeValue}
+                            onChange={(e) => setEditTimeValue(e.target.value)}
+                            className="w-full text-xs bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
                       </div>
                       <div className="flex justify-end gap-1.5 pt-1">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => setEditingPostTimeId(null)}
-                          className="h-7 text-xs rounded-lg"
+                          className="h-8 text-xs rounded-xl"
                         >
                           Cancelar
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleUpdateTime(s.id)}
-                          className="h-7 text-xs bg-primary text-white rounded-lg"
+                          className="h-8 text-xs bg-primary hover:bg-primary/90 text-white rounded-xl font-bold shadow-xs"
                         >
-                          Salvar Horário
+                          Confirmar Reagendamento
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex justify-between items-center pt-1 border-t border-border">
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(s.scheduled_at).toLocaleString('pt-BR')}
-                      </span>
-                      <div className="flex items-center gap-1">
+                  ) : null}
+
+                  {/* Barra de Ações: Editar Post, Reagendar, Publicar e Remover Agendamento */}
+                  <div className="pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {post?.id && (
                         <Button
-                          variant="ghost"
+                          asChild
+                          variant="default"
                           size="sm"
-                          className="h-7 px-2 text-[11px] rounded-lg text-purple-600 dark:text-purple-400 gap-1 hover:bg-purple-500/10"
-                          onClick={() => {
-                            const d = new Date(s.scheduled_at)
-                            setEditDateValue(d.toISOString().slice(0, 10))
-                            setEditTimeValue(
-                              `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
-                            )
-                            setEditingPostTimeId(s.id)
-                          }}
+                          className="h-8 px-2.5 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold gap-1 shadow-2xs"
                         >
-                          <Clock className="w-3 h-3" /> Trocar Horário
+                          <Link to={`/app/editor?id=${post.id}`}>
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Editar Post</span>
+                          </Link>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          onClick={() => sharePost(post?.caption || post?.content || '')}
-                        >
-                          <Share2 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteScheduled(s.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2.5 text-xs rounded-xl border-purple-500/30 text-purple-600 dark:text-purple-400 gap-1 hover:bg-purple-500/10 font-semibold"
+                        onClick={() => {
+                          const d = new Date(s.scheduled_at)
+                          setEditDateValue(d.toISOString().slice(0, 10))
+                          setEditTimeValue(
+                            `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+                          )
+                          setEditingPostTimeId(s.id)
+                        }}
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Reagendar</span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs rounded-xl text-emerald-600 hover:bg-emerald-500/10 font-semibold gap-1"
+                        onClick={() => handlePublishNow(s)}
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Disparar Agora</span>
+                      </Button>
                     </div>
-                  )}
+
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl"
+                        onClick={() => sharePost(post?.caption || post?.content || '')}
+                        title="Compartilhar"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl font-semibold gap-1"
+                        onClick={() => handleDeleteScheduled(s.id)}
+                        title="Remover agendamento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Remover</span>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )
             })}

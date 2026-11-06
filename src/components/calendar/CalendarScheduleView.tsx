@@ -283,6 +283,8 @@ export function CalendarScheduleView({
                   const dayNum = i + 1
                   const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
                   const dayPosts = postsByDateStr.get(dateKey) || []
+                  const currentDayOfWeek = new Date(year, month, dayNum).getDay()
+                  const isWeekend = currentDayOfWeek === 0 || currentDayOfWeek === 6
                   const isToday =
                     dayNum === now.getDate() &&
                     month === now.getMonth() &&
@@ -300,22 +302,42 @@ export function CalendarScheduleView({
                       onDrop={() => handleDropOnDate(year, month, dayNum)}
                       className={`h-28 p-2 rounded-xl border flex flex-col justify-between transition-all ${
                         isToday
-                          ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                          ? 'border-primary ring-2 ring-primary/40 bg-primary/10 shadow-xs'
                           : isDragOver
                             ? 'border-primary ring-2 ring-primary bg-primary/15'
-                            : 'border-border/70 hover:border-border bg-card/60'
+                            : isWeekend
+                              ? 'border-border/60 hover:border-border bg-muted/30'
+                              : 'border-border/70 hover:border-border bg-card/60'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span
-                          className={`text-xs font-bold ${
-                            isToday ? 'text-primary' : 'text-foreground/90'
-                          }`}
-                        >
-                          {dayNum}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`text-xs font-bold ${
+                              isToday
+                                ? 'text-primary font-black px-1.5 py-0.2 rounded-md bg-primary/20'
+                                : isWeekend
+                                  ? 'text-muted-foreground'
+                                  : 'text-foreground/90'
+                            }`}
+                          >
+                            {dayNum}
+                          </span>
+                          {isToday && (
+                            <span className="text-[8px] uppercase tracking-wider font-extrabold text-primary">
+                              Hoje
+                            </span>
+                          )}
+                        </div>
                         {dayPosts.length > 0 && (
-                          <Badge className="bg-primary/20 text-primary border border-primary/30 text-[9px] px-1 py-0 font-bold">
+                          <Badge
+                            className={`text-[9px] px-1.5 py-0 font-bold ${
+                              dayPosts.length >= 3
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-primary/20 text-primary border border-primary/30'
+                            }`}
+                            title={`${dayPosts.length} post(s) agendado(s) neste dia`}
+                          >
                             {dayPosts.length}
                           </Badge>
                         )}
@@ -324,8 +346,11 @@ export function CalendarScheduleView({
                       {/* Lista de posts do dia */}
                       <div className="space-y-1 overflow-y-auto max-h-[72px] pr-0.5">
                         {dayPosts.map((s) => {
-                          const post = s.expand?.post
+                          const post = s.expand?.post as
+                            | (typeof s.expand.post & { platform?: string })
+                            | undefined
                           const brand = post?.expand?.brand
+                          const networkName = (post?.platform || 'Instagram').toLowerCase()
                           const timeStr = new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -338,12 +363,18 @@ export function CalendarScheduleView({
                               onDragStart={() => setDragPostId(s.id)}
                               onClick={() => onSelectPost?.(s)}
                               className="p-1 rounded-lg bg-muted/80 text-[10px] font-medium flex items-center gap-1 cursor-grab active:cursor-grabbing hover:bg-primary/15 transition-colors border border-border/50"
-                              title="Arraste para outro dia para reagendar"
+                              title="Clique para ver detalhes ou arraste para outro dia"
                             >
                               <span
                                 className="w-1.5 h-1.5 rounded-full shrink-0"
                                 style={{ backgroundColor: brand?.color_theme || '#9333ea' }}
                               />
+                              <Badge
+                                variant="outline"
+                                className="text-[8px] px-1 py-0 h-3.5 uppercase font-black tracking-tight shrink-0 bg-background/80 border-border/70 text-foreground/80"
+                              >
+                                {networkName.slice(0, 3)}
+                              </Badge>
                               <span className="truncate flex-1 font-semibold text-foreground">
                                 {post?.caption || post?.content || 'Post Agendado'}
                               </span>
@@ -372,6 +403,8 @@ export function CalendarScheduleView({
                 const dYear = d.getFullYear()
                 const dateKey = `${dYear}-${String(dMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
                 const dayPosts = postsByDateStr.get(dateKey) || []
+                const dDayOfWeek = d.getDay()
+                const isWeekend = dDayOfWeek === 0 || dDayOfWeek === 6
                 const isToday =
                   dayNum === now.getDate() &&
                   dMonth === now.getMonth() &&
@@ -389,25 +422,49 @@ export function CalendarScheduleView({
                     onDrop={() => handleDropOnDate(dYear, dMonth, dayNum)}
                     className={`min-h-[260px] p-2.5 rounded-2xl border flex flex-col justify-between transition-all ${
                       isToday
-                        ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                        ? 'border-primary ring-2 ring-primary/40 bg-primary/10 shadow-xs'
                         : isDragOver
                           ? 'border-primary ring-2 ring-primary bg-primary/15'
-                          : 'border-border/70 hover:border-border bg-card/60'
+                          : isWeekend
+                            ? 'border-border/60 hover:border-border bg-muted/30'
+                            : 'border-border/70 hover:border-border bg-card/60'
                     }`}
                   >
                     <div className="border-b border-border/50 pb-1.5 mb-2 flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                          {DAYS_SHORT[d.getDay()]}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                            {DAYS_SHORT[d.getDay()]}
+                          </p>
+                          {isWeekend && (
+                            <span className="text-[8px] px-1 py-0 rounded bg-muted text-muted-foreground font-semibold">
+                              fds
+                            </span>
+                          )}
+                        </div>
                         <p
-                          className={`text-sm font-black ${isToday ? 'text-primary' : 'text-foreground'}`}
+                          className={`text-sm font-black flex items-center gap-1 ${
+                            isToday ? 'text-primary' : 'text-foreground'
+                          }`}
                         >
-                          {dayNum}/{dMonth + 1}
+                          <span>
+                            {dayNum}/{dMonth + 1}
+                          </span>
+                          {isToday && (
+                            <span className="text-[8px] font-black uppercase tracking-wider text-primary bg-primary/20 px-1 py-0.5 rounded">
+                              Hoje
+                            </span>
+                          )}
                         </p>
                       </div>
                       {dayPosts.length > 0 && (
-                        <Badge className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0 font-bold">
+                        <Badge
+                          className={`text-[10px] px-1.5 py-0 font-bold ${
+                            dayPosts.length >= 3
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-primary text-primary-foreground'
+                          }`}
+                        >
                           {dayPosts.length}
                         </Badge>
                       )}
@@ -420,7 +477,9 @@ export function CalendarScheduleView({
                         </div>
                       ) : (
                         dayPosts.map((s) => {
-                          const post = s.expand?.post
+                          const post = s.expand?.post as
+                            | (typeof s.expand.post & { platform?: string })
+                            | undefined
                           const brand = post?.expand?.brand
                           const timeStr = new Date(s.scheduled_at).toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
@@ -435,17 +494,25 @@ export function CalendarScheduleView({
                               onClick={() => onSelectPost?.(s)}
                               className="p-2 rounded-xl bg-card border border-border/80 shadow-2xs space-y-1 cursor-grab active:cursor-grabbing hover:border-primary/60 transition-all"
                             >
-                              <div className="flex items-center justify-between text-[10px]">
+                              <div className="flex items-center justify-between text-[10px] gap-1">
                                 <span className="font-bold text-foreground truncate flex items-center gap-1">
                                   <span
-                                    className="w-1.5 h-1.5 rounded-full"
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
                                     style={{ backgroundColor: brand?.color_theme || '#9333ea' }}
                                   />
-                                  {brand?.name || 'Marca'}
+                                  <span className="truncate">{brand?.name || 'Marca'}</span>
                                 </span>
-                                <span className="font-mono text-primary font-bold text-[9px]">
-                                  {timeStr}
-                                </span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[8px] px-1 py-0 h-3.5 uppercase font-black tracking-tight bg-muted/80 text-foreground/80"
+                                  >
+                                    {((post?.platform as string) || 'Insta').slice(0, 5)}
+                                  </Badge>
+                                  <span className="font-mono text-primary font-bold text-[9px]">
+                                    {timeStr}
+                                  </span>
+                                </div>
                               </div>
                               <p className="text-[11px] text-muted-foreground line-clamp-2">
                                 {post?.caption || post?.content || 'Post agendado'}
