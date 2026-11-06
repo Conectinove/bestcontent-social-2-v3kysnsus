@@ -34,6 +34,7 @@ import TemplatesPage from './pages/TemplatesPage'
 import { BrandKitPage } from './pages/BrandKitPage'
 import { LabsPage } from './pages/LabsPage'
 import PagesFunis from './pages/PagesFunis'
+import CrmPage from './pages/CrmPage'
 import CommunityDashboard from './pages/community/CommunityDashboard'
 import TopicDetail from './pages/community/TopicDetail'
 import { SeoTools } from './pages/SeoTools'
@@ -106,6 +107,10 @@ const App = () => (
                 <Route path="/app/dashboard-performance" element={<PerformanceDashboard />} />
                 <Route path="/app/funnel" element={<SalesFunnelPage />} />
                 <Route path="/app/funil" element={<SalesFunnelPage />} />
+                <Route path="/app/crm" element={<CrmPage />} />
+                <Route path="/crm" element={<Navigate to="/app/crm" replace />} />
+                <Route path="/app/metricas" element={<Analytics />} />
+                <Route path="/metricas" element={<Navigate to="/app/analytics" replace />} />
                 <Route path="/app/data" element={<DatabasePage />} />
                 <Route path="/app/banco-de-dados" element={<DatabasePage />} />
                 <Route path="/app/students" element={<StudentsPage />} />

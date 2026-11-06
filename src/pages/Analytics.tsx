@@ -9,6 +9,7 @@ import { ProfileHeaderCard } from '@/components/analytics/ProfileHeaderCard'
 import { MetricsCards } from '@/components/analytics/MetricsCards'
 import { FollowerChart } from '@/components/analytics/FollowerChart'
 import { TopPostsGallery } from '@/components/analytics/TopPostsGallery'
+import { CrmFunnelVisualBlock } from '@/components/analytics/CrmFunnelVisualBlock'
 import { ExportDialog } from '@/components/analytics/ExportDialog'
 import { ScheduleEmailDialog } from '@/components/analytics/ScheduleEmailDialog'
 import { AdvancedMetricsModal } from '@/components/analytics/AdvancedMetricsModal'
@@ -130,6 +131,9 @@ export default function Analytics() {
         growthPercent={stats.growthPercent}
         postsCount={stats.postsCount}
       />
+
+      {/* Gráfico Visual de Funil do CRM em Tempo Real */}
+      <CrmFunnelVisualBlock />
 
       <FollowerChart data={demoChartData} />
 

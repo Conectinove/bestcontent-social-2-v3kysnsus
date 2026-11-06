@@ -78,6 +78,7 @@ export default function Layout() {
               { label: 'Explorar', href: '/app/explorar', icon: Compass, highlight: true },
               { label: 'Feed', href: '/app/feed', icon: Home },
               { label: 'Visão Geral', href: '/app/visao-geral', icon: LayoutDashboard },
+              { label: 'CRM Clientes', href: '/app/crm', icon: Users },
               { label: 'Funil Vendas', href: '/app/funnel', icon: LayoutGrid },
               { label: 'Hub Social', href: '/app/social-hub', icon: Share2 },
               { label: 'Performance', href: '/app/performance', icon: BarChart3 },

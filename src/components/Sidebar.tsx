@@ -448,6 +448,36 @@ export function Sidebar({
             )}
           </Link>
 
+          {/* CRM de Clientes (Contatos & Histórico) */}
+          <Link
+            to="/app/crm"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              location.pathname === '/app/crm' || location.pathname === '/crm'
+                ? 'bg-primary/15 text-primary font-bold shadow-xs border border-primary/20'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={collapsed ? 'CRM de Clientes' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Users
+                className={cn(
+                  'w-4 h-4 shrink-0',
+                  location.pathname === '/app/crm' || location.pathname === '/crm'
+                    ? 'text-primary'
+                    : 'text-purple-600 dark:text-purple-400',
+                )}
+              />
+              {!collapsed && <span>CRM & Contatos</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                CRM
+              </span>
+            )}
+          </Link>
+
           {/* Funil de Vendas (CRM & Pipeline de Negócios) */}
           <Link
             to="/app/funnel"

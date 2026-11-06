@@ -72,7 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (pb.authStore.isValid) {
       pb.collection('users')
         .authRefresh()
-        .catch(() => pb.authStore.clear())
+        .catch((err: any) => {
+          // Tratamento resiliente de erro: se for 404 (usuário não encontrado/excluído) ou 401, limpa authStore
+          if (err?.status === 404 || err?.status === 401) {
+            pb.authStore.clear()
+          } else {
+            // Em caso de falha de conexão de rede transitória (status 0 ou sem resposta), mantém o registro em cache local
+            console.warn('Falha transitória na validação de sessão:', err?.message || err)
+          }
+        })
         .finally(() => setLoading(false))
     } else {
       if (pb.authStore.record) pb.authStore.clear()

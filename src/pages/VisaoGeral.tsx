@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   Calendar,
   AlertCircle,
@@ -12,6 +12,12 @@ import {
   MessageSquare,
   ArrowRight,
   TrendingUp,
+  RefreshCw,
+  Rocket,
+  Check,
+  Compass,
+  Users,
+  WifiOff,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -49,6 +55,71 @@ export default function VisaoGeral() {
 
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
+
+  // Monitoramento de Conexão de Rede e Resiliência de Carregamento
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true,
+  )
+  const [networkError, setNetworkError] = useState<string | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const [retryAttempts, setRetryAttempts] = useState(0)
+
+  // Escuta status de rede online/offline com retry automático (limite 3 tentativas)
+  const handleAutoRetry = useCallback(async () => {
+    if (retryAttempts >= 3) {
+      setNetworkError(
+        'Instabilidade na rede após 3 tentativas. Verifique sua conexão e tente novamente.',
+      )
+      setIsRetrying(false)
+      return
+    }
+
+    setIsRetrying(true)
+    setNetworkError(null)
+
+    try {
+      // Teste leve de conectividade via fetch de healthcheck do backend ou timeout
+      const response = await fetch(`${import.meta.env.VITE_POCKETBASE_URL || ''}/api/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(4000),
+      }).catch(() => null)
+
+      if (response && response.ok) {
+        setNetworkError(null)
+        setRetryAttempts(0)
+        setIsOnline(true)
+        toast({
+          title: 'Conexão restabelecida',
+          description: 'Os dados do estúdio foram sincronizados com sucesso.',
+        })
+      } else {
+        throw new Error('Falha transitória de conexão')
+      }
+    } catch (err: any) {
+      setRetryAttempts((prev) => prev + 1)
+      setNetworkError(`Instabilidade de rede detectada. Tentativa ${retryAttempts + 1} de 3...`)
+    } finally {
+      setIsRetrying(false)
+    }
+  }, [retryAttempts])
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      handleAutoRetry()
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+      setNetworkError('Você está sem conexão com a internet no momento.')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [handleAutoRetry])
 
   const scrollAlerts = (direction: 'left' | 'right') => {
     if (alertScrollRef.current) {
@@ -148,8 +219,104 @@ export default function VisaoGeral() {
     setFeedbackOpen(false)
   }
 
+  // Detecta usuário novo / base sem dados para exibir Guia de Primeiros Passos
+  const isNewUserEmptyState = posts.length === 0 && brands.length <= 1
+
   return (
     <div className="space-y-6 pb-16 animate-fade-in text-foreground">
+      {/* Banner de Aviso de Instabilidade de Rede com Re-try Automático */}
+      {networkError && (
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 gap-2 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>{networkError}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAutoRetry}
+            disabled={isRetrying}
+            className="h-7 text-xs gap-1 border-amber-500/40 hover:bg-amber-500/20"
+          >
+            <RefreshCw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`} />
+            {isRetrying ? 'Reconectando...' : 'Tentar Agora'}
+          </Button>
+        </div>
+      )}
+
+      {/* =========================================================================
+          ESTADO DE PRIMEIROS PASSOS (Guia rápido para novos usuários)
+          ========================================================================= */}
+      {isNewUserEmptyState && (
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-purple-500/5 to-card border border-primary/20 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <span className="hi-kicker text-primary bg-primary/15 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
+                <Rocket className="w-3.5 h-3.5" /> Bem-vindo ao MidiaViva
+              </span>
+              <h2 className="hi-title text-xl font-black text-foreground">
+                Primeiros Passos no seu Estúdio de Conteúdo & CRM
+              </h2>
+              <p className="text-xs text-muted-foreground max-w-xl">
+                Preparamos um roteiro simples para você configurar suas marcas, agendar seus
+                primeiros posts e gerenciar seus clientes de ponta a ponta.
+              </p>
+            </div>
+            <Link to="/app/criar">
+              <Button
+                size="sm"
+                className="hi-button bg-primary text-primary-foreground font-bold text-xs gap-1.5 shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> Criar Primeiro Post
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+            <div
+              onClick={() => navigate('/app/brand-kit')}
+              className="p-3.5 rounded-xl bg-card/80 border border-border/80 hover:border-primary/50 cursor-pointer transition-all space-y-1 group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-foreground group-hover:text-primary">
+                <span>1. Configurar Brand Kit</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Adicione suas cores, logo e identidade visual para personalizar templates
+                automaticamente.
+              </p>
+            </div>
+
+            <div
+              onClick={() => navigate('/app/crm')}
+              className="p-3.5 rounded-xl bg-card/80 border border-border/80 hover:border-primary/50 cursor-pointer transition-all space-y-1 group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-foreground group-hover:text-primary">
+                <span>2. Organizar CRM & Leads</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Cadastre seus primeiros contatos e acompanhe as negociações no funil visual de
+                vendas.
+              </p>
+            </div>
+
+            <div
+              onClick={() => navigate('/app/calendar')}
+              className="p-3.5 rounded-xl bg-card/80 border border-border/80 hover:border-primary/50 cursor-pointer transition-all space-y-1 group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-foreground group-hover:text-primary">
+                <span>3. Calendário & Próximas Datas</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Visualize tarefas de acompanhamento e programe postagens estratégicas da agência.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* =========================================================================
           CABEÇALHO DA VISÃO GERAL
           ========================================================================= */}
