@@ -285,9 +285,15 @@ export default function CrmPage() {
             Atualizar
           </Button>
 
-          <Button variant="outline" size="sm" onClick={handleExport} className="text-xs gap-1.5">
-            <Download className="w-3.5 h-3.5" />
-            Exportar Leads (Excel/CSV)
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            className="text-xs gap-1.5 font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            title={`Exportar ${filteredContacts.length} leads filtrados para CSV`}
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            Exportar Leads ({filteredContacts.length})
           </Button>
 
           <Button

@@ -38,6 +38,7 @@ import {
   Square,
   FolderInput,
   Folder,
+  DownloadCloud,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -71,6 +72,7 @@ import {
 import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
 import { FeedMetricsMultiWidget } from '@/components/feed/FeedMetricsMultiWidget'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
+import { Checkbox } from '@/components/ui/checkbox'
 
 // Community creators carousel data
 interface CommunityCreator {
@@ -521,6 +523,79 @@ export default function Feed() {
         title: 'Link copiado!',
         description: 'O link deste post foi copiado para sua área de transferência.',
       })
+    }
+  }
+
+  // Toggle seleção de tópico individual
+  const handleToggleSelectTopic = (topicId: string) => {
+    setSelectedTopicIds((prev) =>
+      prev.includes(topicId) ? prev.filter((id) => id !== topicId) : [...prev, topicId],
+    )
+  }
+
+  // Selecionar todos os tópicos visíveis atualmente
+  const handleSelectAllVisible = (visibleTopics: CommunityTopic[]) => {
+    const visibleIds = visibleTopics.map((t) => t.id)
+    const allSelected =
+      visibleIds.length > 0 && visibleIds.every((id) => selectedTopicIds.includes(id))
+    if (allSelected) {
+      setSelectedTopicIds((prev) => prev.filter((id) => !visibleIds.includes(id)))
+    } else {
+      setSelectedTopicIds((prev) => Array.from(new Set([...prev, ...visibleIds])))
+    }
+  }
+
+  // Importar itens selecionados para a Biblioteca (posts)
+  const handleImportSelectedToLibrary = async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Faça login para importar',
+        description: 'É necessário estar autenticado para salvar itens na biblioteca.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (selectedTopicIds.length === 0) {
+      toast({
+        title: 'Nenhum item selecionado',
+        description: 'Selecione ao menos um post do feed para importar.',
+      })
+      return
+    }
+
+    setIsImportingToLibrary(true)
+    try {
+      const selectedTopics = topics.filter((t) => selectedTopicIds.includes(t.id))
+      const itemsToImport: FeedItemToImport[] = selectedTopics.map((t) => ({
+        id: t.id,
+        title: t.title,
+        content: t.content,
+        image_url: t.image_url,
+        category: t.expand?.category?.name,
+        tags: Array.isArray(t.tags) ? t.tags : undefined,
+        authorName: t.expand?.user?.name || 'Comunidade',
+      }))
+
+      const result = await importFeedItemsToLibrary(itemsToImport, user.id, activeBrand?.id)
+
+      toast({
+        title: 'Importação concluída! 📚',
+        description: `${result.importedCount} importados · ${result.existingCount} já existiam${
+          result.errors > 0 ? ` · ${result.errors} erros` : ''
+        }`,
+      })
+
+      // Limpar seleção após importar com sucesso
+      setSelectedTopicIds([])
+    } catch (err: any) {
+      toast({
+        title: 'Erro na importação',
+        description: err?.message || 'Falha ao importar itens selecionados.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsImportingToLibrary(false)
     }
   }
 
@@ -1145,6 +1220,72 @@ export default function Feed() {
                 })}
               </div>
             </div>
+
+            {/* Barra de Seleção em Lote e Importação para Biblioteca */}
+            <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-primary/10 via-card to-card border border-primary/20 rounded-2xl shadow-xs">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSelectAllVisible(displayedTopics)}
+                  className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-border/80"
+                >
+                  {displayedTopics.length > 0 &&
+                  displayedTopics.every((t) => selectedTopicIds.includes(t.id)) ? (
+                    <>
+                      <CheckSquare className="w-3.5 h-3.5 text-primary" />
+                      <span>Desmarcar todos</span>
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>Selecionar todos ({displayedTopics.length})</span>
+                    </>
+                  )}
+                </Button>
+
+                {selectedTopicIds.length > 0 && (
+                  <Badge variant="secondary" className="text-xs font-bold px-2 py-0.5">
+                    {selectedTopicIds.length} selecionado{selectedTopicIds.length > 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedTopicIds.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedTopicIds([])}
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Limpar
+                  </Button>
+                )}
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleImportSelectedToLibrary}
+                  disabled={selectedTopicIds.length === 0 || isImportingToLibrary}
+                  className="h-8 px-3.5 text-xs font-bold gap-1.5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isImportingToLibrary ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Importando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <DownloadCloud className="w-3.5 h-3.5" />
+                      <span>Importar para Biblioteca</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* =====================================================================
@@ -1238,9 +1379,19 @@ export default function Feed() {
                     )}
 
                     <CardContent className="p-4 sm:p-5 space-y-3.5">
-                      {/* Post Header: Author, Badge, Date + Actions Menu */}
+                      {/* Post Header: Checkbox de seleção em lote, Author, Badge, Date + Actions Menu */}
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                          {/* Checkbox de seleção em lote */}
+                          <div className="shrink-0 flex items-center">
+                            <Checkbox
+                              checked={selectedTopicIds.includes(topic.id)}
+                              onCheckedChange={() => handleToggleSelectTopic(topic.id)}
+                              aria-label={`Selecionar post ${topic.title}`}
+                              className="w-4 h-4 rounded data-[state=checked]:bg-primary"
+                            />
+                          </div>
+
                           <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 border border-border/80 overflow-hidden">
                             {authorAvatar && !authorAvatar.includes('seed=') ? (
                               <img

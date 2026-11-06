@@ -1433,6 +1433,45 @@ export default function PerformanceDashboard() {
                     {rep.channels_included?.length || 4} canais inclusos
                   </span>
                   <div className="flex items-center gap-1">
+                    {/* Botão de Aplicar Filtros com 1 Clique */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Aplica filtros correspondentes ao relatório selecionado
+                        if (rep.period_range?.includes('7')) {
+                          setTablePeriodFilter('7d')
+                        } else if (rep.period_range?.includes('90')) {
+                          setTablePeriodFilter('90d')
+                        } else {
+                          setTablePeriodFilter('30d')
+                        }
+
+                        // Se tiver apenas 1 canal nas redes inclusas, foca nele
+                        if (rep.channels_included && rep.channels_included.length === 1) {
+                          const singleChannel = rep.channels_included[0].toLowerCase()
+                          if (singleChannel.includes('insta')) setRankingNetworkFilter('instagram')
+                          else if (singleChannel.includes('tiktok'))
+                            setRankingNetworkFilter('tiktok')
+                          else if (singleChannel.includes('linkedin'))
+                            setRankingNetworkFilter('linkedin')
+                          else if (singleChannel.includes('you')) setRankingNetworkFilter('youtube')
+                          else setRankingNetworkFilter('all')
+                        } else {
+                          setRankingNetworkFilter('all')
+                        }
+
+                        toast({
+                          title: 'Relatório Aplicado!',
+                          description: `Visualização configurada com base em "${rep.title}".`,
+                        })
+                      }}
+                      className="h-7 px-2 text-[10px] font-bold text-purple-700 dark:text-purple-300 border-purple-500/30 hover:bg-purple-500/10"
+                      title="Aplicar configuração deste relatório no dashboard com 1 clique"
+                    >
+                      <Sparkles className="w-3 h-3 mr-1 text-purple-600" />
+                      Aplicar
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"

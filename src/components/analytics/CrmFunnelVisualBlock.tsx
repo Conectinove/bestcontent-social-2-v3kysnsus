@@ -9,11 +9,105 @@ import {
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, DollarSign, ArrowRight, Sparkles, Users, Target } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  TrendingUp,
+  DollarSign,
+  ArrowRight,
+  Sparkles,
+  Users,
+  Target,
+  Settings2,
+  Plus,
+  Trash2,
+  Check,
+  RotateCcw,
+} from 'lucide-react'
+
+export interface FunnelStageConfig {
+  id: string
+  key: string
+  label: string
+  sublabel?: string
+  color: string
+  textColor: string
+}
+
+const DEFAULT_FUNNEL_STAGES: FunnelStageConfig[] = [
+  {
+    id: '1',
+    key: 'lead_captado',
+    label: 'Leads Captados',
+    sublabel: 'Topo de funil (Social & Ads)',
+    color: 'bg-blue-500',
+    textColor: 'text-blue-500',
+  },
+  {
+    id: '2',
+    key: 'contato_feito',
+    label: 'Contato Realizado',
+    sublabel: 'Primeira abordagem / Qualificação',
+    color: 'bg-indigo-500',
+    textColor: 'text-indigo-500',
+  },
+  {
+    id: '3',
+    key: 'proposta_enviada',
+    label: 'Proposta Enviada',
+    sublabel: 'Orçamento entregue ao cliente',
+    color: 'bg-amber-500',
+    textColor: 'text-amber-500',
+  },
+  {
+    id: '4',
+    key: 'negociacao',
+    label: 'Em Negociação',
+    sublabel: 'Ajuste de escopo / Contrato',
+    color: 'bg-orange-500',
+    textColor: 'text-orange-500',
+  },
+  {
+    id: '5',
+    key: 'fechado_ganho',
+    label: 'Fechamento Ganho',
+    sublabel: 'Clientes conquistados',
+    color: 'bg-emerald-500',
+    textColor: 'text-emerald-500',
+  },
+]
+
+const FUNNEL_STORAGE_KEY = 'midiaviva_custom_funnel_stages'
 
 export function CrmFunnelVisualBlock() {
   const [contacts, setContacts] = useState<CrmContact[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // Etapas configuráveis com persistência local
+  const [configuredStages, setConfiguredStages] = useState<FunnelStageConfig[]>(() => {
+    try {
+      const saved = localStorage.getItem(FUNNEL_STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch (_) {
+      /* fallback */
+    }
+    return DEFAULT_FUNNEL_STAGES
+  })
+
+  // Modal de configuração das etapas
+  const [isConfigOpen, setIsConfigOpen] = useState(false)
+  const [editingStages, setEditingStages] = useState<FunnelStageConfig[]>(configuredStages)
+  const [newStageName, setNewStageName] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -40,59 +134,88 @@ export function CrmFunnelVisualBlock() {
 
   const kpis = calculateCrmKpis(contacts)
 
-  // Estágios do funil com contagens e larguras dinâmicas
-  const funnelStages = [
-    {
-      key: 'lead_captado',
-      label: '1. Leads Captados',
-      count: kpis.stageCounts.lead_captado,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-500',
-      bgLight: 'bg-blue-500/10',
-      borderLight: 'border-blue-500/20',
-      sublabel: 'Topo de funil (Social & Ads)',
-    },
-    {
-      key: 'contato_feito',
-      label: '2. Contato Realizado',
-      count: kpis.stageCounts.contato_feito,
-      color: 'bg-indigo-500',
-      textColor: 'text-indigo-500',
-      bgLight: 'bg-indigo-500/10',
-      borderLight: 'border-indigo-500/20',
-      sublabel: 'Primeira abordagem / Qualificação',
-    },
-    {
-      key: 'proposta_enviada',
-      label: '3. Proposta Enviada',
-      count: kpis.stageCounts.proposta_enviada,
-      color: 'bg-amber-500',
-      textColor: 'text-amber-500',
-      bgLight: 'bg-amber-500/10',
-      borderLight: 'border-amber-500/20',
-      sublabel: 'Orçamento entregue ao cliente',
-    },
-    {
-      key: 'negociacao',
-      label: '4. Em Negociação',
-      count: kpis.stageCounts.negociacao,
-      color: 'bg-orange-500',
-      textColor: 'text-orange-500',
-      bgLight: 'bg-orange-500/10',
-      borderLight: 'border-orange-500/20',
-      sublabel: 'Ajuste de escopo / Contrato',
-    },
-    {
-      key: 'fechado_ganho',
-      label: '5. Vendas Fechadas (Ganho)',
-      count: kpis.stageCounts.fechado_ganho,
-      color: 'bg-emerald-500',
-      textColor: 'text-emerald-500',
-      bgLight: 'bg-emerald-500/10',
-      borderLight: 'border-emerald-500/20',
-      sublabel: 'Clientes conquistados',
-    },
-  ]
+  // Salva configuração de etapas
+  const handleSaveStages = () => {
+    setConfiguredStages(editingStages)
+    try {
+      localStorage.setItem(FUNNEL_STORAGE_KEY, JSON.stringify(editingStages))
+    } catch (_) {
+      /* ignore */
+    }
+    setIsConfigOpen(false)
+  }
+
+  // Restaura etapas padrão
+  const handleResetStages = () => {
+    setEditingStages(DEFAULT_FUNNEL_STAGES)
+    setConfiguredStages(DEFAULT_FUNNEL_STAGES)
+    try {
+      localStorage.removeItem(FUNNEL_STORAGE_KEY)
+    } catch (_) {
+      /* ignore */
+    }
+    setIsConfigOpen(false)
+  }
+
+  // Adiciona nova etapa personalizada
+  const handleAddStage = () => {
+    if (!newStageName.trim()) return
+    const newId = `custom-${Date.now()}`
+    const newKey = `stage_${Date.now()}`
+    const colors = [
+      { color: 'bg-violet-500', textColor: 'text-violet-500' },
+      { color: 'bg-pink-500', textColor: 'text-pink-500' },
+      { color: 'bg-cyan-500', textColor: 'text-cyan-500' },
+      { color: 'bg-teal-500', textColor: 'text-teal-500' },
+    ]
+    const chosenColor = colors[editingStages.length % colors.length]
+
+    const updated = [
+      ...editingStages,
+      {
+        id: newId,
+        key: newKey,
+        label: newStageName.trim(),
+        sublabel: 'Etapa personalizada',
+        color: chosenColor.color,
+        textColor: chosenColor.textColor,
+      },
+    ]
+    setEditingStages(updated)
+    setNewStageName('')
+  }
+
+  // Remove etapa
+  const handleRemoveStage = (id: string) => {
+    if (editingStages.length <= 2) return
+    setEditingStages(editingStages.filter((s) => s.id !== id))
+  }
+
+  // Atualiza nome da etapa
+  const handleUpdateStageLabel = (id: string, label: string) => {
+    setEditingStages(editingStages.map((s) => (s.id === id ? { ...s, label } : s)))
+  }
+
+  // Estágios do funil calculando contagem real com base nos contatos do CRM
+  const funnelStages = configuredStages.map((stage, idx) => {
+    // Contagem real dos contatos que batem com o estágio
+    const realCount = contacts.filter((c) => {
+      if (c.stage === stage.key) return true
+      // Se for etapa padrão ou personalizada que faz match por nome
+      if (stage.key === 'lead_captado' && (c.stage === 'lead_captado' || !c.stage)) return true
+      if (stage.key === 'contato_feito' && c.stage === 'contato_feito') return true
+      if (stage.key === 'proposta_enviada' && c.stage === 'proposta_enviada') return true
+      if (stage.key === 'negociacao' && c.stage === 'negociacao') return true
+      if (stage.key === 'fechado_ganho' && c.stage === 'fechado_ganho') return true
+      return false
+    }).length
+
+    return {
+      ...stage,
+      label: `${idx + 1}. ${stage.label}`,
+      count: realCount,
+    }
+  })
 
   const maxCount = Math.max(...funnelStages.map((s) => s.count), 1)
 
@@ -121,12 +244,125 @@ export function CrmFunnelVisualBlock() {
           </p>
         </div>
 
-        <Link to="/app/crm">
-          <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8">
-            Ver CRM Completo <ArrowRight className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditingStages(configuredStages)
+              setIsConfigOpen(true)
+            }}
+            className="text-xs gap-1.5 h-8 font-semibold"
+            title="Configurar etapas do funil"
+          >
+            <Settings2 className="w-3.5 h-3.5 text-primary" />
+            Configurar Etapas
           </Button>
-        </Link>
+
+          <Link to="/app/crm">
+            <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8">
+              Ver CRM Completo <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {/* Modal de Configuração de Etapas */}
+      <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Settings2 className="w-4 h-4 text-primary" /> Configurar Etapas do Funil
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Adicione, renomeie ou remova as fases do funil comercial da sua operação.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-3">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+              {editingStages.map((stage, i) => (
+                <div key={stage.id} className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-muted-foreground w-5 text-center">
+                    {i + 1}.
+                  </span>
+                  <div className={`w-3 h-3 rounded-full ${stage.color} shrink-0`} />
+                  <Input
+                    value={stage.label}
+                    onChange={(e) => handleUpdateStageLabel(stage.id, e.target.value)}
+                    className="h-8 text-xs flex-1"
+                    placeholder="Nome da etapa"
+                  />
+                  {editingStages.length > 2 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveStage(stage.id)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500"
+                      title="Remover etapa"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Adicionar nova etapa */}
+            <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+              <Input
+                value={newStageName}
+                onChange={(e) => setNewStageName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddStage()
+                  }
+                }}
+                placeholder="Nova etapa (ex: Diagnóstico, Proposta VIP...)"
+                className="h-8 text-xs flex-1"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddStage}
+                disabled={!newStageName.trim()}
+                className="h-8 text-xs gap-1 font-semibold"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-between sm:justify-between w-full pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetStages}
+              className="text-xs text-muted-foreground gap-1"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Restaurar Padrão
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsConfigOpen(false)}
+                className="text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveStages}
+                className="text-xs gap-1.5 font-bold bg-primary text-primary-foreground"
+              >
+                <Check className="w-3.5 h-3.5" /> Salvar Etapas
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Métricas Resumidas do CRM */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
