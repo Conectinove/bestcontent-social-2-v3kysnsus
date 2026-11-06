@@ -14,6 +14,8 @@ import { pb } from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
 import { deletePost } from '@/services/posts'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { getFileUrl } from '@/lib/mappers'
+import { useAuth } from '@/context/AuthContext'
 
 export interface SavedDraftItem {
   id: string
@@ -42,6 +44,7 @@ export function SavedDraftsDrawer({
   currentDraftId,
 }: SavedDraftsDrawerProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [drafts, setDrafts] = useState<SavedDraftItem[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -50,24 +53,28 @@ export function SavedDraftsDrawer({
   const loadDrafts = async () => {
     setLoading(true)
     try {
-      // Busca posts com status='draft' no PocketBase
+      // Busca posts com status='draft' no PocketBase para o usuário autenticado
+      const userFilter = user?.id ? `user = "${user.id}" && status = 'draft'` : "status = 'draft'"
       const records = await pb.collection('posts').getList(1, 50, {
-        filter: "status = 'draft'",
+        filter: userFilter,
         sort: '-updated,-created',
       })
 
-      const items: SavedDraftItem[] = records.items.map((item: any) => ({
-        id: item.id,
-        title: item.title || '',
-        content: item.content || item.caption || '',
-        caption: item.caption || '',
-        platform: item.platform || 'Instagram',
-        brandId: item.brand || item.brandId || '',
-        mediaUrl: item.media_url || item.mediaUrl || '',
-        created: item.created,
-        updated: item.updated,
-        templateId: item.template_id || item.templateId || '',
-      }))
+      const items: SavedDraftItem[] = records.items.map((item: any) => {
+        const fileUrl = getFileUrl(item, 'media')
+        return {
+          id: item.id,
+          title: item.title || '',
+          content: item.content || item.caption || '',
+          caption: item.caption || '',
+          platform: item.platform || 'Instagram',
+          brandId: item.brand || item.brandId || '',
+          mediaUrl: fileUrl || item.media_url || item.mediaUrl || '',
+          created: item.created,
+          updated: item.updated,
+          templateId: item.template_id || item.templateId || '',
+        }
+      })
 
       setDrafts(items)
     } catch (err) {

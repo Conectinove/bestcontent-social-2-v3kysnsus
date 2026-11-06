@@ -414,20 +414,22 @@ export default function Library() {
           if (postCampId !== selectedCampaignId) return false
         }
 
-        // Search text
+        // Search text (título, conteúdo, legenda, tags, rede e marca)
         if (search.trim()) {
           const q = search.toLowerCase()
-          const title = (post.content || '').toLowerCase()
+          const title = (post.title || post.content || '').toLowerCase()
           const caption = (post.caption || '').toLowerCase()
           const platform = (post.platform || '').toLowerCase()
           const bMatch = brands.find((b: any) => b.id === post.brandId)
           const brandName = (bMatch?.name || '').toLowerCase()
+          const tagsStr = Array.isArray(post.tags) ? post.tags.join(' ').toLowerCase() : ''
 
           if (
             !title.includes(q) &&
             !caption.includes(q) &&
             !platform.includes(q) &&
-            !brandName.includes(q)
+            !brandName.includes(q) &&
+            !tagsStr.includes(q)
           ) {
             return false
           }

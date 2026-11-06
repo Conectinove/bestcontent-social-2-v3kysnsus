@@ -70,7 +70,11 @@ export const generateCaption = async (
       headers: { 'Content-Type': 'application/json' },
     })
     if (res && (res.caption || res.success)) {
-      return res
+      return {
+        ...res,
+        isOfficial: true,
+        dataSource: 'Dados Oficiais' as const,
+      }
     }
   } catch (err) {
     console.warn('Falha na chamada /backend/v1/ai/generate-caption, tentando fallback...', err)
@@ -84,7 +88,11 @@ export const generateCaption = async (
       headers: { 'Content-Type': 'application/json' },
     })
     if (res2 && (res2.caption || res2.success)) {
-      return res2
+      return {
+        ...res2,
+        isOfficial: true,
+        dataSource: 'Dados Oficiais' as const,
+      }
     }
   } catch {
     /* intentionally ignored */
@@ -159,6 +167,8 @@ ${networkTags.join(' ')}`
 
   return {
     success: true,
+    isOfficial: false,
+    dataSource: 'Estimativa Calibrada' as const,
     caption: fallbackCaption,
     hook_variations: [
       { type: 'Curiosidade / Quebra de Padrão', hook: fallbackHooks[0] },
@@ -167,6 +177,7 @@ ${networkTags.join(' ')}`
       { type: 'Micro-História / Cena', hook: fallbackHooks[3] },
     ],
     cta: fallbackCta,
+    cta_objective: objective,
     hashtags: networkTags,
     seo_score: 92,
     hook_strength_score: 95,
@@ -179,7 +190,8 @@ ${networkTags.join(' ')}`
       payload.historicalInsight ||
       'Baseado no histórico de posts com maior engajamento (~5.8% de taxa média) e gancho de alto impacto nos primeiros caracteres.',
     recommended_chars: recommendedChars,
-    notice: 'Legenda gerada via motor de alta conversão.',
+    channel_optimized: plat,
+    notice: 'Legenda gerada via motor calibrado da casa (sem bloqueio).',
   }
 }
 

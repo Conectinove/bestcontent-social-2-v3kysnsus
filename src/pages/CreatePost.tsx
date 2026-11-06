@@ -54,6 +54,7 @@ import { AIAssistantModal } from '@/components/AIAssistantModal'
 import { TemplateSelector } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { SavedDraftsDrawer, type SavedDraftItem } from '@/components/SavedDraftsDrawer'
+import { RichTextEditor } from '@/components/RichTextEditor'
 import { getTemplate, type PostTemplate, type TodayPostIdea } from '@/services/post-templates'
 import { getPost } from '@/services/posts'
 import { toast } from '@/hooks/use-toast'
@@ -188,6 +189,8 @@ export default function CreatePost() {
     readability?: number
     toneApplied?: string
     recommendedChars?: number
+    isOfficial?: boolean
+    dataSource?: 'Dados Oficiais' | 'Estimativa Calibrada'
   } | null>(null)
   // Geração automática de legenda (contexto de ideia ou tema digitado)
   const [autoCaptionState, setAutoCaptionState] = useState<'idle' | 'queued' | 'running' | 'done'>(
@@ -525,6 +528,8 @@ export default function CreatePost() {
             readability: r.readability_score,
             toneApplied: r.tone_applied || selectedTone,
             recommendedChars: r.recommended_chars,
+            isOfficial: (r as any).isOfficial ?? false,
+            dataSource: (r as any).dataSource || 'Estimativa Calibrada',
           })
         } else {
           setCaption((r as any)?.caption || sourceText)
@@ -645,7 +650,7 @@ export default function CreatePost() {
       } else if (status === 'scheduled') {
         navigate('/app/calendar')
       } else {
-        navigate('/app/library')
+        navigate('/app/library?tab=drafts')
       }
     } catch (err) {
       toast({
@@ -907,41 +912,20 @@ export default function CreatePost() {
 
             {/* Linha 2: Conteúdo / Título */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground">
-                  Título / Ideia Central do Post
-                </label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => aiAction('improve')}
-                  disabled={aiLoading === 'improve'}
-                  className="text-xs text-purple-600 dark:text-purple-400 gap-1.5 h-7 px-2 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg"
-                >
-                  {aiLoading === 'improve' ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
-                  )}
-                  <span>Refinar com IA</span>
-                </Button>
-              </div>
-              <Textarea
-                placeholder="Ex: 5 erros fatais ao criar conteúdo que você precisa parar hoje..."
+              <RichTextEditor
+                label="Título / Ideia Central do Post (Editor Rico com Formatação)"
+                badgeText="Markdown Rico"
+                placeholder="Ex: 5 erros fatais ao criar conteúdo que você precisa parar hoje... Use **negrito**, *itálico*, listas ou links!"
                 value={content}
-                onBlur={() => setTouchedFields((prev) => ({ ...prev, content: true }))}
-                onChange={(e) => setContent(e.target.value)}
-                className={cn(
-                  'min-h-[85px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs',
-                  contentError && 'border-rose-500 focus:border-rose-500',
-                )}
+                onChange={(val) => {
+                  setContent(val)
+                  setTouchedFields((prev) => ({ ...prev, content: true }))
+                }}
+                minHeight="100px"
+                onAiRefine={() => aiAction('improve')}
+                aiLoading={aiLoading === 'improve'}
+                error={contentError}
               />
-              {contentError && (
-                <p className="text-[11px] font-semibold text-rose-500 animate-fade-in">
-                  {contentError}
-                </p>
-              )}
             </div>
 
             {/* Linha 3: Legenda com Assistente IA & Hashtags */}
@@ -1185,10 +1169,24 @@ export default function CreatePost() {
                 </div>
               )}
 
-              {/* Badges de Score da Legenda Gerada */}
+              {/* Badges de Score da Legenda Gerada com Selo Oficial vs Calibrada */}
               {captionScores && (
-                <div className="flex items-center gap-2 flex-wrap text-[11px] p-2 rounded-lg bg-muted/40 border border-border/60">
+                <div className="flex items-center gap-2 flex-wrap text-[11px] p-2.5 rounded-xl bg-muted/40 border border-border/60">
                   <span className="font-semibold text-muted-foreground">Avaliação da IA:</span>
+
+                  {/* Selo Padrão da Casa: Dados Oficiais vs Estimativa Calibrada */}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                      captionScores.isOfficial
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                        : 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
+                    )}
+                  >
+                    {captionScores.isOfficial ? '✨ Dados Oficiais' : '🎯 Estimativa Calibrada'}
+                  </Badge>
+
                   <Badge
                     variant="outline"
                     className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
@@ -1218,25 +1216,24 @@ export default function CreatePost() {
                 </div>
               )}
 
-              <Textarea
-                placeholder="Escreva a legenda detalhada, storytelling ou gere com a IA..."
+              <RichTextEditor
+                placeholder="Escreva a legenda detalhada, storytelling, emojis e chamadas para ação..."
                 value={caption}
-                onChange={(e) => {
-                  // Edição manual cancela a geração automática ainda não disparada
+                onChange={(val) => {
                   if (autoCaptionState === 'queued') {
                     if (autoCaptionTimer.current) clearTimeout(autoCaptionTimer.current)
                     autoCaptionTimer.current = null
                     autoCaptionRanRef.current = true
                     setAutoCaptionState('idle')
                   }
-                  setCaption(e.target.value)
+                  setCaption(val)
                 }}
-                className="min-h-[110px] text-xs leading-relaxed rounded-xl bg-card border-border/80 focus:border-purple-500 shadow-2xs"
+                minHeight="120px"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
                 <span>
-                  Dica: Clique nas variantes de abertura acima para testar ganchos alternativos em 1
-                  clique.
+                  Dica: Use as ferramentas de formatação ou clique nos ganchos magnéticos acima para
+                  aplicar em 1 clique.
                 </span>
                 <span className="font-mono">{caption.length} caracteres</span>
               </div>
