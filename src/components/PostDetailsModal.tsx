@@ -16,6 +16,7 @@ import {
   PostMetric,
 } from '@/services/post-metrics'
 import { PostPerformanceCard } from '@/components/analytics/PostPerformanceCard'
+import { IndividualPostReportTrigger } from '@/components/analytics/IndividualPostReportModal'
 
 interface PostDetailsModalProps {
   open: boolean
@@ -178,13 +179,15 @@ export function PostDetailsModal({
 
           {/* Análise de Performance do Post (quando publicado) */}
           {post.status === 'published' && (
-            <div className="pt-2 border-t border-border/80">
+            <div className="pt-2 border-t border-border/80 space-y-2">
               <PostPerformanceCard
                 metrics={metrics}
                 networkMetricsList={networkMetricsList}
                 brandAverageRate={5.1}
                 brandId={post.brandId || post.brand}
               />
+              {/* Relatório avançado com IA deste post individual */}
+              <IndividualPostReportTrigger post={post} className="w-full" />
             </div>
           )}
         </div>

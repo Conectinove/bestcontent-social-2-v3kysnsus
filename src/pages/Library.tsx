@@ -99,6 +99,7 @@ import {
   PostPerformanceBadge,
   PostPerformanceCard,
 } from '@/components/analytics/PostPerformanceCard'
+import { IndividualPostReportTrigger } from '@/components/analytics/IndividualPostReportModal'
 import { toast } from '@/hooks/use-toast'
 import { sharePost } from '@/lib/share'
 import { cn } from '@/lib/utils'
@@ -2199,6 +2200,8 @@ export default function Library() {
                         brandAverageRate={5.1}
                         brandId={viewPost.brandId}
                       />
+                      {/* Relatório avançado com IA deste post individual */}
+                      <IndividualPostReportTrigger post={viewPost} className="w-full" />
                     </div>
                   )}
 

@@ -263,6 +263,105 @@ export function TikTokFeedWidget({ compact = false, className = '' }: TikTokFeed
                 </strong>
               </span>
             </div>
+
+            {/* NOVAS Métricas de Engajamento TikTok (aprofundamento): retenção por trecho,
+                curtidas por formato, comentários novos vs respondidos por período,
+                seguidores por vídeo e tráfego por origem (FYP/Som) */}
+            {data.metrics.retention_quartiles && (
+              <div className="p-2 rounded-xl bg-card/60 border border-border/60 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold text-muted-foreground">
+                    🎬 Retenção por trecho do vídeo
+                  </span>
+                  <span className="text-[9px] text-emerald-600 font-semibold">
+                    finalização {data.metrics.retention_quartiles.q100}%
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-1 text-center">
+                  {(
+                    [
+                      { k: '0–25%', v: data.metrics.retention_quartiles.q25 },
+                      { k: '25–50%', v: data.metrics.retention_quartiles.q50 },
+                      { k: '50–75%', v: data.metrics.retention_quartiles.q75 },
+                      { k: '75–100%', v: data.metrics.retention_quartiles.q100 },
+                    ] as const
+                  ).map((q) => (
+                    <div key={q.k} className="rounded-md bg-muted/40 px-1 py-0.5">
+                      <p className="text-[9px] text-muted-foreground">{q.k}</p>
+                      <p className="text-[11px] font-bold text-foreground">{q.v}%</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.metrics.likes_by_format && data.metrics.likes_by_format.length > 0 && (
+              <div className="p-2 rounded-xl bg-card/60 border border-border/60 space-y-1">
+                <span className="text-[10px] font-semibold text-muted-foreground">
+                  ❤️ Curtidas por formato
+                </span>
+                {data.metrics.likes_by_format.map((f) => (
+                  <div key={f.format} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-foreground font-medium">{f.format}</span>
+                      <span className="text-muted-foreground">
+                        {f.likes.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-rose-500 to-cyan-400"
+                        style={{
+                          width: `${Math.round((f.likes / Math.max(...data.metrics.likes_by_format!.map((x) => x.likes))) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {data.metrics.comments_by_period && data.metrics.comments_by_period.length > 0 && (
+              <div className="p-2 rounded-xl bg-card/60 border border-border/60">
+                <span className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                  💬 Comentários novos vs respondidos (por período)
+                </span>
+                <div className="grid grid-cols-4 gap-1 text-center">
+                  {data.metrics.comments_by_period.map((c) => (
+                    <div key={c.period} className="rounded-md bg-muted/40 px-1 py-0.5">
+                      <p className="text-[9px] text-muted-foreground">{c.period}</p>
+                      <p className="text-[11px] font-bold text-foreground">+{c.new}</p>
+                      <p className="text-[9px] text-emerald-600 font-semibold">{c.replied} resp.</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.metrics.followers_gained_per_video != null && (
+              <div className="flex items-center justify-between p-2 rounded-xl bg-card/60 border border-border/60 text-[11px]">
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  🚀 Seguidores ganhos por vídeo
+                </span>
+                <span className="font-bold text-foreground">
+                  +{data.metrics.followers_gained_per_video.toLocaleString('pt-BR')} / vídeo
+                </span>
+              </div>
+            )}
+
+            {data.metrics.traffic_by_source && data.metrics.traffic_by_source.length > 0 && (
+              <div className="p-2 rounded-xl bg-card/60 border border-border/60 space-y-0.5">
+                <span className="text-[10px] font-semibold text-muted-foreground">
+                  🌐 Tráfego por origem (FYP / Som / Perfil)
+                </span>
+                {data.metrics.traffic_by_source.map((t) => (
+                  <div key={t.source} className="flex items-center justify-between text-[10px]">
+                    <span className="text-foreground">{t.source}</span>
+                    <span className="font-bold text-foreground">{t.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

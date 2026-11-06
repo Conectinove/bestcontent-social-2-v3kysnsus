@@ -27,6 +27,12 @@ export interface TikTokMetrics {
   growth_rate_30d: number
   comments_answered_ratio?: number
   retention_peak?: number
+  // Métricas avançadas de engajamento (rodada de aprofundamento)
+  retention_quartiles?: { q25: number; q50: number; q75: number; q100: number }
+  likes_by_format?: { format: string; likes: number }[]
+  comments_by_period?: { period: string; new: number; replied: number }[]
+  followers_gained_per_video?: number
+  traffic_by_source?: { source: string; pct: number }[]
 }
 export interface TikTokHistoryItem {
   period: string
@@ -122,6 +128,25 @@ export async function getTikTokOrganicMetrics(): Promise<TikTokOrganicData> {
         profile_visits_from_video: 890,
         engagement_rate: 6.4,
         growth_rate_30d: 5.4,
+        retention_quartiles: { q25: 68.2, q50: 41.3, q75: 19.7, q100: 8.9 },
+        likes_by_format: [
+          { format: 'Vídeo curto', likes: 8420 },
+          { format: 'Tutorial', likes: 3640 },
+          { format: 'Trend / Som', likes: 2190 },
+        ],
+        comments_by_period: [
+          { period: 'Sem 1', new: 212, replied: 196 },
+          { period: 'Sem 2', new: 268, replied: 251 },
+          { period: 'Sem 3', new: 331, replied: 318 },
+          { period: 'Sem 4', new: 369, replied: 341 },
+        ],
+        followers_gained_per_video: 118,
+        traffic_by_source: [
+          { source: 'FYP (Para Você)', pct: 64.2 },
+          { source: 'Som / Trend', pct: 17.8 },
+          { source: 'Perfil & Seguidores', pct: 11.5 },
+          { source: 'Busca & Compartilh.', pct: 6.5 },
+        ],
       },
       history: [
         { period: 'Semana 1', views: 35400, followers: 23100, engagement: 5.8 },

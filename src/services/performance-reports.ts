@@ -15,6 +15,7 @@ export interface SavedReportTemplate {
 
 export type PerformanceReportType =
   | 'geral'
+  | 'post'
   | 'engajamento'
   | 'anuncios'
   | 'conteudo'
@@ -335,6 +336,175 @@ Gere uma resposta em texto fluido, rica em diagnósticos de causa e efeito, deta
         'Organizar biblioteca de templates e padronizar paleta de destaques nos stories para fortalecer lembrança de marca.',
       ],
     },
+  }
+}
+
+export interface IndividualPostReportParams {
+  postTitle: string
+  postCaption?: string
+  network: string
+  format?: string
+  publishedAt?: string
+  metrics: {
+    alcance: number
+    impressoes: number
+    engajamento: number
+    cliques?: number
+    salvamentos: number
+    compartilhamentos?: number
+    comentarios?: number
+    taxaEngajamento: number
+  }
+  brandAverageRate?: number
+}
+
+export interface IndividualPostReport {
+  executiveSummary: string
+  consultantNarrative: string[]
+  causalHypotheses: CausalHypothesis[]
+  recommendations: { next: string[]; evergreen: string[] }
+  actionPlan: ActionPlanItem[]
+  followUpQuestions: string[]
+}
+
+/**
+ * RELATÓRIO INDIVIDUAL DE POST — reusa a IA de consultoria sênior dos relatórios de canal,
+ * aplicada a uma única publicação: diagnóstico, hipóteses causais do resultado,
+ * recomendações para os próximos posts e plano de ação datado.
+ * Fallback determinístico local calibrado pelas métricas reais do post.
+ */
+export async function generateIndividualPostReport(
+  params: IndividualPostReportParams,
+): Promise<IndividualPostReport> {
+  const m = params.metrics
+  const caption = params.postCaption || ''
+  const firstLine = (caption.split('\n')[0] || '').trim()
+  const hashtagCount = (caption.match(/#\w+/g) || []).length
+  const hookIsQuestion = /\?|por que|como|você/i.test(firstLine)
+  const avg = params.brandAverageRate || 5.1
+  const vsAvg = Number((m.taxaEngajamento - avg).toFixed(2))
+  const above = vsAvg >= 0
+  const saveRate = m.impressoes > 0 ? Number(((m.salvamentos / m.impressoes) * 100).toFixed(1)) : 0
+  const ctaPresent = /salva|comenta|clique|link|arrasta|compartilha/i.test(caption)
+
+  const prompt = `Atue como um Consultor Estratégico Sênior de Social Media. Gere um relatório individual aprofundado de UMA publicação:
+- Título/Tema: ${params.postTitle}
+- Rede: ${params.network}${params.format ? ` | Formato: ${params.format}` : ''}
+- Publicado em: ${params.publishedAt || 'data recente'}
+- Métricas do post: ${m.alcance.toLocaleString('pt-BR')} de alcance, ${m.impressoes.toLocaleString('pt-BR')} impressões, ${m.engajamento.toLocaleString('pt-BR')} interações, ${m.salvamentos.toLocaleString('pt-BR')} salvamentos, taxa de engajamento ${m.taxaEngajamento}% (média da marca: ${avg}%).
+- Legenda (início): "${firstLine.slice(0, 120)}" | hashtags: ${hashtagCount} | CTA presente: ${ctaPresent ? 'sim' : 'não'}
+
+Gere texto fluido de consultor:
+1. Diagnóstico do desempenho deste post comparado à média da marca.
+2. Hipóteses causais: o que no gancho, formato, horário e legenda explica o resultado.
+3. Recomendações aplicáveis aos próximos posts e plano de ação datado.`
+
+  let aiText = ''
+  try {
+    const res = await pb.send('/backend/v1/ai/improve', {
+      method: 'POST',
+      body: JSON.stringify({ content: prompt, tone: 'consultor_senior' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (res?.improvedText || res?.content) aiText = (res.improvedText || res.content).trim()
+  } catch {
+    // Segue para fallback estruturado calibrado pelas métricas reais
+  }
+
+  const causalHypotheses: CausalHypothesis[] = [
+    {
+      metric: `Taxa de engajamento ${above && vsAvg > 0 ? '+' : ''}${vsAvg}% vs média da marca`,
+      variation: `${m.taxaEngajamento}% contra a média de ${avg}%`,
+      reason: above
+        ? `O gancho "${firstLine.slice(0, 60)}${firstLine.length > 60 ? '…' : ''}" ${hookIsQuestion ? 'abre com pergunta direta, elevando a pausa do scroll e a resposta do público.' : 'é direto e promete benefício claro, acelerando a decisão de interagir.'}`
+        : `O gancho inicial não cria tensão imediata (primeira linha ${hookIsQuestion ? 'é pergunta, mas genérica' : 'é afirmativa sem promessa'}), reduzindo a retenção nos primeiros segundos.`,
+      evidence: `Salvamentos representam ${saveRate}% das impressões${saveRate >= 1.5 ? ' — sinal forte de conteúdo de referência.' : ' — abaixo do padrão de conteúdo salvo (1.5%+).'}`,
+      action: above
+        ? 'Replicar a estrutura do gancho e do CTA nos próximos 3 posts e testar variação do tema em vídeo curto.'
+        : `Adicionar pergunta provocativa na primeira linha e CTA de salvamento; testar nova capa e horário no ${params.network}.`,
+    },
+    {
+      metric: 'Eficiência da legenda',
+      variation: `${caption.length} caracteres e ${hashtagCount} hashtags`,
+      reason: ctaPresent
+        ? 'A legenda contém CTA explícito, direcionando a audiência para a ação desejada e elevando interações de alto valor.'
+        : 'Ausência de CTA explícito reduz a conversão de atenção em interação e cliques.',
+      evidence: `Interações por impressão de ${m.impressoes > 0 ? Number(((m.engajamento / m.impressoes) * 100).toFixed(2)) : m.taxaEngajamento}%${hashtagCount >= 5 ? ' com cobertura semântica de hashtags adequada.' : ' com poucas hashtags para descoberta.'}`,
+      action: ctaPresent
+        ? 'Manter o padrão de CTA e calibrar o comprimento ideal identificado pelo aprendizado de post_metrics.'
+        : 'Incluir CTA alinhado ao objetivo (salvar, comentar ou clicar no link) nas próximas legendas.',
+    },
+  ]
+
+  const today = new Date()
+  const formatDateOffset = (days: number) => {
+    const d = new Date(today.getTime() + days * 24 * 60 * 60 * 1000)
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  }
+
+  const actionPlan: ActionPlanItem[] = [
+    {
+      id: 'post-plan-1',
+      task: `Publicar versão derivada deste post no ${params.network} com o mesmo gancho e novo ângulo visual`,
+      owner: 'Editor de Conteúdo',
+      dueDate: formatDateOffset(2),
+      priority: 'alta',
+      completed: false,
+    },
+    {
+      id: 'post-plan-2',
+      task: above
+        ? 'Transformar o post em série (parte 2 e 3) para capitalizar a tração do tema'
+        : 'Reescrever o gancho do post e testar A/B de capa antes de reaproveitar o tema',
+      owner: 'Social Media',
+      dueDate: formatDateOffset(4),
+      priority: 'media',
+      completed: false,
+    },
+    {
+      id: 'post-plan-3',
+      task: `Reaproveitar ${above ? 'os salvamentos' : 'os comentários'} deste post como base de anúncio/retargeting e resposta em destaque`,
+      owner: 'Gestor de Tráfego',
+      dueDate: formatDateOffset(7),
+      priority: 'baixa',
+      completed: false,
+    },
+  ]
+
+  const consultantNarrative = [
+    `Analisando a publicação "${params.postTitle}" no ${params.network}, o post entregou ${m.taxaEngajamento}% de taxa de engajamento — ${above ? `acima da média da marca (${avg}%), confirmando que a combinação de gancho${hookIsQuestion ? ' em forma de pergunta' : ' direto'} e formato ${params.format || 'feed'} ressoou com a audiência` : `abaixo da média da marca (${avg}%), indicando desalinhamento entre a promessa do gancho e o conteúdo entregue`}.`,
+    `O volume de ${m.salvamentos.toLocaleString('pt-BR')} salvamentos (${saveRate}% das impressões) ${saveRate >= 1.5 ? 'posiciona o post como material de referência: o público arquiva para reaplicar, o que antecipa alcance secundário nas próximas semanas.' : 'ainda está aquém do padrão de conteúdo de consulta; vale reforçar o valor prático da legenda.'} Com ${hashtagCount} hashtags e ${ctaPresent ? 'CTA ativo' : 'sem CTA explícito'}, a descoberta ${hashtagCount >= 5 ? 'está bem coberta' : 'pode ser ampliada com hashtags de nicho'}.`,
+    `Para os próximos posts, a prioridade é ${above ? 'serializar o tema e reaproveitar o gancho vencedor em vídeo curto e carrossel, antes que o interesse decaia' : 'corrigir a primeira linha (gancho com pergunta ou promessa específica) e re-testar o tema em novo horário de pico'}.`,
+  ]
+
+  const executiveSummary =
+    aiText ||
+    `Relatório IA do Post "${params.postTitle}" (${params.network}): ${m.alcance.toLocaleString('pt-BR')} de alcance, ${m.engajamento.toLocaleString('pt-BR')} interações e taxa de engajamento de ${m.taxaEngajamento}% (${above ? '+' : ''}${vsAvg}% vs média da marca de ${avg}%). Destaque para ${m.salvamentos.toLocaleString('pt-BR')} salvamentos (${saveRate}% das impressões). Diagnóstico: o post ${above ? 'validou o formato e o gancho utilizados — recomenda-se serialização imediata do tema' : 'subaproveitou o tema — recomenda-se reescrita do gancho e novo teste com CTA explícito'}.`
+
+  return {
+    executiveSummary,
+    consultantNarrative,
+    causalHypotheses,
+    recommendations: {
+      next: [
+        above
+          ? 'Serializar o tema em 2 partes nos próximos 7 dias mantendo o gancho testado.'
+          : 'Reescrever o gancho com pergunta específica e publicar novo teste em horário de pico.',
+        ctaPresent
+          ? 'Manter o CTA atual e posicionar uma variação de salvamento no primeiro comentário.'
+          : 'Adicionar CTA explícito de salvamento/comentário nas próximas legendas.',
+      ],
+      evergreen: [
+        `Padronizar comprimento de legenda e cobertura de hashtags (${hashtagCount >= 5 ? 'manter o atual' : 'ampliar para 5–8 hashtags de nicho'}) conforme o aprendizado de post_metrics.`,
+        'Registrar o resultado deste post no benchmark da marca para calibrar futuras estimativas de IA.',
+      ],
+    },
+    actionPlan,
+    followUpQuestions: [
+      'Qual elemento do post (gancho, capa ou horário) explica a maior parte do desvio vs a média da marca?',
+      `Vale impulsionar este post com tráfego pago no ${params.network} enquanto a tração orgânica está ativa?`,
+      'O tema tem densidade para virar série de 3 partes ou conteúdo evergreen de biblioteca?',
+    ],
   }
 }
 
