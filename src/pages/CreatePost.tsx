@@ -927,13 +927,15 @@ export default function CreatePost() {
       <AiPostSuggestionsWidget
         currentBrandName={selectedBrand?.name}
         currentBrandNiche={selectedBrand?.niche}
+        currentTheme={content}
+        currentTone={selectedTone}
         selectedNetwork={platform}
         onApplySuggestion={({ title, caption: capText }) => {
           setContent(title)
           setCaption(capText)
           toast({
             title: 'Sugestão de IA aplicada!',
-            description: 'Título, gancho e estrutura de copy foram preenchidos.',
+            description: 'Título, gancho e estrutura de copy foram preenchidos com contexto real.',
           })
         }}
       />

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T14:55:40.517Z",
+  "generatedAt": "2026-11-06T15:25:40.533Z",
   "collections": [
     {
       "name": "users",
@@ -1382,7 +1382,14 @@
             "tiktok",
             "youtube",
             "twitter",
-            "all"
+            "all",
+            "pinterest",
+            "threads",
+            "reels",
+            "kwai",
+            "telegram",
+            "bluesky",
+            "snapchat"
           ]
         },
         {

@@ -34,11 +34,13 @@ import {
 interface SchedulePostModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: () => void
+  onSuccess?: () => void
   initialDate?: Date
   editingScheduled?: ScheduledPostRecord | null
+  defaultPostId?: string
+  defaultNetwork?: string
+  onScheduled?: (info: { postId?: string; scheduled_for?: string; network?: string }) => void
 }
-
 const PLATFORMS = [
   { id: 'instagram', label: 'Instagram', color: 'from-pink-500 to-rose-600' },
   { id: 'facebook', label: 'Facebook', color: 'from-blue-600 to-indigo-600' },
@@ -62,6 +64,9 @@ export function SchedulePostModal({
   onSuccess,
   initialDate,
   editingScheduled,
+  defaultPostId,
+  defaultNetwork,
+  onScheduled,
 }: SchedulePostModalProps) {
   const { user } = useAuth()
   const { toast } = useToast()
@@ -122,11 +127,16 @@ export function SchedulePostModal({
       setSelectedWeekdays([1, 3, 5])
       setNewTitle('')
       setNewCaption('')
-      setNewPlatform('instagram')
-      setSelectedPostId('')
-      setMode('new')
+      setNewPlatform(defaultNetwork ? defaultNetwork.toLowerCase() : 'instagram')
+      if (defaultPostId) {
+        setSelectedPostId(defaultPostId)
+        setMode('existing')
+      } else {
+        setSelectedPostId('')
+        setMode('new')
+      }
     }
-  }, [editingScheduled, initialDate, open])
+  }, [editingScheduled, initialDate, open, defaultPostId, defaultNetwork])
 
   const toggleWeekday = (dayNum: number) => {
     setSelectedWeekdays((prev) =>
@@ -239,8 +249,16 @@ export function SchedulePostModal({
         })
       }
 
+      if (onScheduled) {
+        onScheduled({
+          postId: targetPostId,
+          scheduled_for: scheduledIso,
+          network: mode === 'new' ? newPlatform : undefined,
+        })
+      }
+
       onOpenChange(false)
-      onSuccess()
+      if (onSuccess) onSuccess()
     } catch (err: any) {
       toast({
         title: 'Erro ao agendar post',

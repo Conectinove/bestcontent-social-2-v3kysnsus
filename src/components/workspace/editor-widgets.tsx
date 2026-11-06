@@ -47,6 +47,7 @@ export function CaptionWidget({
   onToneChange,
   currentPlatform = 'Instagram',
   onPlatformChange,
+  onOpenAiSuggestions,
 }: {
   caption: string
   setCaption: (v: string) => void
@@ -59,6 +60,7 @@ export function CaptionWidget({
   onToneChange?: (tone: string) => void
   currentPlatform?: string
   onPlatformChange?: (platform: string) => void
+  onOpenAiSuggestions?: () => void
 }) {
   const [localTone, setLocalTone] = useState<string>(() => {
     return currentTone || localStorage.getItem('bestcontent_caption_tone') || 'profissional'
@@ -122,6 +124,18 @@ export function CaptionWidget({
             title="Gerar 3 opções de legendas contextuais no tom escolhido"
           >
             <Sparkles className="w-3 h-3" />3 Opções
+          </Button>
+        )}
+        {onOpenAiSuggestions && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenAiSuggestions}
+            className="text-[10px] h-6 gap-1 px-2 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+            title="Ver ideias estratégicas completas de post sugeridas por IA"
+          >
+            <Sparkles className="w-3 h-3" />
+            Ideias IA
           </Button>
         )}
       </div>

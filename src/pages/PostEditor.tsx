@@ -43,6 +43,9 @@ import {
   MetricsWidget,
   TemplatesWidget,
 } from '@/components/workspace/editor-widgets'
+import AiPostSuggestionsWidget from '@/components/guided/AiPostSuggestionsWidget'
+import { SchedulePostModal } from '@/components/calendar/SchedulePostModal'
+import { Calendar } from 'lucide-react'
 import {
   AdvancedCustomizationPanel,
   AdvancedCustomizationState,
@@ -137,6 +140,7 @@ export default function PostEditor() {
   ])
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [carouselPreviewOpen, setCarouselPreviewOpen] = useState(false)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
 
   useEffect(() => {
     if (!postId) return
@@ -396,7 +400,27 @@ export default function PostEditor() {
       case 'templates':
         return <TemplatesWidget />
       case 'content-draft':
-        return <ContentDraftWidget content={content} setContent={setContent} />
+        return (
+          <div className="space-y-4">
+            <ContentDraftWidget content={content} setContent={setContent} />
+            <AiPostSuggestionsWidget
+              currentBrandName={selectedBrand?.name}
+              currentBrandNiche={selectedBrand?.niche}
+              currentTheme={content}
+              currentTone={captionTone}
+              selectedNetwork={platform}
+              onApplySuggestion={({ title, caption: capText }) => {
+                setContent(title)
+                setCaption(capText)
+                toast({
+                  title: 'Sugestão de IA aplicada ao editor!',
+                  description:
+                    'Título e estrutura de copy foram atualizados com o contexto do post.',
+                })
+              }}
+            />
+          </div>
+        )
       case 'metrics':
         return <MetricsWidget />
       case 'caption':
@@ -418,18 +442,18 @@ export default function PostEditor() {
               currentPlatform={platform}
               onPlatformChange={(net) => setPlatform(net)}
             />
-            {isLabEnabled('seo-social-widget') && (
+            <div id="post-seo-widget-section">
               <PostSeoWidget
                 caption={caption || content}
+                title={content}
                 network={platform || 'instagram'}
                 niche={selectedBrand?.niche || selectedBrand?.name}
                 tone={captionTone}
                 onApplyImprovement={(improved) => {
                   setCaption(improved)
-                  setContent(improved)
                 }}
               />
-            )}
+            </div>
           </div>
         )
       case 'media':
@@ -519,6 +543,17 @@ export default function PostEditor() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setScheduleModalOpen(true)}
+                disabled={saving || savingAsNew || publishing || approving}
+                className="text-xs gap-1 border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 font-semibold"
+                title="Agendar data e horário de publicação em até 2 cliques"
+              >
+                <Calendar className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span>Agendar</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleSave(false)}
                 disabled={saving || savingAsNew || publishing || approving}
                 className="text-xs gap-1"
@@ -573,6 +608,25 @@ export default function PostEditor() {
           <h1 className="text-lg font-bold flex items-center gap-2 min-w-0">
             <span className="truncate">Editar Post</span>
             <Sparkles className="w-4 h-4 text-primary shrink-0" />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const el = document.getElementById('post-seo-widget-section')
+                if (el) el.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="h-6 px-2 text-[10px] font-bold rounded-lg border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 flex items-center gap-1 shrink-0"
+              title="Ver análise detalhada de SEO da legenda"
+            >
+              <span>SEO</span>
+              <Badge
+                variant="outline"
+                className="text-[9px] px-1 py-0 h-3.5 border-none bg-purple-500/10 font-mono font-bold"
+              >
+                Checklist
+              </Badge>
+            </Button>
           </h1>
           {status === 'scheduled' && scheduledDate && (
             <Badge
@@ -812,6 +866,34 @@ export default function PostEditor() {
           aspectRatio={aspectRatio}
           customization={customization}
           baseMediaUrl={mediaPreview}
+        />
+
+        {/* Modal Rápido de Agendamento em 2 Cliques */}
+        <SchedulePostModal
+          open={scheduleModalOpen}
+          onOpenChange={setScheduleModalOpen}
+          defaultPostId={postId}
+          defaultNetwork={platform}
+          onScheduled={(item) => {
+            if (item.scheduled_for) {
+              setScheduledDate(item.scheduled_for)
+              setStatus('scheduled')
+            }
+            toast({
+              title: 'Post agendado com sucesso!',
+              description: `Agendado para ${item.scheduled_for || 'data selecionada'} na rede ${item.network || platform}.`,
+              action: (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate('/app/calendar')}
+                  className="text-xs font-bold"
+                >
+                  Ver no Calendário
+                </Button>
+              ),
+            })
+          }}
         />
       </div>
     </WorkspaceLayout>

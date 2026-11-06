@@ -25,7 +25,10 @@ import {
 interface AiPostSuggestionsWidgetProps {
   currentBrandName?: string
   currentBrandNiche?: string
+  currentTheme?: string
+  currentTone?: string
   selectedNetwork?: string
+  compact?: boolean
   onApplySuggestion: (data: {
     title: string
     caption: string
@@ -37,7 +40,10 @@ interface AiPostSuggestionsWidgetProps {
 export const AiPostSuggestionsWidget: React.FC<AiPostSuggestionsWidgetProps> = ({
   currentBrandName,
   currentBrandNiche,
+  currentTheme,
+  currentTone,
   selectedNetwork,
+  compact = false,
   onApplySuggestion,
 }) => {
   const [loading, setLoading] = useState(false)
@@ -49,15 +55,42 @@ export const AiPostSuggestionsWidget: React.FC<AiPostSuggestionsWidgetProps> = (
   const fetchSuggestions = async () => {
     setLoading(true)
     try {
+      const brandToneCombined = [
+        currentTone ? `Tom: ${currentTone}` : '',
+        currentTheme ? `Pauta ativa: ${currentTheme}` : '',
+      ]
+        .filter(Boolean)
+        .join(' | ')
+
       const results = await getWhatToPostToday({
         brandName: currentBrandName || 'MidiaViva',
         brandNiche: currentBrandNiche || 'Marketing & Conteúdo Digital',
+        brandTone: brandToneCombined || undefined,
         network: selectedNetwork || 'Instagram',
         funnelObjective: selectedObjective,
       })
-      setIdeas(results.slice(0, 3))
-      if (results.length > 0) {
-        setExpandedIdeaId(results[0].id)
+
+      // Se temos um tema específico do editor, ajusta as ideias dinamicamente para manter alta relevância
+      const contextualized = results.map((item, idx) => {
+        if (!currentTheme?.trim()) return item
+        const cleanTheme = currentTheme.trim()
+        const customTitle =
+          idx === 0
+            ? `${cleanTheme}: O Método Prático em 3 Etapas`
+            : idx === 1
+              ? `O Maior Erro Silencioso ao Lidar com ${cleanTheme}`
+              : `Como Dominar ${cleanTheme} Sem Perder Tempo`
+        return {
+          ...item,
+          title: customTitle,
+          hook3s: `“O que ninguém te conta sobre ${cleanTheme} nos primeiros 30 segundos.”`,
+          concreteAngle: `Abordagem focada em ${cleanTheme}, combinando autoridade técnica com linguagem acessível para ${selectedNetwork || 'redes sociais'}.`,
+        }
+      })
+
+      setIdeas(contextualized.slice(0, 3))
+      if (contextualized.length > 0) {
+        setExpandedIdeaId(contextualized[0].id)
       }
       setDataSource(Math.random() > 0.4 ? 'oficial' : 'calibrado')
     } finally {
@@ -66,11 +99,20 @@ export const AiPostSuggestionsWidget: React.FC<AiPostSuggestionsWidgetProps> = (
   }
 
   const handleApply = (idea: TodayPostIdea) => {
+    const netLower = (selectedNetwork || 'instagram').toLowerCase()
+    const hashtags = netLower.includes('tiktok')
+      ? '#conteudo #dicas #viral'
+      : netLower.includes('linkedin')
+        ? '#marketing #estrategia #lideranca'
+        : netLower.includes('twitter') || netLower.includes('x')
+          ? '#conteudo'
+          : '#conteudo #estrategia #midiaviva #marketingdigital'
+
     const captionDraft = `${idea.hook3s || ''}\n\n${
       idea.concreteAngle || idea.creativeAngleDetail?.practicalExample || ''
     }\n\n${
       idea.creativeAngleDetail?.executionSteps?.map((s) => `• ${s}`).join('\n') || ''
-    }\n\nSalve este post e comente o que achou! 👇 #conteudo #midiaviva #estrategia`
+    }\n\nSalve este post para consultar depois e compartilhe com sua equipe! 👇\n\n${hashtags}`
 
     onApplySuggestion({
       title: idea.title,
@@ -81,18 +123,24 @@ export const AiPostSuggestionsWidget: React.FC<AiPostSuggestionsWidgetProps> = (
   }
 
   return (
-    <Card className="rounded-3xl border border-primary/30 bg-gradient-to-br from-card via-card/90 to-primary/5 p-5 sm:p-6 shadow-xl space-y-4">
+    <Card
+      className={`rounded-2xl border border-primary/30 bg-gradient-to-br from-card via-card/90 to-primary/5 shadow-xl space-y-3.5 ${
+        compact ? 'p-3.5 sm:p-4' : 'p-5 sm:p-6'
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-xs">
-            <Sparkles className="w-5 h-5 text-primary" />
+          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-xs shrink-0">
+            <Sparkles className="w-4 h-4 text-primary" />
           </div>
-          <div>
-            <h3 className="font-heading font-black text-base text-foreground tracking-tight flex items-center gap-2">
-              Sugestões Estratégicas de IA para seu Post
+          <div className="min-w-0">
+            <h3 className="font-heading font-black text-sm sm:text-base text-foreground tracking-tight flex items-center gap-2 truncate">
+              Sugestões de IA para o Post
             </h3>
-            <p className="text-xs text-muted-foreground">
-              Ângulos comprovados, gancho de 3 segundos e estrutura de copy pronta
+            <p className="text-[11px] text-muted-foreground truncate">
+              {currentTheme
+                ? `Calibrado para: "${currentTheme.slice(0, 32)}..."`
+                : 'Ângulos, ganchos e copy contextualizada'}
             </p>
           </div>
         </div>
