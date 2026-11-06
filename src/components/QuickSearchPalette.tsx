@@ -263,18 +263,19 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
     onOpenChange(false)
   }
 
-  // Filtragem de Posts da Biblioteca e Ideias quando o usuário digita
+  // Filtragem de Posts da Biblioteca e Ideias quando o usuário digita (título, texto, legenda, tags e rede)
   const matchingPosts = useMemo(() => {
     if (!query.trim() || query.trim().length < 2) return []
     const q = query.toLowerCase()
     return (posts || [])
       .filter((p: any) => {
-        const title = (p.content || '').toLowerCase()
+        const title = (p.title || p.content || '').toLowerCase()
         const caption = (p.caption || '').toLowerCase()
         const platform = (p.platform || '').toLowerCase()
-        return title.includes(q) || caption.includes(q) || platform.includes(q)
+        const tags = Array.isArray(p.tags) ? p.tags.join(' ').toLowerCase() : ''
+        return title.includes(q) || caption.includes(q) || platform.includes(q) || tags.includes(q)
       })
-      .slice(0, 3)
+      .slice(0, 4)
   }, [posts, query])
 
   // Templates recomendados pré-definidos para busca rápida

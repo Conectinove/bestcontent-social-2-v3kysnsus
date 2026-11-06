@@ -417,7 +417,7 @@ export default function Library() {
         // Search text (título, conteúdo, legenda, tags, rede e marca)
         if (search.trim()) {
           const q = search.toLowerCase()
-          const title = (post.title || post.content || '').toLowerCase()
+          const titleOrContent = ((post as any).title || post.content || '').toLowerCase()
           const caption = (post.caption || '').toLowerCase()
           const platform = (post.platform || '').toLowerCase()
           const bMatch = brands.find((b: any) => b.id === post.brandId)
@@ -425,7 +425,7 @@ export default function Library() {
           const tagsStr = Array.isArray(post.tags) ? post.tags.join(' ').toLowerCase() : ''
 
           if (
-            !title.includes(q) &&
+            !titleOrContent.includes(q) &&
             !caption.includes(q) &&
             !platform.includes(q) &&
             !brandName.includes(q) &&
