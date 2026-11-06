@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T10:16:18.075Z",
+  "generatedAt": "2026-11-06T10:39:42.345Z",
   "collections": [
     {
       "name": "users",
@@ -4805,6 +4805,148 @@
         "CREATE INDEX idx_prompt_templates_cat ON studio_prompt_templates (category)",
         "CREATE INDEX idx_prompt_templates_created ON studio_prompt_templates (created DESC)"
       ]
+    },
+    {
+      "name": "studio_prompt_history",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prompt",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "media_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "model_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "model_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quality_tier",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "relative_cost",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "studio_projects",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prompt",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "model_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quality_tier",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "attached_assets",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "collaborators",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "comments",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
     }
   ]
 }

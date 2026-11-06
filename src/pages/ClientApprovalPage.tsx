@@ -225,9 +225,19 @@ export default function ClientApprovalPage() {
             {linkData.brandName ? linkData.brandName[0]?.toUpperCase() : 'M'}
           </div>
           <div>
-            <h1 className="font-bold text-sm text-foreground line-clamp-1">{linkData.title}</h1>
-            <p className="text-xs text-muted-foreground">
-              Preparado para <strong className="text-foreground">{linkData.clientName}</strong>
+            <h1 className="font-heading font-black text-base text-foreground line-clamp-1 tracking-tight">
+              {linkData.title}
+            </h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <span>Preparado para</span>
+              <strong className="text-foreground font-semibold">{linkData.clientName}</strong>
+              <span className="text-muted-foreground/40">•</span>
+              <Badge
+                variant="outline"
+                className="text-[9px] uppercase font-mono px-1.5 py-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
+              >
+                Dados Oficiais
+              </Badge>
             </p>
           </div>
         </div>
@@ -235,7 +245,7 @@ export default function ClientApprovalPage() {
         <div className="flex items-center gap-2">
           <Badge
             variant="secondary"
-            className="hidden sm:inline-flex bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold border-purple-500/20 text-xs px-2.5 py-1"
+            className="hidden sm:inline-flex bg-primary/10 text-primary font-bold border-primary/20 text-xs px-2.5 py-1"
           >
             {approvalPercent}% Aprovado
           </Badge>
@@ -243,7 +253,7 @@ export default function ClientApprovalPage() {
             size="sm"
             onClick={handleApproveAll}
             disabled={batchApproved || pendingCount === 0}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl gap-1.5 h-9"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl gap-1.5 h-9 shadow-md shadow-emerald-600/20 active:scale-98 transition-transform"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Aprovar Calendário Todo</span>
@@ -253,19 +263,25 @@ export default function ClientApprovalPage() {
 
       {/* Main Container */}
       <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Banner de status */}
-        <div className="rounded-3xl bg-gradient-to-r from-purple-900/40 via-purple-800/30 to-indigo-900/40 border border-purple-500/20 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
+        {/* Banner de status no padrão High Impact */}
+        <div className="rounded-3xl bg-gradient-to-r from-primary/15 via-primary/5 to-indigo-950/20 border border-primary/30 p-6 sm:p-8 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-400">
-                Central de Aprovação do Cliente
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                Portal do Cliente • High Impact
               </span>
+              <Badge
+                variant="outline"
+                className="text-[9px] uppercase font-mono px-1.5 py-0 border-primary/40 text-primary"
+              >
+                Tempo Real
+              </Badge>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-foreground">
+            <h2 className="text-xl sm:text-3xl font-black font-heading text-foreground tracking-tight">
               Revise e aprove suas publicações
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl">
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
               Nossa equipe preparou as peças abaixo alinhadas à sua estratégia. Você pode aprovar em
               lote ou deixar comentários específicos em cada card.
             </p>
@@ -294,7 +310,7 @@ export default function ClientApprovalPage() {
           {posts.map((post) => (
             <Card
               key={post.id}
-              className="rounded-3xl border border-border/80 bg-card overflow-hidden shadow-xs hover:shadow-lg transition-all flex flex-col justify-between"
+              className="rounded-3xl border border-border/80 bg-card overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group"
             >
               <div>
                 {/* Imagem do post */}
@@ -338,7 +354,9 @@ export default function ClientApprovalPage() {
                     <span className="text-[11px]">{post.format}</span>
                   </div>
 
-                  <h3 className="font-bold text-base text-foreground leading-snug">{post.title}</h3>
+                  <h3 className="font-heading font-black text-base text-foreground leading-snug tracking-tight group-hover:text-primary transition-colors">
+                    {post.title}
+                  </h3>
 
                   <div className="bg-muted/40 p-3 rounded-2xl border border-border/60">
                     <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed max-h-32 overflow-y-auto scrollbar-thin">

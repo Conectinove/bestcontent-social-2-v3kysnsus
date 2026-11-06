@@ -259,9 +259,15 @@ export default function ClientPortal() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+            <h1 className="text-2xl sm:text-4xl font-black font-heading tracking-tight text-foreground">
               Portal do Cliente
             </h1>
+            <Badge
+              variant="outline"
+              className="text-[10px] uppercase font-mono px-2 py-0.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
+            >
+              Dados Oficiais
+            </Badge>
 
             {/* Badge roxo claro com coroa "👑 MAX" */}
             <Badge

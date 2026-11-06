@@ -55,6 +55,11 @@ import {
 import { calculateStudioMetrics, type StudioUsageMetrics } from '@/services/studio-metrics'
 import { PromptTemplateManagerModal } from '@/components/studio/PromptTemplateManagerModal'
 import { StudioMetricsBlock } from '@/components/studio/StudioMetricsBlock'
+import { ExternalAssetModal } from '@/components/studio/ExternalAssetModal'
+import { PromptHistoryModal } from '@/components/studio/PromptHistoryModal'
+import { VideoTemplatesBar } from '@/components/studio/VideoTemplatesBar'
+import { StudioCollaborationModal } from '@/components/studio/StudioCollaborationModal'
+import { recordStudioPromptHistory } from '@/services/studio-prompt-history'
 
 // Componentes da Interface Estilo Genspark
 import { StudioSidebar } from '@/components/studio/StudioSidebar'
@@ -125,6 +130,11 @@ export default function AiMediaStudioPage() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
   const [studioMetrics, setStudioMetrics] = useState<StudioUsageMetrics | null>(null)
 
+  // Novos Modais do Pedido do Usuário
+  const [isExternalAssetModalOpen, setIsExternalAssetModalOpen] = useState(false)
+  const [isPromptHistoryModalOpen, setIsPromptHistoryModalOpen] = useState(false)
+  const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false)
+
   // Modelo ativo na aba corrente
   const currentModel = selectedModels[activeTab] || STUDIO_MODELS.video[0]
 
@@ -178,6 +188,15 @@ export default function AiMediaStudioPage() {
 
     setIsGenerating(true)
     try {
+      // Registra o prompt no histórico (item 2 do pedido do usuário)
+      recordStudioPromptHistory({
+        prompt: prompt.trim(),
+        mediaType: activeTab,
+        modelId: currentModel.id,
+        modelName: currentModel.name,
+        qualityTier: selectedQuality,
+      }).catch((e) => console.warn('Falha ao registrar histórico de prompt:', e))
+
       const result = await createStudioMedia({
         userId: user?.id || 'demo-user',
         brandId: activeBrand?.id,
@@ -264,6 +283,8 @@ export default function AiMediaStudioPage() {
           userEmail={user?.email}
           onOpenSettings={() => navigate('/app/subscription')}
           onViewAllRecents={() => navigate('/app/library')}
+          onOpenHistoryModal={() => setIsPromptHistoryModalOpen(true)}
+          onOpenCollaborationModal={() => setIsCollaborationModalOpen(true)}
         />
       </div>
 
@@ -304,6 +325,14 @@ export default function AiMediaStudioPage() {
                   navigate('/app/library')
                   setIsMobileSidebarOpen(false)
                 }}
+                onOpenHistoryModal={() => {
+                  setIsPromptHistoryModalOpen(true)
+                  setIsMobileSidebarOpen(false)
+                }}
+                onOpenCollaborationModal={() => {
+                  setIsCollaborationModalOpen(true)
+                  setIsMobileSidebarOpen(false)
+                }}
               />
             </SheetContent>
           </Sheet>
@@ -326,6 +355,19 @@ export default function AiMediaStudioPage() {
             onApplyPrompt={handleApplySuggestion}
           />
 
+          {/* Seção 2.5: TEMPLATES DE VÍDEO PRÉ-DEFINIDOS (Aparecem quando na aba Vídeo ou Geral) */}
+          {(activeTab === 'video' || activeTab === 'geral') && (
+            <VideoTemplatesBar
+              onApplyTemplate={(templateText, modelId) => {
+                setPrompt(templateText)
+                if (modelId) {
+                  const found = (STUDIO_MODELS.video || []).find((m) => m.id === modelId)
+                  if (found) handleSelectModel(found)
+                }
+              }}
+            />
+          )}
+
           {/* Seção 3: BARRA DE GERAÇÃO CENTRAL (A peça mais importante) */}
           <StudioGenerationBar
             activeTab={activeTab}
@@ -342,6 +384,8 @@ export default function AiMediaStudioPage() {
               setUploadedAssets((prev) => prev.filter((_, i) => i !== idx))
             }
             onOpenConfigModal={() => setIsConfigModalOpen(true)}
+            onOpenExternalAssetsModal={() => setIsExternalAssetModalOpen(true)}
+            onOpenHistoryModal={() => setIsPromptHistoryModalOpen(true)}
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
           />
@@ -553,6 +597,57 @@ export default function AiMediaStudioPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Modal de Assets Externos (Item 1 do pedido) */}
+      <ExternalAssetModal
+        open={isExternalAssetModalOpen}
+        onOpenChange={setIsExternalAssetModalOpen}
+        onSelectAsset={(url) => {
+          setUploadedAssets((prev) => [...prev, url])
+        }}
+      />
+
+      {/* Modal de Histórico de Prompts (Item 2 do pedido) */}
+      <PromptHistoryModal
+        open={isPromptHistoryModalOpen}
+        onOpenChange={setIsPromptHistoryModalOpen}
+        currentType={activeTab}
+        onApplyPrompt={(reusedPrompt, mediaType, modelId) => {
+          setPrompt(reusedPrompt)
+          if (mediaType && mediaType !== activeTab) {
+            setActiveTab(mediaType)
+          }
+          if (modelId) {
+            const list = STUDIO_MODELS[mediaType || activeTab] || []
+            const found = list.find((m) => m.id === modelId)
+            if (found) handleSelectModel(found)
+          }
+        }}
+      />
+
+      {/* Modal de Colaboração em Projetos do Studio (Item 4 do pedido) */}
+      <StudioCollaborationModal
+        open={isCollaborationModalOpen}
+        onOpenChange={setIsCollaborationModalOpen}
+        currentPrompt={prompt}
+        currentType={activeTab}
+        currentModelId={currentModel.id}
+        attachedAssets={uploadedAssets.map((u, i) => ({
+          id: `att-${i}`,
+          name: `Asset ${i + 1}`,
+          url: u,
+        }))}
+        onLoadProjectToCanvas={(proj) => {
+          setPrompt(proj.prompt || '')
+          if (proj.current_type) setActiveTab(proj.current_type)
+          if (proj.attached_assets) {
+            const urls = proj.attached_assets
+              .map((a: any) => (typeof a === 'string' ? a : a.url || a.previewUrl))
+              .filter(Boolean) as string[]
+            setUploadedAssets(urls)
+          }
+        }}
+      />
 
       {/* Modal de Templates de Prompt */}
       <PromptTemplateManagerModal

@@ -14,6 +14,7 @@ import {
   Upload,
   X,
   FileImage,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,8 @@ export interface StudioGenerationBarProps {
   onAddUploadedAsset: (url: string) => void
   onRemoveUploadedAsset: (index: number) => void
   onOpenConfigModal?: () => void
+  onOpenExternalAssetsModal?: () => void
+  onOpenHistoryModal?: () => void
   onGenerate: () => void
   isGenerating: boolean
   className?: string
@@ -64,6 +67,8 @@ export const StudioGenerationBar: React.FC<StudioGenerationBarProps> = ({
   onAddUploadedAsset,
   onRemoveUploadedAsset,
   onOpenConfigModal,
+  onOpenExternalAssetsModal,
+  onOpenHistoryModal,
   onGenerate,
   isGenerating,
   className = '',
@@ -243,8 +248,21 @@ export const StudioGenerationBar: React.FC<StudioGenerationBarProps> = ({
               className="rounded-xl text-xs font-bold gap-1.5 h-9 border-dashed border-border hover:border-purple-500"
             >
               <Upload className="w-3.5 h-3.5 text-purple-600" />
-              <span>Selecionar do dispositivo</span>
+              <span>Dispositivo</span>
             </Button>
+
+            {onOpenExternalAssetsModal && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onOpenExternalAssetsModal}
+                className="rounded-xl text-xs font-bold gap-1.5 h-9 border-dashed border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <span>Biblioteca Externa / Link</span>
+              </Button>
+            )}
 
             {uploadedAssets.map((asset, index) => (
               <div
@@ -371,6 +389,21 @@ export const StudioGenerationBar: React.FC<StudioGenerationBarProps> = ({
             <SlidersHorizontal className="w-3 h-3" />
             <span>Configu...</span>
           </Button>
+
+          {/* Botão Histórico de Prompts Rápido */}
+          {onOpenHistoryModal && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onOpenHistoryModal}
+              title="Abrir histórico de prompts"
+              className="rounded-full text-xs h-8 px-2.5 text-muted-foreground hover:text-foreground gap-1"
+            >
+              <Clock className="w-3 h-3" />
+              <span className="hidden sm:inline">Histórico</span>
+            </Button>
+          )}
         </div>
 
         {/* Direita: Seletor de Qualidade ("Caminho") + Botão Cinza Escuro "Gerar" */}

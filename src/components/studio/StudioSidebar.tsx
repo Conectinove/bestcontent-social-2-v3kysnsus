@@ -24,6 +24,8 @@ export interface StudioSidebarProps {
   userEmail?: string
   onOpenSettings?: () => void
   onViewAllRecents?: () => void
+  onOpenHistoryModal?: () => void
+  onOpenCollaborationModal?: () => void
   className?: string
 }
 
@@ -37,6 +39,8 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
   userEmail,
   onOpenSettings,
   onViewAllRecents,
+  onOpenHistoryModal,
+  onOpenCollaborationModal,
   className = '',
 }) => {
   // Itens padrão de recentes para espelhar exatamente os prints se a lista estiver vazia
@@ -104,13 +108,23 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
       <div className="p-3">
         <Button
           onClick={onNewCanvas}
-          className="w-full h-11 rounded-xl bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 text-neutral-100 dark:text-neutral-900 font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-transform active:scale-98"
+          className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md shadow-primary/20 text-xs h-9"
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Novo canvas</span>
+          <Plus className="w-4 h-4" />
+          Novo canvas
         </Button>
-      </div>
 
+        {onOpenCollaborationModal && (
+          <Button
+            variant="outline"
+            onClick={onOpenCollaborationModal}
+            className="w-full justify-start gap-2 text-xs h-8 font-medium border-primary/20 text-foreground hover:bg-primary/10 hover:text-primary"
+          >
+            <FolderKanban className="w-3.5 h-3.5 text-primary" />
+            Colaboração em Projeto
+          </Button>
+        )}
+      </div>
       {/* Menu Principal */}
       <nav className="px-3 py-1 space-y-1 text-sm font-medium">
         <button
@@ -182,8 +196,29 @@ export const StudioSidebar: React.FC<StudioSidebarProps> = ({
       {/* Divisor */}
       <div className="my-2 border-t border-border/50 mx-3" />
 
-      {/* Seção Recentes */}
-      <div className="flex-1 px-3 overflow-y-auto space-y-1">
+      {/* Seção Recentes & Histórico */}
+      <div className="flex-1 px-3 overflow-y-auto space-y-2">
+        {onOpenHistoryModal && (
+          <div className="p-2.5 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                Histórico de Prompts
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Reutilize prompts anteriores com 1 clique no Studio.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenHistoryModal}
+              className="w-full h-7 text-[11px] font-semibold gap-1 text-primary hover:text-primary"
+            >
+              Abrir Histórico
+            </Button>
+          </div>
+        )}
         <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Recentes
         </div>
