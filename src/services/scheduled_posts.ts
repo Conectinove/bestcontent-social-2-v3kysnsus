@@ -8,7 +8,7 @@ export interface ScheduledPostRecord {
   post: string
   brand?: string
   scheduled_at: string
-  status: 'scheduled' | 'published' | 'cancelled' | 'failed'
+  status: 'scheduled' | 'pending' | 'published' | 'cancelled' | 'failed'
   platform?: string
   auto_queue?: boolean
   is_recurring?: boolean

@@ -10,6 +10,8 @@ import { FacebookFeedWidget } from './FacebookFeedWidget'
 import { XFeedWidget } from './XFeedWidget'
 import { PinterestFeedWidget } from './PinterestFeedWidget'
 import { ThreadsFeedWidget } from './ThreadsFeedWidget'
+import { WhatsAppFeedWidget } from './WhatsAppFeedWidget'
+import { EmailMarketingFeedWidget } from './EmailMarketingFeedWidget'
 import { ReachComparisonBlock } from './ReachComparisonBlock'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,6 +24,8 @@ export type FeedWidgetNetwork =
   | 'facebook'
   | 'x_twitter'
   | 'youtube'
+  | 'whatsapp'
+  | 'email'
   | 'analytics'
   | 'linkedin'
   | 'substack'
@@ -150,6 +154,36 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
 
           <Button
             type="button"
+            variant={activeTab === 'whatsapp' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('whatsapp')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'whatsapp'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span>WhatsApp</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant={activeTab === 'email' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('email')}
+            className={`h-7 px-2.5 shrink-0 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'email'
+                ? 'bg-card text-foreground shadow-xs border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-violet-600 shrink-0" />
+            <span>E-mail Marketing</span>
+          </Button>
+
+          <Button
+            type="button"
             variant={activeTab === 'analytics' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('analytics')}
@@ -236,6 +270,8 @@ export function FeedMetricsMultiWidget({ className = '' }: FeedMetricsMultiWidge
         {activeTab === 'facebook' && <FacebookFeedWidget />}
         {activeTab === 'x_twitter' && <XFeedWidget />}
         {activeTab === 'youtube' && <YouTubeFeedWidget />}
+        {activeTab === 'whatsapp' && <WhatsAppFeedWidget />}
+        {activeTab === 'email' && <EmailMarketingFeedWidget />}
         {activeTab === 'analytics' && <GoogleAnalyticsFeedWidget />}
         {activeTab === 'linkedin' && <LinkedInFeedWidget />}
         {activeTab === 'substack' && <SubstackFeedWidget />}

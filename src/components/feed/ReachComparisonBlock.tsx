@@ -22,7 +22,7 @@ export function ReachComparisonBlock({ className = '' }: ReachComparisonBlockPro
       try {
         const data = await getConsolidatedSocialHubData()
         if (isMounted) {
-          // Filtrar as principais 8 redes conectadas / ativas do feed
+          // Filtrar as principais redes conectadas / ativas do feed incluindo WhatsApp e Email Marketing
           const primaryNetworkSlugs = [
             'instagram',
             'tiktok',
@@ -32,6 +32,8 @@ export function ReachComparisonBlock({ className = '' }: ReachComparisonBlockPro
             'facebook',
             'pinterest',
             'threads',
+            'whatsapp',
+            'substack',
           ]
           const filtered = data.channels.filter((c) => primaryNetworkSlugs.includes(c.network))
           // Ordenar por alcance decrescente
@@ -95,7 +97,7 @@ export function ReachComparisonBlock({ className = '' }: ReachComparisonBlockPro
                   variant="outline"
                   className="text-[10px] py-0 h-4 border-primary/30 text-primary bg-primary/5 font-semibold"
                 >
-                  8 Redes
+                  {channels.length > 0 ? `${channels.length} Redes` : 'Multi-Redes'}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">

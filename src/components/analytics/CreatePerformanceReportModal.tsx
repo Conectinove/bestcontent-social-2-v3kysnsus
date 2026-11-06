@@ -66,6 +66,8 @@ const ALL_CHANNELS = [
   'TikTok Orgânico',
   'YouTube Canal & Shorts',
   'LinkedIn Empresa & Perfil',
+  'WhatsApp Business',
+  'Email Marketing (Resend)',
   'Substack Newsletter',
   'Google Business Profile',
   'Google Ads',
@@ -85,8 +87,14 @@ export function CreatePerformanceReportModal({
   currentKpis,
 }: CreatePerformanceReportModalProps) {
   const [reportType, setReportType] = useState<
-    'geral' | 'engajamento' | 'anuncios' | 'conteudo' | 'comentarios' | 'avancado_ia'
-  >('avancado_ia')
+    | 'geral'
+    | 'engajamento'
+    | 'anuncios'
+    | 'conteudo'
+    | 'comentarios'
+    | 'consolidadas'
+    | 'avancado_ia'
+  >('consolidadas')
   const [crossChannelInsights, setCrossChannelInsights] = useState<string[]>([])
   const [consultantNarrative, setConsultantNarrative] = useState<string[]>([])
   const [causalHypotheses, setCausalHypotheses] = useState<CausalHypothesis[]>([])
@@ -378,17 +386,21 @@ export function CreatePerformanceReportModal({
 
     setSaving(true)
     try {
+      const isConsolidated = reportType === 'consolidadas'
       const isEngagement = reportType === 'engajamento'
       const isComments = reportType === 'comentarios'
       const isAdvancedAi = reportType === 'avancado_ia'
       const avgRate = currentKpis?.avgEngagementRate || (isAdvancedAi ? 5.8 : 5.4)
       const totEng = currentKpis?.totalEngagement || (isAdvancedAi ? 16420 : 14850)
+      const totReach = currentKpis?.totalReach || 184500
 
       const finalExecutiveSummary =
         executiveSummary ||
-        (isAdvancedAi
-          ? `Relatório Avançado com IA (${periodRange}): Análise cruzada consolidando ${selectedChannels.length} canais ativos. As campanhas de Meta Ads e X Ads geraram sinergia de tração com os carrosséis no Instagram, elevando o engajamento global para ${avgRate}%. Recomenda-se reforçar ganchos nos 3s e realocar verba para os canais de maior conversão de leads.`
-          : 'Relatório sintetizado de desempenho multi-canal.')
+        (isConsolidated
+          ? `Relatório de Métricas Consolidadas (${periodRange}): Total de ${selectedChannels.length} canais integrados (incluindo WhatsApp Business e Email Marketing). Alcance total somado de ${totReach.toLocaleString('pt-BR')} pessoas únicas (+18.4% vs ciclo anterior) e engajamento médio consolidado de ${avgRate}%. O WhatsApp gerou o menor tempo de conversão (12 min) e os Carrosséis/Reels sustentaram maior retenção orgânica.`
+          : isAdvancedAi
+            ? `Relatório Avançado com IA (${periodRange}): Análise cruzada consolidando ${selectedChannels.length} canais ativos. As campanhas de Meta Ads e X Ads geraram sinergia de tração com os carrosséis no Instagram, elevando o engajamento global para ${avgRate}%. Recomenda-se reforçar ganchos nos 3s e realocar verba para os canais de maior conversão de leads.`
+            : 'Relatório sintetizado de desempenho multi-canal.')
 
       const newReport = await createPerformanceReport({
         user: userId,
@@ -400,8 +412,53 @@ export function CreatePerformanceReportModal({
         channels_included: selectedChannels,
         executive_summary: finalExecutiveSummary,
         is_scheduled: frequency !== 'avulso',
+        kpis_json: {
+          totalPosts: currentKpis?.totalPosts || 28,
+          totalEngagement: totEng,
+          avgEngagementRate: avgRate,
+          totalReach: isConsolidated ? totReach : currentKpis?.totalReach || 42800,
+          bestChannel: isConsolidated
+            ? 'Instagram Orgânico & WhatsApp'
+            : isEngagement
+              ? 'Instagram Orgânico & Reels'
+              : 'Instagram Orgânico',
+          bestFormat: isConsolidated ? 'Carrossel Educativo + Disparo VIP' : 'Carrossel Educativo',
+        },
+        highlights_json: {
+          topChannel: {
+            name: isConsolidated
+              ? 'Instagram & WhatsApp'
+              : isComments
+                ? 'Instagram Comentários'
+                : 'Instagram',
+            engagement: isComments ? 88.0 : Number((avgRate * 1.15).toFixed(1)),
+          },
+          topFormat: {
+            name: isComments
+              ? 'Atendimento Rápido Direct & Feed'
+              : isConsolidated
+                ? 'Carrossel / Disparos VIP'
+                : 'Carrossel Educativo',
+            reach: isComments ? 142 : isConsolidated ? Math.round(totReach * 0.42) : 24500,
+          },
+          topPost: {
+            title: isComments
+              ? 'Dúvidas sobre Matrículas & IA no Mercado'
+              : '5 Erros Silenciosos de IA na Carreira',
+            rate: Number((avgRate * 1.6).toFixed(1)),
+            channel: 'Instagram',
+          },
+          comparison: {
+            currentPeriodReach: isConsolidated ? totReach : currentKpis?.totalReach || 42800,
+            previousPeriodReach: Math.round(
+              (isConsolidated ? totReach : currentKpis?.totalReach || 42800) *
+                (isConsolidated ? 0.84 : 0.88),
+            ),
+            growthPercentage: isConsolidated ? 18.4 : 13.6,
+          },
+        },
         engagement_data_json: {
-          isAdvancedAiReport: isAdvancedAi,
+          isAdvancedAiReport: isAdvancedAi || isConsolidated,
           consultantNarrative:
             consultantNarrative.length > 0
               ? consultantNarrative
@@ -597,14 +654,14 @@ export function CreatePerformanceReportModal({
             {
               title: 'O Gancho Magnético dos 3 Segundos: Roteiro Pronto',
               network: 'TikTok',
-              format: 'Talking Head',
+              format: 'Vídeo Curto',
               engagementRate: Number((avgRate * 1.4).toFixed(1)),
-              interactions: 740,
+              interactions: 680,
             },
             {
-              title: 'Estudo de Caso: Do Zero a 48 Clientes Qualificados',
+              title: 'Framework de Automação para Negócios Locais',
               network: 'LinkedIn',
-              format: 'Carrossel Estratégico',
+              format: 'Artigo / PDF',
               engagementRate: Number((avgRate * 1.3).toFixed(1)),
               interactions: 520,
             },
@@ -614,36 +671,6 @@ export function CreatePerformanceReportModal({
             'Aplicar gancho nos primeiros 3 segundos em todos os vídeos verticais para elevar a retenção acima de 45%.',
             'Finalizar posts com pergunta aberta provocativa para dobrar o volume orgânico de comentários.',
           ],
-        },
-        kpis_json: {
-          totalPosts: currentKpis?.totalPosts || 28,
-          totalEngagement: totEng,
-          avgEngagementRate: avgRate,
-          totalReach: currentKpis?.totalReach || 42800,
-          bestChannel: isEngagement ? 'Instagram Orgânico & Reels' : 'Instagram Orgânico',
-          bestFormat: 'Carrossel Educativo',
-        },
-        highlights_json: {
-          topChannel: {
-            name: isComments ? 'Instagram Comentários' : 'Instagram',
-            engagement: isComments ? 88.0 : Number((avgRate * 1.15).toFixed(1)),
-          },
-          topFormat: {
-            name: isComments ? 'Atendimento Rápido Direct & Feed' : 'Carrossel Educativo',
-            reach: isComments ? 142 : 24500,
-          },
-          topPost: {
-            title: isComments
-              ? 'Dúvidas sobre Matrículas & IA no Mercado'
-              : '5 Erros Silenciosos de IA na Carreira',
-            rate: Number((avgRate * 1.6).toFixed(1)),
-            channel: 'Instagram',
-          },
-          comparison: {
-            currentPeriodReach: currentKpis?.totalReach || 42800,
-            previousPeriodReach: Math.round((currentKpis?.totalReach || 42800) * 0.88),
-            growthPercentage: 13.6,
-          },
         },
       })
 
@@ -881,6 +908,25 @@ export function CreatePerformanceReportModal({
               </span>
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+              <Button
+                type="button"
+                variant={reportType === 'consolidadas' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReportType('consolidadas')
+                  setTitle(
+                    'Relatório de Métricas Consolidadas — ' +
+                      new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+                  )
+                }}
+                className={`text-xs h-9 font-bold ${
+                  reportType === 'consolidadas'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
+                    : 'text-foreground border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                📈 Métricas Consolidadas
+              </Button>
               <Button
                 type="button"
                 variant={reportType === 'avancado_ia' ? 'default' : 'outline'}

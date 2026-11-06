@@ -20,6 +20,7 @@ export type PerformanceReportType =
   | 'anuncios'
   | 'conteudo'
   | 'comentarios'
+  | 'consolidadas'
   | 'customizado'
   | 'avancado_ia'
 

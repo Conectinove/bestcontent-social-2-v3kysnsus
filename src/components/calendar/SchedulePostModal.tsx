@@ -84,7 +84,7 @@ export function SchedulePostModal({
 
   useEffect(() => {
     if (open && user?.id) {
-      getPosts({ user: user.id })
+      getPosts(user.id)
         .then((items) => {
           setExistingPosts(items.filter((p: any) => p.status !== 'published'))
         })

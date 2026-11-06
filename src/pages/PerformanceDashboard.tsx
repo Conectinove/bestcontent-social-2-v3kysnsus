@@ -844,16 +844,23 @@ export default function PerformanceDashboard() {
                       <Badge
                         variant="outline"
                         className={`text-[10px] capitalize font-bold ${
-                          rep.report_type === 'engajamento'
-                            ? 'bg-pink-500/10 text-pink-600 border-pink-500/30'
-                            : rep.frequency === 'semanal'
-                              ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
-                              : rep.frequency === 'mensal'
-                                ? 'bg-purple-500/10 text-purple-600 border-purple-500/30'
-                                : 'bg-muted text-muted-foreground'
+                          rep.report_type === 'consolidadas'
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                            : rep.report_type === 'engajamento'
+                              ? 'bg-pink-500/10 text-pink-600 border-pink-500/30'
+                              : rep.frequency === 'semanal'
+                                ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
+                                : rep.frequency === 'mensal'
+                                  ? 'bg-purple-500/10 text-purple-600 border-purple-500/30'
+                                  : 'bg-muted text-muted-foreground'
                         }`}
                       >
-                        {rep.report_type === 'engajamento' ? (
+                        {rep.report_type === 'consolidadas' ? (
+                          <>
+                            <TrendingUp className="w-2.5 h-2.5 mr-1 text-emerald-600" />
+                            Consolidadas
+                          </>
+                        ) : rep.report_type === 'engajamento' ? (
                           <>
                             <TrendingUp className="w-2.5 h-2.5 mr-1 text-pink-600" />
                             Engajamento
@@ -876,7 +883,30 @@ export default function PerformanceDashboard() {
 
                   <h4 className="font-bold text-sm text-foreground line-clamp-1">{rep.title}</h4>
 
-                  {/* Highlights específicos se for relatório de engajamento */}
+                  {/* Highlights específicos se for métricas consolidadas ou engajamento */}
+                  {rep.report_type === 'consolidadas' && (
+                    <div className="grid grid-cols-3 gap-1.5 text-center p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Alcance Total</p>
+                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                          {(rep.kpis_json?.totalReach || 184500).toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Engajamento</p>
+                        <p className="text-xs font-black text-teal-600 dark:text-teal-400">
+                          {rep.kpis_json?.avgEngagementRate || 5.8}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Crescimento</p>
+                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                          +{rep.highlights_json?.comparison?.growthPercentage || 18.4}%
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {rep.report_type === 'engajamento' && rep.engagement_data_json && (
                     <div className="grid grid-cols-2 gap-2 text-center p-2 rounded-xl bg-pink-500/5 border border-pink-500/15">
                       <div>
