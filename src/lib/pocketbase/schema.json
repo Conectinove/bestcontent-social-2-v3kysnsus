@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T13:27:51.917Z",
+  "generatedAt": "2026-11-06T14:12:35.656Z",
   "collections": [
     {
       "name": "users",
@@ -595,6 +595,12 @@
           "type": "json",
           "required": false,
           "system": false
+        },
+        {
+          "name": "feed_item_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -605,7 +611,8 @@
         "CREATE INDEX `idx_posts_favorite` ON `posts` (is_favorite)",
         "CREATE INDEX `idx_posts_archived` ON `posts` (is_archived)",
         "CREATE INDEX `idx_posts_campaign` ON `posts` (campaign)",
-        "CREATE INDEX `idx_posts_reviewed` ON `posts` (is_reviewed)"
+        "CREATE INDEX `idx_posts_reviewed` ON `posts` (is_reviewed)",
+        "CREATE INDEX `idx_posts_feed_item_id` ON `posts` (feed_item_id)"
       ]
     },
     {
@@ -3606,6 +3613,18 @@
         },
         {
           "name": "engagement_data_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metrics_chosen",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "filters_json",
           "type": "json",
           "required": false,
           "system": false

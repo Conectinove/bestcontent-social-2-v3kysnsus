@@ -63,6 +63,8 @@ export interface Post {
   reviewNotes?: string
   campaignFormat?: string
   origin?: string
+  feed_item_id?: string
+  feedItemId?: string
   aiSynced?: boolean
   studioMetadata?: Record<string, any>
   aiEnrichment?: Record<string, any>

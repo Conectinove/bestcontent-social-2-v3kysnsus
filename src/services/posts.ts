@@ -409,3 +409,112 @@ export async function getReviewerCandidates() {
     return []
   }
 }
+
+export interface FeedItemToImport {
+  id: string
+  title?: string
+  content?: string
+  image_url?: string
+  tags?: string[]
+  category?: string
+  authorName?: string
+}
+
+/**
+ * Importa itens selecionados do Feed para o Banco de Mídias / Biblioteca (tabela posts)
+ * com status 'draft' e deduplicação estrita por feed_item_id.
+ */
+export async function importFeedItemsToLibrary(
+  items: FeedItemToImport[],
+  userId: string,
+  brandId?: string,
+): Promise<{ importedCount: number; existingCount: number; errors: number }> {
+  if (!items || items.length === 0 || !userId) {
+    return { importedCount: 0, existingCount: 0, errors: 0 }
+  }
+
+  // Garantir que temos um brandId válido (relação é obrigatória em posts)
+  let resolvedBrandId = brandId
+  if (!resolvedBrandId) {
+    try {
+      const userBrands = await pb.collection('brands').getList(1, 1, {
+        filter: `user = "${userId}"`,
+        sort: '-created',
+      })
+      if (userBrands.items.length > 0) {
+        resolvedBrandId = userBrands.items[0].id
+      } else {
+        // Fallback: buscar qualquer marca existente ou criar básica
+        const anyBrand = await pb.collection('brands').getList(1, 1)
+        if (anyBrand.items.length > 0) {
+          resolvedBrandId = anyBrand.items[0].id
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao resolver brand para importação de feed:', e)
+    }
+  }
+
+  if (!resolvedBrandId) {
+    throw new Error('Nenhuma marca disponível para vincular os posts importados.')
+  }
+
+  let importedCount = 0
+  let existingCount = 0
+  let errors = 0
+
+  for (const item of items) {
+    const feedItemId = String(item.id).trim()
+    if (!feedItemId) continue
+
+    try {
+      // 1. Checagem de deduplicação por feed_item_id
+      const existing = await pb.collection('posts').getList(1, 1, {
+        filter: `user = "${userId}" && feed_item_id = "${feedItemId}"`,
+      })
+
+      if (existing.totalItems > 0) {
+        existingCount++
+        continue
+      }
+
+      // 2. Criar novo post rascunho
+      const title = item.title ? item.title.trim() : ''
+      const body = item.content ? item.content.trim() : ''
+      const content =
+        title && body ? `${title}\n\n${body}` : title || body || 'Post importado da Comunidade'
+
+      await pb.collection('posts').create({
+        user: userId,
+        brand: resolvedBrandId,
+        content,
+        caption: title || 'Ideia da Comunidade',
+        platform: 'Instagram',
+        status: 'draft',
+        origin: 'feed_community',
+        feed_item_id: feedItemId,
+        tags: Array.isArray(item.tags)
+          ? item.tags
+          : item.category
+            ? [item.category]
+            : ['feed', 'comunidade'],
+        target_networks: ['Instagram', 'LinkedIn'],
+        approval_level: 'Nível 1 (Rascunho)',
+        studio_metadata: {
+          imported_from_feed: true,
+          feed_item_id: feedItemId,
+          original_author: item.authorName || 'Comunidade',
+          original_image_url: item.image_url || '',
+          imported_at: new Date().toISOString(),
+        },
+      })
+
+      importedCount++
+    } catch (err) {
+      console.error(`Erro ao importar item ${feedItemId}:`, err)
+      errors++
+    }
+  }
+
+  return { importedCount, existingCount, errors }
+}

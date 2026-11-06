@@ -34,9 +34,14 @@ import {
   MoreVertical,
   X,
   Share,
+  CheckSquare,
+  Square,
+  FolderInput,
+  Folder,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
+import { importFeedItemsToLibrary, FeedItemToImport } from '@/services/posts'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -222,6 +227,10 @@ export default function Feed() {
   const [searchQuery, setSearchQuery] = useState('')
   const [togglingPinId, setTogglingPinId] = useState<string | null>(null)
   const [likingTopicId, setLikingTopicId] = useState<string | null>(null)
+
+  // Seleção em lote para Importar para Biblioteca / Mover
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([])
+  const [isImportingToLibrary, setIsImportingToLibrary] = useState(false)
 
   // Composer State ("No que você está pensando?")
   const [composerOpen, setComposerOpen] = useState(false)
