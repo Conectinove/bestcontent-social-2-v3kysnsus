@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T06:52:42.618Z",
+  "generatedAt": "2026-11-06T07:04:48.959Z",
   "collections": [
     {
       "name": "users",
@@ -4691,12 +4691,119 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "is_external_api",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "api_provider",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_studio_creations_user ON studio_creations (user)",
         "CREATE INDEX idx_studio_creations_type ON studio_creations (type)",
         "CREATE INDEX idx_studio_creations_created ON studio_creations (created DESC)"
+      ]
+    },
+    {
+      "name": "studio_prompt_templates",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != '' && user = @request.auth.id",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["video", "image", "audio", "geral"]
+        },
+        {
+          "name": "template_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "default_model_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "placeholders",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_favorite",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usage_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_prompt_templates_user ON studio_prompt_templates (user)",
+        "CREATE INDEX idx_prompt_templates_cat ON studio_prompt_templates (category)",
+        "CREATE INDEX idx_prompt_templates_created ON studio_prompt_templates (created DESC)"
       ]
     }
   ]

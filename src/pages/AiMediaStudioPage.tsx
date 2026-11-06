@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Sparkles,
@@ -22,6 +22,9 @@ import {
   Camera,
   Play,
   Volume2,
+  FileCode,
+  ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -52,6 +55,17 @@ import {
   getStudioCreations,
   getUserStudioCredits,
 } from '@/services/ai-studio'
+import {
+  checkExternalMediaApiStatus,
+  type ExternalMediaApiStatus,
+} from '@/services/studio-external-media'
+import {
+  getStudioPromptTemplates,
+  type StudioPromptTemplate,
+} from '@/services/studio-prompt-templates'
+import { calculateStudioMetrics, type StudioUsageMetrics } from '@/services/studio-metrics'
+import { PromptTemplateManagerModal } from '@/components/studio/PromptTemplateManagerModal'
+import { StudioMetricsBlock } from '@/components/studio/StudioMetricsBlock'
 
 export default function AiMediaStudioPage() {
   const navigate = useNavigate()
@@ -91,6 +105,18 @@ export default function AiMediaStudioPage() {
     null,
   )
 
+  // Estados das 4 Frentes de Evolução
+  const [externalApiStatus, setExternalApiStatus] = useState<ExternalMediaApiStatus>({
+    configured: false,
+    provider: 'OpenAI (DALL·E 3 / TTS-1)',
+    hasApiKey: false,
+    badge: 'Estimativa Calibrada (Modo Local)',
+    message: 'Verificando conectividade...',
+  })
+  const [promptTemplates, setPromptTemplates] = useState<StudioPromptTemplate[]>([])
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [studioMetrics, setStudioMetrics] = useState<StudioUsageMetrics | null>(null)
+
   // Modelo ativo na aba atual
   const currentModel =
     activeTab === 'video'
@@ -105,23 +131,35 @@ export default function AiMediaStudioPage() {
     else setSelectedAudioModel(model)
   }
 
-  // Carregar dados de créditos e criações recentes
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const credits = await getUserStudioCredits(user?.id)
-        setUserCredits(credits)
+  // Carregar dados de créditos, criações recentes, templates e status de API externa
+  const loadData = useCallback(async () => {
+    try {
+      const [credits, recent, extStatus, tmpls] = await Promise.all([
+        getUserStudioCredits(user?.id),
+        getStudioCreations(user?.id),
+        checkExternalMediaApiStatus(),
+        getStudioPromptTemplates(user?.id),
+      ])
 
-        const recent = await getStudioCreations(user?.id)
-        setCreations(recent)
-      } catch (err) {
-        console.error('Erro ao carregar dados do estúdio:', err)
-      } finally {
-        setIsLoadingCreations(false)
-      }
+      setUserCredits({
+        planCredits: credits.planCredits,
+        totalCreditsLimit: credits.totalCredits,
+        planName: 'Pro Creator',
+      })
+      setCreations(recent)
+      setExternalApiStatus(extStatus)
+      setPromptTemplates(tmpls)
+      setStudioMetrics(calculateStudioMetrics(recent))
+    } catch (err) {
+      console.error('Erro ao carregar dados do estúdio:', err)
+    } finally {
+      setIsLoadingCreations(false)
     }
-    loadData()
   }, [user?.id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   // Placeholders contextuais por aba
   const placeholders: Record<StudioMediaType, string> = {
@@ -157,8 +195,12 @@ export default function AiMediaStudioPage() {
         cameraAngle,
       })
 
-      // Atualiza lista local
-      setCreations((prev) => [result.creation, ...prev])
+      // Atualiza lista local e métricas
+      setCreations((prev) => {
+        const updated = [result.creation, ...prev]
+        setStudioMetrics(calculateStudioMetrics(updated))
+        return updated
+      })
 
       // Atualiza créditos visuais
       setUserCredits((prev) => ({
@@ -166,9 +208,12 @@ export default function AiMediaStudioPage() {
         planCredits: Math.max(0, prev.planCredits - (result.creation.credits_used || 20)),
       }))
 
+      const isExternal = Boolean(result.creation.is_external_api)
       toast({
-        title: 'Criação concluída com sucesso!',
-        description: `Mídia gerada via ${currentModel.name} e sincronizada automaticamente na Biblioteca.`,
+        title: isExternal ? '✨ Gerado via API Externa Oficial!' : 'Criação concluída com sucesso!',
+        description: isExternal
+          ? `Mídia oficial produzida via OpenAI (${currentModel.name}) e sincronizada na Biblioteca.`
+          : `Mídia calibrada via ${currentModel.name} e sincronizada automaticamente na Biblioteca.`,
       })
 
       // Abre detalhes da criação gerada
@@ -317,48 +362,119 @@ export default function AiMediaStudioPage() {
           </div>
         </div>
 
+        {/* Status de Conexão com API Externa (Banner Informativo) */}
+        <div className="mb-6 p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-card/60 backdrop-blur-sm border-border/70">
+          <div className="flex items-center gap-2.5">
+            {externalApiStatus.configured ? (
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+            ) : (
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-foreground">Status da Mídia Externa:</span>
+                <Badge
+                  variant={externalApiStatus.configured ? 'default' : 'outline'}
+                  className={`text-[10px] font-bold ${
+                    externalApiStatus.configured
+                      ? 'bg-emerald-600 hover:bg-emerald-600 text-white'
+                      : 'border-amber-500/30 text-amber-400'
+                  }`}
+                >
+                  {externalApiStatus.configured
+                    ? 'Dados Oficiais (OpenAI Ativa)'
+                    : 'Estimativa Calibrada (Modo Local)'}
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {externalApiStatus.message}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsTemplateModalOpen(true)}
+              className="text-xs h-8 rounded-xl border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-1.5"
+            >
+              <FileCode className="w-3.5 h-3.5" />
+              Modelos de Prompt ({promptTemplates.length})
+            </Button>
+          </div>
+        </div>
+
         {/* Console Central de Criação (Estilo o Popover do Genspark) */}
-        <div className="bg-card border border-border/80 rounded-3xl p-4 sm:p-6 shadow-xl mb-12">
-          {/* Abas: Vídeo · Imagem · Áudio */}
-          <div className="flex items-center gap-2 border-b border-border/60 pb-4 mb-4">
-            <button
-              type="button"
-              onClick={() => setActiveTab('video')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                activeTab === 'video'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              <Video className="w-4 h-4" />
-              <span>Vídeo</span>
-            </button>
+        <div className="bg-card border border-border/80 rounded-3xl p-4 sm:p-6 shadow-xl mb-8">
+          {/* Abas: Vídeo · Imagem · Áudio + Botão Modelos de Prompt */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-4 mb-4">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('video')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  activeTab === 'video'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <Video className="w-4 h-4" />
+                <span>Vídeo</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('image')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                activeTab === 'image'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              <ImageIcon className="w-4 h-4" />
-              <span>Imagem</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('image')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  activeTab === 'image'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span>Imagem</span>
+                {externalApiStatus.configured && (
+                  <span
+                    className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+                    title="API OpenAI ativa para imagens reais"
+                  />
+                )}
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('audio')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                activeTab === 'audio'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
+              <button
+                type="button"
+                onClick={() => setActiveTab('audio')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  activeTab === 'audio'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <Mic className="w-4 h-4" />
+                <span>Áudio</span>
+                {externalApiStatus.configured && (
+                  <span
+                    className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+                    title="API OpenAI ativa para áudio TTS real"
+                  />
+                )}
+              </button>
+            </div>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsTemplateModalOpen(true)}
+              className="text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1.5"
             >
-              <Mic className="w-4 h-4" />
-              <span>Áudio</span>
-            </button>
+              <FileCode className="w-3.5 h-3.5" />
+              Usar Modelo de Prompt
+            </Button>
           </div>
 
           {/* Campo de Prompt Grande */}
@@ -527,6 +643,17 @@ export default function AiMediaStudioPage() {
           </div>
         </div>
 
+        {/* Painel de Métricas de Uso do AI Studio (Frente 4) */}
+        <div className="mb-10">
+          <StudioMetricsBlock
+            metrics={studioMetrics}
+            loading={isLoadingCreations}
+            externalStatusBadge={
+              externalApiStatus.configured ? 'OpenAI Integrada' : 'Estimativa Calibrada'
+            }
+          />
+        </div>
+
         {/* Galeria "Inspire-se" & "Recentes" (Conforme prints anexados) */}
         <div id="inspire-se" className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
@@ -637,6 +764,26 @@ export default function AiMediaStudioPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Gerenciamento de Modelos de Prompt Personalizáveis */}
+      <PromptTemplateManagerModal
+        open={isTemplateModalOpen}
+        onOpenChange={setIsTemplateModalOpen}
+        currentType={activeTab}
+        userId={user?.id || 'demo-user'}
+        templates={promptTemplates}
+        onSelectAndApply={(filledPrompt, defaultModelId) => {
+          setPrompt(filledPrompt)
+          if (defaultModelId) {
+            const found = STUDIO_MODELS[activeTab].find((m) => m.id === defaultModelId)
+            if (found) setModelForCurrentTab(found)
+          }
+        }}
+        onRefreshTemplates={async () => {
+          const tmpls = await getStudioPromptTemplates(user?.id)
+          setPromptTemplates(tmpls)
+        }}
+      />
 
       {/* Modal de Detalhes da Criação */}
       <Dialog

@@ -47,6 +47,7 @@ import {
 import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
 import { createTemplate } from '@/services/post-templates'
 import { enrichPostWithAi } from '@/services/ai-studio'
+import { AiEnrichmentCard } from '@/components/library/AiEnrichmentCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import { CampaignReportModal } from '@/components/campaigns/CampaignReportModal'
@@ -515,10 +516,17 @@ export default function Library() {
     setAiSyncingId(post.id)
     try {
       const brand = brands.find((b: any) => b.id === post.brandId)
-      const enriched = await enrichPostWithAi(post, brand?.name)
+      const enriched = await enrichPostWithAi({
+        id: post.id,
+        title: post.caption || post.content || 'Item da Biblioteca',
+        caption: post.caption,
+        content: post.content,
+        platform: post.platform,
+        brandName: brand?.name,
+      })
       toast({
         title: 'Sincronizado com IA Avançada!',
-        description: `Metadados enriquecidos para "${post.content || 'item'}". Tags adicionadas: ${enriched.suggestedTags.join(', ')}`,
+        description: `Metadados enriquecidos para "${post.content || post.caption || 'item'}". Tags sugeridas: ${(enriched.suggested_tags || []).slice(0, 3).join(', ')}`,
       })
       await refreshPosts()
     } catch {
@@ -541,7 +549,14 @@ export default function Library() {
         const p = posts.find((item) => item.id === id)
         if (p) {
           const brand = brands.find((b: any) => b.id === p.brandId)
-          await enrichPostWithAi(p, brand?.name)
+          await enrichPostWithAi({
+            id: p.id,
+            title: p.caption || p.content || 'Item da Biblioteca',
+            caption: p.caption,
+            content: p.content,
+            platform: p.platform,
+            brandName: brand?.name,
+          })
           successCount++
         }
       }
@@ -2462,6 +2477,19 @@ export default function Library() {
                 </div>
               )}
 
+              {/* Card de Sugestões Ricas de IA com Aplicação em 1 Clique */}
+              {(detailsDrawerPost.aiEnrichment || detailsDrawerPost._raw?.ai_enrichment) && (
+                <AiEnrichmentCard
+                  postId={detailsDrawerPost.id}
+                  enrichment={
+                    detailsDrawerPost.aiEnrichment || detailsDrawerPost._raw?.ai_enrichment
+                  }
+                  onApplied={async () => {
+                    await refreshPosts()
+                  }}
+                />
+              )}
+
               {/* Botão direto para enriquecer com IA */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/60">
                 <div>
@@ -2469,8 +2497,8 @@ export default function Library() {
                     Sincronização com IA Avançada
                   </span>
                   <p className="text-[11px] text-muted-foreground">
-                    Gera automaticamente tags contextuais, descrição de mídia e melhores redes para
-                    postagem.
+                    Gera automaticamente tags contextuais de nicho, descrição pronta para uso, rede
+                    ideal com justificativa e score preditivo.
                   </p>
                 </div>
                 <Button
@@ -2487,8 +2515,8 @@ export default function Library() {
                   )}
                   <span>
                     {detailsDrawerPost.aiSynced || detailsDrawerPost._raw?.ai_synced
-                      ? 'Re-sincronizar'
-                      : 'Sincronizar Agora'}
+                      ? 'Re-sincronizar IA'
+                      : 'Sincronizar com IA'}
                   </span>
                 </Button>
               </div>
