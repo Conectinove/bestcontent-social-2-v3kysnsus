@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T04:52:13.179Z",
+  "generatedAt": "2026-11-06T05:33:25.467Z",
   "collections": [
     {
       "name": "users",
@@ -4098,6 +4098,62 @@
       "indexes": [
         "CREATE INDEX idx_review_comments_post ON review_comments (post)",
         "CREATE INDEX idx_review_comments_created ON review_comments (created)"
+      ]
+    },
+    {
+      "name": "notifications",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id = user",
+        "view": "@request.auth.id = user",
+        "create": "@request.auth.id = user",
+        "update": "@request.auth.id = user",
+        "delete": "@request.auth.id = user"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["review_assigned", "change_requested", "approval_flow"]
+        },
+        {
+          "name": "post",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "actor_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "is_read",
+          "type": "bool",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notifications_user ON notifications (user)",
+        "CREATE INDEX idx_notifications_unread ON notifications (user, is_read)"
       ]
     }
   ]
