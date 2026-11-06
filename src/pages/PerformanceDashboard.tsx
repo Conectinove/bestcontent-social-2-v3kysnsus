@@ -20,6 +20,7 @@ import {
   Calendar,
   Clock,
   Trash2,
+  Award,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Card } from '@/components/ui/card'

@@ -22,6 +22,7 @@ import ImageCreator from './pages/ImageCreator'
 import FlyerCreator from './pages/FlyerCreator'
 import CalendarPage from './pages/CalendarPage'
 import Library from './pages/Library'
+import AiMediaStudioPage from './pages/AiMediaStudioPage'
 import Discover from './pages/Discover'
 import Dashboard from './pages/Dashboard'
 import VisaoGeral from './pages/VisaoGeral'
@@ -92,6 +93,9 @@ const App = () => (
                 <Route path="/app/brands" element={<Brands />} />
                 <Route path="/app/brands/:id" element={<BrandDetail />} />
                 <Route path="/app/library" element={<Library />} />
+                <Route path="/app/studio" element={<AiMediaStudioPage />} />
+                <Route path="/app/ai-studio" element={<Navigate to="/app/studio" replace />} />
+                <Route path="/app/media-studio" element={<Navigate to="/app/studio" replace />} />
                 <Route path="/app/content/new" element={<CreatePost />} />
                 <Route path="/app/editor/:postId" element={<PostEditor />} />
                 <Route path="/app/calendar" element={<CalendarPage />} />

@@ -115,6 +115,16 @@ export function mapPost(record: any): Post {
     isReviewed: Boolean(record.is_reviewed),
     reviewNotes: record.review_notes || undefined,
     campaignFormat: record.campaign_format || undefined,
+    origin: record.origin || undefined,
+    aiSynced: Boolean(record.ai_synced),
+    studioMetadata:
+      typeof record.studio_metadata === 'string'
+        ? JSON.parse(record.studio_metadata || '{}')
+        : record.studio_metadata || undefined,
+    aiEnrichment:
+      typeof record.ai_enrichment === 'string'
+        ? JSON.parse(record.ai_enrichment || '{}')
+        : record.ai_enrichment || undefined,
     _raw: record,
   }
 }

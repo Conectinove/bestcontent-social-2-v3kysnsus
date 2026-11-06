@@ -122,8 +122,10 @@ export interface PerformanceReportRecord {
   }
   highlights_json?: {
     topChannel?: { name: string; engagement: number }
+    underperformingChannel?: { name: string; engagement: number }
     topFormat?: { name: string; reach: number }
     topPost?: { title: string; rate: number; channel: string }
+    insights?: string[]
     comparison?: {
       currentPeriodReach: number
       previousPeriodReach: number

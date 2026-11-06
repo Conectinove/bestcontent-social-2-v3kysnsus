@@ -433,6 +433,12 @@ export function CreatePerformanceReportModal({
                 : 'Instagram',
             engagement: isComments ? 88.0 : Number((avgRate * 1.15).toFixed(1)),
           },
+          underperformingChannel: isConsolidated
+            ? {
+                name: 'X (Twitter)',
+                engagement: 1.8,
+              }
+            : undefined,
           topFormat: {
             name: isComments
               ? 'Atendimento Rápido Direct & Feed'
@@ -448,6 +454,13 @@ export function CreatePerformanceReportModal({
             rate: Number((avgRate * 1.6).toFixed(1)),
             channel: 'Instagram',
           },
+          insights: isConsolidated
+            ? [
+                'WhatsApp Business gerou taxa de conversão 4.2x maior em leads quentes vindos dos stories.',
+                'Instagram e TikTok lideraram o topo do funil com 68% do alcance único somado.',
+                'Recomenda-se migrar criativos estáticos do X para carrosséis narrativos no LinkedIn.',
+              ]
+            : undefined,
           comparison: {
             currentPeriodReach: isConsolidated ? totReach : currentKpis?.totalReach || 42800,
             previousPeriodReach: Math.round(

@@ -46,6 +46,7 @@ import {
 } from 'lucide-react'
 import { getCampaigns, type CampaignRecord } from '@/services/campaigns'
 import { createTemplate } from '@/services/post-templates'
+import { enrichPostWithAi } from '@/services/ai-studio'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CreateCampaignModal } from '@/components/campaigns/CreateCampaignModal'
 import { CampaignReportModal } from '@/components/campaigns/CampaignReportModal'
@@ -248,6 +249,7 @@ export default function Library() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [aiSyncingId, setAiSyncingId] = useState<string | null>(null)
 
   // Cache de métricas de posts carregadas do backend
   const [metricsMap, setMetricsMap] = useState<Record<string, PostMetric>>({})
@@ -506,6 +508,58 @@ export default function Library() {
 
   const handleOpenEditor = (postId: string) => {
     navigate(`/app/editor/${postId}`)
+  }
+
+  const handleSyncWithAi = async (post: Post, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setAiSyncingId(post.id)
+    try {
+      const brand = brands.find((b: any) => b.id === post.brandId)
+      const enriched = await enrichPostWithAi(post, brand?.name)
+      toast({
+        title: 'Sincronizado com IA Avançada!',
+        description: `Metadados enriquecidos para "${post.content || 'item'}". Tags adicionadas: ${enriched.suggestedTags.join(', ')}`,
+      })
+      await refreshPosts()
+    } catch {
+      toast({
+        title: 'Falha na sincronização com IA',
+        description: 'Não foi possível enriquecer os metadados do post agora.',
+        variant: 'destructive',
+      })
+    } finally {
+      setAiSyncingId(null)
+    }
+  }
+
+  const handleBatchSyncWithAi = async () => {
+    if (selectedIds.length === 0) return
+    setBulkActionLoading(true)
+    let successCount = 0
+    try {
+      for (const id of selectedIds) {
+        const p = posts.find((item) => item.id === id)
+        if (p) {
+          const brand = brands.find((b: any) => b.id === p.brandId)
+          await enrichPostWithAi(p, brand?.name)
+          successCount++
+        }
+      }
+      toast({
+        title: 'Sincronização com IA concluída!',
+        description: `${successCount} itens tiveram metadados enriquecidos e salvos.`,
+      })
+      await refreshPosts()
+      setSelectedIds([])
+    } catch {
+      toast({
+        title: 'Erro na sincronização em lote',
+        description: 'Alguns itens podem não ter sido sincronizados.',
+        variant: 'destructive',
+      })
+    } finally {
+      setBulkActionLoading(false)
+    }
   }
 
   const handleTriggerImport = () => {
@@ -772,6 +826,16 @@ export default function Library() {
 
         {/* Top actions */}
         <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto">
+          <Button
+            size="sm"
+            onClick={() => navigate('/app/studio')}
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold text-xs h-9 px-3 sm:px-3.5 gap-1.5 shadow-sm transition-all flex-1 sm:flex-initial justify-center"
+            title="Abrir AI Media Studio (Vídeo, Imagem e Áudio)"
+          >
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">AI Media Studio</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -1048,6 +1112,18 @@ export default function Library() {
                 <SelectItem value="published">Marcar como Publicado</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulkActionLoading}
+              onClick={handleBatchSyncWithAi}
+              className="h-8 text-xs font-semibold rounded-xl gap-1.5 border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20"
+              title="Analisar e enriquecer metadados dos posts selecionados com IA"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>Sincronizar com IA</span>
+            </Button>
 
             <Button
               variant="outline"
@@ -1615,11 +1691,21 @@ export default function Library() {
                     </div>
                   )}
 
-                  {/* Aspect Ratio & Template Badge */}
+                  {/* Aspect Ratio & Template Badge & Studio/AI Badges */}
                   <div className="absolute bottom-3 left-3 flex items-center gap-1.5 flex-wrap">
                     <span className="bg-black/75 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-md font-mono font-medium border border-white/10">
                       {ratio}
                     </span>
+                    {(post.origin === 'studio' || post._raw?.origin === 'studio') && (
+                      <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] px-2 py-0.5 rounded-md font-black tracking-wider uppercase shadow-xs flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5" /> Studio
+                      </span>
+                    )}
+                    {(post.aiSynced || post._raw?.ai_synced) && (
+                      <span className="bg-emerald-600/90 text-white text-[10px] px-2 py-0.5 rounded-md font-bold shadow-xs flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5" /> IA
+                      </span>
+                    )}
                     {(post.templateId || post._raw?.template_id) && (
                       <span className="bg-purple-600/90 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-md font-bold shadow-xs flex items-center gap-1">
                         <Layers className="w-2.5 h-2.5" /> Template
@@ -1736,17 +1822,43 @@ export default function Library() {
 
                   {/* Actions row */}
                   <div className="flex items-center justify-between gap-1 pt-1">
-                    {/* Primary action: Abrir / Editar com IA */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenEditor(post.id)}
-                      className="h-8 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 px-2.5 gap-1 rounded-lg"
-                      title="Editar com IA e personalização avançada"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Editar com IA</span>
-                    </Button>
+                    {/* Primary action: Abrir / Editar com IA & Sincronizar com IA */}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenEditor(post.id)}
+                        className="h-8 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 px-2 gap-1 rounded-lg"
+                        title="Editar com IA e personalização avançada"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Editar</span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={aiSyncingId === post.id}
+                        onClick={(e) => handleSyncWithAi(post, e)}
+                        className={`h-8 text-xs font-semibold px-2 gap-1 rounded-lg ${
+                          post.aiSynced || post._raw?.ai_synced
+                            ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+                            : 'text-muted-foreground hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30'
+                        }`}
+                        title="Sincronizar e enriquecer metadados com IA avançada"
+                      >
+                        {aiSyncingId === post.id ? (
+                          <RefreshCw className="w-3 h-3 animate-spin text-purple-600" />
+                        ) : post.aiSynced || post._raw?.ai_synced ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Sparkles className="w-3 h-3 text-purple-500" />
+                        )}
+                        <span className="hidden sm:inline">
+                          {post.aiSynced || post._raw?.ai_synced ? 'IA ✓' : 'Sinc IA'}
+                        </span>
+                      </Button>
+                    </div>
 
                     <div className="flex items-center gap-1">
                       {/* Painel lateral de detalhes ricos */}
@@ -1980,7 +2092,31 @@ export default function Library() {
                     title="Editar com IA e personalização avançada"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                    <span>Editar com IA</span>
+                    <span>Editar</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={aiSyncingId === post.id}
+                    onClick={(e) => handleSyncWithAi(post, e)}
+                    className={`h-8 text-xs font-semibold gap-1 rounded-xl ${
+                      post.aiSynced || post._raw?.ai_synced
+                        ? 'border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600'
+                        : 'border-purple-500/30 text-purple-600 hover:bg-purple-50'
+                    }`}
+                    title="Sincronizar com IA Avançada"
+                  >
+                    {aiSyncingId === post.id ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                    ) : post.aiSynced || post._raw?.ai_synced ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                    )}
+                    <span className="hidden lg:inline">
+                      {post.aiSynced || post._raw?.ai_synced ? 'Sincronizado' : 'Sinc IA'}
+                    </span>
                   </Button>
 
                   <Button
@@ -2264,6 +2400,99 @@ export default function Library() {
             </DialogHeader>
 
             <div className="space-y-4 text-xs">
+              {/* Card de IA & Studio se aplicável */}
+              {(detailsDrawerPost.origin === 'studio' ||
+                detailsDrawerPost._raw?.origin === 'studio' ||
+                detailsDrawerPost.aiSynced ||
+                detailsDrawerPost._raw?.ai_synced ||
+                detailsDrawerPost.studioMetadata) && (
+                <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] uppercase font-black tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      Origem: AI Media Studio & Sincronização IA
+                    </span>
+                    <Badge className="bg-purple-600 text-white text-[10px] uppercase font-bold">
+                      {detailsDrawerPost.studioMetadata?.mediaType || 'Multimodal'}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">
+                        Modelo Utilizado
+                      </span>
+                      <span className="font-bold text-foreground">
+                        {detailsDrawerPost.studioMetadata?.modelName || 'IA Studio'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">
+                        Custo Relativo
+                      </span>
+                      <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
+                        {detailsDrawerPost.studioMetadata?.relativeCost || 1}×
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">Status IA</span>
+                      <span className="font-bold text-emerald-600 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Metadados Sincronizados
+                      </span>
+                    </div>
+                  </div>
+
+                  {detailsDrawerPost.studioMetadata?.prompt && (
+                    <div className="text-[11px] bg-card p-2 rounded-lg border border-border/60">
+                      <span className="text-muted-foreground block text-[10px] font-semibold">
+                        Prompt Original:
+                      </span>
+                      <p className="text-foreground italic line-clamp-2 mt-0.5">
+                        "{detailsDrawerPost.studioMetadata.prompt}"
+                      </p>
+                    </div>
+                  )}
+
+                  {detailsDrawerPost.aiEnrichment?.recommendations && (
+                    <div className="text-[11px] bg-card p-2 rounded-lg border border-border/60 text-muted-foreground">
+                      <span className="font-semibold text-foreground">Recomendação IA:</span>{' '}
+                      {detailsDrawerPost.aiEnrichment.recommendations}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Botão direto para enriquecer com IA */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/60">
+                <div>
+                  <span className="font-bold text-foreground block text-xs">
+                    Sincronização com IA Avançada
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Gera automaticamente tags contextuais, descrição de mídia e melhores redes para
+                    postagem.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={aiSyncingId === detailsDrawerPost.id}
+                  onClick={(e) => handleSyncWithAi(detailsDrawerPost, e)}
+                  className="rounded-xl border-purple-500/40 text-purple-600 hover:bg-purple-50 text-xs gap-1.5 shrink-0"
+                >
+                  {aiSyncingId === detailsDrawerPost.id ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {detailsDrawerPost.aiSynced || detailsDrawerPost._raw?.ai_synced
+                      ? 'Re-sincronizar'
+                      : 'Sincronizar Agora'}
+                  </span>
+                </Button>
+              </div>
+
               {/* Dimensões, Redes & Nível de Aprovação */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-muted/40 p-3.5 rounded-xl border border-border/60">
                 <div>
@@ -2401,6 +2630,7 @@ export default function Library() {
                       .filter(Boolean)
                     await pb.collection('posts').update(detailsDrawerPost.id, {
                       tags: parsedTags,
+                      ai_synced: detailsDrawerPost.aiSynced ?? true,
                     })
                     toast({
                       title: 'Tags atualizadas com sucesso!',

@@ -331,6 +331,29 @@ export function Sidebar({
             {!collapsed && <span>Criar</span>}
           </Link>
 
+          {/* AI Media Studio (Estúdio Multimodal Vídeo/Imagem/Áudio) */}
+          <Link
+            to="/app/studio"
+            onClick={onMobileClose}
+            className={cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
+              location.pathname === '/app/studio'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20',
+            )}
+            title={collapsed ? 'AI Media Studio' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>AI Media Studio</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider bg-white/20 text-white dark:bg-purple-900/50">
+                PRO
+              </span>
+            )}
+          </Link>
+
           {/* Biblioteca */}
           <Link
             to="/app/library"

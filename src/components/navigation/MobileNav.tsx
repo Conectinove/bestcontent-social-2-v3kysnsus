@@ -75,6 +75,16 @@ export function MobileNav({ onOpenMobileMenu }: MobileNavProps) {
 
   const quickActions = [
     {
+      title: 'AI Media Studio (Vídeo/Img/Áudio)',
+      desc: 'Gere mídia multimodal com IA e seletor de custo',
+      icon: Sparkles,
+      iconBg: 'bg-gradient-to-tr from-purple-600 to-pink-500 text-white shadow-xs',
+      action: () => {
+        setSheetOpen(false)
+        navigate('/app/studio')
+      },
+    },
+    {
       title: 'Criar Post ou Carrossel',
       desc: 'Editor com IA, modelos prontos e formatos',
       icon: PenSquare,

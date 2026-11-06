@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T06:35:21.920Z",
+  "generatedAt": "2026-11-06T06:52:42.618Z",
   "collections": [
     {
       "name": "users",
@@ -569,6 +569,30 @@
         {
           "name": "review_requested",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "origin",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "studio_metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_synced",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_enrichment",
+          "type": "json",
           "required": false,
           "system": false
         }
@@ -4547,6 +4571,132 @@
         "CREATE INDEX idx_crm_interactions_user ON crm_interactions (user)",
         "CREATE INDEX idx_crm_interactions_contact ON crm_interactions (contact)",
         "CREATE INDEX idx_crm_interactions_type ON crm_interactions (type)"
+      ]
+    },
+    {
+      "name": "studio_creations",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != '' && user = @request.auth.id",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["video", "image", "audio"]
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "prompt",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "model_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "model_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "relative_cost",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "credits_used",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "preview_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "output_content",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "synced_to_library",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "synced_post_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_sync_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pendente", "sincronizado", "enriquecido"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_studio_creations_user ON studio_creations (user)",
+        "CREATE INDEX idx_studio_creations_type ON studio_creations (type)",
+        "CREATE INDEX idx_studio_creations_created ON studio_creations (created DESC)"
       ]
     }
   ]

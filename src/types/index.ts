@@ -62,6 +62,10 @@ export interface Post {
   isReviewed?: boolean
   reviewNotes?: string
   campaignFormat?: string
+  origin?: string
+  aiSynced?: boolean
+  studioMetadata?: Record<string, any>
+  aiEnrichment?: Record<string, any>
   created?: string
   createdAt?: string
   _raw?: any
