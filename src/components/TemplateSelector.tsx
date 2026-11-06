@@ -65,6 +65,36 @@ export const NETWORKS_CONFIG: Record<
     iconColor: 'text-sky-600',
     badgeClass: 'bg-sky-600/10 text-sky-600 dark:text-sky-400',
   },
+  threads: {
+    label: 'Threads',
+    iconColor: 'text-slate-900 dark:text-white',
+    badgeClass: 'bg-slate-500/10 text-slate-800 dark:text-slate-200',
+  },
+  pinterest: {
+    label: 'Pinterest',
+    iconColor: 'text-red-600',
+    badgeClass: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  },
+  kwai: {
+    label: 'Kwai',
+    iconColor: 'text-orange-500',
+    badgeClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  },
+  telegram: {
+    label: 'Telegram',
+    iconColor: 'text-sky-500',
+    badgeClass: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+  },
+  bluesky: {
+    label: 'Bluesky',
+    iconColor: 'text-blue-500',
+    badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  },
+  snapchat: {
+    label: 'Snapchat',
+    iconColor: 'text-yellow-500',
+    badgeClass: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  },
   whatsapp: {
     label: 'WhatsApp',
     iconColor: 'text-emerald-500',

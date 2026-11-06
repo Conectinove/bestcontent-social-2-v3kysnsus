@@ -50,6 +50,10 @@ const NETWORKS = [
   { id: 'facebook', label: 'Facebook' },
   { id: 'threads', label: 'Threads' },
   { id: 'pinterest', label: 'Pinterest' },
+  { id: 'kwai', label: 'Kwai' },
+  { id: 'telegram', label: 'Telegram' },
+  { id: 'bluesky', label: 'Bluesky' },
+  { id: 'snapchat', label: 'Snapchat' },
 ]
 
 export function BulkScheduleModal({

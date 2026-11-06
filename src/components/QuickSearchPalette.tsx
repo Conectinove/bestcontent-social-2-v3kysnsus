@@ -270,10 +270,23 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
     return (posts || [])
       .filter((p: any) => {
         const title = (p.title || p.content || '').toLowerCase()
+        const content = (p.content || '').toLowerCase()
         const caption = (p.caption || '').toLowerCase()
         const platform = (p.platform || '').toLowerCase()
         const tags = Array.isArray(p.tags) ? p.tags.join(' ').toLowerCase() : ''
-        return title.includes(q) || caption.includes(q) || platform.includes(q) || tags.includes(q)
+        const mediaPrompt = (p.mediaPrompt || p._raw?.media_prompt || '').toLowerCase()
+        const hookText = (p.hook || p._raw?.hook || '').toLowerCase()
+        const ctaText = (p.cta || p._raw?.cta || '').toLowerCase()
+        return (
+          title.includes(q) ||
+          content.includes(q) ||
+          caption.includes(q) ||
+          platform.includes(q) ||
+          tags.includes(q) ||
+          mediaPrompt.includes(q) ||
+          hookText.includes(q) ||
+          ctaText.includes(q)
+        )
       })
       .slice(0, 4)
   }, [posts, query])
@@ -285,25 +298,50 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
         id: 'tpl-1',
         title: 'Carrossel Educativo 7 Passos',
         category: 'Carrossel Instagram',
+        tags: 'educativo tutorial carrossel engajamento',
+        content: 'Passo a passo visual para ensinar sua audiência com slides de alta retenção',
         path: '/app/templates',
       },
       {
         id: 'tpl-2',
         title: 'Story com Enquete de Engajamento',
         category: 'Stories',
+        tags: 'interativo enquete perguntas stories',
+        content:
+          'Aumente o alcance e interação dos seus stories com caixas de perguntas e enquetes',
         path: '/app/templates',
       },
       {
         id: 'tpl-3',
         title: 'Roteiro de Reels com Gancho 3s',
         category: 'Vídeo Vertical',
+        tags: 'reels tiktok shorts gancho viral',
+        content: 'Roteiro rápido com gancho nos primeiros 3 segundos para reter atenção',
         path: '/app/criar/videos',
       },
       {
         id: 'tpl-4',
         title: 'Post de Autoridade e Prova Social',
         category: 'LinkedIn / Feed',
+        tags: 'autoridade linkedin depoimento b2b',
+        content: 'Mostre resultados reais e estudos de caso para converter seguidores em clientes',
         path: '/app/content/new',
+      },
+      {
+        id: 'tpl-5',
+        title: 'Thread de Curadoria de Ferramentas',
+        category: 'Threads / X / Twitter',
+        tags: 'threads x twitter lista curadoria',
+        content: 'Curadoria de recursos e hacks práticos com alto potencial de repost',
+        path: '/app/templates',
+      },
+      {
+        id: 'tpl-6',
+        title: 'Pin de Infográfico e Dicas Rápidas',
+        category: 'Pinterest',
+        tags: 'pinterest infografico trafego dicas',
+        content: 'Design vertical otimizado para cliques e tráfego orgânico no Pinterest',
+        path: '/app/templates',
       },
     ],
     [],
@@ -313,8 +351,12 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
     if (!query.trim() || query.trim().length < 2) return []
     const q = query.toLowerCase()
     return BUILTIN_TEMPLATES.filter(
-      (t) => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q),
-    ).slice(0, 2)
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        (t.tags && t.tags.toLowerCase().includes(q)) ||
+        (t.content && t.content.toLowerCase().includes(q)),
+    ).slice(0, 4)
   }, [BUILTIN_TEMPLATES, query])
 
   // Filtragem conforme a digitação

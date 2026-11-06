@@ -422,22 +422,40 @@ export default function Library() {
           if (postCampId !== selectedCampaignId) return false
         }
 
-        // Search text (título, conteúdo, legenda, tags, rede e marca)
+        // Search text profundo (título, conteúdo, legenda, tags, rede, marca, prompt de mídia, hook e CTA)
         if (search.trim()) {
           const q = search.toLowerCase()
-          const titleOrContent = ((post as any).title || post.content || '').toLowerCase()
+          const title = ((post as any).title || '').toLowerCase()
+          const content = (post.content || '').toLowerCase()
           const caption = (post.caption || '').toLowerCase()
           const platform = (post.platform || '').toLowerCase()
           const bMatch = brands.find((b: any) => b.id === post.brandId)
           const brandName = (bMatch?.name || '').toLowerCase()
           const tagsStr = Array.isArray(post.tags) ? post.tags.join(' ').toLowerCase() : ''
+          const mediaPrompt = (
+            (post as any).mediaPrompt ||
+            post._raw?.media_prompt ||
+            ''
+          ).toLowerCase()
+          const hookText = ((post as any).hook || post._raw?.hook || '').toLowerCase()
+          const ctaText = ((post as any).cta || post._raw?.cta || '').toLowerCase()
+          const templateName = (
+            (post as any).templateTitle ||
+            post._raw?.template_title ||
+            ''
+          ).toLowerCase()
 
           if (
-            !titleOrContent.includes(q) &&
+            !title.includes(q) &&
+            !content.includes(q) &&
             !caption.includes(q) &&
             !platform.includes(q) &&
             !brandName.includes(q) &&
-            !tagsStr.includes(q)
+            !tagsStr.includes(q) &&
+            !mediaPrompt.includes(q) &&
+            !hookText.includes(q) &&
+            !ctaText.includes(q) &&
+            !templateName.includes(q)
           ) {
             return false
           }
