@@ -798,13 +798,72 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
         open={connectorsModalOpen}
         onOpenChange={setConnectorsModalOpen}
         initialTab={connectorsInitialTab}
-        onImportContext={(ctx) => {
+        onImportContext={async (ctx) => {
           toast({
             title: 'Contexto importado!',
-            description: `"${ctx.title}" pronto para ser usado no seu próximo documento.`,
+            description: `"${ctx.title}" pronto para ser usado no seu documento.`,
           })
-          // Cria uma nova nota com o título do contexto importado
-          handleCreateNew('documento', ctx.title)
+          // Se houver documento selecionado no Segundo Cérebro, injeta o bloco de contexto importado nele
+          if (selectedDoc) {
+            const contextBlock: SecondBrainBlock = {
+              id: `blk-ctx-${Date.now()}`,
+              type: 'context_callout',
+              content: ctx.content,
+              caption: `${ctx.subtitle} · Importado via Conectores`,
+              isActive: true,
+            }
+            const updatedModules = [...(selectedDoc.modules || [])]
+            if (updatedModules.length > 0) {
+              updatedModules[0] = {
+                ...updatedModules[0],
+                blocks: [contextBlock, ...(updatedModules[0].blocks || [])],
+              }
+            } else {
+              updatedModules.push({
+                id: `mod-${Date.now()}`,
+                title: 'Contexto Importado',
+                blocks: [contextBlock],
+              })
+            }
+            const updated = await updateSecondBrainDoc(selectedDoc.id, {
+              modules: updatedModules,
+            })
+            if (updated) {
+              setSelectedDoc(updated)
+              await loadDocs()
+              return
+            }
+          }
+          // Caso contrário, cria uma nova nota já estruturada com o bloco do contexto
+          const newDoc = await createSecondBrainDoc({
+            title: ctx.title,
+            doc_type: ctx.type === 'canva' ? 'aula_lab' : 'documento',
+            location: `Conectores · ${ctx.source.toUpperCase()}`,
+            modules: [
+              {
+                id: `mod-${Date.now()}-1`,
+                title: `Contexto: ${ctx.title}`,
+                blocks: [
+                  {
+                    id: `blk-${Date.now()}-1`,
+                    type: 'context_callout',
+                    content: ctx.content,
+                    caption: `${ctx.subtitle} · Importado via Conectores do Segundo Cérebro`,
+                    isActive: true,
+                  },
+                  {
+                    id: `blk-${Date.now()}-2`,
+                    type: 'paragraph',
+                    content:
+                      'Use este contexto como base para gerar conteúdos, aulas interativas ou roteiros com IA no painel do MagicAuthor.',
+                    isActive: true,
+                  },
+                ],
+              },
+            ],
+          })
+          await loadDocs()
+          setSelectedDoc(newDoc)
         }}
       />
 

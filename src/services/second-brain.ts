@@ -288,12 +288,23 @@ export async function listSecondBrainDocs(params?: {
 
       if (params?.search) {
         const q = params.search.toLowerCase()
-        return mapped.filter(
-          (d) =>
+        return mapped.filter((d) => {
+          if (
             d.title.toLowerCase().includes(q) ||
             d.subtitle?.toLowerCase().includes(q) ||
-            d.author_name?.toLowerCase().includes(q),
-        )
+            d.author_name?.toLowerCase().includes(q) ||
+            d.location?.toLowerCase().includes(q)
+          ) {
+            return true
+          }
+          // Busca profunda no conteúdo dos blocos e contexto importado
+          return (d.modules || []).some((m) =>
+            (m.blocks || []).some((b) => {
+              const text = `${b.content || ''} ${b.caption || ''} ${b.prompt || ''}`.toLowerCase()
+              return text.includes(q)
+            }),
+          )
+        })
       }
       return mapped
     }
@@ -308,12 +319,22 @@ export async function listSecondBrainDocs(params?: {
   }
   if (params?.search) {
     const q = params.search.toLowerCase()
-    list = list.filter(
-      (d) =>
+    list = list.filter((d) => {
+      if (
         d.title.toLowerCase().includes(q) ||
         d.subtitle?.toLowerCase().includes(q) ||
-        d.author_name?.toLowerCase().includes(q),
-    )
+        d.author_name?.toLowerCase().includes(q) ||
+        d.location?.toLowerCase().includes(q)
+      ) {
+        return true
+      }
+      return (d.modules || []).some((m) =>
+        (m.blocks || []).some((b) => {
+          const text = `${b.content || ''} ${b.caption || ''} ${b.prompt || ''}`.toLowerCase()
+          return text.includes(q)
+        }),
+      )
+    })
   }
   return list
 }

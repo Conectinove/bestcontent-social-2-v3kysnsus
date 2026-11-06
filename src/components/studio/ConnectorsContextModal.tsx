@@ -30,6 +30,8 @@ import {
   type OutlookMessageItem,
   type CloudDriveFileItem,
 } from '@/services/microsoft-connectors'
+import { fetchPipedriveData, fetchHubspotData, type CrmRecordItem } from '@/services/crm-connectors'
+import { fetchCanvaAssets, type CanvaAssetItem } from '@/services/canva-connectors'
 import {
   FileText,
   Mail,
@@ -47,6 +49,12 @@ import {
   Calendar,
   User,
   Inbox,
+  Briefcase,
+  Users as UsersIcon,
+  Palette,
+  DollarSign,
+  Tag,
+  ImageIcon,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -65,6 +73,9 @@ interface ConnectorsContextModalProps {
     | 'one_drive'
     | 'sharepoint'
     | 'share_point'
+    | 'pipedrive'
+    | 'hubspot'
+    | 'canva'
 }
 
 export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
@@ -128,6 +139,31 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
   const [sheetIdInput, setSheetIdInput] = useState('')
   const [sheetRangeInput, setSheetRangeInput] = useState('A1:Z50')
   const [importingSheet, setImportingSheet] = useState(false)
+
+  // Pipedrive state
+  const [pipedriveDeals, setPipedriveDeals] = useState<CrmRecordItem[]>([])
+  const [pipedriveContacts, setPipedriveContacts] = useState<CrmRecordItem[]>([])
+  const [pipedriveActivities, setPipedriveActivities] = useState<CrmRecordItem[]>([])
+  const [pipedriveFilter, setPipedriveFilter] = useState<'all' | 'deal' | 'contact' | 'activity'>(
+    'all',
+  )
+  const [pipedriveSearch, setPipedriveSearch] = useState('')
+  const [loadingPipedrive, setLoadingPipedrive] = useState(false)
+  const [importingPipedriveId, setImportingPipedriveId] = useState<string | null>(null)
+
+  // HubSpot state
+  const [hubspotDeals, setHubspotDeals] = useState<CrmRecordItem[]>([])
+  const [hubspotContacts, setHubspotContacts] = useState<CrmRecordItem[]>([])
+  const [hubspotFilter, setHubspotFilter] = useState<'all' | 'deal' | 'contact'>('all')
+  const [hubspotSearch, setHubspotSearch] = useState('')
+  const [loadingHubspot, setLoadingHubspot] = useState(false)
+  const [importingHubspotId, setImportingHubspotId] = useState<string | null>(null)
+
+  // Canva state
+  const [canvaDesigns, setCanvaDesigns] = useState<CanvaAssetItem[]>([])
+  const [canvaSearch, setCanvaSearch] = useState('')
+  const [loadingCanva, setLoadingCanva] = useState(false)
+  const [importingCanvaId, setImportingCanvaId] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -224,6 +260,45 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
     }
   }
 
+  // Carregar dados Pipedrive
+  const handleLoadPipedrive = async () => {
+    if (getStatus('pipedrive') !== 'connected') return
+    setLoadingPipedrive(true)
+    try {
+      const res = await fetchPipedriveData(pipedriveSearch)
+      setPipedriveDeals(res.deals || [])
+      setPipedriveContacts(res.contacts || [])
+      setPipedriveActivities(res.activities || [])
+    } finally {
+      setLoadingPipedrive(false)
+    }
+  }
+
+  // Carregar dados HubSpot
+  const handleLoadHubspot = async () => {
+    if (getStatus('hubspot') !== 'connected') return
+    setLoadingHubspot(true)
+    try {
+      const res = await fetchHubspotData(hubspotSearch)
+      setHubspotDeals(res.deals || [])
+      setHubspotContacts(res.contacts || [])
+    } finally {
+      setLoadingHubspot(false)
+    }
+  }
+
+  // Carregar designs Canva
+  const handleLoadCanva = async () => {
+    if (getStatus('canva') !== 'connected') return
+    setLoadingCanva(true)
+    try {
+      const res = await fetchCanvaAssets(canvaSearch)
+      setCanvaDesigns(res.designs || [])
+    } finally {
+      setLoadingCanva(false)
+    }
+  }
+
   useEffect(() => {
     if (activeTab === 'googledrive' && getStatus('googledrive') === 'connected') {
       handleLoadDriveFiles()
@@ -235,6 +310,12 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
       handleLoadOneDrive()
     } else if (activeTab === 'sharepoint' && getStatus('share_point') === 'connected') {
       handleLoadSharePoint()
+    } else if (activeTab === 'pipedrive' && getStatus('pipedrive') === 'connected') {
+      handleLoadPipedrive()
+    } else if (activeTab === 'hubspot' && getStatus('hubspot') === 'connected') {
+      handleLoadHubspot()
+    } else if (activeTab === 'canva' && getStatus('canva') === 'connected') {
+      handleLoadCanva()
     }
   }, [activeTab, connectors])
 
@@ -496,6 +577,136 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
     }
   }
 
+  // Importação de Pipedrive
+  const handleImportPipedriveItem = (item: CrmRecordItem) => {
+    setImportingPipedriveId(item.id)
+    try {
+      const typeLabel =
+        item.type === 'deal' ? 'Negócio' : item.type === 'contact' ? 'Contato/Pessoa' : 'Atividade'
+      const lines = [
+        `Fonte: Pipedrive CRM (${typeLabel})`,
+        `Título: ${item.title}`,
+        item.subtitle ? `Subtítulo / Organização: ${item.subtitle}` : null,
+        item.status ? `Status: ${item.status}` : null,
+        item.value ? `Valor: ${item.value}` : null,
+        item.owner ? `Responsável: ${item.owner}` : null,
+        item.updatedAt ? `Última atualização: ${item.updatedAt}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n')
+
+      const ctx: ImportedContextItem = {
+        id: `ctx-pipedrive-${item.id}`,
+        source: 'pipedrive',
+        title: item.title,
+        subtitle: `Pipedrive · ${typeLabel}${item.value ? ` · ${item.value}` : ''}`,
+        content: lines,
+        type: 'pipedrive',
+        metadata: {
+          crmId: item.id,
+          crmType: item.type,
+          status: item.status,
+          value: item.value,
+          owner: item.owner,
+        },
+        createdAt: new Date().toISOString(),
+      }
+      onImportContext(ctx)
+      toast({
+        title: 'Item do Pipedrive importado!',
+        description: `"${item.title}" adicionado como contexto ativo do CRM.`,
+      })
+      onOpenChange(false)
+    } finally {
+      setImportingPipedriveId(null)
+    }
+  }
+
+  // Importação de HubSpot
+  const handleImportHubspotItem = (item: CrmRecordItem) => {
+    setImportingHubspotId(item.id)
+    try {
+      const typeLabel = item.type === 'deal' ? 'Negócio' : 'Contato'
+      const lines = [
+        `Fonte: HubSpot CRM (${typeLabel})`,
+        `Nome / Título: ${item.title}`,
+        item.subtitle ? `Detalhes / Pipeline: ${item.subtitle}` : null,
+        item.status ? `Fase do Ciclo de Vida: ${item.status}` : null,
+        item.value ? `Valor: ${item.value}` : null,
+        item.updatedAt ? `Atualizado: ${item.updatedAt}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n')
+
+      const ctx: ImportedContextItem = {
+        id: `ctx-hubspot-${item.id}`,
+        source: 'hubspot',
+        title: item.title,
+        subtitle: `HubSpot · ${typeLabel}${item.value ? ` · ${item.value}` : ''}`,
+        content: lines,
+        type: 'hubspot',
+        metadata: {
+          crmId: item.id,
+          crmType: item.type,
+          status: item.status,
+          value: item.value,
+        },
+        createdAt: new Date().toISOString(),
+      }
+      onImportContext(ctx)
+      toast({
+        title: 'Item do HubSpot importado!',
+        description: `"${item.title}" adicionado como contexto ativo do CRM.`,
+      })
+      onOpenChange(false)
+    } finally {
+      setImportingHubspotId(null)
+    }
+  }
+
+  // Importação de Canva
+  const handleImportCanvaDesign = (design: CanvaAssetItem) => {
+    setImportingCanvaId(design.id)
+    try {
+      const lines = [
+        `Fonte: Canva Design Studio`,
+        `Título: ${design.title}`,
+        design.editUrl ? `Link de Edição Canva: ${design.editUrl}` : null,
+        design.thumbnailUrl ? `Miniatura/Asset: ${design.thumbnailUrl}` : null,
+        design.updatedAt ? `Última modificação: ${design.updatedAt}` : null,
+        '',
+        `Design visual importado da biblioteca Canva do usuário para apoiar criação de posts, carrosséis e banners.`,
+      ]
+        .filter(Boolean)
+        .join('\n')
+
+      const ctx: ImportedContextItem = {
+        id: `ctx-canva-${design.id}`,
+        source: 'canva',
+        title: design.title,
+        subtitle: `Canva Design · ${design.updatedAt || 'Recente'}`,
+        content: lines,
+        origin: design.editUrl,
+        imageUrl: design.thumbnailUrl,
+        type: 'canva',
+        metadata: {
+          canvaId: design.id,
+          editUrl: design.editUrl,
+          thumbnailUrl: design.thumbnailUrl,
+        },
+        createdAt: new Date().toISOString(),
+      }
+      onImportContext(ctx)
+      toast({
+        title: 'Design Canva importado!',
+        description: `"${design.title}" agora faz parte do contexto ativo.`,
+      })
+      onOpenChange(false)
+    } finally {
+      setImportingCanvaId(null)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col bg-slate-950 border-slate-800 text-slate-100 p-0 rounded-3xl overflow-hidden shadow-2xl">
@@ -514,8 +725,9 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                   </Badge>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400">
-                  Conecte suas contas pessoais do Google e Microsoft (Outlook, OneDrive e
-                  SharePoint) para importar e-mails e arquivos como contexto pedagógico.
+                  Conecte suas contas pessoais do Google, Microsoft (Outlook, OneDrive, SharePoint),
+                  CRMs (Pipedrive, HubSpot) e Canva para importar contexto ativo direto nas suas
+                  notas e IA.
                 </DialogDescription>
               </div>
             </div>
@@ -610,6 +822,36 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Sheets</span>
                 {getStatus('googlesheets') === 'connected' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="pipedrive"
+                className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
+              >
+                <Briefcase className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Pipedrive</span>
+                {getStatus('pipedrive') === 'connected' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="hubspot"
+                className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
+              >
+                <UsersIcon className="w-3.5 h-3.5 text-orange-400" />
+                <span>HubSpot</span>
+                {getStatus('hubspot') === 'connected' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="canva"
+                className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
+              >
+                <Palette className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Canva</span>
+                {getStatus('canva') === 'connected' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
               </TabsTrigger>
@@ -902,6 +1144,129 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                         className="text-xs border-slate-700 text-slate-300 hover:text-white"
                       >
                         Importar Tabela →
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Pipedrive CRM */}
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">Pipedrive CRM</div>
+                        <div className="text-xs text-slate-400">Negócios, pessoas e atividades</div>
+                      </div>
+                    </div>
+                    <Badge
+                      className={
+                        getStatus('pipedrive') === 'connected'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
+                      }
+                    >
+                      {getStatus('pipedrive') === 'connected' ? 'Conectado' : 'Desconectado'}
+                    </Badge>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <ConnectorButton
+                      toolkit="pipedrive"
+                      name="Pipedrive"
+                      className="[&>button]:bg-emerald-600 [&>button]:hover:bg-emerald-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                    />
+                    {getStatus('pipedrive') === 'connected' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setActiveTab('pipedrive')}
+                        className="text-xs border-slate-700 text-slate-300 hover:text-white"
+                      >
+                        Ver Negócios →
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card HubSpot CRM */}
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                        <UsersIcon className="w-5 h-5 text-orange-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">HubSpot CRM</div>
+                        <div className="text-xs text-slate-400">Contatos, leads e pipeline</div>
+                      </div>
+                    </div>
+                    <Badge
+                      className={
+                        getStatus('hubspot') === 'connected'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
+                      }
+                    >
+                      {getStatus('hubspot') === 'connected' ? 'Conectado' : 'Desconectado'}
+                    </Badge>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <ConnectorButton
+                      toolkit="hubspot"
+                      name="HubSpot"
+                      className="[&>button]:bg-orange-600 [&>button]:hover:bg-orange-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                    />
+                    {getStatus('hubspot') === 'connected' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setActiveTab('hubspot')}
+                        className="text-xs border-slate-700 text-slate-300 hover:text-white"
+                      >
+                        Ver Contatos →
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Canva */}
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">Canva</div>
+                        <div className="text-xs text-slate-400">Designs, artes e carrosséis</div>
+                      </div>
+                    </div>
+                    <Badge
+                      className={
+                        getStatus('canva') === 'connected'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
+                      }
+                    >
+                      {getStatus('canva') === 'connected' ? 'Conectado' : 'Desconectado'}
+                    </Badge>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <ConnectorButton
+                      toolkit="canva"
+                      name="Canva"
+                      className="[&>button]:bg-cyan-600 [&>button]:hover:bg-cyan-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                    />
+                    {getStatus('canva') === 'connected' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setActiveTab('canva')}
+                        className="text-xs border-slate-700 text-slate-300 hover:text-white"
+                      >
+                        Ver Designs →
                       </Button>
                     )}
                   </div>
@@ -1642,6 +2007,574 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                   </span>
                 </Button>
               </div>
+            </TabsContent>
+
+            {/* ABA: PIPEDRIVE CRM */}
+            <TabsContent value="pipedrive" className="space-y-4 m-0">
+              {getStatus('pipedrive') !== 'connected' ? (
+                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
+                  <Briefcase className="w-12 h-12 text-emerald-400 mx-auto opacity-70" />
+                  <div className="max-w-md mx-auto space-y-1">
+                    <div className="text-base font-bold text-white">Pipedrive não conectado</div>
+                    <div className="text-xs text-slate-400">
+                      Conecte sua conta do Pipedrive para carregar negócios, contatos e atividades
+                      para o Segundo Cérebro.
+                    </div>
+                  </div>
+                  <ConnectorButton
+                    toolkit="pipedrive"
+                    name="Pipedrive"
+                    className="flex justify-center [&>button]:bg-emerald-600 [&>button]:hover:bg-emerald-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                      <Button
+                        size="sm"
+                        variant={pipedriveFilter === 'all' ? 'secondary' : 'ghost'}
+                        onClick={() => setPipedriveFilter('all')}
+                        className="text-xs h-7 px-2.5 rounded-lg"
+                      >
+                        Tudo (
+                        {pipedriveDeals.length +
+                          pipedriveContacts.length +
+                          pipedriveActivities.length}
+                        )
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={pipedriveFilter === 'deal' ? 'secondary' : 'ghost'}
+                        onClick={() => setPipedriveFilter('deal')}
+                        className="text-xs h-7 px-2.5 rounded-lg"
+                      >
+                        Negócios ({pipedriveDeals.length})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={pipedriveFilter === 'contact' ? 'secondary' : 'ghost'}
+                        onClick={() => setPipedriveFilter('contact')}
+                        className="text-xs h-7 px-2.5 rounded-lg"
+                      >
+                        Contatos ({pipedriveContacts.length})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={pipedriveFilter === 'activity' ? 'secondary' : 'ghost'}
+                        onClick={() => setPipedriveFilter('activity')}
+                        className="text-xs h-7 px-2.5 rounded-lg"
+                      >
+                        Atividades ({pipedriveActivities.length})
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLoadPipedrive}
+                        disabled={loadingPipedrive}
+                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 mr-1.5 ${loadingPipedrive ? 'animate-spin' : ''}`}
+                        />
+                        Atualizar
+                      </Button>
+                      <ConnectorButton
+                        toolkit="pipedrive"
+                        name="Pipedrive"
+                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <Input
+                        value={pipedriveSearch}
+                        onChange={(e) => setPipedriveSearch(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLoadPipedrive()}
+                        placeholder="Buscar por termo ou nome no CRM..."
+                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleLoadPipedrive}
+                      disabled={loadingPipedrive}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl"
+                    >
+                      {loadingPipedrive ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        'Buscar'
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Lista de Registros */}
+                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                    {loadingPipedrive && (
+                      <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                        Carregando registros do Pipedrive...
+                      </div>
+                    )}
+
+                    {!loadingPipedrive &&
+                      (() => {
+                        const allItems: CrmRecordItem[] = [
+                          ...(pipedriveFilter === 'all' || pipedriveFilter === 'deal'
+                            ? pipedriveDeals
+                            : []),
+                          ...(pipedriveFilter === 'all' || pipedriveFilter === 'contact'
+                            ? pipedriveContacts
+                            : []),
+                          ...(pipedriveFilter === 'all' || pipedriveFilter === 'activity'
+                            ? pipedriveActivities
+                            : []),
+                        ]
+
+                        if (allItems.length === 0) {
+                          return (
+                            <div className="p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
+                              <Briefcase className="w-8 h-8 text-slate-500 mx-auto" />
+                              <div className="text-xs text-slate-400">
+                                Nenhum registro do Pipedrive encontrado para este filtro.
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleLoadPipedrive}
+                                className="text-xs border-slate-700 text-slate-300"
+                              >
+                                Sincronizar CRM Agora
+                              </Button>
+                            </div>
+                          )
+                        }
+
+                        return allItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-3 group transition-all"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  item.type === 'deal'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : item.type === 'contact'
+                                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                }`}
+                              >
+                                {item.type === 'deal' ? (
+                                  <Briefcase className="w-4 h-4" />
+                                ) : (
+                                  <UsersIcon className="w-4 h-4" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
+                                  <span>{item.title}</span>
+                                  {item.value && (
+                                    <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[9px] py-0 px-1.5 font-bold">
+                                      {item.value}
+                                    </Badge>
+                                  )}
+                                  {item.status && (
+                                    <Badge className="bg-slate-800 text-slate-300 border-slate-700 text-[9px] py-0 px-1.5 font-medium">
+                                      {item.status}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-400 truncate">
+                                  {item.subtitle || `Pipedrive · ${item.type}`}
+                                  {item.owner && ` · Resp: ${item.owner}`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <Button
+                              size="sm"
+                              onClick={() => handleImportPipedriveItem(item)}
+                              disabled={importingPipedriveId === item.id}
+                              className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
+                            >
+                              {importingPipedriveId === item.id ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Plus className="w-3.5 h-3.5 mr-1" />
+                                  Usar no Contexto
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        ))
+                      })()}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ABA: HUBSPOT CRM */}
+            <TabsContent value="hubspot" className="space-y-4 m-0">
+              {getStatus('hubspot') !== 'connected' ? (
+                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
+                  <UsersIcon className="w-12 h-12 text-orange-400 mx-auto opacity-70" />
+                  <div className="max-w-md mx-auto space-y-1">
+                    <div className="text-base font-bold text-white">HubSpot não conectado</div>
+                    <div className="text-xs text-slate-400">
+                      Conecte sua conta do HubSpot para importar contatos, negócios e pipelines
+                      diretamente no Segundo Cérebro.
+                    </div>
+                  </div>
+                  <ConnectorButton
+                    toolkit="hubspot"
+                    name="HubSpot"
+                    className="flex justify-center [&>button]:bg-orange-600 [&>button]:hover:bg-orange-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                      <Button
+                        size="sm"
+                        variant={hubspotFilter === 'all' ? 'secondary' : 'ghost'}
+                        onClick={() => setHubspotFilter('all')}
+                        className="text-xs h-7 px-2.5 rounded-lg"
+                      >
+                        Tudo ({hubspotDeals.length + hubspotContacts.length})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={hubspotFilter === 'deal' ? 'secondary' : 'ghost'}
+                        onClick={() => setHubspotFilter('deal')}
+                        className="text-xs h-7 px-2.5 rounded-lg"
+                      >
+                        Negócios ({hubspotDeals.length})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={hubspotFilter === 'contact' ? 'secondary' : 'ghost'}
+                        onClick={() => setHubspotFilter('contact')}
+                        className="text-xs h-7 px-2.5 rounded-lg"
+                      >
+                        Contatos ({hubspotContacts.length})
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLoadHubspot}
+                        disabled={loadingHubspot}
+                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 mr-1.5 ${loadingHubspot ? 'animate-spin' : ''}`}
+                        />
+                        Atualizar
+                      </Button>
+                      <ConnectorButton
+                        toolkit="hubspot"
+                        name="HubSpot"
+                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <Input
+                        value={hubspotSearch}
+                        onChange={(e) => setHubspotSearch(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLoadHubspot()}
+                        placeholder="Buscar contatos ou deals no HubSpot..."
+                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleLoadHubspot}
+                      disabled={loadingHubspot}
+                      className="bg-orange-600 hover:bg-orange-500 text-xs font-semibold rounded-xl"
+                    >
+                      {loadingHubspot ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        'Buscar'
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Lista de Registros HubSpot */}
+                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                    {loadingHubspot && (
+                      <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+                        Carregando registros do HubSpot...
+                      </div>
+                    )}
+
+                    {!loadingHubspot &&
+                      (() => {
+                        const allItems: CrmRecordItem[] = [
+                          ...(hubspotFilter === 'all' || hubspotFilter === 'deal'
+                            ? hubspotDeals
+                            : []),
+                          ...(hubspotFilter === 'all' || hubspotFilter === 'contact'
+                            ? hubspotContacts
+                            : []),
+                        ]
+
+                        if (allItems.length === 0) {
+                          return (
+                            <div className="p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
+                              <UsersIcon className="w-8 h-8 text-slate-500 mx-auto" />
+                              <div className="text-xs text-slate-400">
+                                Nenhum registro do HubSpot encontrado.
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleLoadHubspot}
+                                className="text-xs border-slate-700 text-slate-300"
+                              >
+                                Sincronizar HubSpot
+                              </Button>
+                            </div>
+                          )
+                        }
+
+                        return allItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-3 group transition-all"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  item.type === 'deal'
+                                    ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+                                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                }`}
+                              >
+                                {item.type === 'deal' ? (
+                                  <Briefcase className="w-4 h-4" />
+                                ) : (
+                                  <UsersIcon className="w-4 h-4" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
+                                  <span>{item.title}</span>
+                                  {item.value && (
+                                    <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30 text-[9px] py-0 px-1.5 font-bold">
+                                      {item.value}
+                                    </Badge>
+                                  )}
+                                  {item.status && (
+                                    <Badge className="bg-slate-800 text-slate-300 border-slate-700 text-[9px] py-0 px-1.5 font-medium">
+                                      {item.status}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-400 truncate">
+                                  {item.subtitle || `HubSpot · ${item.type}`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <Button
+                              size="sm"
+                              onClick={() => handleImportHubspotItem(item)}
+                              disabled={importingHubspotId === item.id}
+                              className="shrink-0 bg-orange-600 hover:bg-orange-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
+                            >
+                              {importingHubspotId === item.id ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Plus className="w-3.5 h-3.5 mr-1" />
+                                  Usar no Contexto
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        ))
+                      })()}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ABA: CANVA DESIGNS */}
+            <TabsContent value="canva" className="space-y-4 m-0">
+              {getStatus('canva') !== 'connected' ? (
+                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
+                  <Palette className="w-12 h-12 text-cyan-400 mx-auto opacity-70" />
+                  <div className="max-w-md mx-auto space-y-1">
+                    <div className="text-base font-bold text-white">Canva não conectado</div>
+                    <div className="text-xs text-slate-400">
+                      Conecte sua conta pessoal do Canva para listar e importar seus designs, posts
+                      e carrosséis direto para o Segundo Cérebro.
+                    </div>
+                  </div>
+                  <ConnectorButton
+                    toolkit="canva"
+                    name="Canva"
+                    className="flex justify-center [&>button]:bg-cyan-600 [&>button]:hover:bg-cyan-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30 text-xs">
+                        {canvaDesigns.length} designs disponíveis
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLoadCanva}
+                        disabled={loadingCanva}
+                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 mr-1.5 ${loadingCanva ? 'animate-spin' : ''}`}
+                        />
+                        Atualizar
+                      </Button>
+                      <ConnectorButton
+                        toolkit="canva"
+                        name="Canva"
+                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <Input
+                        value={canvaSearch}
+                        onChange={(e) => setCanvaSearch(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLoadCanva()}
+                        placeholder="Buscar designs por título no Canva..."
+                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleLoadCanva}
+                      disabled={loadingCanva}
+                      className="bg-cyan-600 hover:bg-cyan-500 text-xs font-semibold rounded-xl"
+                    >
+                      {loadingCanva ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Buscar'}
+                    </Button>
+                  </div>
+
+                  {/* Grid de Designs Canva */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1">
+                    {loadingCanva && (
+                      <div className="col-span-full p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+                        Carregando seus designs do Canva...
+                      </div>
+                    )}
+
+                    {!loadingCanva && canvaDesigns.length === 0 && (
+                      <div className="col-span-full p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
+                        <Palette className="w-8 h-8 text-slate-500 mx-auto" />
+                        <div className="text-xs text-slate-400">
+                          Nenhum design encontrado no seu Canva.
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleLoadCanva}
+                          className="text-xs border-slate-700 text-slate-300"
+                        >
+                          Recarregar Biblioteca
+                        </Button>
+                      </div>
+                    )}
+
+                    {!loadingCanva &&
+                      canvaDesigns.map((design) => (
+                        <div
+                          key={design.id}
+                          className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex flex-col justify-between gap-3 group transition-all"
+                        >
+                          <div className="space-y-2">
+                            {design.thumbnailUrl ? (
+                              <div className="w-full h-28 rounded-xl bg-slate-950 overflow-hidden relative border border-slate-800/60">
+                                <img
+                                  src={design.thumbnailUrl}
+                                  alt={design.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-full h-28 rounded-xl bg-cyan-950/20 border border-cyan-800/30 flex items-center justify-center">
+                                <Palette className="w-8 h-8 text-cyan-400/60" />
+                              </div>
+                            )}
+
+                            <div>
+                              <div className="text-xs font-semibold text-white truncate">
+                                {design.title}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">
+                                {design.updatedAt || 'Design recente'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                            {design.editUrl && (
+                              <a
+                                href={design.editUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1"
+                              >
+                                Abrir no Canva ↗
+                              </a>
+                            )}
+                            <Button
+                              size="sm"
+                              onClick={() => handleImportCanvaDesign(design)}
+                              disabled={importingCanvaId === design.id}
+                              className="ml-auto bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
+                            >
+                              {importingCanvaId === design.id ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Plus className="w-3.5 h-3.5 mr-1" />
+                                  Importar
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

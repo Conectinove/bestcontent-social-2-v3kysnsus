@@ -27,6 +27,9 @@ export type SupportedToolkit =
   | 'outlook'
   | 'one_drive'
   | 'share_point'
+  | 'pipedrive'
+  | 'hubspot'
+  | 'canva'
 
 export interface ImportedContextItem {
   id: string
@@ -36,15 +39,20 @@ export interface ImportedContextItem {
     | 'googledocs'
     | 'googlesheets'
     | 'outlook'
+    | 'onedrive'
     | 'one_drive'
+    | 'sharepoint'
     | 'share_point'
+    | 'pipedrive'
+    | 'hubspot'
+    | 'canva'
     | 'manual'
-    | 'pedagogico'
   title: string
   subtitle?: string
   content: string
   origin?: string
-  type?:
+  imageUrl?: string
+  type:
     | 'drive'
     | 'gmail'
     | 'docs'
@@ -52,12 +60,13 @@ export interface ImportedContextItem {
     | 'outlook'
     | 'onedrive'
     | 'sharepoint'
-    | 'manual'
-    | 'pedagogico'
+    | 'pipedrive'
+    | 'hubspot'
+    | 'canva'
+    | 'text'
   metadata?: Record<string, any>
   createdAt: string
 }
-
 export function getConnectedStatus(toolkit: SupportedToolkit): boolean {
   try {
     const raw = localStorage.getItem(`skip_connector_${toolkit}_status`)
