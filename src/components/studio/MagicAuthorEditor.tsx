@@ -28,6 +28,12 @@ import {
   Code,
   HelpCircle,
   Video,
+  Edit2,
+  Download,
+  Hammer,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LayoutGrid,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,6 +56,10 @@ import {
   type SecondBrainBlock,
   type BlockType,
 } from '@/services/second-brain'
+import { PedagogicalAssistantPanel, type ActiveContextItem } from './PedagogicalAssistantPanel'
+import { AulaHtmlWorkspace } from './AulaHtmlWorkspace'
+import { ConnectorsContextModal } from './ConnectorsContextModal'
+import type { SupportedToolkit } from '@/services/google-connectors'
 
 interface MagicAuthorEditorProps {
   doc: SecondBrainDoc
@@ -66,6 +76,25 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
   const [selectedModuleId, setSelectedModuleId] = useState<string>(
     doc.modules[0]?.id || 'mod-default',
   )
+  const [viewMode, setViewMode] = useState<'interactive' | 'blocks'>('interactive')
+  const [activeTab, setActiveTab] = useState<'aula' | 'code'>('aula')
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [showPedagogicalSidebar, setShowPedagogicalSidebar] = useState(true)
+  const [connectorsModalOpen, setConnectorsModalOpen] = useState(false)
+  const [connectorsInitialTab, setConnectorsInitialTab] = useState<SupportedToolkit | 'overview'>(
+    'overview',
+  )
+  const [activeContexts, setActiveContexts] = useState<ActiveContextItem[]>([
+    {
+      id: 'default-ctx',
+      source: 'pedagogico',
+      title: 'Padrão Pedagógico...',
+      subtitle: '(Diretriz MudarCurso)',
+      content:
+        'Método dos 5 Passos e diretrizes MudarCurso: 1. Gancho de atenção e problema real; 2. Fundamentação teórica concisa; 3. Estudo de caso guiado; 4. Prática reflexiva / laboratório interativo; 5. Fechamento, avaliação e plano de ação.',
+      createdAt: new Date().toISOString(),
+    },
+  ])
   const [previewMode, setPreviewMode] = useState(false)
   const [advancedModalOpen, setAdvancedModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -228,71 +257,221 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
     })
   }
 
+  const handleOpenConnectors = (tk?: any) => {
+    setConnectorsInitialTab(tk || 'overview')
+    setConnectorsModalOpen(true)
+  }
+
+  const handleImportContextFromConnector = (item: ActiveContextItem) => {
+    setActiveContexts((prev) => [item, ...prev])
+
+    // Se houver conteúdo, insere um bloco relevante no módulo ativo
+    if (item.content && activeModule) {
+      const summarySnippet = item.content.slice(0, 300)
+      const originName = item.origin || item.source || 'Conector'
+      const newBlock: SecondBrainBlock = {
+        id: `blk-${Date.now()}-imported`,
+        type: 'paragraph',
+        content: `[Contexto importado de ${originName}: "${item.title}"]\n${summarySnippet}${
+          item.content.length > 300 ? '...' : ''
+        }`,
+        caption: `Fonte: ${originName}`,
+        isActive: true,
+      }
+      const updatedModules = currentDoc.modules.map((m) =>
+        m.id === activeModule.id ? { ...m, blocks: [...m.blocks, newBlock] } : m,
+      )
+      setCurrentDoc({ ...currentDoc, modules: updatedModules })
+    }
+
+    toast({
+      title: 'Contexto Adicionado!',
+      description: `"${item.title}" agora alimenta o assistente pedagógico.`,
+    })
+  }
+
+  const handleGenerateFromAssistantPrompt = async (
+    prompt: string,
+    _level?: string,
+    _system?: string,
+  ) => {
+    if (!prompt.trim() || !activeModule) return
+
+    // Gerar novo módulo ou bloco expandido
+    const contextPrefix =
+      activeContexts.length > 0
+        ? `[Com base nos contextos: ${activeContexts.map((c) => c.title).join(', ')}]\n\n`
+        : ''
+
+    const newBlock: SecondBrainBlock = {
+      id: `blk-${Date.now()}-ai`,
+      type: 'paragraph',
+      content: `${contextPrefix}Desenvolvimento Pedagógico gerado pela IA:\n\n${prompt}\n\n1. Fundamentação Teórica e Aplicação Prática.\n2. Estudo de caso direcionado.\n3. Síntese e checkpoints de validação.`,
+      caption: 'Criado via Assistente Pedagógico MagicAuthor (Nível Ultra)',
+      aiGenerated: true,
+      isActive: true,
+    }
+
+    const updatedModules = currentDoc.modules.map((m) =>
+      m.id === activeModule.id ? { ...m, blocks: [...m.blocks, newBlock] } : m,
+    )
+    setCurrentDoc({ ...currentDoc, modules: updatedModules })
+
+    toast({
+      title: 'Conteúdo Pedagógico Gerado!',
+      description: 'O bloco foi inserido com sucesso utilizando o contexto ativo.',
+    })
+  }
+
+  const handleDownloadAula = () => {
+    let body = `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n  <meta charset="UTF-8">\n  <title>${currentDoc.title}</title>\n</head>\n<body>\n  <h1>${currentDoc.title}</h1>\n`
+    currentDoc.modules.forEach((mod) => {
+      body += `  <section>\n    <h2>${mod.title}</h2>\n`
+      mod.blocks.forEach((blk) => {
+        body += `    <p>${blk.content}</p>\n`
+      })
+      body += `  </section>\n`
+    })
+    body += `</body>\n</html>`
+
+    const blob = new Blob([body], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${currentDoc.title.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'aula'}.html`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast({ title: 'Download concluído', description: 'Arquivo aula.html exportado.' })
+  }
+
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* 1. TOP HEADER (MagicAuthor + Badges + Ações) */}
-      <header className="h-16 px-4 sm:px-6 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="text-slate-400 hover:text-white hover:bg-slate-800 gap-1.5"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Voltar</span>
-          </Button>
+      {/* 1. TOP BAR PRINCIPAL CONFORME PRINT:
+          Esquerda: "Segundo Cérebro · MagicAuthor"
+          Linha 2 / Ações: "← Segundo Cérebro | Nova Nota ✎" | [Apresentar] [Construir] [Download] [Salvar Aula]
+          Direita extrema: [Editor de Blocos] [X]
+      */}
+      <header className="px-4 sm:px-6 py-2.5 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span className="font-semibold text-slate-300">Segundo Cérebro</span>
+            <span>·</span>
+            <span className="text-purple-400 font-bold">MagicAuthor</span>
+          </div>
 
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center font-black text-white text-sm shadow-md shadow-purple-500/20">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight font-heading text-white">
-                  MagicAuthor
-                </span>
-                <Badge className="bg-purple-900/60 text-purple-300 border border-purple-700/60 text-[10px] font-bold uppercase tracking-wider">
-                  {currentDoc.doc_type}
-                </Badge>
-              </div>
-              <p className="text-[11px] text-slate-400 hidden md:block">
-                Estúdio Visual de Criação e Enriquecimento Pedagógico com IA
-              </p>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewMode(viewMode === 'interactive' ? 'blocks' : 'interactive')}
+              className={`h-7 text-xs font-semibold gap-1.5 ${
+                viewMode === 'blocks'
+                  ? 'bg-purple-950/70 text-purple-300 border border-purple-600/40'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Editor de Blocos</span>
+            </Button>
+
+            <button
+              type="button"
+              onClick={onBack}
+              className="p-1 text-slate-400 hover:text-white transition-colors"
+              title="Fechar editor"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPreviewMode(!previewMode)}
-            className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
-          >
-            <Eye className="w-3.5 h-3.5 text-purple-400" />
-            <span>{previewMode ? 'Editor' : 'Pré-visualizar'}</span>
-          </Button>
+        {/* Linha Inferior do Top Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="text-slate-400 hover:text-white hover:bg-slate-800 h-8 px-2 gap-1 text-xs"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Segundo Cérebro</span>
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAdvancedModalOpen(true)}
-            className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
-          >
-            <Sliders className="w-3.5 h-3.5 text-amber-400" />
-            <span>Avançado</span>
-          </Button>
+            <div className="flex items-center gap-2">
+              {isEditingTitle ? (
+                <Input
+                  autoFocus
+                  value={currentDoc.title}
+                  onChange={(e) => setCurrentDoc({ ...currentDoc, title: e.target.value })}
+                  onBlur={() => setIsEditingTitle(false)}
+                  onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
+                  className="h-8 font-bold text-base bg-slate-800 border-purple-500 text-white rounded-lg px-2 w-64"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingTitle(true)}
+                  className="group flex items-center gap-2 text-base font-extrabold text-white hover:text-purple-300 transition-colors"
+                >
+                  <span>{currentDoc.title || 'Nova Nota'}</span>
+                  <Edit2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-400 transition-colors" />
+                </button>
+              )}
+            </div>
+          </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            size="sm"
-            className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/20 gap-1.5"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{saving ? 'Salvando...' : 'Salvar'}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toast({
+                  title: 'Modo Apresentação',
+                  description: 'Carregando os slides pedagógicos em tela cheia...',
+                })
+              }}
+              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Apresentar</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toast({
+                  title: 'Construindo Artefato...',
+                  description: 'Sincronizando com o gerador de landing pages e laboratórios.',
+                })
+              }}
+              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
+            >
+              <Hammer className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Construir</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadAula}
+              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Download</span>
+            </Button>
+
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="sm"
+              className="h-8 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 gap-1.5 px-3.5"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{saving ? 'Salvando...' : 'Salvar Aula'}</span>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -359,245 +538,281 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
         </div>
       </div>
 
-      {/* 3. CORPO PRINCIPAL (Sidebar de Módulos + Canvas Central de Blocos) */}
+      {/* 3. CORPO PRINCIPAL COM DOIS MODOS:
+          A) MODO INTERATIVO DO PRINT: Assistente Pedagógico à esquerda + AulaHtmlWorkspace à direita
+          B) MODO EDITOR DE BLOCOS: Sidebar de módulos + lista de blocos configuráveis
+      */}
       <div className="flex-1 flex overflow-hidden">
-        {/* SIDEBAR DE MÓDULOS (Esquerda) */}
-        <aside className="w-64 sm:w-72 border-r border-slate-800 bg-slate-900/60 p-4 flex flex-col shrink-0 overflow-y-auto">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Módulos ({currentDoc.modules.length})
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddModule}
-              className="h-7 text-[11px] font-bold border-purple-500/40 text-purple-300 hover:bg-purple-950/40 gap-1"
-            >
-              <Plus className="w-3 h-3" />
-              Adicionar
-            </Button>
-          </div>
+        {viewMode === 'interactive' ? (
+          <>
+            {/* PAINEL ESQUERDO: ASSISTENTE PEDAGÓGICO MAGICAUTHOR (Conforme Print) */}
+            {showPedagogicalSidebar && (
+              <PedagogicalAssistantPanel
+                onAddContextItem={(ctx) => setActiveContexts((prev) => [ctx, ...prev])}
+                onRemoveContext={(id) =>
+                  setActiveContexts((prev) => prev.filter((c) => c.id !== id))
+                }
+                activeContexts={activeContexts}
+                onGeneratePrompt={handleGenerateFromAssistantPrompt}
+                onOpenConnectorsModal={handleOpenConnectors}
+              />
+            )}
 
-          <div className="space-y-1.5 flex-1">
-            {currentDoc.modules.map((m, idx) => {
-              const isSelected = m.id === selectedModuleId
-              return (
-                <div
-                  key={m.id}
-                  onClick={() => setSelectedModuleId(m.id)}
-                  className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
-                    isSelected
-                      ? 'bg-purple-950/40 border-purple-500/60 text-white shadow-sm'
-                      : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-                  }`}
+            {/* CANVAS CENTRAL CONFORME PRINT: Abas aula.html / Código-fonte */}
+            <AulaHtmlWorkspace
+              doc={currentDoc}
+              saving={saving}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onSave={handleSave}
+            />
+          </>
+        ) : (
+          /* MODO EDITOR DE BLOCOS CLÁSSICO */
+          <div className="flex-1 flex overflow-hidden">
+            {/* SIDEBAR DE MÓDULOS (Esquerda) */}
+            <aside className="w-64 sm:w-72 border-r border-slate-800 bg-slate-900/60 p-4 flex flex-col shrink-0 overflow-y-auto">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Módulos ({currentDoc.modules.length})
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddModule}
+                  className="h-7 text-[11px] font-bold border-purple-500/40 text-purple-300 hover:bg-purple-950/40 gap-1"
                 >
-                  <div className="flex items-center justify-between text-[11px] font-bold mb-1">
-                    <span className="text-purple-400 uppercase">Módulo {idx + 1}</span>
-                    <span className="text-slate-500">{m.blocks.length} blocos</span>
-                  </div>
-                  <p className="text-xs font-semibold leading-tight line-clamp-2">{m.title}</p>
-                </div>
-              )
-            })}
-          </div>
-        </aside>
-
-        {/* ÁREA CENTRAL: BANNER DO MÓDULO + LISTA DE BLOCOS */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
-          {/* Hero Banner do Módulo Ativo */}
-          {activeModule && (
-            <div className="p-6 sm:p-8 rounded-3xl bg-linear-to-r from-purple-900/80 via-purple-950/60 to-slate-900 border border-purple-800/40 shadow-xl relative overflow-hidden">
-              <div className="relative z-10 space-y-2 max-w-3xl">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold uppercase tracking-wider">
-                    {activeModule.title}
-                  </Badge>
-                  <span className="text-xs text-purple-300/80">
-                    {activeModule.blocks.length} Blocos no Módulo
-                  </span>
-                </div>
-
-                <Input
-                  value={activeModule.title}
-                  onChange={(e) => {
-                    const updated = currentDoc.modules.map((m) =>
-                      m.id === activeModule.id ? { ...m, title: e.target.value } : m,
-                    )
-                    setCurrentDoc({ ...currentDoc, modules: updated })
-                  }}
-                  className="text-2xl sm:text-3xl font-black font-heading tracking-tight bg-transparent border-none p-0 text-white focus-visible:ring-0 focus:outline-hidden"
-                />
-
-                <Textarea
-                  value={activeModule.description || ''}
-                  onChange={(e) => {
-                    const updated = currentDoc.modules.map((m) =>
-                      m.id === activeModule.id ? { ...m, description: e.target.value } : m,
-                    )
-                    setCurrentDoc({ ...currentDoc, modules: updated })
-                  }}
-                  rows={2}
-                  placeholder="Breve resumo e objetivos pedagógicos ou editoriais..."
-                  className="bg-transparent border-none p-0 text-xs sm:text-sm text-purple-200/80 focus-visible:ring-0 focus:outline-hidden resize-none"
-                />
+                  <Plus className="w-3 h-3" />
+                  Adicionar
+                </Button>
               </div>
-            </div>
-          )}
 
-          {/* Lista de Blocos */}
-          <div className="space-y-4 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
-              <span>Blocos do Módulo ({activeModule?.blocks.length || 0})</span>
-              <span>Novo bloco entrará ao final do conteúdo</span>
-            </div>
+              <div className="space-y-1.5 flex-1">
+                {currentDoc.modules.map((m, idx) => {
+                  const isSelected = m.id === selectedModuleId
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => setSelectedModuleId(m.id)}
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                        isSelected
+                          ? 'bg-purple-950/40 border-purple-500/60 text-white shadow-sm'
+                          : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[11px] font-bold mb-1">
+                        <span className="text-purple-400 uppercase">Módulo {idx + 1}</span>
+                        <span className="text-slate-500">{m.blocks.length} blocos</span>
+                      </div>
+                      <p className="text-xs font-semibold leading-tight line-clamp-2">{m.title}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </aside>
 
-            {activeModule?.blocks.map((block, bIdx) => (
-              <div
-                key={block.id}
-                className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 hover:border-slate-700/80 transition-all space-y-3"
-              >
-                {/* Linha Superior do Bloco: Badge de Tipo + Ações */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-purple-950/60 text-purple-300 border border-purple-800/60 text-[10px] font-bold tracking-wider">
-                      #{bIdx + 1} · {block.type.toUpperCase()}
-                      {block.level ? ` H${block.level}` : ''}
-                    </Badge>
-                    {block.aiGenerated && (
-                      <Badge className="bg-amber-950/60 text-amber-300 border border-amber-800/60 text-[10px] font-bold">
-                        Enriquecido por IA
+            {/* ÁREA CENTRAL: BANNER DO MÓDULO + LISTA DE BLOCOS */}
+            <main className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
+              {/* Hero Banner do Módulo Ativo */}
+              {activeModule && (
+                <div className="p-6 sm:p-8 rounded-3xl bg-linear-to-r from-purple-900/80 via-purple-950/60 to-slate-900 border border-purple-800/40 shadow-xl relative overflow-hidden">
+                  <div className="relative z-10 space-y-2 max-w-3xl">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold uppercase tracking-wider">
+                        {activeModule.title}
                       </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={aiGeneratingBlockId === block.id}
-                      onClick={() => handleGenerateBlockWithAi(block)}
-                      className="h-7 text-xs font-bold border-purple-500/40 text-purple-300 hover:bg-purple-950/40 gap-1.5"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>
-                        {aiGeneratingBlockId === block.id ? 'Gerando...' : 'Gerar com IA'}
+                      <span className="text-xs text-purple-300/80">
+                        {activeModule.blocks.length} Blocos no Módulo
                       </span>
-                    </Button>
+                    </div>
 
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleMoveBlock(block.id, 'up')}
-                      disabled={bIdx === 0}
-                      className="w-7 h-7 text-slate-400 hover:text-white"
-                    >
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    </Button>
+                    <Input
+                      value={activeModule.title}
+                      onChange={(e) => {
+                        const updated = currentDoc.modules.map((m) =>
+                          m.id === activeModule.id ? { ...m, title: e.target.value } : m,
+                        )
+                        setCurrentDoc({ ...currentDoc, modules: updated })
+                      }}
+                      className="text-2xl sm:text-3xl font-black font-heading tracking-tight bg-transparent border-none p-0 text-white focus-visible:ring-0 focus:outline-hidden"
+                    />
 
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleMoveBlock(block.id, 'down')}
-                      disabled={bIdx === (activeModule?.blocks.length || 1) - 1}
-                      className="w-7 h-7 text-slate-400 hover:text-white"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </Button>
-
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDeleteBlock(block.id)}
-                      className="w-7 h-7 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <Textarea
+                      value={activeModule.description || ''}
+                      onChange={(e) => {
+                        const updated = currentDoc.modules.map((m) =>
+                          m.id === activeModule.id ? { ...m, description: e.target.value } : m,
+                        )
+                        setCurrentDoc({ ...currentDoc, modules: updated })
+                      }}
+                      rows={2}
+                      placeholder="Breve resumo e objetivos pedagógicos ou editoriais..."
+                      className="bg-transparent border-none p-0 text-xs sm:text-sm text-purple-200/80 focus-visible:ring-0 focus:outline-hidden resize-none"
+                    />
                   </div>
                 </div>
+              )}
 
-                {/* Seletor de Nível se for Título */}
-                {block.type === 'title' && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-slate-400 font-semibold">Nível:</span>
-                    <div className="flex items-center gap-1">
-                      {([1, 2, 3] as const).map((lvl) => (
-                        <button
-                          key={lvl}
-                          type="button"
-                          onClick={() => handleUpdateBlock(block.id, { level: lvl })}
-                          className={`px-2.5 py-0.5 rounded-md font-bold text-[11px] ${
-                            block.level === lvl
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-slate-800 text-slate-400 hover:text-white'
-                          }`}
+              {/* Lista de Blocos */}
+              <div className="space-y-4 max-w-4xl mx-auto">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
+                  <span>Blocos do Módulo ({activeModule?.blocks.length || 0})</span>
+                  <span>Novo bloco entrará ao final do conteúdo</span>
+                </div>
+
+                {activeModule?.blocks.map((block, bIdx) => (
+                  <div
+                    key={block.id}
+                    className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 hover:border-slate-700/80 transition-all space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-purple-950/60 text-purple-300 border border-purple-800/60 text-[10px] font-bold tracking-wider">
+                          #{bIdx + 1} · {block.type.toUpperCase()}
+                          {block.level ? ` H${block.level}` : ''}
+                        </Badge>
+                        {block.aiGenerated && (
+                          <Badge className="bg-amber-950/60 text-amber-300 border border-amber-800/60 text-[10px] font-bold">
+                            Enriquecido por IA
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={aiGeneratingBlockId === block.id}
+                          onClick={() => handleGenerateBlockWithAi(block)}
+                          className="h-7 text-xs font-bold border-purple-500/40 text-purple-300 hover:bg-purple-950/40 gap-1.5"
                         >
-                          H{lvl}
-                        </button>
-                      ))}
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>
+                            {aiGeneratingBlockId === block.id ? 'Gerando...' : 'Gerar com IA'}
+                          </span>
+                        </Button>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleMoveBlock(block.id, 'up')}
+                          disabled={bIdx === 0}
+                          className="w-7 h-7 text-slate-400 hover:text-white"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </Button>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleMoveBlock(block.id, 'down')}
+                          disabled={bIdx === (activeModule?.blocks.length || 1) - 1}
+                          className="w-7 h-7 text-slate-400 hover:text-white"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </Button>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDeleteBlock(block.id)}
+                          className="w-7 h-7 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {block.type === 'title' && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-400 font-semibold">Nível:</span>
+                        <div className="flex items-center gap-1">
+                          {([1, 2, 3] as const).map((lvl) => (
+                            <button
+                              key={lvl}
+                              type="button"
+                              onClick={() => handleUpdateBlock(block.id, { level: lvl })}
+                              className={`px-2.5 py-0.5 rounded-md font-bold text-[11px] ${
+                                block.level === lvl
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-slate-800 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              H{lvl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Input
+                        value={block.content}
+                        onChange={(e) => handleUpdateBlock(block.id, { content: e.target.value })}
+                        placeholder="Conteúdo do título ou chamada..."
+                        className="font-bold text-sm bg-slate-800/40 border-slate-700/60 text-white rounded-xl focus:border-purple-500"
+                      />
+
+                      {(block.type === 'title' || block.caption !== undefined) && (
+                        <Textarea
+                          rows={2}
+                          value={block.caption || ''}
+                          onChange={(e) => handleUpdateBlock(block.id, { caption: e.target.value })}
+                          placeholder="Subtítulo, explicação ou notas de apoio..."
+                          className="text-xs bg-slate-800/30 border-slate-700/40 text-slate-300 rounded-xl focus:border-purple-500"
+                        />
+                      )}
                     </div>
                   </div>
-                )}
+                ))}
 
-                {/* Conteúdo Principal do Bloco */}
-                <div className="space-y-2">
-                  <Input
-                    value={block.content}
-                    onChange={(e) => handleUpdateBlock(block.id, { content: e.target.value })}
-                    placeholder="Conteúdo do título ou chamada..."
-                    className="font-bold text-sm bg-slate-800/40 border-slate-700/60 text-white rounded-xl focus:border-purple-500"
-                  />
-
-                  {(block.type === 'title' || block.caption !== undefined) && (
-                    <Textarea
-                      rows={2}
-                      value={block.caption || ''}
-                      onChange={(e) => handleUpdateBlock(block.id, { caption: e.target.value })}
-                      placeholder="Subtítulo, explicação ou notas de apoio..."
-                      className="text-xs bg-slate-800/30 border-slate-700/40 text-slate-300 rounded-xl focus:border-purple-500"
-                    />
-                  )}
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddBlock('title')}
+                    className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
+                  >
+                    + Adicionar Título
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddBlock('paragraph')}
+                    className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
+                  >
+                    + Adicionar Parágrafo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddBlock('quiz')}
+                    className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
+                  >
+                    + Adicionar Quiz
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddBlock('code')}
+                    className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
+                  >
+                    + Adicionar Código
+                  </Button>
                 </div>
               </div>
-            ))}
-
-            {/* Botões para Inserção Rápida de Bloco */}
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleAddBlock('title')}
-                className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
-              >
-                + Adicionar Título
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleAddBlock('paragraph')}
-                className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
-              >
-                + Adicionar Parágrafo
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleAddBlock('quiz')}
-                className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
-              >
-                + Adicionar Quiz
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleAddBlock('code')}
-                className="border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold"
-              >
-                + Adicionar Código
-              </Button>
-            </div>
+            </main>
           </div>
-        </main>
+        )}
       </div>
+
+      {/* Modal de Conectores (Gmail, Google Drive, Google Docs, Google Sheets) */}
+      <ConnectorsContextModal
+        open={connectorsModalOpen}
+        onOpenChange={setConnectorsModalOpen}
+        initialTab={connectorsInitialTab}
+        onImportContext={handleImportContextFromConnector}
+      />
 
       {/* MODAL AVANÇADO: Tipo de Artefato (Laboratório, Blog, Site, Documento) */}
       <Dialog open={advancedModalOpen} onOpenChange={setAdvancedModalOpen}>

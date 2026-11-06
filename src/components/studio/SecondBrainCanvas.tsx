@@ -39,12 +39,16 @@ import {
   type SecondBrainDocType,
 } from '@/services/second-brain'
 import MagicAuthorEditor from './MagicAuthorEditor'
+import { ConnectorsContextModal } from './ConnectorsContextModal'
+import { getConnectedStatus, type SupportedToolkit } from '@/services/google-connectors'
+import { useToast } from '@/hooks/use-toast'
 
 interface SecondBrainCanvasProps {
   onClose?: () => void
 }
 
 export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose }) => {
+  const { toast } = useToast()
   const [docs, setDocs] = useState<SecondBrainDoc[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDoc, setSelectedDoc] = useState<SecondBrainDoc | null>(null)
@@ -57,6 +61,27 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
   const [asking, setAsking] = useState(false)
   const [askAnswer, setAskAnswer] = useState<string | null>(null)
   const [askSource, setAskSource] = useState<'oficial' | 'calibrado'>('calibrado')
+
+  // Conectores Modal & Status
+  const [connectorsModalOpen, setConnectorsModalOpen] = useState(false)
+  const [connectorsInitialTab, setConnectorsInitialTab] = useState<SupportedToolkit | 'overview'>(
+    'overview',
+  )
+  const [connectorStatuses, setConnectorStatuses] = useState({
+    gmail: false,
+    googledrive: false,
+    googledocs: false,
+    googlesheets: false,
+  })
+
+  useEffect(() => {
+    setConnectorStatuses({
+      gmail: getConnectedStatus('gmail'),
+      googledrive: getConnectedStatus('googledrive'),
+      googledocs: getConnectedStatus('googledocs'),
+      googlesheets: getConnectedStatus('googlesheets'),
+    })
+  }, [connectorsModalOpen])
 
   const loadDocs = async () => {
     setLoading(true)
@@ -291,13 +316,53 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               <span>Histórico de Projetos</span>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] space-y-1">
-              <div className="flex items-center gap-2 text-slate-300 font-semibold">
-                <Mail className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Gmail integrado</span>
+            <div
+              onClick={() => {
+                setConnectorsInitialTab('gmail')
+                setConnectorsModalOpen(true)
+              }}
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
+                  <Mail className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Gmail</span>
+                </div>
+                {connectorStatuses.gmail ? (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Conectado
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-500">Conectar</span>
+                )}
               </div>
               <p className="text-[10px] text-slate-400">
                 E-mails e notas sincronizados no Segundo Cérebro.
+              </p>
+            </div>
+
+            <div
+              onClick={() => {
+                setConnectorsInitialTab('googledrive')
+                setConnectorsModalOpen(true)
+              }}
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
+                  <FolderClosed className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Meu Google Drive</span>
+                </div>
+                {connectorStatuses.googledrive ? (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Ativo
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-500">Conectar</span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Documentos e arquivos do Drive como contexto.
               </p>
             </div>
 
@@ -305,6 +370,10 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               type="button"
               variant="ghost"
               size="sm"
+              onClick={() => {
+                setConnectorsInitialTab('overview')
+                setConnectorsModalOpen(true)
+              }}
               className="w-full justify-start text-[11px] text-purple-400 hover:text-purple-300 h-8 px-2 gap-1.5"
             >
               <PlusCircle className="w-3.5 h-3.5" />+ Conectar mais contas
@@ -603,6 +672,20 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
           </div>
         </div>
       </main>
+      {/* Modal de Conectores e Importação de Contexto (Gmail, Drive, Docs, Sheets) */}
+      <ConnectorsContextModal
+        open={connectorsModalOpen}
+        onOpenChange={setConnectorsModalOpen}
+        initialTab={connectorsInitialTab}
+        onImportContext={(ctx) => {
+          toast({
+            title: 'Contexto importado!',
+            description: `"${ctx.title}" pronto para ser usado no seu próximo documento.`,
+          })
+          // Cria uma nova nota ou abre editor se desejar
+          handleCreateNew('documento', ctx.title)
+        }}
+      />
     </div>
   )
 }
