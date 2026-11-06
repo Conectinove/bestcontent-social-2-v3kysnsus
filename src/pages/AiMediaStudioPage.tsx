@@ -25,6 +25,7 @@ import {
   FileCode,
   ShieldAlert,
   ShieldCheck,
+  Star,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'

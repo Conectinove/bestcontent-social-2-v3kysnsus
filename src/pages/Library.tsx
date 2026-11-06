@@ -524,8 +524,12 @@ export default function Library() {
     }
   }
 
-  const handleOpenEditor = (postId: string) => {
-    navigate(`/app/editor/${postId}`)
+  const handleOpenEditor = (postId: string, postStatus?: string) => {
+    if (postStatus === 'draft') {
+      navigate(`/app/content/new?draft=${postId}`)
+    } else {
+      navigate(`/app/editor/${postId}`)
+    }
   }
 
   const handleSyncWithAi = async (post: Post, e?: React.MouseEvent) => {
@@ -1859,7 +1863,7 @@ export default function Library() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleOpenEditor(post.id)}
+                        onClick={() => handleOpenEditor(post.id, post.status)}
                         className="h-8 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 px-2 gap-1 rounded-lg"
                         title="Editar com IA e personalização avançada"
                       >
@@ -2119,7 +2123,7 @@ export default function Library() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleOpenEditor(post.id)}
+                    onClick={() => handleOpenEditor(post.id, post.status)}
                     className="h-8 text-xs font-semibold gap-1.5 rounded-xl border-border text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
                     title="Editar com IA e personalização avançada"
                   >

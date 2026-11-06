@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Share2,
   Megaphone,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'

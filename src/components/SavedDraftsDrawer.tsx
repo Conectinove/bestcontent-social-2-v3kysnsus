@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { pb } from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
-import { deletePost, Post } from '@/services/posts'
+import { deletePost } from '@/services/posts'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export interface SavedDraftItem {

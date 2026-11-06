@@ -1588,6 +1588,33 @@ export default function CreatePost() {
           })
         }}
       />
+
+      {/* Gaveta/Modal de Rascunhos Salvos */}
+      <SavedDraftsDrawer
+        open={savedDraftsOpen}
+        onOpenChange={setSavedDraftsOpen}
+        currentDraftId={currentDraftId}
+        onSelectDraft={(draft: SavedDraftItem) => {
+          setCurrentDraftId(draft.id === 'local-session-draft' ? null : draft.id)
+          autoCaptionRanRef.current = true // evita sobreescrita de legenda de rascunho
+          if (draft.content) setContent(draft.content)
+          if (draft.caption) setCaption(draft.caption)
+          if (draft.platform) setPlatform(draft.platform)
+          if (draft.brandId) setBrandId(draft.brandId)
+          if (draft.mediaUrl) setMediaPreviewUrl(draft.mediaUrl)
+          if (draft.templateId) {
+            getTemplate(draft.templateId)
+              .then((tpl) => {
+                if (tpl) setSelectedTemplate(tpl as unknown as PostTemplate)
+              })
+              .catch(() => {})
+          }
+          toast({
+            title: 'Rascunho retomado!',
+            description: `Rascunho "${draft.title || draft.content.slice(0, 30)}..." carregado com sucesso no editor.`,
+          })
+        }}
+      />
     </div>
   )
 }
