@@ -8,17 +8,19 @@ import {
   CheckCircle2,
   Clock,
   Layers,
-  ArrowRight,
   Sparkles,
   Share2,
   FolderPlus,
-  RefreshCw,
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Flame,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Post } from '@/types'
+import { computeFeedInsights, computeEngagement } from '@/lib/feed-metrics'
+import { FeedTrendBadge } from '@/components/feed/FeedTrendBadge'
+import type { CommunityTopic } from '@/types/community'
 
 interface FeedTopicSummary {
   id: string
@@ -114,6 +116,31 @@ export function FeedControlPanel({
       networkDistribution: netCounts,
     }
   }, [topics, libraryPosts])
+
+  // Consolida engajamento, média do período e top itens da semana (dados já carregados no Feed)
+  const feedInsights = useMemo(
+    () => computeFeedInsights(topics as unknown as CommunityTopic[]),
+    [topics],
+  )
+
+  const totalNetworkItems = useMemo(
+    () => Object.values(networkDistribution).reduce((acc, n) => acc + n, 0) || 1,
+    [networkDistribution],
+  )
+
+  const networkBarColors: Record<string, string> = {
+    Instagram: 'bg-pink-500',
+    LinkedIn: 'bg-sky-500',
+    TikTok: 'bg-slate-900 dark:bg-slate-100',
+    'X/Twitter': 'bg-slate-700 dark:bg-slate-300',
+    Outros: 'bg-primary',
+  }
+
+  const weeklyTopItems = useMemo(() => {
+    return feedInsights.weeklyTopIds
+      .map((id) => topics.find((t) => t.id === id))
+      .filter((t): t is FeedTopicSummary => Boolean(t))
+  }, [feedInsights.weeklyTopIds, topics])
 
   return (
     <Card className="hi-card border-border/80 bg-gradient-to-br from-card via-card to-purple-500/5 overflow-hidden">
@@ -277,17 +304,67 @@ export function FeedControlPanel({
                   </span>
                 </div>
 
-                {/* Badges de canais */}
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(networkDistribution).map(([net, count]) => (
-                    <Badge
-                      key={net}
-                      variant="secondary"
-                      className="text-[10px] font-semibold px-2 py-0.5"
-                    >
-                      {net}: <strong className="ml-1 text-foreground">{count}</strong>
-                    </Badge>
-                  ))}
+                {/* Barras de progresso por rede social */}
+                <div className="space-y-2">
+                  {Object.entries(networkDistribution).map(([net, count]) => {
+                    const pct = Math.round((count / totalNetworkItems) * 100)
+                    return (
+                      <div key={net} className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
+                          <span className="text-foreground">{net}</span>
+                          <span>
+                            {count} item{count === 1 ? '' : 's'} · {pct}%
+                          </span>
+                        </div>
+                        <div
+                          className="h-2 w-full rounded-full bg-muted overflow-hidden"
+                          role="img"
+                          aria-label={`${net}: ${count} de ${topics.length} itens (${pct}%)`}
+                        >
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              networkBarColors[net] || 'bg-primary'
+                            }`}
+                            style={{ width: `${count > 0 ? Math.max(pct, 2) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Top Itens da Semana */}
+                <div className="pt-1 border-t border-border/40 space-y-1">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    Top Itens da Semana (7 dias):
+                  </span>
+                  {weeklyTopItems.length > 0 ? (
+                    <div className="space-y-1">
+                      {weeklyTopItems.map((item, idx) => {
+                        const metric = feedInsights.metrics[item.id]
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-2 text-[11px] p-1.5 rounded-md bg-amber-500/5 border border-amber-500/20"
+                          >
+                            <span className="shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[10px] font-black">
+                              {idx + 1}
+                            </span>
+                            <span className="font-semibold text-foreground truncate flex-1">
+                              {item.title || 'Sem título'}
+                            </span>
+                            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 shrink-0">
+                              🔥 {Math.round(metric?.engagement || 0)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground italic">
+                      Nenhum item com engajamento nos últimos 7 dias.
+                    </p>
+                  )}
                 </div>
 
                 {/* Atividade Recente */}

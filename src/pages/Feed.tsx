@@ -72,6 +72,8 @@ import {
 import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
 import { FeedMetricsMultiWidget } from '@/components/feed/FeedMetricsMultiWidget'
 import { FeedControlPanel } from '@/components/feed/FeedControlPanel'
+import { FeedTrendBadge } from '@/components/feed/FeedTrendBadge'
+import { computeFeedInsights, getTrendBadge } from '@/lib/feed-metrics'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -701,6 +703,9 @@ export default function Feed() {
     const onlyText = total - withImage
     return { total, pinned, withImage, onlyText }
   }, [topics])
+
+  // Métricas visuais do feed: engajamento consolidado, média e top itens da semana
+  const feedInsights = useMemo(() => computeFeedInsights(topics), [topics])
 
   // Sample creations
   const creations = useMemo(() => {
@@ -1405,6 +1410,11 @@ export default function Feed() {
                   ) || user?.email === 'midiaviva@bestcontent.ai'
                 const isPinned = !!topic.is_pinned
                 const isPinLoading = togglingPinId === topic.id
+                const trend = getTrendBadge(
+                  feedInsights.metrics[topic.id],
+                  feedInsights.averageEngagement,
+                )
+                const isWeeklyTop = feedInsights.weeklyTopIds.includes(topic.id)
 
                 return (
                   <Card
@@ -1412,7 +1422,9 @@ export default function Feed() {
                     className={`rounded-2xl transition-all shadow-xs overflow-hidden ${
                       isPinned
                         ? 'border-2 border-indigo-500/40 bg-gradient-to-b from-indigo-500/5 via-card to-card ring-1 ring-indigo-500/20'
-                        : 'border border-border/80 bg-card hover:border-primary/40'
+                        : isWeeklyTop
+                          ? 'border-2 border-amber-500/40 bg-gradient-to-b from-amber-500/5 via-card to-card ring-1 ring-amber-500/20'
+                          : 'border border-border/80 bg-card hover:border-primary/40'
                     }`}
                   >
                     {isPinned && (
@@ -1479,6 +1491,15 @@ export default function Feed() {
                                   <Pin className="w-2.5 h-2.5" /> Fixado
                                 </Badge>
                               )}
+                              {isWeeklyTop && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-bold px-1.5 py-0 rounded gap-1"
+                                >
+                                  <Flame className="w-2.5 h-2.5" /> Top da semana
+                                </Badge>
+                              )}
+                              <FeedTrendBadge trend={trend} />
                             </div>
                             <span className="text-[11px] text-muted-foreground">
                               {new Date(topic.created).toLocaleDateString('pt-BR', {
