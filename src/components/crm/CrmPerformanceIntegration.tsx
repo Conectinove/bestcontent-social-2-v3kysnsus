@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,37 @@ import { useToast } from '@/hooks/use-toast'
 interface CrmPerformanceIntegrationProps {
   onFilterByCampaignOrSource?: (sourceOrCampaign: string) => void
   currentFilteredCount?: number
+}
+
+/** Barra horizontal de métrica no padrão High Impact (escala relativa ao maior valor) */
+function CampaignMetricBar({
+  label,
+  value,
+  max,
+  barColor,
+  valueColor,
+}: {
+  label: string
+  value: number
+  max: number
+  barColor: string
+  valueColor: string
+}) {
+  const pct = max > 0 ? Math.max(4, Math.min(100, Math.round((value / max) * 100))) : 0
+  return (
+    <div className="space-y-0.5 min-w-0">
+      <div className="flex items-center justify-between gap-2 text-[10px]">
+        <span className="text-muted-foreground font-semibold truncate">{label}</span>
+        <span className={`font-black ${valueColor}`}>{value.toLocaleString('pt-BR')}</span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-muted/70 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${barColor} transition-all duration-500`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
 }
 
 export function CrmPerformanceIntegration({
@@ -110,6 +141,46 @@ export function CrmPerformanceIntegration({
       reach: acc.reach + (m.alcance || (m as any).reach || 0),
     }),
     { likes: 0, comments: 0, shares: 0, reach: 0 },
+  )
+
+  // Curtidas/comentários reais por campanha (join métricas × posts vinculados)
+  const campaignLikesComments = useMemo(() => {
+    const metricsByPost = new Map<string, { likes: number; comments: number }>()
+    metrics.forEach((m) => {
+      const postId = m.post || (m as any).post_id
+      if (!postId) return
+      const prev = metricsByPost.get(postId) || { likes: 0, comments: 0 }
+      metricsByPost.set(postId, {
+        likes: prev.likes + (m.curtidas || (m as any).likes || 0),
+        comments: prev.comments + (m.comentarios || (m as any).comments || 0),
+      })
+    })
+    const map = new Map<string, { likes: number; comments: number }>()
+    campaigns.forEach((c) => {
+      let likes = 0
+      let comments = 0
+      c.posts.forEach((p) => {
+        const m = metricsByPost.get(p.id)
+        if (m) {
+          likes += m.likes
+          comments += m.comments
+        }
+      })
+      map.set(c.id, { likes, comments })
+    })
+    return map
+  }, [metrics, campaigns])
+
+  const visibleCampaigns = campaigns.slice(0, 4)
+  const maxCampaignReach = Math.max(...visibleCampaigns.map((c) => c.totals.reach), 1)
+  const maxCampaignImpressions = Math.max(...visibleCampaigns.map((c) => c.totals.impressions), 1)
+  const maxCampaignLikes = Math.max(
+    ...visibleCampaigns.map((c) => campaignLikesComments.get(c.id)?.likes || 0),
+    1,
+  )
+  const maxCampaignComments = Math.max(
+    ...visibleCampaigns.map((c) => campaignLikesComments.get(c.id)?.comments || 0),
+    1,
   )
 
   return (
@@ -258,7 +329,7 @@ export function CrmPerformanceIntegration({
                   </span>
                 </div>
 
-                <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
                   {campaigns.length > 0 ? (
                     campaigns.slice(0, 4).map((c) => (
                       <div
@@ -266,22 +337,53 @@ export function CrmPerformanceIntegration({
                         onClick={() =>
                           onFilterByCampaignOrSource && onFilterByCampaignOrSource(c.name)
                         }
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30 hover:bg-primary/10 border border-border/40 cursor-pointer transition-colors text-xs"
+                        className="p-2 rounded-lg bg-muted/30 hover:bg-primary/10 border border-border/40 cursor-pointer transition-colors text-xs space-y-1.5"
                       >
-                        <div className="min-w-0 pr-2">
-                          <p className="font-bold text-foreground truncate">{c.name}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {c.totals.posts} posts · Alcance:{' '}
-                            {c.totals.reach.toLocaleString('pt-BR')}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 pr-2">
+                            <p className="font-bold text-foreground truncate">{c.name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {c.totals.posts} posts
+                            </p>
+                          </div>
                           <Badge
                             variant="outline"
-                            className="text-[10px] font-black text-primary border-primary/30"
+                            className="text-[10px] font-black text-primary border-primary/30 shrink-0"
                           >
                             {c.totals.engagement.toLocaleString('pt-BR')} interações
                           </Badge>
+                        </div>
+
+                        {/* Barras horizontais de métricas por campanha */}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                          <CampaignMetricBar
+                            label="Alcance"
+                            value={c.totals.reach}
+                            max={maxCampaignReach}
+                            barColor="bg-blue-500"
+                            valueColor="text-blue-600 dark:text-blue-400"
+                          />
+                          <CampaignMetricBar
+                            label="Impressões"
+                            value={c.totals.impressions}
+                            max={maxCampaignImpressions}
+                            barColor="bg-purple-500"
+                            valueColor="text-purple-600 dark:text-purple-400"
+                          />
+                          <CampaignMetricBar
+                            label="Curtidas"
+                            value={campaignLikesComments.get(c.id)?.likes || 0}
+                            max={maxCampaignLikes}
+                            barColor="bg-pink-500"
+                            valueColor="text-pink-600 dark:text-pink-400"
+                          />
+                          <CampaignMetricBar
+                            label="Comentários"
+                            value={campaignLikesComments.get(c.id)?.comments || 0}
+                            max={maxCampaignComments}
+                            barColor="bg-amber-500"
+                            valueColor="text-amber-600 dark:text-amber-400"
+                          />
                         </div>
                       </div>
                     ))

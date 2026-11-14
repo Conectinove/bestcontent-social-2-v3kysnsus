@@ -23,6 +23,7 @@ import {
   Trash2,
   Award,
   AlertCircle,
+  Bot,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Card } from '@/components/ui/card'
@@ -53,6 +54,8 @@ import {
   type NetworkAudienceComparison,
 } from '@/services/audience-insights'
 import type { Post } from '@/types'
+import { AiInsightsPanel } from '@/components/analytics/AiInsightsPanel'
+import type { ReportInsightsInput } from '@/services/report-insights'
 
 export default function PerformanceDashboard() {
   const { user } = useAuth()
@@ -72,6 +75,7 @@ export default function PerformanceDashboard() {
     'engagementRate' | 'likes' | 'comments' | 'shares' | 'saves' | 'reach'
   >('engagementRate')
   const [tableSortDirection, setTableSortDirection] = useState<'asc' | 'desc'>('desc')
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -669,7 +673,30 @@ export default function PerformanceDashboard() {
   const audienceAvgEngagement = hubData?.averageEngagementRate || avgEngagementRate
   const audienceTotalReach = (hubData?.totalReach30d || 0).toLocaleString('pt-BR')
 
-  // Função helper de badges de fonte de dados
+  // Payload consolidado para o painel de IA (mesmos dados do comparativo de períodos)
+  const aiInsightsInput: ReportInsightsInput = useMemo(
+    () => ({
+      periodDays: periodComparison.days,
+      networkFilter: rankingNetworkFilter,
+      current: periodComparison.current,
+      previous: periodComparison.previous,
+      diff: periodComparison.diff,
+      highlights: {
+        mostEngagedTitle: periodComparison.highlights.mostEngaged?.post?.title,
+        mostEngagedRate: periodComparison.highlights.mostEngaged?.engagementRate,
+        highestReachTitle: periodComparison.highlights.highestReach?.post?.title,
+        highestReachValue: periodComparison.highlights.highestReach?.reach,
+        underperformingTitle: periodComparison.highlights.underperforming?.post?.title,
+        underperformingRate: periodComparison.highlights.underperforming?.engagementRate,
+      },
+      topNetworks: networkComparison.slice(0, 3).map((c) => ({
+        name: c.network,
+        engagementRate: c.engagementRate,
+      })),
+    }),
+    [periodComparison, rankingNetworkFilter, networkComparison],
+  )
+
   const DataSourceBadge = ({ official }: { official: boolean }) =>
     official ? (
       <Badge className="bg-emerald-600 text-white text-[10px] flex items-center gap-1">
@@ -707,6 +734,15 @@ export default function PerformanceDashboard() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => setAiPanelOpen(true)}
+            className="rounded-xl text-xs h-9 px-3.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold shadow-xs gap-1.5 min-h-[36px]"
+          >
+            <Bot className="w-4 h-4" />
+            <span>Analisar com IA</span>
+          </Button>
+
           <Button
             size="sm"
             onClick={() => setIsCreateModalOpen(true)}
@@ -759,6 +795,11 @@ export default function PerformanceDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* ============================================================
+         PAINEL DE ANÁLISE COM IA (resumo, insights e recomendações)
+         ============================================================ */}
+      {aiPanelOpen && <AiInsightsPanel input={aiInsightsInput} />}
 
       {/* Grid de Destaque Superior: 4 KPIs Principais (com Skeleton se estiver carregando) */}
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3.5">

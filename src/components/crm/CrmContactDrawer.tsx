@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { CrmContactMetrics } from '@/components/crm/CrmContactMetrics'
 import {
   CrmContact,
   CrmInteraction,
@@ -210,21 +211,8 @@ export function CrmContactDrawer({
             </div>
           </div>
 
-          {/* Performance Social do Canal de Origem */}
-          <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 space-y-1">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-bold text-primary flex items-center gap-1">
-                Performance do Canal: {contact.source || 'Redes Sociais'}
-              </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                Atração Ativa
-              </span>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Leads originados de {contact.source || 'redes'} possuem engajamento médio de 5.4% nos
-              posts correspondentes e taxa de conversão calibrada em 18%.
-            </p>
-          </div>
+          {/* Métricas de performance do canal de origem: sparklines + barras por taxa */}
+          <CrmContactMetrics contact={contact} />
 
           {/* Tags */}
           {tagsList.length > 0 && (

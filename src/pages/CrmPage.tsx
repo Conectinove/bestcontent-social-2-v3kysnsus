@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { X } from 'lucide-react'
 import {
   CrmContact,
   CrmContactFormData,
@@ -82,6 +83,11 @@ export default function CrmPage() {
   const [selectedStage, setSelectedStage] = useState<string>('all')
   const [selectedSource, setSelectedSource] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
+  // Filtros combináveis avançados
+  const [valueRange, setValueRange] = useState<string>('all')
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('all')
+  const [selectedTag, setSelectedTag] = useState<string>('all')
+  const [capturePeriod, setCapturePeriod] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'funnel' | 'list'>('funnel')
 
   // Modais e gavetas
@@ -123,8 +129,56 @@ export default function CrmPage() {
     loadData()
   }, [loadData])
 
-  // Filtros aplicados
+  // Faixas de valor do negócio (R$)
+  const VALUE_RANGES = [
+    { id: 'all', label: 'Todo valor' },
+    { id: 's-1k', label: 'Até R$ 1 mil', test: (v: number) => v > 0 && v <= 1000 },
+    { id: '1k-5k', label: 'R$ 1 mil – 5 mil', test: (v: number) => v > 1000 && v <= 5000 },
+    { id: '5k-15k', label: 'R$ 5 mil – 15 mil', test: (v: number) => v > 5000 && v <= 15000 },
+    { id: '15k+', label: 'Acima de R$ 15 mil', test: (v: number) => v > 15000 },
+  ]
+
+  const PERIOD_OPTIONS = [
+    { id: 'all', label: 'Todo período' },
+    { id: '7d', label: 'Últimos 7 dias', days: 7 },
+    { id: '30d', label: 'Últimos 30 dias', days: 30 },
+    { id: '90d', label: 'Últimos 90 dias', days: 90 },
+  ]
+
+  // Opções derivadas dos dados reais: campanhas de origem e tags
+  const campaignOptions = useMemo(() => {
+    const set = new Set<string>()
+    contacts.forEach((c) => {
+      const cf = c.custom_fields as Record<string, unknown> | undefined
+      const camp =
+        (cf && typeof cf === 'object' && (cf['campanha'] || cf['campanha_origem'])) ||
+        (c as unknown as { campaign?: string }).campaign
+      if (typeof camp === 'string' && camp.trim()) set.add(camp.trim())
+    })
+    return Array.from(set).sort()
+  }, [contacts])
+
+  const tagOptions = useMemo(() => {
+    const set = new Set<string>()
+    contacts.forEach((c) => {
+      const tags = Array.isArray(c.tags)
+        ? c.tags
+        : typeof c.tags === 'string'
+          ? (c.tags as string).split(',').map((t) => t.trim())
+          : []
+      tags.filter(Boolean).forEach((t) => set.add(t))
+    })
+    return Array.from(set).sort()
+  }, [contacts])
+
+  // Filtros aplicados (combináveis)
   const filteredContacts = useMemo(() => {
+    const range = VALUE_RANGES.find((r) => r.id === valueRange) || VALUE_RANGES[0]
+    const period = PERIOD_OPTIONS.find((p) => p.id === capturePeriod)
+    const cutoff = period?.days
+      ? new Date(Date.now() - period.days * 24 * 60 * 60 * 1000).toISOString()
+      : null
+
     return contacts.filter((c) => {
       const q = searchQuery.toLowerCase()
       const matchesSearch =
@@ -138,10 +192,117 @@ export default function CrmPage() {
       const matchesStage = selectedStage === 'all' || c.stage === selectedStage
       const matchesSource = selectedSource === 'all' || c.source === selectedSource
       const matchesPriority = selectedPriority === 'all' || c.priority === selectedPriority
+      const matchesValue = range.id === 'all' || range.test(c.value || 0)
 
-      return matchesSearch && matchesStage && matchesSource && matchesPriority
+      const cf = c.custom_fields as Record<string, unknown> | undefined
+      const contactCampaign =
+        (cf && typeof cf === 'object' && String(cf['campanha'] || cf['campanha_origem'] || '')) ||
+        (c as unknown as { campaign?: string }).campaign ||
+        ''
+      const matchesCampaign =
+        selectedCampaign === 'all' ||
+        (contactCampaign && contactCampaign === selectedCampaign) ||
+        (selectedCampaign !== 'all' && c.source === selectedCampaign)
+
+      const contactTags: string[] = Array.isArray(c.tags)
+        ? c.tags
+        : typeof c.tags === 'string'
+          ? (c.tags as string).split(',').map((t) => t.trim())
+          : []
+      const matchesTag = selectedTag === 'all' || contactTags.includes(selectedTag)
+
+      const matchesPeriod = !cutoff || (c.created && c.created >= cutoff)
+
+      return (
+        matchesSearch &&
+        matchesStage &&
+        matchesSource &&
+        matchesPriority &&
+        matchesValue &&
+        matchesCampaign &&
+        matchesTag &&
+        matchesPeriod
+      )
     })
-  }, [contacts, searchQuery, selectedStage, selectedSource, selectedPriority])
+  }, [
+    contacts,
+    searchQuery,
+    selectedStage,
+    selectedSource,
+    selectedPriority,
+    valueRange,
+    selectedCampaign,
+    selectedTag,
+    capturePeriod,
+  ])
+
+  // Chips dos filtros ativos (removíveis)
+  const activeFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; onRemove: () => void }[] = []
+    if (searchQuery)
+      chips.push({ key: 'q', label: `Busca: ${searchQuery}`, onRemove: () => setSearchQuery('') })
+    if (selectedStage !== 'all')
+      chips.push({
+        key: 'stage',
+        label: CRM_STAGE_LABELS[selectedStage as CrmStage] || selectedStage,
+        onRemove: () => setSelectedStage('all'),
+      })
+    if (selectedSource !== 'all')
+      chips.push({ key: 'source', label: selectedSource, onRemove: () => setSelectedSource('all') })
+    if (selectedPriority !== 'all')
+      chips.push({
+        key: 'priority',
+        label: `Prioridade: ${selectedPriority}`,
+        onRemove: () => setSelectedPriority('all'),
+      })
+    const range = VALUE_RANGES.find((r) => r.id === valueRange)
+    if (range && range.id !== 'all')
+      chips.push({ key: 'value', label: range.label, onRemove: () => setValueRange('all') })
+    if (selectedCampaign !== 'all')
+      chips.push({
+        key: 'campaign',
+        label: `Campanha: ${selectedCampaign}`,
+        onRemove: () => setSelectedCampaign('all'),
+      })
+    if (selectedTag !== 'all')
+      chips.push({
+        key: 'tag',
+        label: `Tag: ${selectedTag}`,
+        onRemove: () => setSelectedTag('all'),
+      })
+    const period = PERIOD_OPTIONS.find((p) => p.id === capturePeriod)
+    if (period && period.id !== 'all')
+      chips.push({
+        key: 'period',
+        label: period.label,
+        onRemove: () => setCapturePeriod('all'),
+      })
+    return chips
+    // VALUE_RANGES/PERIOD_OPTIONS são constantes de módulo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    searchQuery,
+    selectedStage,
+    selectedSource,
+    selectedPriority,
+    valueRange,
+    selectedCampaign,
+    selectedTag,
+    capturePeriod,
+  ])
+
+  const hasActiveFilters = activeFilterChips.length > 0
+
+  const resetFilters = () => {
+    setSearchQuery('')
+    setSelectedStage('all')
+    setSelectedSource('all')
+    setSelectedPriority('all')
+    setValueRange('all')
+    setSelectedCampaign('all')
+    setSelectedTag('all')
+    setCapturePeriod('all')
+  }
 
   const kpis = useMemo(() => calculateCrmKpis(contacts), [contacts])
 
@@ -430,6 +591,99 @@ export default function CrmPage() {
               <SelectItem value="baixa">Baixa</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Filtros combináveis avançados */}
+          <Select value={valueRange} onValueChange={setValueRange}>
+            <SelectTrigger className="w-[150px] h-9 text-xs bg-background">
+              <SelectValue placeholder="Valor" />
+            </SelectTrigger>
+            <SelectContent>
+              {VALUE_RANGES.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+            <SelectTrigger className="w-[150px] h-9 text-xs bg-background">
+              <SelectValue placeholder="Campanha" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas campanhas</SelectItem>
+              {campaignOptions.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedTag} onValueChange={setSelectedTag}>
+            <SelectTrigger className="w-[130px] h-9 text-xs bg-background">
+              <SelectValue placeholder="Tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas tags</SelectItem>
+              {tagOptions.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={capturePeriod} onValueChange={setCapturePeriod}>
+            <SelectTrigger className="w-[140px] h-9 text-xs bg-background">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Contagem em tempo real + chips removíveis + reset */}
+        <div className="w-full flex flex-wrap items-center gap-2 pt-1">
+          <span className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">
+            {filteredContacts.length} de {contacts.length} leads
+          </span>
+
+          {hasActiveFilters && (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                {activeFilterChips.map((chip) => (
+                  <span
+                    key={chip.key}
+                    className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20"
+                  >
+                    {chip.label}
+                    <button
+                      type="button"
+                      onClick={chip.onRemove}
+                      aria-label={`Remover filtro ${chip.label}`}
+                      className="p-0.5 rounded-full hover:bg-primary/20 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={resetFilters}
+                className="h-7 text-[11px] text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 gap-1"
+              >
+                <X className="w-3 h-3" /> Limpar filtros
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Alternador de visualização: Funil Kanban ou Lista */}
