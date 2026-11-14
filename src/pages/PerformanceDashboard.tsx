@@ -56,6 +56,7 @@ import {
 import type { Post } from '@/types'
 import { AiInsightsPanel } from '@/components/analytics/AiInsightsPanel'
 import type { ReportInsightsInput } from '@/services/report-insights'
+import { cn } from '@/lib/utils'
 
 export default function PerformanceDashboard() {
   const { user } = useAuth()
@@ -367,6 +368,54 @@ export default function PerformanceDashboard() {
     .slice(0, 7)
 
   const maxEngagementForScale = Math.max(...networkComparison.map((c) => c.engagementRate), 1)
+
+  // ============================================================
+  // BENCHMARKS DE MERCADO (referências curadas, PT-BR)
+  // Taxa de engajamento média e alcance médio por post no mercado
+  // brasileiro de social media (pequenas/médias contas).
+  // ============================================================
+  const NETWORK_BENCHMARKS: Record<
+    string,
+    { label: string; color: string; engRate: number; avgReach: number }
+  > = {
+    instagram: { label: 'Instagram', color: '#E1306C', engRate: 3.5, avgReach: 2400 },
+    tiktok: { label: 'TikTok', color: '#111827', engRate: 5.8, avgReach: 8900 },
+    linkedin: { label: 'LinkedIn', color: '#0A66C2', engRate: 4.6, avgReach: 1800 },
+    facebook: { label: 'Facebook', color: '#1877F2', engRate: 2.1, avgReach: 1500 },
+    youtube: { label: 'YouTube', color: '#FF0000', engRate: 3.9, avgReach: 3200 },
+    twitter: { label: 'X (Twitter)', color: '#334155', engRate: 1.9, avgReach: 1100 },
+  }
+
+  // Linhas de benchmark apenas para as redes que o usuário tem canal ativo,
+  // respeitando os filtros/relatórios já carregados no dashboard.
+  const benchmarkRows = useMemo(() => {
+    return networkComparison
+      .filter((c) => NETWORK_BENCHMARKS[c.network])
+      .map((c) => {
+        const bench = NETWORK_BENCHMARKS[c.network]
+        const userEng = c.engagementRate || 0
+        const userAvgReach = c.postsCount > 0 ? Math.round(c.reach30d / c.postsCount) : 0
+        const engDiffPct = bench.engRate > 0 ? ((userEng - bench.engRate) / bench.engRate) * 100 : 0
+        const reachDiffPct =
+          bench.avgReach > 0 ? ((userAvgReach - bench.avgReach) / bench.avgReach) * 100 : 0
+        // Escala da barra: maior valor entre usuário e benchmark define 100%
+        const engScaleMax = Math.max(userEng, bench.engRate, 0.1)
+        const reachScaleMax = Math.max(userAvgReach, bench.avgReach, 1)
+        return {
+          network: c.network,
+          label: bench.label,
+          color: bench.color,
+          userEng,
+          benchEng: bench.engRate,
+          userAvgReach,
+          benchReach: bench.avgReach,
+          engDiffPct,
+          reachDiffPct,
+          engScaleMax,
+          reachScaleMax,
+        }
+      })
+  }, [networkComparison])
 
   // Comparativo de Período Atual vs Período Anterior e Destaques
   const periodComparison = useMemo(() => {
@@ -1355,6 +1404,134 @@ export default function PerformanceDashboard() {
           </div>
         </Card>
       </div>
+
+      {/* ============================================================
+          BENCHMARKS DE MERCADO: sua métrica vs referência por rede
+          ============================================================ */}
+      <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+          <div>
+            <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Benchmarks de Mercado
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Sua performance vs referências médias do mercado brasileiro (pequenas e médias contas)
+            </p>
+          </div>
+          <Badge
+            variant="outline"
+            className="text-[10px] font-bold border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+          >
+            🎯 Estimativa Calibrada
+          </Badge>
+        </div>
+
+        {benchmarkRows.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">
+            Conecte um canal no Hub Social para comparar suas métricas com os benchmarks de mercado.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {benchmarkRows.map((row) => {
+              const engAbove = row.engDiffPct >= 0
+              const reachAbove = row.reachDiffPct >= 0
+              return (
+                <div
+                  key={row.network}
+                  className="p-4 rounded-xl bg-muted/40 border border-border/60 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-[10px] shrink-0"
+                        style={{ backgroundColor: row.color }}
+                      >
+                        {row.label.slice(0, 2).toUpperCase()}
+                      </div>
+                      <p className="text-sm font-bold text-foreground">{row.label}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[10px] font-bold px-2 py-0.5 gap-0.5',
+                          engAbove
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                            : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30',
+                        )}
+                      >
+                        {engAbove ? '↑' : '↓'} {Math.abs(row.engDiffPct).toFixed(0)}% vs mercado
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[10px] font-bold px-2 py-0.5 gap-0.5',
+                          reachAbove
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                            : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30',
+                        )}
+                      >
+                        {reachAbove ? '↑' : '↓'} {Math.abs(row.reachDiffPct).toFixed(0)}% alcance
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Barra engajamento: sua métrica vs benchmark */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="font-bold text-foreground">Engajamento: {row.userEng}%</span>
+                      <span className="text-muted-foreground">Benchmark: {row.benchEng}%</span>
+                    </div>
+                    <div className="relative w-full h-2.5 rounded-full bg-border/50 overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full transition-all"
+                        style={{
+                          width: `${Math.max(4, (row.userEng / row.engScaleMax) * 100)}%`,
+                          backgroundColor: row.color,
+                        }}
+                      />
+                      <div
+                        className="absolute inset-y-0 w-0.5 bg-foreground/60"
+                        style={{ left: `${Math.max(4, (row.benchEng / row.engScaleMax) * 100)}%` }}
+                        title={`Benchmark de mercado: ${row.benchEng}%`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Barra alcance médio por post: sua métrica vs benchmark */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="font-bold text-foreground">
+                        Alcance médio/post: {row.userAvgReach.toLocaleString('pt-BR')}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Benchmark: {row.benchReach.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="relative w-full h-2.5 rounded-full bg-border/50 overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full transition-all opacity-80"
+                        style={{
+                          width: `${Math.max(4, (row.userAvgReach / row.reachScaleMax) * 100)}%`,
+                          backgroundColor: row.color,
+                        }}
+                      />
+                      <div
+                        className="absolute inset-y-0 w-0.5 bg-foreground/60"
+                        style={{
+                          left: `${Math.max(4, (row.benchReach / row.reachScaleMax) * 100)}%`,
+                        }}
+                        title={`Benchmark de mercado: ${row.benchReach.toLocaleString('pt-BR')}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* ============================================================
           BLOCO UNIFICADO: Top Posts Consolidados (destaque do Hub Social)

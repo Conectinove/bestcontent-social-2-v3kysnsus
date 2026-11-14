@@ -196,6 +196,10 @@ export default function CreatePost() {
     (location.state?.draftId as string) || null,
   )
   const [hookVariations, setHookVariations] = useState<HookVariationItem[]>([])
+  const [captionVariations, setCaptionVariations] = useState<
+    Array<{ title: string; text: string; cta?: string }>
+  >([])
+  const [suggestionLoading, setSuggestionLoading] = useState(false)
   const [selectedObjective, setSelectedObjective] = useState<string>('engajamento')
   const [captionScores, setCaptionScores] = useState<{
     seo?: number
@@ -640,6 +644,77 @@ export default function CreatePost() {
       toast({ title: 'Erro na IA', description: getErrorMessage(err), variant: 'destructive' })
     } finally {
       setAiLoading(null)
+    }
+  }
+
+  // ============================================================
+  // BOTÃO "SUGERIR LEGENDA" (IA): 3 variações aplicáveis em 1 clique,
+  // coerentes com tom de voz, marca e rede do contexto atual.
+  // Reusa generateCaption({ variations: true }) — endpoint nativo
+  // /backend/v1/ai/generate-caption com fallback local e selo
+  // "✨ Dados Oficiais / 🎯 Estimativa Calibrada".
+  // ============================================================
+  const handleSuggestCaption = async () => {
+    const topic = content.trim() || caption.trim()
+    if (!topic) {
+      toast({
+        title: 'Atenção',
+        description: 'Digite ao menos o título ou ideia do post para a IA sugerir legendas.',
+      })
+      return
+    }
+    setSuggestionLoading(true)
+    try {
+      const brandNiche = (selectedBrand as any)?.niche || (selectedBrand as any)?.segment || 'Geral'
+      const res = (await generateCaption({
+        content: topic,
+        topic,
+        platform: platform.toLowerCase(),
+        objective: selectedObjective,
+        tone: selectedTone,
+        brandName: selectedBrand?.name || 'Marca',
+        brandNiche,
+        brandVoice: (selectedBrand as any)?.brand_voice,
+        recentPosts: [caption, content].filter(Boolean),
+        variations: true,
+      })) as any
+
+      const list: Array<{ title: string; text: string; cta?: string }> =
+        Array.isArray(res?.variations) && res.variations.length > 0
+          ? res.variations.slice(0, 3)
+          : res?.caption
+            ? [
+                { title: 'Sugestão da IA', text: String(res.caption) },
+                ...((res.hook_variations || []) as Array<{ hook: string; type: string }>)
+                  .slice(0, 2)
+                  .map((h) => ({
+                    title: h.type || 'Gancho alternativo',
+                    text: h.hook,
+                  })),
+              ]
+            : []
+
+      if (list.length === 0) {
+        toast({
+          title: 'IA sem sugestões',
+          description: 'Não foi possível gerar variações agora. Tente novamente.',
+          variant: 'destructive',
+        })
+        return
+      }
+      setCaptionVariations(list)
+      setCaptionScores({
+        isOfficial: res?.isOfficial ?? false,
+        dataSource: res?.dataSource || 'Estimativa Calibrada',
+      })
+      toast({
+        title: '✨ 3 sugestões prontas!',
+        description: 'Clique em uma variação para aplicá-la à legenda.',
+      })
+    } catch (err) {
+      toast({ title: 'Erro na IA', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setSuggestionLoading(false)
     }
   }
 
@@ -1293,6 +1368,81 @@ export default function CreatePost() {
                   <strong className="text-foreground capitalize">{selectedObjective}</strong>
                 </span>
               </div>
+
+              {/* Botão "Sugerir legenda" (IA): 3 variações aplicáveis em 1 clique */}
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSuggestCaption}
+                  disabled={suggestionLoading || aiLoading !== null}
+                  className="text-[11px] font-bold gap-1.5 rounded-xl border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 h-8"
+                  title="Gerar 3 variações de legenda coerentes com o tom, a marca e a rede escolhidos"
+                >
+                  {suggestionLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  Sugerir legenda
+                </Button>
+                {captionScores && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                      captionScores.isOfficial
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                        : 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
+                    )}
+                  >
+                    {captionScores.isOfficial ? '✨ Dados Oficiais' : '🎯 Estimativa Calibrada'}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Variações de legenda da IA (1 clique para aplicar) */}
+              {captionVariations.length > 0 && (
+                <div className="p-3 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-900/40 space-y-2 animate-in fade-in-50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Legendas Sugeridas pela IA (clique para aplicar):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCaptionVariations([])}
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      Dispensar
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {captionVariations.map((v, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setCaption(v.cta ? `${v.text}\n\n👉 ${v.cta}` : v.text)
+                          toast({
+                            title: 'Legenda aplicada!',
+                            description: `Variação "${v.title}" inserida na legenda do post.`,
+                          })
+                        }}
+                        className="p-2 text-left rounded-lg bg-card hover:bg-muted/80 border border-border/80 transition-all text-xs group"
+                      >
+                        <span className="font-bold text-purple-600 dark:text-purple-400 block text-[10px] uppercase">
+                          {v.title}
+                        </span>
+                        <p className="text-foreground font-medium text-[11px] mt-0.5 line-clamp-2">
+                          {v.text}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Variantes de Gancho em 1-clique */}
               {hookVariations.length > 0 && (
