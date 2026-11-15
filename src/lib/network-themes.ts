@@ -149,6 +149,57 @@ export function normalizeNetworkThemeId(value: unknown): NetworkThemeId {
 
 const NETWORK_STORAGE_KEY = 'midiaviva_theme_network'
 
+/**
+ * Mapa rede→tema: qual TEMA COMPLETO cada rede usa quando um post dela é
+ * aberto (editor/criador). Sem associação para a rede ativa, vale o tema
+ * global + accent da rede (comportamento atual).
+ */
+export interface NetworkThemeMapEntry {
+  themeId: string
+  /** Accent (tokens HSL) guardado só para swatches na UI. */
+  accent?: string
+}
+
+export type NetworkThemeMap = Partial<Record<NetworkThemeId, NetworkThemeMapEntry>>
+
+const NETWORK_MAP_STORAGE_KEY = 'midiaviva_theme_network_map'
+
+/** Guarda: descarta chaves de rede desconhecidas e entradas sem themeId. */
+export function normalizeNetworkThemeMap(value: unknown): NetworkThemeMap {
+  const out: NetworkThemeMap = {}
+  if (!value || typeof value !== 'object') return out
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    const network = normalizeNetworkThemeId(key)
+    if (network === 'none') continue
+    const entry = (raw || null) as Partial<NetworkThemeMapEntry> | null
+    if (!entry || typeof entry.themeId !== 'string' || !entry.themeId) continue
+    out[network] = {
+      themeId: entry.themeId,
+      accent: typeof entry.accent === 'string' ? entry.accent : undefined,
+    }
+  }
+  return out
+}
+
+/** Lê o mapa rede→tema persistido (localStorage — sobrevive ao reload). */
+export function loadNetworkThemeMap(): NetworkThemeMap {
+  try {
+    const raw = localStorage.getItem(NETWORK_MAP_STORAGE_KEY)
+    return raw ? normalizeNetworkThemeMap(JSON.parse(raw)) : {}
+  } catch {
+    return {}
+  }
+}
+
+/** Persiste o mapa rede→tema (mesmo mecanismo das demais escolhas de tema). */
+export function saveNetworkThemeMap(map: NetworkThemeMap) {
+  try {
+    localStorage.setItem(NETWORK_MAP_STORAGE_KEY, JSON.stringify(map))
+  } catch {
+    /* intentionally ignored */
+  }
+}
+
 /** Lê a rede escolhida (persistida — sobrevive ao reload). */
 export function loadNetworkThemeId(): NetworkThemeId {
   try {

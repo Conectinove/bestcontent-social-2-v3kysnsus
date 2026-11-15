@@ -82,7 +82,7 @@ export default function PostEditor() {
   const { brands } = useSocial()
   // Motor de tema do app (accent por rede social + CSS vars do tema base)
   const appTheme = useAppTheme(brands as Brand[], user?.id || '')
-  const { theme } = appTheme
+  const { theme, allThemes, networkThemeMap } = appTheme
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { isEnabled: isLabEnabled } = useLabsFeatures()
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -193,20 +193,30 @@ export default function PostEditor() {
       .finally(() => setLoading(false))
   }, [postId, navigate])
 
-  // Tema por rede social: o accent do app muda conforme a rede do post aberto
+  // Tema por rede social: rede do post aberto manda — se ela tem um TEMA
+  // COMPLETO associado no mapa rede→tema (midiaviva_theme_network_map), esse
+  // tema é aplicado por inteiro; sem associação, aplica só o accent da rede
+  // sobre o tema global (comportamento atual).
   useEffect(() => {
     const net = networkIdFromPlatform(platform)
     const root = document.documentElement
-    if (net !== 'none') {
-      root.setAttribute('data-app-theme-network', net)
+    if (net === 'none') {
+      root.removeAttribute('data-app-theme-network')
+      applyThemeVars(theme, 'none')
+      return
+    }
+    root.setAttribute('data-app-theme-network', net)
+    const mappedTheme = networkThemeMap[net]
+      ? allThemes.find((t) => t.id === networkThemeMap[net]!.themeId)
+      : undefined
+    if (mappedTheme) {
+      applyThemeVars(mappedTheme, net)
+    } else {
       root.style.setProperty('--primary', NETWORK_THEMES[net].primary)
       root.style.setProperty('--accent', NETWORK_THEMES[net].accent)
       root.style.setProperty('--ring', NETWORK_THEMES[net].primary)
-    } else {
-      root.removeAttribute('data-app-theme-network')
-      applyThemeVars(theme, 'none')
     }
-  }, [platform, theme])
+  }, [platform, theme, allThemes, networkThemeMap])
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

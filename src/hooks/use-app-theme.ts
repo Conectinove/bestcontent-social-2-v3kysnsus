@@ -25,8 +25,11 @@ import {
   loadNetworkThemeId,
   saveNetworkThemeId,
   normalizeNetworkThemeId,
+  loadNetworkThemeMap,
+  saveNetworkThemeMap,
   NETWORK_THEMES,
   type NetworkThemeId,
+  type NetworkThemeMap,
 } from '@/lib/network-themes'
 
 export type { StudioThemeOption, StudioCustomColors, StudioThemeId } from '@/hooks/use-studio-theme'
@@ -70,6 +73,10 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
   const [customThemes, setCustomThemes] = useState<StudioThemeOption[]>(() => loadCustomThemes())
   const [teamThemes, setTeamThemes] = useState<StudioThemeOption[]>([])
   const [networkId, setNetworkIdState] = useState<NetworkThemeId>(() => loadNetworkThemeId())
+  /** Mapa rede→tema completo (rede com tema associado usa esse tema ao abrir post). */
+  const [networkThemeMap, setNetworkThemeMap] = useState<NetworkThemeMap>(() =>
+    loadNetworkThemeMap(),
+  )
   const [isSaving, setIsSaving] = useState(false)
   /**
    * Pré-visualização (hover no seletor / live preview no editor): tema que a
@@ -89,8 +96,22 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     [allThemes, themeId],
   )
 
-  /** Tema efetivamente renderizado: o de preview (hover) ou o confirmado. */
-  const renderedTheme = previewTheme ?? theme
+  /**
+   * Tema efetivamente renderizado: o de preview (hover) ou o confirmado —
+   * com o mapa rede→tema aplicado: quando a rede ativa tem um tema associado
+   * (e ele existe na lista), ele vence o tema global escolhido.
+   */
+  const renderedTheme = useMemo(() => {
+    if (previewTheme) return previewTheme
+    if (networkId && networkId !== 'none') {
+      const mappedId = networkThemeMap[networkId]?.themeId
+      if (mappedId) {
+        const mapped = allThemes.find((t) => t.id === mappedId)
+        if (mapped) return mapped
+      }
+    }
+    return theme
+  }, [previewTheme, networkId, networkThemeMap, allThemes, theme])
 
   // Carrega temas do usuário + compartilhados pela equipe (uma vez por login)
   useEffect(() => {
@@ -192,6 +213,24 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
 
   const setThemeId = useCallback((id: StudioThemeId) => setThemeIdState(id), [])
   const setNetworkId = useCallback((id: NetworkThemeId) => setNetworkIdState(id), [])
+
+  /**
+   * Associa (ou remove) um TEMA COMPLETO a uma rede social no mapa
+   * rede→tema (persistido em localStorage). themeId '' remove a associação —
+   * a rede volta a usar o tema global + accent (comportamento atual).
+   */
+  const setNetworkThemeMapping = useCallback(
+    (network: NetworkThemeId, mappedThemeId: string, accent?: string) => {
+      setNetworkThemeMap((prev) => {
+        const next: NetworkThemeMap = { ...prev }
+        if (!mappedThemeId || network === 'none') delete next[network]
+        else next[network] = { themeId: mappedThemeId, accent: accent || undefined }
+        saveNetworkThemeMap(next)
+        return next
+      })
+    },
+    [],
+  )
 
   /**
    * Preset por rede social: aplica o accent da rede sobre o tema ativo e
@@ -415,6 +454,8 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     teamThemes,
     networkId,
     setNetworkId,
+    networkThemeMap,
+    setNetworkThemeMapping,
     applyNetworkAccent,
     addCustomTheme,
     importTheme,
