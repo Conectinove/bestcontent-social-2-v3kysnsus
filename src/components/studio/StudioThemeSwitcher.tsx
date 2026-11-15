@@ -1,68 +1,204 @@
-import { Palette, Check } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { useEffect, useState } from 'react'
+import { Palette, Plus, Trash2, Check } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import type { StudioThemeOption } from '@/hooks/use-studio-theme'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { useToast } from '@/hooks/use-toast'
+import type { StudioThemeOption, StudioCustomColors } from '@/hooks/use-studio-theme'
 
 interface StudioThemeSwitcherProps {
   themes: StudioThemeOption[]
-  currentId: string
+  themeId: string
   onSelect: (id: string) => void
+  onCreateCustom: (name: string, colors: StudioCustomColors) => void
+  onDeleteCustom: (id: string) => void
 }
 
-/** Seletor de tema visual do Studio (claro/escuro + temas derivados das marcas). */
+const COLOR_FIELDS: Array<{
+  key: keyof StudioCustomColors
+  label: string
+  defaultValue: string
+}> = [
+  { key: 'background', label: 'Fundo', defaultValue: '#09090b' },
+  { key: 'surface', label: 'Superfície (cards)', defaultValue: '#18181b' },
+  { key: 'primary', label: 'Cor primária', defaultValue: '#7c3aed' },
+  { key: 'text', label: 'Texto', defaultValue: '#fafafa' },
+]
+
+const emptyColors: StudioCustomColors = {
+  background: '#09090b',
+  surface: '#18181b',
+  primary: '#7c3aed',
+  text: '#fafafa',
+}
+
 export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
   themes,
-  currentId,
+  themeId,
   onSelect,
+  onCreateCustom,
+  onDeleteCustom,
 }) => {
-  const current = themes.find((t) => t.id === currentId)
+  const { toast } = useToast()
+  const [open, setOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [name, setName] = useState('Meu tema')
+  const [colors, setColors] = useState<StudioCustomColors>(emptyColors)
+
+  // Reabre o formulário sempre que o popover reabre, pronto para criar outro tema
+  useEffect(() => {
+    if (!open) setCreating(false)
+  }, [open])
+
+  const handleCreate = () => {
+    if (!name.trim()) {
+      toast({ title: 'Dê um nome ao tema', variant: 'destructive' })
+      return
+    }
+    onCreateCustom(name, colors)
+    toast({ title: `Tema "${name.trim()}" criado e aplicado` })
+    setCreating(false)
+    setName('Meu tema')
+    setColors(emptyColors)
+    setOpen(false)
+  }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button
+          type="button"
           variant="outline"
           size="sm"
-          className="rounded-full text-xs font-bold gap-1.5 bg-card/80 backdrop-blur-md"
-          title="Trocar tema visual do Studio"
+          className="gap-2 border-border/60 bg-card/60 text-foreground/80 hover:bg-accent hover:text-accent-foreground"
         >
-          <Palette className="w-3.5 h-3.5 text-purple-500" />
-          <span className="hidden sm:inline">{current?.name || 'Tema'}</span>
+          <Palette className="h-4 w-4" />
+          <span className="hidden sm:inline">Tema</span>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 rounded-2xl">
-        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Tema do Studio
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {themes.map((t) => (
-          <DropdownMenuItem
-            key={t.id}
-            onClick={() => onSelect(t.id)}
-            className="gap-2.5 cursor-pointer"
-          >
-            <span
-              className={cn(
-                'w-5 h-5 rounded-full shrink-0 border border-black/10',
-                t.id === currentId && 'ring-2 ring-ring ring-offset-2 ring-offset-background',
-              )}
-              style={{ background: t.preview }}
-            />
-            <span className="flex-1 truncate text-xs font-semibold">{t.name}</span>
-            <span className="text-[10px] uppercase text-muted-foreground">{t.mode}</span>
-            {t.id === currentId && <Check className="w-3.5 h-3.5 text-primary" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <p className="text-sm font-semibold">Tema do Estúdio</p>
+          {!creating && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 text-xs"
+              onClick={() => setCreating(true)}
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo
+            </Button>
+          )}
+        </div>
+
+        {creating ? (
+          <div className="p-4 space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="studio-theme-name" className="text-xs">
+                Nome do tema
+              </Label>
+              <Input
+                id="studio-theme-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Meu tema roxo"
+                maxLength={24}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {COLOR_FIELDS.map((f) => (
+                <div key={f.key} className="space-y-1">
+                  <Label
+                    htmlFor={`studio-color-${f.key}`}
+                    className="text-[11px] text-muted-foreground"
+                  >
+                    {f.label}
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id={`studio-color-${f.key}`}
+                      type="color"
+                      value={colors[f.key]}
+                      onChange={(e) => setColors((p) => ({ ...p, [f.key]: e.target.value }))}
+                      className="h-8 w-9 shrink-0 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
+                      aria-label={f.label}
+                    />
+                    <Input
+                      value={colors[f.key]}
+                      onChange={(e) => setColors((p) => ({ ...p, [f.key]: e.target.value }))}
+                      className="h-8 font-mono text-[11px] px-2"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setCreating(false)}>
+                Voltar
+              </Button>
+              <Button type="button" size="sm" onClick={handleCreate}>
+                <Check className="mr-1 h-3.5 w-3.5" /> Criar e aplicar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="max-h-72 overflow-y-auto p-2">
+            {themes.map((t) => {
+              const active = t.id === themeId
+              return (
+                <div
+                  key={t.id}
+                  className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${
+                    active ? 'bg-accent' : 'hover:bg-muted/60'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelect(t.id)}
+                    className="flex flex-1 min-w-0 items-center gap-2 text-left"
+                  >
+                    <span
+                      className="h-6 w-6 shrink-0 rounded-md border border-border shadow-sm"
+                      style={{ background: t.preview }}
+                      aria-hidden
+                    />
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate text-sm font-medium">{t.name}</span>
+                      <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {t.source === 'builtin'
+                          ? 'Embutido'
+                          : t.source === 'brand'
+                            ? 'Marca'
+                            : 'Personalizado'}
+                      </span>
+                    </span>
+                    {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                  </button>
+                  {t.source === 'custom' && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteCustom(t.id)}
+                      className="opacity-60 hover:opacity-100 text-muted-foreground hover:text-destructive p-1"
+                      aria-label={`Excluir tema ${t.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+            <Separator className="my-2" />
+            <p className="px-2 pb-1 text-[11px] text-muted-foreground">
+              Dica: crie um tema com as cores da sua marca em “Novo”.
+            </p>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }
 
