@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T12:46:32.439Z",
+  "generatedAt": "2026-11-15T13:07:59.603Z",
   "collections": [
     {
       "name": "users",
@@ -5618,8 +5618,8 @@
       "name": "studio_edit_presets",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != \"\" && user = @request.auth.id",
-        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "list": "@request.auth.id != \"\" && (user = @request.auth.id || (is_shared = true && @request.auth.company != \"\" && user.company = @request.auth.company))",
+        "view": "@request.auth.id != \"\" && (user = @request.auth.id || (is_shared = true && @request.auth.company != \"\" && user.company = @request.auth.company))",
         "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
         "update": "@request.auth.id != \"\" && user = @request.auth.id",
         "delete": "@request.auth.id != \"\" && user = @request.auth.id"
@@ -5643,9 +5643,15 @@
           "required": true,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "is_shared",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": []
+      "indexes": ["CREATE INDEX idx_studio_edit_presets_shared ON studio_edit_presets (is_shared)"]
     },
     {
       "name": "studio_edit_versions",
