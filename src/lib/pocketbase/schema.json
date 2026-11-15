@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T14:18:38.428Z",
+  "generatedAt": "2026-11-15T14:28:06.110Z",
   "collections": [
     {
       "name": "users",
@@ -197,6 +197,13 @@
           "required": false,
           "system": false,
           "selectValues": ["member", "admin", "gestor"]
+        },
+        {
+          "name": "org_role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["owner", "admin", "editor", "viewer"]
         }
       ],
       "indexes": [
@@ -428,6 +435,12 @@
         {
           "name": "sort_order",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "accent_color",
+          "type": "text",
           "required": false,
           "system": false
         }
@@ -5852,6 +5865,145 @@
       "indexes": [
         "CREATE UNIQUE INDEX idx_brand_portals_token ON brand_portals (share_token)",
         "CREATE INDEX idx_brand_portals_brand ON brand_portals (brand)"
+      ]
+    },
+    {
+      "name": "portal_visits",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": null,
+        "update": null,
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "portal",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "brand_portals"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "page_slug",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "referrer",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_portal_visits_portal ON portal_visits (portal, created DESC)",
+        "CREATE INDEX idx_portal_visits_user ON portal_visits (user)"
+      ]
+    },
+    {
+      "name": "portal_pages",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_visible",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_portal_pages_brand ON portal_pages (brand, sort_order)",
+        "CREATE UNIQUE INDEX idx_portal_pages_brand_slug ON portal_pages (brand, slug)"
       ]
     }
   ]

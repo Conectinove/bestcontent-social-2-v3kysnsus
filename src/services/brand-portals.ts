@@ -14,6 +14,7 @@ export interface BrandPortalData {
   logo?: string
   website?: string
   color_theme?: string
+  accent_color?: string
   theme?: Record<string, unknown>
   portal_id?: string
 }
@@ -79,7 +80,49 @@ export async function fetchPublicPortal(token: string): Promise<BrandPortalData>
   return data
 }
 
+/** Lê o portal público pelo token (GET já registra a visita no backend). */
+export async function getPortalByToken(token: string): Promise<{
+  id: string
+  brandId: string
+  brandName: string
+  accentColor: string | null
+}> {
+  const data = await fetchPublicPortal(token)
+  return {
+    id: data.portal_id || '',
+    brandId: '',
+    brandName: data.name,
+    accentColor: data.accent_color || null,
+  }
+}
+
 /** Código de embed <iframe> para colar em HTML externo. */
 export function buildPortalEmbedCode(token: string): string {
   return `<iframe src="${buildPortalUrl(token)}" width="100%" height="600" frameborder="0" style="border:0;border-radius:12px;overflow:hidden" title="Portal da marca"></iframe>`
+}
+
+/**
+ * Salva a cor de tema da marca (pedido "personalizar cor do tema por marca").
+ * Vai para brands.accent_color (migration 0115) via hook POST /portals/theme,
+ * que também sincroniza o theme_snapshot do portal publicado.
+ */
+export async function setBrandThemeColor(brandId: string, accentColor: string): Promise<string> {
+  const res = await pb.send<{ success?: boolean; accent_color?: string }>(
+    '/backend/v1/portals/theme',
+    {
+      method: 'POST',
+      body: { brandId, accentColor },
+    },
+  )
+  return res?.accent_color || accentColor
+}
+
+/** Lê a cor de tema atual da marca. */
+export async function getBrandThemeColor(brandId: string): Promise<string | null> {
+  try {
+    const brand = await pb.collection('brands').getOne(brandId, { fields: 'id,accent_color' })
+    return (brand as { accent_color?: string })?.accent_color || null
+  } catch {
+    return null
+  }
 }

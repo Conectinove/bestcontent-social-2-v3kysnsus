@@ -124,6 +124,15 @@ routerAdd('GET', '/backend/v1/portals/share/{token}', (e) => {
     theme = {}
   }
 
+  let accentColor = brand.getString('accent_color')
+  if (!accentColor) {
+    try {
+      accentColor = theme.accent_color || ''
+    } catch (_) {
+      accentColor = ''
+    }
+  }
+
   return e.json(200, {
     format: 'midiaviva-portal',
     version: 1,
@@ -132,6 +141,7 @@ routerAdd('GET', '/backend/v1/portals/share/{token}', (e) => {
     logo: brand.getString('logo'),
     website: brand.getString('website'),
     color_theme: brand.getString('color_theme'),
+    accent_color: accentColor,
     theme,
     portal_id: portal.id,
   })

@@ -1,145 +1,179 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { Building2, Globe, Loader2, Sparkles, XCircle, ExternalLink } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { fetchPublicPortal, type BrandPortalData } from '@/services/brand-portals'
+import { Loader2, AlertTriangle, Home, ArrowLeft } from 'lucide-react'
+import { useParams, Link } from 'react-router-dom'
+import { getPortalByToken } from '@/services/brand-portals'
+import { fetchPublicPortalPages, recordPortalVisit } from '@/services/portal-pages'
 
-/**
- * Página PÚBLICA do portal de marca (pedidos "gerar portais" + "incorporar"):
- * servida fora do layout autenticado em /portal/:token. Mostra logo, nome,
- * descrição e o tema (snapshot de cores) da marca — sem login.
- */
+interface PortalData {
+  id: string
+  brandId: string
+  brandName: string
+  accentColor: string | null
+  pages: Array<{ id: string; title: string; slug: string; content: { text?: string } }>
+}
+
+/** Página pública do portal (rota /portal/:token) — cor da marca + páginas internas. */
 export default function BrandPortalPage() {
-  const { token = '' } = useParams()
-  const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading')
-  const [data, setData] = useState<BrandPortalData | null>(null)
-  const [message, setMessage] = useState('')
+  const { token = '' } = useParams<{ token: string }>()
+  const [data, setData] = useState<PortalData | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [activeSlug, setActiveSlug] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!token) {
-      setState('error')
-      setMessage('O link não trouxe o código do portal.')
-      return
-    }
     let alive = true
-    fetchPublicPortal(token)
+    setError(null)
+    getPortalByToken(token)
       .then((res) => {
         if (!alive) return
-        setData(res)
-        setState('ok')
+        recordPortalVisit(token, activeSlug || 'home')
+        return fetchPublicPortalPages(token).then((pages) => {
+          if (!alive) return
+          setData({
+            id: res.id,
+            brandId: res.brandId,
+            brandName: res.brandName ?? 'Portal',
+            accentColor: res.accentColor,
+            pages: (pages || []).map((p) => ({
+              id: p.id,
+              title: p.title,
+              slug: p.slug,
+              content: (p.content as { text?: string }) || {},
+            })),
+          })
+        })
       })
-      .catch((err: unknown) => {
-        if (!alive) return
-        setState('error')
-        setMessage(err instanceof Error ? err.message : 'Falha ao carregar o portal.')
-      })
+      .catch(() => setError('Portal não encontrado ou indisponível.'))
     return () => {
       alive = false
     }
   }, [token])
 
-  // Aplica o tema da marca (se houver color_theme hex) como accent da página.
-  const themeHex = data?.color_theme || ''
-  const accentStyle = /^#?[0-9a-fA-F]{6}$/.test(themeHex)
-    ? ({
-        '--portal-accent': themeHex.startsWith('#') ? themeHex : `#${themeHex}`,
-      } as React.CSSProperties)
-    : undefined
-
-  if (state === 'loading') {
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin text-primary" />
-          Carregando portal…
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6">
+        <div className="text-center space-y-3">
+          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Link to="/" className="text-xs text-primary underline">
+            Voltar ao início
+          </Link>
         </div>
       </div>
     )
   }
 
-  if (state === 'error' || !data) {
+  if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-8 pb-8 space-y-3">
-            <div className="mx-auto rounded-full bg-destructive/10 p-3 w-fit">
-              <XCircle className="w-6 h-6 text-destructive" aria-hidden />
-            </div>
-            <h1 className="font-black text-lg">Portal indisponível</h1>
-            <p className="text-sm text-muted-foreground break-words">{message}</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     )
   }
 
-  const accent = accentStyle?.['--portal-accent'] as string | undefined
+  const accent = data.accentColor || '#7C3AED'
+  const current = data.pages.find((p) => p.slug === activeSlug)
+  const heroPage = !activeSlug
+  const pageText = current?.content?.text || ''
 
   return (
-    <div className="min-h-screen bg-background" style={accentStyle}>
-      {/* Capa com o accent da marca */}
-      <div
-        className="h-40 sm:h-52 w-full"
-        style={{
-          background: accent
-            ? `linear-gradient(135deg, ${accent}, ${accent}55)`
-            : 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.3))',
-        }}
-      />
-      <div className="max-w-2xl mx-auto px-4 -mt-14 pb-12">
-        <Card className="rounded-2xl shadow-lg border-border/60 overflow-hidden">
-          <CardContent className="p-6 sm:p-8 space-y-5">
-            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
-              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-muted border-4 border-card shadow-md flex items-center justify-center shrink-0">
-                {data.logo ? (
-                  <img src={data.logo} alt={data.name} className="w-full h-full object-cover" />
-                ) : (
-                  <Building2 className="w-10 h-10 text-muted-foreground" />
-                )}
-              </div>
-              <div className="text-center sm:text-left flex-1 min-w-0">
-                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                  <h1 className="text-2xl font-black truncate">{data.name}</h1>
-                  <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border"
-                    style={{
-                      color: accent || 'hsl(var(--primary))',
-                      borderColor: `${accent || 'hsl(var(--primary))'}44`,
-                      background: `${accent || 'hsl(var(--primary))'}14`,
-                    }}
-                  >
-                    <Sparkles className="w-3 h-3" /> Portal oficial
-                  </span>
-                </div>
-                {data.description && (
-                  <p className="text-sm text-muted-foreground mt-1">{data.description}</p>
-                )}
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* accent como variável CSS para colorir tudo */}
+      <style>{`:root { --portal-accent: ${accent}; }`}</style>
 
-            {data.website && (
-              <a
-                href={data.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm font-semibold hover:underline"
-                style={{ color: accent || 'hsl(var(--primary))' }}
+      <header
+        className="text-white py-10 px-6"
+        style={{ background: `linear-gradient(135deg, ${accent}, ${accent}CC)` }}
+      >
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs opacity-80">Portal da marca</p>
+            <h1 className="text-2xl font-black">{data.brandName}</h1>
+          </div>
+          {data.pages.length > 0 && (
+            <nav className="hidden sm:flex items-center gap-1 flex-wrap justify-end">
+              <button
+                onClick={() => setActiveSlug(null)}
+                className="px-3 py-1.5 rounded-full text-xs font-bold transition-colors"
+                style={{
+                  backgroundColor:
+                    activeSlug === null ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.12)',
+                }}
               >
-                <ExternalLink className="w-4 h-4" />
-                {data.website}
-              </a>
-            )}
+                Início
+              </button>
+              {data.pages.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setActiveSlug(p.slug)}
+                  className="px-3 py-1.5 rounded-full text-xs font-bold transition-colors"
+                  style={{
+                    backgroundColor:
+                      activeSlug === p.slug ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.12)',
+                  }}
+                >
+                  {p.title}
+                </button>
+              ))}
+            </nav>
+          )}
+        </div>
+      </header>
 
-            <div className="pt-2 border-t border-border/60 flex items-center gap-2 text-xs text-muted-foreground">
-              <Globe className="w-3.5 h-3.5" />
-              <span>
-                Este é um portal público criado com <strong>MidiaViva</strong>.
-              </span>
+      <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
+        {heroPage ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Bem-vindo ao portal de {data.brandName}. Confira abaixo as páginas disponíveis.
+            </p>
+            <div className="grid gap-3">
+              {data.pages.length === 0 ? (
+                <div className="p-6 rounded-2xl border border-border bg-white dark:bg-slate-900 text-center text-sm text-muted-foreground">
+                  Este portal ainda não tem páginas internas.
+                </div>
+              ) : (
+                data.pages.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setActiveSlug(p.slug)}
+                    className="text-left p-5 rounded-2xl border border-border bg-white dark:bg-slate-900 hover:shadow-md transition-shadow"
+                  >
+                    <span className="text-sm font-bold" style={{ color: accent }}>
+                      {p.title}
+                    </span>
+                    <span className="block text-xs text-muted-foreground mt-1">
+                      Clique para abrir /{p.slug}
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setActiveSlug(null)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold"
+              style={{ color: accent }}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao início
+            </button>
+            <article className="p-6 rounded-2xl border border-border bg-white dark:bg-slate-900">
+              <h2 className="text-xl font-black mb-3" style={{ color: accent }}>
+                {current?.title}
+              </h2>
+              <div className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed">
+                {pageText || 'Página sem conteúdo ainda.'}
+              </div>
+            </article>
+          </>
+        )}
+      </main>
+
+      <footer className="border-t border-border py-6 text-center">
+        <p className="text-[11px] text-muted-foreground">
+          © {new Date().getFullYear()} {data.brandName} · Powered by BestContent
+        </p>
+      </footer>
     </div>
   )
 }

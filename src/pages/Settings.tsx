@@ -66,7 +66,9 @@ import { getBrandPortal, type BrandPortalRecord } from '@/services/brand-portals
 import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
 import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
-import { Building2, Webhook, Target, Mail, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Building2, Webhook, Target, Mail, RefreshCw, ShieldCheck, UserCog } from 'lucide-react'
+import { OrgMembersPermissionsPanel } from '@/components/settings/OrgMembersPermissionsPanel'
+import { BrandPortalPanel } from '@/components/settings/BrandPortalPanel'
 import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
 import { MasterSettingsPanel } from '@/components/brandkit/MasterSettingsPanel'
 import {
@@ -589,7 +591,17 @@ export default function Settings() {
                       onPortalChange={handlePortalChange}
                     />
                   )}
+                  {portalBrandId && (
+                    <BrandPortalPanel brandId={portalBrandId} userId={user?.id || ''} />
+                  )}
                   <OrganizationBrandManager onAddNewBrand={() => navigate('/app/brands')} />
+                  <div>
+                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                      <UserCog className="w-4 h-4 text-primary" />
+                      Permissões por membro
+                    </h3>
+                    <OrgMembersPermissionsPanel isAdmin={user?.role === 'admin'} />
+                  </div>
                 </div>
               )}
 
