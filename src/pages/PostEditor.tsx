@@ -557,7 +557,9 @@ export default function PostEditor() {
       case 'assets':
         return <AssetsPanel onDragStart={() => {}} />
       case 'templates':
-        return <TemplatesWidget />
+        return (
+          <TemplatesWidget selectedTemplateId={selectedTemplateId} onSelect={handleApplyTemplate} />
+        )
       case 'content-draft':
         return (
           <div className="space-y-4">
@@ -693,10 +695,6 @@ export default function PostEditor() {
             onOpenImageBank={() => setImageBankOpen(true)}
             onOpenAdvancedEditor={() => setAdvancedEditorOpen(true)}
           />
-        )
-      case 'templates':
-        return (
-          <TemplatesWidget selectedTemplateId={selectedTemplateId} onSelect={handleApplyTemplate} />
         )
       case 'schedule':
         return (

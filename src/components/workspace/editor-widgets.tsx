@@ -399,7 +399,7 @@ export function TemplatesWidget({
   const [templates, setTemplates] = useState<PostTemplate[]>([])
   useEffect(() => {
     getTemplates()
-      .then((data) => setTemplates(data || []))
+      .then((data) => setTemplates((data || []) as unknown as PostTemplate[]))
       .catch(() => {})
   }, [])
   if (templates.length === 0)
