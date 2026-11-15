@@ -140,6 +140,41 @@ export function hslStr(tokens: { h: number; s: number; l: number }): string {
   return `${tokens.h} ${tokens.s}% ${tokens.l}%`
 }
 
+/** Lê tokens HSL no formato "262 83% 62%" (padrão das CSS vars) — null se inválido. */
+export function parseHslTokens(value: string): { h: number; s: number; l: number } | null {
+  const m = /^\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*$/.exec(value || '')
+  if (!m) return null
+  return {
+    h: Math.round(parseFloat(m[1])),
+    s: Math.round(parseFloat(m[2])),
+    l: Math.round(parseFloat(m[3])),
+  }
+}
+
+/** Converte tokens HSL em hex "#7c3aed" — inverso de hexToHslTokens. */
+export function hslTokensToHex(tokens: { h: number; s: number; l: number }): string {
+  const h = (((tokens.h % 360) + 360) % 360) / 360
+  const s = Math.min(100, Math.max(0, tokens.s)) / 100
+  const l = Math.min(100, Math.max(0, tokens.l)) / 100
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((h * 6) % 2) - 1))
+  const m = l - c / 2
+  let r = 0
+  let g = 0
+  let b = 0
+  if (h < 1 / 6) [r, g, b] = [c, x, 0]
+  else if (h < 2 / 6) [r, g, b] = [x, c, 0]
+  else if (h < 3 / 6) [r, g, b] = [0, c, x]
+  else if (h < 4 / 6) [r, g, b] = [0, x, c]
+  else if (h < 5 / 6) [r, g, b] = [x, 0, c]
+  else [r, g, b] = [c, 0, x]
+  const to255 = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${to255(r)}${to255(g)}${to255(b)}`
+}
+
 /** Deriva temas do Studio a partir das marcas do usuário (color_theme em hex). */
 export function buildBrandThemes(brands: Brand[]): StudioThemeOption[] {
   return brands
