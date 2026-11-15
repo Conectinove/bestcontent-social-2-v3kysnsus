@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   Sparkles,
   Download,
@@ -30,8 +30,9 @@ import { toast } from '@/hooks/use-toast'
 import { MudarCursoLogoKit } from '@/components/brandkit/MudarCursoLogoKit'
 import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
 import { dataUrlToFile } from '@/lib/advanced-media'
+import { downloadAssetMedia } from '@/lib/download-utils'
 import { getImageUrlErrorMessage } from '@/lib/image-upload'
-import { uploadImageBankAsset } from '@/services/image-bank'
+import { getAssetUrl, uploadImageBankAsset } from '@/services/image-bank'
 
 export interface BrandAsset {
   id: string
@@ -75,8 +76,38 @@ export function BrandKitPage() {
   const [advancedAsset, setAdvancedAsset] = useState<BrandAsset | null>(null)
   const [savingEdit, setSavingEdit] = useState(false)
   // URL da mídia EDITADA por asset (rasterizada no editor) — alimenta download e preview
-  const [editedUrls, setEditedUrls] = useState<Record<string, string>>({})
+  const [sessionEditedUrls, setEditedUrls] = useState<Record<string, string>>({})
   const [downloadingEditedId, setDownloadingEditedId] = useState<string | null>(null)
+  const [persistedEditedUrls, setPersistedEditedUrls] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem('brandkit:edited-urls')
+      return raw ? (JSON.parse(raw) as Record<string, string>) : {}
+    } catch {
+      return {}
+    }
+  })
+
+  // Mapa efetivo: edição desta sessão (inclui data: temporários) sobrepõe a persistida.
+  const editedUrls = useMemo(
+    () => ({ ...persistedEditedUrls, ...sessionEditedUrls }),
+    [persistedEditedUrls, sessionEditedUrls],
+  )
+
+  // Persiste a URL editada (http, gravada no acervo) para sobreviver a reloads.
+  // data: URLs ficam só em memória (quota do localStorage).
+  useEffect(() => {
+    try {
+      const persistable = Object.fromEntries(
+        Object.entries(sessionEditedUrls).filter(([, url]) => !url.startsWith('data:')),
+      )
+      if (Object.keys(persistable).length === 0) return
+      const merged = { ...persistedEditedUrls, ...persistable }
+      localStorage.setItem('brandkit:edited-urls', JSON.stringify(merged))
+      setPersistedEditedUrls(merged)
+    } catch {
+      /* quota cheia — segue em memória */
+    }
+  }, [sessionEditedUrls, persistedEditedUrls])
 
   // Assets da identidade visual inspirados na referência visual MudarCurso
   // Fotografia com iluminação violeta elétrica, proporções 9:16, 1:1, 16:9
@@ -452,12 +483,16 @@ export function BrandKitPage() {
         file = new File([blob], `${asset.id}-editada.png`, { type: blob.type || 'image/png' })
       }
       if (!file) throw new Error('Não foi possível ler a mídia editada.')
-      await uploadImageBankAsset(file, {
+      const saved = await uploadImageBankAsset(file, {
         name: `${asset.title} (editada)`,
         category: 'geral',
         tags: ['brand_kit', 'edicao_avancada'],
         brand: currentBrand?.id,
       })
+      // Preferir a URL persistida (http) do acervo — sobrevive a reloads e alimenta o badge "Editado"
+      if (saved?.id) {
+        setEditedUrls((prev) => ({ ...prev, [asset.id]: getAssetUrl(saved) }))
+      }
       toast({
         title: 'Edição salva!',
         description: 'A versão editada foi gravada no acervo da marca.',
@@ -665,11 +700,21 @@ export function BrandKitPage() {
                     }`}
                   >
                     <img
-                      src={asset.imageUrl}
+                      src={editedUrls[asset.id] || asset.imageUrl}
                       alt={asset.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
                     />
+
+                    {/* Indicador de asset editado (Edição Avançada aplicada) */}
+                    {editedUrls[asset.id] && (
+                      <div className="absolute top-4 left-4 z-20 flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/90 text-white shadow-md">
+                        <Wand2 className="w-3 h-3" />
+                        <span className="text-[10px] font-black tracking-wider uppercase">
+                          Editado
+                        </span>
+                      </div>
+                    )}
 
                     {/* Gradient Overlay Roxo no Rodapé */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
@@ -733,12 +778,23 @@ export function BrandKitPage() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDownload(asset, 'original')
+                            if (editedUrls[asset.id]) {
+                              handleDownloadEdited(asset)
+                            } else {
+                              handleDownload(asset, 'original')
+                            }
                           }}
+                          disabled={downloadingEditedId === asset.id}
                           className="flex-1 h-9 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs gap-1.5 shadow-sm"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          <span>Baixar Original</span>
+                          <span>
+                            {downloadingEditedId === asset.id
+                              ? 'Baixando…'
+                              : editedUrls[asset.id]
+                                ? 'Baixar Editada'
+                                : 'Baixar Original'}
+                          </span>
                         </Button>
 
                         <Button
@@ -840,7 +896,7 @@ export function BrandKitPage() {
           onOpenChange={(o) => {
             if (!o) setAdvancedAsset(null)
           }}
-          mediaUrl={advancedAsset.imageUrl}
+          mediaUrl={editedUrls[advancedAsset.id] || advancedAsset.imageUrl}
           mediaId={`brandkit:${advancedAsset.id}`}
           aspectRatio={advancedAsset.aspectRatio}
           title={advancedAsset.title}
@@ -863,6 +919,11 @@ export function BrandKitPage() {
                 <Badge className="bg-primary text-primary-foreground text-xs font-bold uppercase mb-2">
                   {selectedAsset.categoryLabel} · {selectedAsset.aspectRatio}
                 </Badge>
+                {editedUrls[selectedAsset.id] && (
+                  <Badge className="mb-2 ml-1 bg-emerald-500 text-white text-xs font-bold uppercase">
+                    Editado
+                  </Badge>
+                )}
                 <h2 className="text-xl sm:text-2xl font-black text-foreground break-words">
                   {selectedAsset.title}
                 </h2>
@@ -880,7 +941,7 @@ export function BrandKitPage() {
             {/* Imagem em destaque */}
             <div className="relative rounded-2xl overflow-hidden bg-black/60 max-h-[420px] flex items-center justify-center">
               <img
-                src={selectedAsset.imageUrl}
+                src={editedUrls[selectedAsset.id] || selectedAsset.imageUrl}
                 alt={selectedAsset.title}
                 className="max-h-[400px] w-auto object-contain rounded-xl"
               />
@@ -920,10 +981,19 @@ export function BrandKitPage() {
               </div>
 
               <Button
-                onClick={() => handleDownload(selectedAsset, 'original')}
+                onClick={() =>
+                  editedUrls[selectedAsset.id]
+                    ? handleDownloadEdited(selectedAsset)
+                    : handleDownload(selectedAsset, 'original')
+                }
+                disabled={downloadingEditedId === selectedAsset.id}
                 className="w-full h-12 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 font-extrabold text-sm uppercase tracking-wider shadow-lg"
               >
-                Original em Alta Resolução
+                {downloadingEditedId === selectedAsset.id
+                  ? 'Baixando…'
+                  : editedUrls[selectedAsset.id]
+                    ? 'Baixar Versão Editada'
+                    : 'Original em Alta Resolução'}
               </Button>
 
               <Button
