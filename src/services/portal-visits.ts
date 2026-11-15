@@ -4,8 +4,10 @@
  *  - GET  /backend/v1/portals/metrics/{portalId}?pageId=   (dono)
  *  - GET  /backend/v1/portals/visits-export/{portalId}?pageId= (dono)
  *  - POST /backend/v1/portals/video-plays/{token}          (público)
+ *  - POST /backend/v1/portals/video-progress/{token}       (público)
  */
 import { pb } from '@/lib/pocketbase/client'
+import { getPortalSessionId } from '@/lib/portal-session'
 
 const BASE = import.meta.env.VITE_POCKETBASE_URL || ''
 
@@ -14,6 +16,14 @@ export interface PortalVisitItem {
   page_slug: string
   page_id?: string
   referrer: string
+}
+
+export interface PortalVideoMilestones {
+  /** Espectadores que alcançaram cada marco (retenção por trecho). */
+  m25: number
+  m50: number
+  m75: number
+  m100: number
 }
 
 export interface PortalVideoRankItem {
@@ -25,6 +35,8 @@ export interface PortalVideoRankItem {
   /** Engajamento (migration 0122): % médio concluído e tempo assistido. */
   avg_progress?: number
   watched_seconds?: number
+  /** Retenção por marco (pedido "gráfico de engajamento ao longo do vídeo"). */
+  milestones?: PortalVideoMilestones
 }
 
 /** Engajamento agregado de vídeo (migration 0122). */
@@ -32,6 +44,7 @@ export interface PortalVideoEngagement {
   avg_progress: number
   watched_seconds: number
   completed: number
+  milestones?: PortalVideoMilestones
 }
 
 export interface PortalMetrics {
@@ -65,6 +78,21 @@ export async function getPortalMetrics(portalId: string, pageId = ''): Promise<P
 }
 
 /** Registro público de play de vídeo próprio na página do portal. */
+export async function recordPortalVisit(token: string, pageSlug: string): Promise<void> {
+  if (!token) return
+  await fetch(`${BASE}/backend/v1/portals/visits/${encodeURIComponent(token)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      pageSlug,
+      referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
+      // Dedupe por sessão (pedido "deduplicar plays de video por sessao"):
+      // a mesma sessão navegando pelo portal NÃO soma visita nova.
+      sessionId: getPortalSessionId(token),
+    }),
+  }).catch(() => undefined)
+}
+
 export async function recordPortalVideoPlay(
   token: string,
   pageSlug: string,
@@ -75,7 +103,12 @@ export async function recordPortalVideoPlay(
   await fetch(`${BASE}/backend/v1/portals/video-plays/${encodeURIComponent(token)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pageSlug, mediaId, pageId: pageId || '' }),
+    body: JSON.stringify({
+      pageSlug,
+      mediaId,
+      pageId: pageId || '',
+      sessionId: getPortalSessionId(token),
+    }),
   }).catch(() => undefined)
 }
 
@@ -96,6 +129,7 @@ export async function recordPortalVideoProgress(
       progress: Math.min(100, Math.max(0, Math.round(progress))),
       watchedSeconds: Math.max(0, Math.round(watchedSeconds)),
       pageId: pageId || '',
+      sessionId: getPortalSessionId(token),
     }),
   }).catch(() => undefined)
 }

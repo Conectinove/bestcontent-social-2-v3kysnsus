@@ -116,6 +116,10 @@ routerAdd('POST', '/backend/v1/portals/visits/{token}', (e) => {
   const body = e.requestInfo().body || {}
   const pageSlug = String(body.pageSlug || '').slice(0, 120)
   const referrer = String(body.referrer || '').slice(0, 400)
+  // Dedupe por sessão (pedido "deduplicar plays de video por sessao"): a
+  // mesma sessão navegando entre páginas NÃO cria visita nova — só atualiza
+  // a última página vista da visita existente.
+  const sessionId = String(body.sessionId || '').slice(0, 60)
   // Analytics por página (pedido "filtrar analytics por pagina"): resolve o id
   // da página interna a partir do slug (home = vazio).
   let pageId = String(body.pageId || '').slice(0, 20)
@@ -133,6 +137,32 @@ routerAdd('POST', '/backend/v1/portals/visits/{token}', (e) => {
   }
 
   const visitsCollection = $app.findCollectionByNameOrId('portal_visits')
+
+  if (sessionId) {
+    let existing = null
+    try {
+      const found = $app.findRecordsByFilter(
+        'portal_visits',
+        'portal = {:portal} && session_id = {:sid}',
+        '-created',
+        1,
+        0,
+        { portal: portal.id, sid: sessionId },
+      )
+      existing = found && found.length > 0 ? found[0] : null
+    } catch (_) {
+      existing = null
+    }
+    if (existing) {
+      // Mesma sessão: atualiza a última página vista (sem nova visita).
+      existing.set('page_slug', pageSlug)
+      existing.set('page_id', pageId)
+      existing.set('referrer', referrer)
+      $app.save(existing)
+      return e.json(200, { success: true, deduped: true })
+    }
+  }
+
   const visit = new Record(visitsCollection)
   visit.set('user', portal.getString('user'))
   visit.set('portal', portal.id)
@@ -140,6 +170,7 @@ routerAdd('POST', '/backend/v1/portals/visits/{token}', (e) => {
   visit.set('page_slug', pageSlug)
   visit.set('page_id', pageId)
   visit.set('referrer', referrer)
+  visit.set('session_id', sessionId)
   $app.save(visit)
 
   return e.json(200, { success: true })
@@ -167,7 +198,9 @@ routerAdd('POST', '/backend/v1/portals/video-plays/{token}', (e) => {
   const pageSlug = String(body.pageSlug || '').slice(0, 120)
   const mediaId = String(body.mediaId || '').slice(0, 20)
   if (!mediaId) return e.badRequest('mediaId é obrigatório.')
-
+  // Sessão do visitante: play repetido do MESMO vídeo na mesma sessão não cria
+  // record novo (navegar entre páginas e voltar não soma play).
+  const sessionId = String(body.sessionId || '').slice(0, 60)
   let pageId = String(body.pageId || '').slice(0, 20)
   if (!pageId && pageSlug && pageSlug !== 'home' && pageSlug !== 'principal') {
     try {
@@ -183,6 +216,29 @@ routerAdd('POST', '/backend/v1/portals/video-plays/{token}', (e) => {
   }
 
   const playsCollection = $app.findCollectionByNameOrId('portal_video_plays')
+
+  if (sessionId) {
+    let dup = null
+    try {
+      const found = $app.findRecordsByFilter(
+        'portal_video_plays',
+        'portal = {:portal} && media = {:media} && session_id = {:sid}',
+        '-created',
+        1,
+        0,
+        { portal: portal.id, media: mediaId, sid: sessionId },
+      )
+      dup = found && found.length > 0 ? found[0] : null
+    } catch (_) {
+      dup = null
+    }
+    if (dup) {
+      // Play já contado nesta sessão — mantém o record existente (o progresso
+      // do player continua atualizando ele no endpoint video-progress).
+      return e.json(200, { success: true, deduped: true })
+    }
+  }
+
   const play = new Record(playsCollection)
   play.set('user', portal.getString('user'))
   play.set('portal', portal.id)
@@ -202,6 +258,7 @@ routerAdd('POST', '/backend/v1/portals/video-plays/{token}', (e) => {
     isFinite(watchedRaw) && watchedRaw > 0 ? Math.min(86400, Math.round(watchedRaw)) : 0
   play.set('progress', String(progress))
   play.set('watched_seconds', String(watched))
+  play.set('session_id', sessionId)
   $app.save(play)
 
   return e.json(200, { success: true })
@@ -238,20 +295,39 @@ routerAdd('POST', '/backend/v1/portals/video-progress/{token}', (e) => {
   const watched =
     isFinite(watchedRaw) && watchedRaw > 0 ? Math.min(86400, Math.round(watchedRaw)) : 0
 
-  // Record mais novo do play desta mídia (e página, quando informada) — é o
-  // que o próprio hook de play acabou de criar nesta sessão. findFirstRecordByFilter
-  // não ordena: usamos findRecordsByFilter com sort -created e pegamos o 1º,
-  // para atualizar o play DESTA sessão e não um antigo.
+  // Record do play desta mídia na SESSÃO informada (dedupe por sessão); sem
+  // session_id (visitante antigo), cai no comportamento anterior: o play mais
+  // recente da mídia/página.
   let play = null
   try {
-    let filter = 'portal = {:portal} && media = {:media}'
-    const params = { portal: portal.id, media: mediaId }
-    if (pageId) {
-      filter += ' && page_id = {:page}'
-      params.page = pageId
+    const sessId = String(body.sessionId || '').slice(0, 60)
+    if (sessId) {
+      const found = $app.findRecordsByFilter(
+        'portal_video_plays',
+        'portal = {:portal} && media = {:media} && session_id = {:sid}',
+        '-created',
+        1,
+        0,
+        { portal: portal.id, media: mediaId, sid: sessId },
+      )
+      play = found && found.length > 0 ? found[0] : null
+    } else {
+      let filter = 'portal = {:portal} && media = {:media}'
+      const params = { portal: portal.id, media: mediaId }
+      if (pageId) {
+        filter += ' && page_id = {:page}'
+        params.page = pageId
+      }
+      const latest = $app.findRecordsByFilter(
+        'portal_video_plays',
+        filter,
+        '-created',
+        1,
+        0,
+        params,
+      )
+      play = latest && latest.length > 0 ? latest[0] : null
     }
-    const latest = $app.findRecordsByFilter('portal_video_plays', filter, '-created', 1, 0, params)
-    play = latest && latest.length > 0 ? latest[0] : null
   } catch (_) {
     play = null
   }
@@ -429,16 +505,31 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
     const perMedia = {}
     const mediaMeta = {}
     const mediaEng = {}
+    const mediaMilestones = {}
+    const totalMilestones = { m25: 0, m50: 0, m75: 0, m100: 0 }
     let progressSum = 0
     let watchedSum = 0
     let completed = 0
     for (const p of plays) {
       const mid = p.getString('media') || 'desconhecido'
-      perMedia[mid] = (perMedia[mid] || 0) + 1
       // Engajamento (pedido "adicionar metricas de engajamento de video"):
       // % médio concluído e tempo total assistido, por mídia e no agregado.
       const prog = Number(p.getString('progress') || 0) || 0
       const watched = Number(p.getString('watched_seconds') || 0) || 0
+      perMedia[mid] = (perMedia[mid] || 0) + 1
+      // Marcos de retenção (pedido "gráfico de engajamento ao longo do vídeo"):
+      // quantos espectadores alcançaram 25/50/75/100% da duração.
+      if (!mediaMilestones[mid]) {
+        mediaMilestones[mid] = { m25: 0, m50: 0, m75: 0, m100: 0 }
+      }
+      if (prog >= 25) mediaMilestones[mid].m25 += 1
+      if (prog >= 50) mediaMilestones[mid].m50 += 1
+      if (prog >= 75) mediaMilestones[mid].m75 += 1
+      if (prog >= 100) mediaMilestones[mid].m100 += 1
+      if (prog >= 25) totalMilestones.m25 += 1
+      if (prog >= 50) totalMilestones.m50 += 1
+      if (prog >= 75) totalMilestones.m75 += 1
+      if (prog >= 100) totalMilestones.m100 += 1
       progressSum += prog
       watchedSum += watched
       if (prog >= 75) completed += 1
@@ -464,6 +555,8 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
         last_play_at: mediaMeta[mid].last_play_at,
         avg_progress: Math.round(mediaEng[mid].progress_sum / perMedia[mid]),
         watched_seconds: mediaEng[mid].watched_sum,
+        // Retenção por trecho (para o gráfico de engajamento no painel).
+        milestones: mediaMilestones[mid] || { m25: 0, m50: 0, m75: 0, m100: 0 },
       }))
   } catch (_) {
     videoTotal = 0
@@ -486,6 +579,7 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
       avg_progress: videoTotal > 0 ? Math.round(progressSum / videoTotal) : 0,
       watched_seconds: watchedSum,
       completed: completed,
+      milestones: totalMilestones,
     },
   })
 })

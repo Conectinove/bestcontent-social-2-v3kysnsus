@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T16:26:43.466Z",
+  "generatedAt": "2026-11-15T17:11:02.304Z",
   "collections": [
     {
       "name": "users",
@@ -4309,7 +4309,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["review_assigned", "change_requested", "approval_flow"]
+          "selectValues": ["review_assigned", "change_requested", "approval_flow", "page_published"]
         },
         {
           "name": "post",
@@ -5972,6 +5972,12 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "session_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -6051,6 +6057,12 @@
         {
           "name": "publish_at",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "published_notified",
+          "type": "bool",
           "required": false,
           "system": false
         }
@@ -6358,6 +6370,12 @@
         },
         {
           "name": "watched_seconds",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "session_id",
           "type": "text",
           "required": false,
           "system": false
