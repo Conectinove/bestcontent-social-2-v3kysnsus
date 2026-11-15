@@ -1,17 +1,19 @@
 /**
  * Serviço do "Assistente de Edição" — agente NATIVO do Skip Cloud
- * (edit-assistant-agent, migration 0104). Analisa o estado atual da Edição
- * Avançada e sugere melhorias concretas (advice + suggestedSettings).
- * O fallback determinístico vive no hook (sempre há resposta aplicável).
+ * (edit-assistant-agent, migrations 0104/0105; rota POST
+ * /backend/v1/ai/edit-assistant em pocketbase/hooks/ai_edit_assistant.js).
+ * Recebe o estado atual da Edição Avançada + contexto da mídia e devolve
+ * sugestões concretas e aplicáveis. O fallback determinístico vive no hook
+ * (sempre há resposta utilizável, mesmo sem IA configurada).
  */
 import pb from '@/lib/pocketbase/client'
 
-export interface EditAssistantSuggestion {
+export interface EditAssistantResult {
   success: boolean
   source: 'agent' | 'fallback'
-  summary: string
   advice: string[]
   suggestedSettings: Record<string, number> | null
+  summary: string
 }
 
 export async function askEditAssistant(input: {
@@ -21,15 +23,15 @@ export async function askEditAssistant(input: {
   aspectRatio?: string
   question?: string
   settings: unknown
-}): Promise<EditAssistantSuggestion> {
+}): Promise<EditAssistantResult> {
   try {
-    const res = await pb.send<EditAssistantSuggestion>('/backend/v1/ai/edit-assistant', {
+    const res = await pb.send<EditAssistantResult>('/backend/v1/ai/edit-assistant', {
       method: 'POST',
       body: {
         mediaTitle: input.mediaTitle || '',
         mediaPrompt: input.mediaPrompt || '',
-        network: input.network || '',
-        aspectRatio: input.aspectRatio || '',
+        network: input.network || 'Instagram',
+        aspectRatio: input.aspectRatio || '16:9',
         question: input.question || '',
         settings: input.settings,
       },
@@ -37,17 +39,20 @@ export async function askEditAssistant(input: {
     return {
       success: !!res?.success,
       source: res?.source === 'agent' ? 'agent' : 'fallback',
-      summary: res?.summary || '',
       advice: Array.isArray(res?.advice) ? res.advice : [],
-      suggestedSettings: res?.suggestedSettings || null,
+      suggestedSettings:
+        res?.suggestedSettings && typeof res.suggestedSettings === 'object'
+          ? res.suggestedSettings
+          : null,
+      summary: res?.summary || '',
     }
   } catch {
     return {
       success: false,
       source: 'fallback',
-      summary: 'Assistente indisponível agora — tente novamente em instantes.',
       advice: [],
       suggestedSettings: null,
+      summary: 'Assistente de edição indisponível agora — tente novamente em instantes.',
     }
   }
 }

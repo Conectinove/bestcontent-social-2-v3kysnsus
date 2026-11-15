@@ -34,6 +34,8 @@ interface StudioAdvancedEditorDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   creation: StudioCreationRecord | null
+  /** Rede/contexto da marca — vai para a IA (edit-assistant/export-advisor). */
+  network?: string
   onSave: (editedPreviewUrl: string) => void
 }
 
@@ -60,6 +62,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
   open,
   onOpenChange,
   creation,
+  network: networkProp,
   onSave,
 }) => {
   const { toast } = useToast()
@@ -76,6 +79,8 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
   const [adviceOpen, setAdviceOpen] = useState(false)
 
   const isImage = creation?.type === 'image' || Boolean(creation?.preview_url)
+  /** Rede/contexto efetivo: prop explícita (marca) ou "studio". */
+  const effectiveNetwork = networkProp || 'studio'
 
   /** Chave estável da mídia/post: colaboração + histórico são por mídia. */
   const targetKey = useMemo(() => {
@@ -273,8 +278,9 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
         })
 
         dataUrl = canvas.toDataURL('image/png')
-      } catch {
+      } catch (e) {
         // Canvas/CORS indisponível: salva o estado visual sem rasterizar
+        console.warn('[StudioAdvancedEditorDialog] rasterização indisponível:', e)
         dataUrl = null
       }
 
@@ -344,7 +350,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-purple-600 text-white uppercase text-[10px] font-black">
+            <Badge className="bg-primary text-primary-foreground uppercase text-[10px] font-black">
               Edição Avançada da Arte
             </Badge>
             <span className="text-xs text-muted-foreground truncate">{creation.title}</span>
@@ -510,7 +516,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
                 current={customization}
                 onRestore={(next) => setCustomization({ ...DEFAULT_CUSTOMIZATION, ...next })}
                 refreshKey={historyRefreshKey}
-                network="studio"
+                network={effectiveNetwork}
               />
             )}
 
@@ -518,7 +524,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
             <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-tight flex items-center gap-1.5">
-                  <TypeIcon className="w-3.5 h-3.5 text-purple-600" />
+                  <TypeIcon className="w-3.5 h-3.5 text-primary" />
                   Textos sobre a arte
                 </span>
                 <Button size="sm" variant="outline" onClick={addTextLayer} className="h-7 text-xs">
@@ -570,7 +576,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
                       onChange={(e) =>
                         updateTextLayer(layer.id, { fontSize: Number(e.target.value) })
                       }
-                      className="flex-1 min-w-[60px] accent-purple-600"
+                      className="flex-1 min-w-[60px] accent-primary"
                       title="Tamanho"
                     />
                     <Button
@@ -590,7 +596,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
                       max={100}
                       value={layer.x}
                       onChange={(e) => updateTextLayer(layer.id, { x: Number(e.target.value) })}
-                      className="flex-1 accent-purple-600"
+                      className="flex-1 accent-primary"
                       title="Posição horizontal"
                     />
                     <input
@@ -610,7 +616,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
             <Button
               onClick={requestExportAdvice}
               disabled={isSaving}
-              className="w-full rounded-full font-bold gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              className="w-full rounded-full font-bold gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {isSaving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -626,7 +632,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
         <ExportAiAdviceDialog
           open={adviceOpen}
           onOpenChange={setAdviceOpen}
-          network="studio"
+          network={effectiveNetwork}
           contentType={creation.title || 'mídia editada'}
           settings={customization}
           confirmLabel="Confirmar e salvar mídia"

@@ -12,6 +12,8 @@ interface BrandAdvancedMediaDialogProps {
   brandName: string
   /** URL da mídia a abrir no editor (arquivo local via object URL ou URL do PB). */
   mediaUrl: string
+  /** Contexto da marca — alimenta a IA (edit-assistant) com rede e tipo de mídia. */
+  brandContext?: { brandName: string; field: BrandMediaField; network?: string }
   /** Recebe a mídia resultante: data URL (rasterizada) ou a própria URL (fallback CORS). */
   onSave: (resultUrl: string) => void
 }
@@ -27,8 +29,10 @@ export function BrandAdvancedMediaDialog({
   field,
   brandName,
   mediaUrl,
+  brandContext,
   onSave,
 }: BrandAdvancedMediaDialogProps) {
+  const network = brandContext?.network || ''
   const creation: StudioCreationRecord | null = useMemo(() => {
     if (!mediaUrl) return null
     return {
@@ -36,7 +40,12 @@ export function BrandAdvancedMediaDialog({
       user: '',
       type: 'image',
       title: `${field === 'cover' ? 'Capa da marca' : 'Logo da marca'} · ${brandName || 'Marca'}`,
-      prompt: '',
+      // Contexto enviado ao agente edit-assistant como mediaPrompt.
+      prompt: brandContext
+        ? `Tratamento de ${field === 'cover' ? 'capa' : 'logo'} da marca ${brandName || 'Marca'}${
+            network ? ` para ${network}` : ''
+          } — dicas de tratamento de imagem/logo antes de salvar.`
+        : '',
       model_id: '',
       model_name: '',
       relative_cost: 0,
@@ -44,7 +53,7 @@ export function BrandAdvancedMediaDialog({
       preview_url: mediaUrl,
       aspect_ratio: field === 'cover' ? '16:9' : '1:1',
     }
-  }, [field, brandName, mediaUrl])
+  }, [field, brandName, mediaUrl, brandContext, network])
 
   if (!creation) return null
 
@@ -53,6 +62,7 @@ export function BrandAdvancedMediaDialog({
       open={open}
       onOpenChange={onOpenChange}
       creation={creation}
+      network={network || 'marca'}
       onSave={onSave}
     />
   )

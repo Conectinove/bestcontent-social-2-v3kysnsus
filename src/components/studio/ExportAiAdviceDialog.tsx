@@ -74,7 +74,7 @@ export const ExportAiAdviceDialog: React.FC<ExportAiAdviceDialogProps> = ({
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <WandSparkles className="w-4 h-4 text-purple-600" />
+            <WandSparkles className="w-4 h-4 text-primary" />
             Sugestões da IA para a exportação
           </DialogTitle>
           <DialogDescription>
@@ -101,7 +101,7 @@ export const ExportAiAdviceDialog: React.FC<ExportAiAdviceDialogProps> = ({
               <ul className="space-y-1">
                 {advice.tips.map((tip, i) => (
                   <li key={i} className="text-xs text-foreground/90 flex gap-1.5">
-                    <span className="text-purple-500">•</span>
+                    <span className="text-primary">•</span>
                     {tip}
                   </li>
                 ))}
@@ -132,7 +132,7 @@ export const ExportAiAdviceDialog: React.FC<ExportAiAdviceDialogProps> = ({
           </Button>
           <Button
             size="sm"
-            className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+            className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={() => {
               onOpenChange(false)
               onConfirm()

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
-  X,
   Check,
+  Save,
   ArrowLeft,
   ArrowRight,
   ChevronDown,
@@ -198,7 +198,7 @@ export default function BrandWizard() {
       <header className="sticky top-0 z-20 border-b border-border/80 bg-background/95 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 shrink-0">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
+            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-primary-foreground shadow-xs">
               <span className="font-black text-xs leading-none">b</span>
             </div>
             <span className="font-bold text-lg tracking-tight">
@@ -267,7 +267,7 @@ export default function BrandWizard() {
               {saving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <X className="w-3.5 h-3.5" />
+                <Save className="w-3.5 h-3.5" />
               )}
               Salvar e fechar
             </Button>
@@ -276,6 +276,9 @@ export default function BrandWizard() {
 
         {/* Stepper mobile */}
         <div className="md:hidden px-4 pb-3 flex items-center gap-2 overflow-x-auto">
+          <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+            Passo {step}/5
+          </span>
           {STEPS.map((s) => (
             <button
               key={s.id}
@@ -361,6 +364,11 @@ export default function BrandWizard() {
           }}
           field={advancedField}
           brandName={data.name}
+          brandContext={{
+            brandName: data.name,
+            field: advancedField,
+            network: data.networks[0] || '',
+          }}
           mediaUrl={advancedSrc || ''}
           onSave={(resultUrl) => {
             setEditedMedia((prev) => ({ ...prev, [advancedField]: resultUrl }))
@@ -442,7 +450,7 @@ function StepYourBrand({ data, update }: StepProps) {
             onChange={(e) => update('essence', e.target.value)}
             rows={4}
             placeholder="Ex.: Plataforma de gestão de redes sociais e marketing digital impulsionada por inteligência artificial. Centraliza a criação multiformato de criativos, gestão de anúncios de alta performance e rotinas de aprovação com clientes."
-            className="w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            className="w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </ExpandableCard>
 
@@ -550,7 +558,7 @@ function ExpandableCard({
     <div
       className={cn(
         'rounded-2xl border transition-colors',
-        open ? 'border-purple-500/50 bg-purple-500/[0.03]' : 'border-border bg-muted/40',
+        open ? 'border-primary/50 bg-primary/[0.04]' : 'border-border bg-muted/40',
       )}
     >
       <button
@@ -565,8 +573,8 @@ function ExpandableCard({
           <div className="flex items-center gap-2">
             <span className="text-base font-bold">{title}</span>
             {filled && (
-              <span className="w-4 h-4 rounded-full bg-purple-600 flex items-center justify-center">
-                <Check className="w-2.5 h-2.5 text-white stroke-[4]" />
+              <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                <Check className="w-2.5 h-2.5 text-primary-foreground stroke-[4]" />
               </span>
             )}
           </div>
@@ -600,7 +608,7 @@ function StepNetworks({ data, update }: StepProps) {
               key={n.key}
               className={cn(
                 'rounded-2xl border p-4 transition-colors',
-                selected ? 'border-purple-500/50 bg-purple-500/5' : 'border-border bg-card',
+                selected ? 'border-primary/50 bg-primary/5' : 'border-border bg-card',
               )}
             >
               <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -615,7 +623,7 @@ function StepNetworks({ data, update }: StepProps) {
                         : [...data.networks, n.key],
                     )
                   }
-                  className="w-4 h-4 accent-purple-600"
+                  className="w-4 h-4 accent-primary"
                 />
                 <span className="text-sm font-bold">{n.label}</span>
               </label>
@@ -683,7 +691,7 @@ function StepIdentity({ data, update }: StepProps) {
             onChange={(e) => update('description', e.target.value)}
             rows={4}
             placeholder="Ex.: Plataforma de gestão de redes sociais e marketing digital impulsionada por inteligência artificial."
-            className="mt-2 w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            className="mt-2 w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
       </div>
@@ -756,6 +764,11 @@ function StepBrandKit({
             <label className="text-sm font-bold flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-primary" /> Logo da marca
             </label>
+            {editedMedia.logo && (
+              <span className="hidden sm:inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary">
+                Editada · será salva
+              </span>
+            )}
             <Button
               type="button"
               size="sm"
@@ -867,8 +880,8 @@ function StepStyles({ data, update }: StepProps) {
               className={cn(
                 'px-4 py-2 rounded-full text-sm font-semibold border transition-colors flex items-center gap-1.5',
                 selected
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                  : 'border-border text-muted-foreground hover:border-purple-500/50 hover:text-purple-600',
+                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  : 'border-border text-muted-foreground hover:border-primary/50 hover:text-primary',
               )}
             >
               {selected && <Sparkles className="w-3.5 h-3.5" />}
