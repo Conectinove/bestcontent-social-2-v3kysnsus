@@ -12,6 +12,11 @@ import {
   CheckCircle2,
   ArrowRight,
   Search,
+  NotebookPen,
+  Terminal,
+  CalendarRange,
+  Clapperboard,
+  ListChecks,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +49,11 @@ export const LessonTemplateGalleryModal: React.FC<LessonTemplateGalleryModalProp
     { id: 'aula', label: 'Planos de Aula', icon: GraduationCap },
     { id: 'laboratorio', label: 'Laboratório & Prática', icon: FlaskConical },
     { id: 'resumo', label: 'Resumos & Microlearning', icon: FileText },
+    { id: 'estudo', label: 'Notas de Estudo', icon: NotebookPen },
+    { id: 'prompt', label: 'Prompts de IA', icon: Terminal },
+    { id: 'plano_conteudo', label: 'Planos de Conteúdo', icon: CalendarRange },
+    { id: 'roteiro_conteudo', label: 'Roteiros de Vídeo Curto', icon: Clapperboard },
+    { id: 'checklist', label: 'Checklists', icon: ListChecks },
     { id: 'tutorial', label: 'Tutoriais Passo a Passo', icon: ListOrdered },
     { id: 'quiz', label: 'Quizzes de Fixação', icon: HelpCircle },
     { id: 'video', label: 'Roteiros de Vídeo', icon: Video },
@@ -151,6 +161,23 @@ export const LessonTemplateGalleryModal: React.FC<LessonTemplateGalleryModalProp
                   <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed italic">
                     "{template.description}"
                   </p>
+
+                  {(() => {
+                    const firstBlock = template.modules[0]?.blocks.find(
+                      (b) => typeof b.content === 'string' && b.content.trim(),
+                    )
+                    if (!firstBlock) return null
+                    return (
+                      <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3 mt-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-purple-400/90 mb-1">
+                          Prévia do conteúdo
+                        </p>
+                        <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-3 whitespace-pre-line">
+                          {firstBlock.content as string}
+                        </p>
+                      </div>
+                    )
+                  })()}
 
                   <div className="pt-1 flex items-center gap-3 text-[11px] text-slate-400 font-semibold border-t border-slate-800/60">
                     <span className="flex items-center gap-1 text-purple-400">

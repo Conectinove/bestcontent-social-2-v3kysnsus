@@ -829,7 +829,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 <p className="text-xs text-purple-300 font-semibold flex items-center gap-1 min-w-0">
                   <span className="truncate">1 Clique &rarr; Estrutura</span>
                 </p>
-                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-200 transition-colors truncate">
+                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-200 transition-colors leading-snug">
                   Templates de Aulas PT-BR
                 </h3>
                 <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
@@ -850,7 +850,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 <p className="text-xs text-slate-400 font-medium truncate">
                   Notion &rarr; Notas privadas
                 </p>
-                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors truncate">
+                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors leading-snug">
                   Nova página de notas
                 </h3>
               </div>
@@ -868,7 +868,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 <p className="text-xs text-slate-400 font-medium truncate">
                   Google Docs &rarr; AI Docs
                 </p>
-                <h3 className="text-sm font-black text-purple-400 mt-1 truncate">
+                <h3 className="text-sm font-black text-purple-400 mt-1 leading-snug">
                   Documentos de IA · Planilhas · Apresentações
                 </h3>
               </div>
@@ -886,7 +886,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 <p className="text-xs text-slate-400 font-medium truncate">
                   Google Drive &rarr; Drive
                 </p>
-                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors truncate">
+                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors leading-snug">
                   Upload ou Criar Artefato
                 </h3>
               </div>

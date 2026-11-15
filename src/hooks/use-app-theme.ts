@@ -19,6 +19,10 @@ import {
   fetchStudioThemes,
   type StudioThemeInput,
 } from '@/services/studio-themes'
+import {
+  fetchStudioThemeNetworkMap,
+  upsertStudioThemeNetworkMap,
+} from '@/services/studio-theme-network-map'
 import type { ParsedThemeInput } from '@/lib/theme-file'
 import { pb } from '@/lib/pocketbase/client'
 import {
@@ -77,6 +81,8 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
   const [networkThemeMap, setNetworkThemeMap] = useState<NetworkThemeMap>(() =>
     loadNetworkThemeMap(),
   )
+  /** Company do usuário logado — chave do mapa compartilhado (remoto vence local). */
+  const [company, setCompany] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   /**
    * Pré-visualização (hover no seletor / live preview no editor): tema que a
@@ -85,6 +91,76 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
   const [previewTheme, setPreviewTheme] = useState<StudioThemeOption | null>(null)
 
   const brandThemes = useMemo(() => buildBrandThemes(brands), [brands])
+
+  // Company do usuário logado (chave do mapa rede→tema compartilhado). Refletida
+  // em state para os efeitos abaixo; sem sessão, o mapa fica só no localStorage.
+  useEffect(() => {
+    const rec = pb.authStore.record as { company?: string } | null
+    setCompany((rec?.company || '').trim())
+  }, [remoteKey])
+
+  // CARREGA O MAPA COMPARTILHADO rede→tema do banco (remoto vence localStorage).
+  // Sem banco/sem sessão/sem company, mantém o que já veio do localStorage.
+  useEffect(() => {
+    if (!remoteKey || !company) return
+    let active = true
+    fetchStudioThemeNetworkMap(company)
+      .then((rec) => {
+        if (!active) return
+        if (rec && rec.theme_map && Object.keys(rec.theme_map).length > 0) {
+          setNetworkThemeMap(rec.theme_map)
+          saveNetworkThemeMap(rec.theme_map)
+        }
+      })
+      .catch(() => {
+        /* silencioso — fallback localStorage */
+      })
+    return () => {
+      active = false
+    }
+  }, [remoteKey, company])
+
+  // REALTIME DO MAPA COMPARTILHADO: outro membro da equipe associou uma rede a
+  // um tema → re-busca e re-aplica sem recarregar a página (mesma UI do sync de
+  // studio_themes acima).
+  useEffect(() => {
+    if (!remoteKey || !company) return
+    let active = true
+    let unsub: (() => Promise<void>) | undefined
+    let cancelled = false
+
+    pb.collection('studio_theme_network_map')
+      .subscribe('*', () => {
+        if (!active) return
+        fetchStudioThemeNetworkMap(company)
+          .then((rec) => {
+            if (!active) return
+            if (rec && rec.theme_map) {
+              setNetworkThemeMap(rec.theme_map)
+              saveNetworkThemeMap(rec.theme_map)
+            }
+          })
+          .catch(() => {
+            /* silencioso — a próxima mudança re-tenta */
+          })
+      })
+      .then((fn) => {
+        if (cancelled) {
+          fn().catch(() => {})
+        } else {
+          unsub = fn
+        }
+      })
+      .catch(() => {
+        /* silencioso — realtime é best-effort */
+      })
+
+    return () => {
+      active = false
+      cancelled = true
+      unsub?.().catch(() => {})
+    }
+  }, [remoteKey, company])
 
   const allThemes = useMemo(
     () => [...BUILTIN_STUDIO_THEMES, ...brandThemes, ...customThemes, ...teamThemes],
@@ -215,21 +291,34 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
   const setNetworkId = useCallback((id: NetworkThemeId) => setNetworkIdState(id), [])
 
   /**
-   * Associa (ou remove) um TEMA COMPLETO a uma rede social no mapa
-   * rede→tema (persistido em localStorage). themeId '' remove a associação —
-   * a rede volta a usar o tema global + accent (comportamento atual).
+   * Associa (ou remove) um TEMA COMPLETO a uma rede social no mapa rede→tema.
+   * Persiste em DOIS lugares: localStorage (instantâneo/fallback) e no banco
+   * (coleção studio_theme_network_map, por company) — assim o mapa escolhido
+   * aparece para TODOS da mesma equipe, com realtime propagando a mudança.
+   * themeId '' remove a associação — a rede volta a usar o tema global + accent.
    */
   const setNetworkThemeMapping = useCallback(
     (network: NetworkThemeId, mappedThemeId: string, accent?: string) => {
+      let next: NetworkThemeMap = {}
       setNetworkThemeMap((prev) => {
-        const next: NetworkThemeMap = { ...prev }
+        next = { ...prev }
         if (!mappedThemeId || network === 'none') delete next[network]
         else next[network] = { themeId: mappedThemeId, accent: accent || undefined }
         saveNetworkThemeMap(next)
         return next
       })
+      // Persistência compartilhada (best-effort): o estado local já está aplicado.
+      if (company) {
+        // React pode agrupar os dois setState — re-deriva o próximo mapa do
+        // estado pendente garantido pelo updater acima.
+        queueMicrotask(() => {
+          upsertStudioThemeNetworkMap(company, next).catch(() => {
+            /* silencioso — fallback localStorage */
+          })
+        })
+      }
     },
-    [],
+    [company],
   )
 
   /**
