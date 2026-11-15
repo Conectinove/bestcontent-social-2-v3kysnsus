@@ -6,11 +6,12 @@ import {
   Heart,
   Eye,
   MessageSquare,
-  Pin,
   Send,
   BookOpen,
-  Sparkles,
+  Wand2,
+  Image as ImageIcon,
 } from 'lucide-react'
+import { useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +28,7 @@ import {
 } from '@/services/community'
 import { CommunityTopic, CommunityReply } from '@/types/community'
 import { useAuth } from '@/context/AuthContext'
+import { uploadCommunityImage, getImageUrlErrorMessage } from '@/lib/image-upload'
 import { CommunityStatusBadges, CommunityRoleBadge } from '@/components/community/CommunityBadges'
 import { CommunityTopicImage } from '@/components/community/CommunityTopicImage'
 import {
@@ -43,6 +45,7 @@ export default function TopicDetail() {
 
   const [topic, setTopic] = useState<CommunityTopic | null>(null)
   const [replies, setReplies] = useState<CommunityReply[]>([])
+  const FALLBACK_AVATAR_M = 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=102'
   const [loading, setLoading] = useState(true)
   const [replyText, setReplyText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,6 +54,10 @@ export default function TopicDetail() {
   const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null)
   const [replyAdvOpen, setReplyAdvOpen] = useState(false)
   const [replyAdvInitial, setReplyAdvInitial] = useState<string | null>(null)
+  const [isUploadingReplyMedia, setIsUploadingReplyMedia] = useState(false)
+  const [isSavingReply, setIsSavingReply] = useState(false)
+  const replyFileInputRef = useRef<HTMLInputElement | null>(null)
+  const [topicImageBusy, setTopicImageBusy] = useState(false)
 
   /** Salva no banco a imagem (rasterizada) editada no tópico. */
   const persistTopicImage = async (topicId: string, url: string) => {
@@ -186,22 +193,87 @@ export default function TopicDetail() {
     }
   }
 
-  /** Formata data relativa em pt-BR. */
-  const formatRelative = (dateStr?: string): string => {
-    if (!dateStr) return 'recente'
+  /** Resultado da Edição Avançada sobre a imagem do tópico: salva no banco. */
+  const handleTopicImageEdited = async (resultUrl: string) => {
+    if (!topic) return
+    setEditedImageUrl(resultUrl)
+    if (topic.id.startsWith('mock') || topic.id.startsWith('local')) return
+    if (resultUrl.startsWith('data:')) {
+      try {
+        setTopicImageBusy(true)
+        const blob = await (await fetch(resultUrl)).blob()
+        const stored = await uploadCommunityImage(
+          new File([blob], 'topico-editado.png', { type: 'image/png' }),
+        )
+        setEditedImageUrl(stored)
+        await persistTopicImage(topic.id, stored)
+      } catch (err) {
+        toast({
+          title: 'Edição aplicada, mas não foi possível salvar no tópico',
+          description: getImageUrlErrorMessage(err),
+          variant: 'destructive',
+        })
+      } finally {
+        setTopicImageBusy(false)
+      }
+      return
+    }
+    await persistTopicImage(topic.id, resultUrl)
+  }
+
+  /** Salva no banco a resposta com a mídia anexada (quando houver). */
+  const saveReplyWithMedia = async (topicId: string, content: string, mediaUrl?: string | null) => {
+    if (!mediaUrl) return createReply(topicId, content)
     try {
-      const diff = Date.now() - new Date(dateStr).getTime()
-      const mins = Math.floor(diff / (1000 * 60))
-      if (mins < 1) return 'agora mesmo'
-      if (mins < 60) return `há ${mins} min`
-      const hours = Math.floor(mins / 60)
-      if (hours < 24) return `há ${hours} h`
-      const days = Math.floor(hours / 24)
-      if (days === 1) return 'ontem'
-      if (days < 30) return `há ${days} dias`
-      return new Date(dateStr).toLocaleDateString('pt-BR')
-    } catch {
-      return 'recente'
+      setIsSavingReply(true)
+      return await createReply(topicId, content, mediaUrl)
+    } finally {
+      setIsSavingReply(false)
+    }
+  }
+
+  /** Mídia (arquivo local) anexada ao composer de resposta e enviada ao banco. */
+  const handleReplyMediaSelected = async (file: File) => {
+    setIsUploadingReplyMedia(true)
+    try {
+      const url = await uploadCommunityImage(file)
+      setReplyAdvInitial(url)
+      toast({ title: 'Mídia anexada à resposta!' })
+    } catch (err) {
+      toast({
+        title: 'Não foi possível anexar a mídia',
+        description: getImageUrlErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingReplyMedia(false)
+      if (replyFileInputRef.current) replyFileInputRef.current.value = ''
+    }
+  }
+
+  /** Resultado da Edição Avançada sobre a mídia da resposta (rasteriza e salva). */
+  const handleReplyMediaEdited = async (resultUrl: string) => {
+    if (!resultUrl.startsWith('data:')) {
+      setReplyAdvInitial(resultUrl)
+      return
+    }
+    try {
+      setIsSavingReply(true)
+      const blob = await (await fetch(resultUrl)).blob()
+      const stored = await uploadCommunityImage(
+        new File([blob], 'resposta-editada.png', { type: 'image/png' }),
+      )
+      setReplyAdvInitial(stored)
+      toast({ title: 'Mídia editada pronta para envio!' })
+    } catch (err) {
+      toast({
+        title: 'Edição aplicada, mas não foi possível salvar a mídia',
+        description: getImageUrlErrorMessage(err),
+        variant: 'destructive',
+      })
+      setReplyAdvInitial(resultUrl)
+    } finally {
+      setIsSavingReply(false)
     }
   }
 
@@ -211,8 +283,9 @@ export default function TopicDetail() {
     setIsSubmitting(true)
     const contentToSend = replyText.trim()
     try {
-      await createReply(id, contentToSend)
+      await saveReplyWithMedia(id, contentToSend, replyAdvInitial)
       setReplyText('')
+      setReplyAdvInitial(null)
       toast({ title: 'Resposta enviada com sucesso!' })
       const updatedReplies = await getTopicReplies(id)
       if (updatedReplies && updatedReplies.length > 0) {
@@ -250,17 +323,18 @@ export default function TopicDetail() {
           content: contentToSend,
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
+          image_url: replyAdvInitial || undefined,
           expand: {
             user: {
               id: user?.id || 'current-user',
               name: user?.name || 'Você',
-              avatar:
-                user?.avatar || 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=102',
+              avatar: user?.avatar || FALLBACK_AVATAR_M,
             },
           },
         },
       ])
       setReplyText('')
+      setReplyAdvInitial(null)
       toast({ title: 'Resposta publicada!' })
     } finally {
       setIsSubmitting(false)
@@ -436,6 +510,16 @@ export default function TopicDetail() {
 
                   <p className="text-xs text-foreground leading-relaxed pl-11">{reply.content}</p>
 
+                  {reply.image_url && (
+                    <div className="pl-11">
+                      <img
+                        src={reply.image_url}
+                        alt={`Mídia da resposta de ${rAuthor}`}
+                        className="max-h-64 rounded-xl border border-border object-cover"
+                      />
+                    </div>
+                  )}
+
                   <div className="pl-11 pt-1">
                     <button
                       type="button"
@@ -501,22 +585,46 @@ export default function TopicDetail() {
             )}
 
             <div className="flex items-center justify-between gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-xl text-xs gap-1.5"
-                onClick={() => setReplyAdvOpen(true)}
-              >
-                <Wand2 className="w-3.5 h-3.5 text-primary" />
-                Edição Avançada
-              </Button>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={replyFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleReplyMediaSelected(file)
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isUploadingReplyMedia || isSavingReply}
+                  className="rounded-xl text-xs gap-1.5"
+                  onClick={() => replyFileInputRef.current?.click()}
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                  {isUploadingReplyMedia ? 'Enviando...' : 'Anexar mídia'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSavingReply}
+                  className="rounded-xl text-xs gap-1.5"
+                  onClick={() => setReplyAdvOpen(true)}
+                >
+                  <Wand2 className="w-3.5 h-3.5 text-primary" />
+                  Edição Avançada
+                </Button>
+              </div>
             </div>
 
             <div className="flex justify-end">
               <Button
                 type="submit"
-                disabled={isSubmitting || !replyText.trim()}
+                disabled={isSubmitting || isSavingReply || !replyText.trim()}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-xs px-5 h-9 gap-1.5"
               >
                 <Send className="w-3.5 h-3.5" />
@@ -528,13 +636,10 @@ export default function TopicDetail() {
           {/* Diálogo da Edição Avançada para mídia de resposta */}
           <EditorAdvancedMediaDialog
             open={replyAdvOpen}
-            onOpenChange={(open) => {
-              setReplyAdvOpen(open)
-              if (!open && !replyAdvInitial) setReplyAdvInitial(null)
-            }}
+            onOpenChange={setReplyAdvOpen}
             mediaUrl={replyAdvInitial || undefined}
             title={`Responder em: ${topic.title}`}
-            onSave={(resultUrl) => setReplyAdvInitial(resultUrl)}
+            onSave={handleReplyMediaEdited}
           />
         </div>
 

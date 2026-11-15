@@ -40,6 +40,7 @@ export interface CommunityReply {
   user: string
   topic: string
   content: string
+  image_url?: string
   created: string
   updated: string
   expand?: {

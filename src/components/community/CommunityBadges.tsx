@@ -51,14 +51,14 @@ export function CommunityRoleBadge({ roleBadge }: { roleBadge: string }) {
   }
   if (roleBadge === 'PRO') {
     return (
-      <Badge className="bg-gradient-to-r from-primary to-purple-600 text-primary-foreground text-[10px] h-5 px-1.5 gap-1 font-semibold">
+      <Badge className="bg-primary text-primary-foreground text-[10px] h-5 px-1.5 gap-1 font-semibold opacity-90">
         <Zap className="w-3 h-3 fill-current" /> PRO
       </Badge>
     )
   }
   if (roleBadge === 'MAX') {
     return (
-      <Badge className="bg-gradient-to-r from-pink-500 to-rose-600 text-white text-[10px] h-5 px-1.5 gap-1 font-semibold">
+      <Badge className="bg-primary/85 text-primary-foreground text-[10px] h-5 px-1.5 gap-1 font-semibold">
         <Crown className="w-3 h-3 fill-current" /> MAX
       </Badge>
     )

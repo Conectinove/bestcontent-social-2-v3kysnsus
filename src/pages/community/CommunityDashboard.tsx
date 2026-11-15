@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   MessageSquare,
@@ -6,20 +6,15 @@ import {
   Heart,
   Plus,
   Search,
-  Pin,
   Sparkles,
-  Shield,
-  Zap,
-  Crown,
   User as UserIcon,
-  Flame,
   Award,
   BookOpen,
-  PenLine,
+  Image as ImageIcon,
+  Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
@@ -39,14 +34,16 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import useRealtime from '@/hooks/use-realtime'
-import { getTopicRoleBadges, getCategoryBadgeClasses } from '@/components/community/CommunityBadges'
-import { getImageUrlErrorMessage, uploadImageToCommunity } from '@/lib/image-upload'
+import { CommunityRoleBadge, CommunityStatusBadges } from '@/components/community/CommunityBadges'
+import { getImageUrlErrorMessage, uploadCommunityImage } from '@/lib/image-upload'
+import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
 import {
   getCommunityCategories,
   getCommunityTopics,
   createCommunityTopic,
   searchCommunityTopics,
 } from '@/services/community'
+import { getTopicRoleBadge, formatRelative, FALLBACK_AVATAR_M } from '@/lib/community-format'
 import { CommunityCategory, CommunityTopic, TopContributor } from '@/types/community'
 
 const TOP_CONTRIBUTORS: TopContributor[] = [
@@ -160,6 +157,7 @@ export default function CommunityDashboard() {
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [advOpen, setAdvOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const loadData = async () => {
     try {
@@ -222,6 +220,7 @@ export default function CommunityDashboard() {
       setNewContent('')
       setNewCategory('')
       setNewImagePreview(null)
+      setAdvOpen(false)
       loadData()
     } catch {
       toast({ title: 'Erro ao criar tópico', variant: 'destructive' })
@@ -265,6 +264,7 @@ export default function CommunityDashboard() {
     try {
       const url = await uploadCommunityImage(file)
       setNewImagePreview(url)
+      toast({ title: 'Imagem anexada ao tópico!' })
     } catch (err) {
       toast({
         title: 'Não foi possível anexar a imagem',
@@ -273,6 +273,7 @@ export default function CommunityDashboard() {
       })
     } finally {
       setIsUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -315,7 +316,7 @@ export default function CommunityDashboard() {
       {/* Top Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-card border border-border p-4 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <MessageSquare className="w-6 h-6" />
           </div>
           <div>
@@ -325,7 +326,7 @@ export default function CommunityDashboard() {
         </div>
 
         <div className="bg-card border border-border p-4 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
             <Sparkles className="w-6 h-6" />
           </div>
           <div>
@@ -335,7 +336,7 @@ export default function CommunityDashboard() {
         </div>
 
         <div className="bg-card border border-border p-4 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-accent text-accent-foreground flex items-center justify-center shrink-0">
             <UserIcon className="w-6 h-6" />
           </div>
           <div>
@@ -345,7 +346,7 @@ export default function CommunityDashboard() {
         </div>
 
         <div className="bg-card border border-border p-4 rounded-2xl flex items-center gap-4 shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0">
             <Eye className="w-6 h-6" />
           </div>
           <div>
@@ -450,6 +451,64 @@ export default function CommunityDashboard() {
                       />
                     </div>
 
+                    {/* Imagem do tópico + Edição Avançada (motor do Studio) */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold">Imagem (opcional)</Label>
+                      {newImagePreview && (
+                        <div className="relative overflow-hidden rounded-xl border border-border">
+                          <img
+                            src={newImagePreview}
+                            alt="Prévia da imagem do tópico"
+                            className="w-full max-h-56 object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 h-7 text-xs bg-background/85 text-foreground backdrop-blur-sm border border-border"
+                            onClick={removeNewImage}
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleImageSelected(file)
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isUploadingImage}
+                          className="rounded-xl text-xs gap-1.5"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                          {isUploadingImage ? 'Enviando...' : 'Anexar imagem'}
+                        </Button>
+                        {newImagePreview && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl text-xs gap-1.5"
+                            onClick={() => setAdvOpen(true)}
+                          >
+                            <Wand2 className="w-3.5 h-3.5 text-primary" />
+                            Edição Avançada
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="flex justify-end gap-2 pt-2">
                       <Button
                         type="button"
@@ -469,6 +528,15 @@ export default function CommunityDashboard() {
                     </div>
                   </form>
                 </DialogContent>
+
+                {/* Motor da Edição Avançada (Studio) sobre a imagem anexada */}
+                <EditorAdvancedMediaDialog
+                  open={advOpen}
+                  onOpenChange={setAdvOpen}
+                  mediaUrl={newImagePreview || undefined}
+                  title={newTitle || 'Imagem do tópico'}
+                  onSave={handleAdvSave}
+                />
               </Dialog>
             </div>
           </div>
@@ -490,9 +558,7 @@ export default function CommunityDashboard() {
             <div className="space-y-4">
               {filteredTopics.map((topic) => {
                 const authorName = topic.expand?.user?.name || 'Adenilson Santos'
-                const authorAvatar =
-                  topic.expand?.user?.avatar ||
-                  'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=102'
+                const authorAvatar = topic.expand?.user?.avatar || FALLBACK_AVATAR_M
 
                 return (
                   <div
@@ -509,33 +575,12 @@ export default function CommunityDashboard() {
 
                       {/* Content Right */}
                       <div className="flex-1 space-y-2.5">
-                        {/* Status Tags */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {topic.expand?.category && (
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-50 text-blue-700 border-blue-200 text-[11px] rounded-md font-medium"
-                            >
-                              {topic.expand.category.name}
-                            </Badge>
-                          )}
-                          {topic.tags?.includes('Destaque') && (
-                            <Badge
-                              variant="outline"
-                              className="bg-cyan-50 text-cyan-700 border-cyan-200 text-[11px] rounded-md font-medium gap-1"
-                            >
-                              <Sparkles className="w-3 h-3 text-cyan-600" /> Destaque
-                            </Badge>
-                          )}
-                          {topic.is_pinned && (
-                            <Badge
-                              variant="outline"
-                              className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[11px] rounded-md font-medium gap-1"
-                            >
-                              <Pin className="w-3 h-3 text-indigo-600" /> Fixado
-                            </Badge>
-                          )}
-                        </div>
+                        {/* Status Tags (tokens do tema) */}
+                        <CommunityStatusBadges
+                          category={topic.expand?.category?.name}
+                          tags={topic.tags}
+                          isPinned={topic.is_pinned}
+                        />
 
                         {/* Title Link */}
                         <Link
@@ -554,7 +599,9 @@ export default function CommunityDashboard() {
                         <div className="flex flex-wrap items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground gap-2">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-foreground">{authorName}</span>
-                            {getUserBadges(authorName, topic.tags)}
+                            {getTopicRoleBadge(authorName, topic.tags || []).map((b) => (
+                              <CommunityRoleBadge key={b} roleBadge={b} />
+                            ))}
                           </div>
 
                           <div className="flex items-center gap-4">
@@ -571,7 +618,7 @@ export default function CommunityDashboard() {
                               {topic.likes_count || 0}
                             </span>
                             <span className="text-[11px] text-muted-foreground">
-                              há cerca de 2 meses
+                              {formatRelative(topic.created)}
                             </span>
                           </div>
                         </div>
@@ -623,7 +670,7 @@ export default function CommunityDashboard() {
           {/* Top Contribuidores Widget */}
           <div className="bg-card border border-border p-5 rounded-2xl space-y-4 shadow-sm">
             <div className="flex items-center gap-2 font-bold text-sm text-foreground">
-              <Award className="w-4 h-4 text-amber-500" /> Top Contribuidores
+              <Award className="w-4 h-4 text-primary" /> Top Contribuidores
             </div>
 
             <div className="space-y-3">
@@ -645,6 +692,7 @@ export default function CommunityDashboard() {
                       </p>
                     </div>
                   </div>
+                  <CommunityRoleBadge roleBadge={contributor.roleBadge} />
                 </div>
               ))}
             </div>
