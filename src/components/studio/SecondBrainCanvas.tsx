@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Brain,
   Plus,
@@ -34,6 +34,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { isSupportedImportFile, parseImportFile } from '@/lib/doc-import'
 import {
   getSecondBrainDocs,
   createSecondBrainDoc,
@@ -85,6 +87,13 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
 
   // Galeria de Templates de Aulas
   const [lessonGalleryOpen, setLessonGalleryOpen] = useState(false)
+
+  // Importação de arquivos (.md / .txt / .docx) e colar texto
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [createMenuOpen, setCreateMenuOpen] = useState(false)
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [pasteText, setPasteText] = useState('')
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => {
     setConnectorStatuses({
@@ -196,6 +205,93 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
     }
   }
 
+  // Cria nota privada a partir de conteúdo importado (arquivo ou texto colado)
+  const createImportedNote = async (title: string, content: string) => {
+    const paragraphs = content
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+
+    if (paragraphs.length === 0) {
+      toast({
+        title: 'Conteúdo vazio',
+        description: 'O arquivo/texto importado não contém parágrafos legíveis.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const now = Date.now()
+    await createSecondBrainDoc({
+      title,
+      doc_type: 'nota_privada',
+      location: 'Meu Drive · Notas particulares',
+      modules: [
+        {
+          id: `mod-${now}-1`,
+          title: 'Conteúdo Importado',
+          blocks: paragraphs.map((p, i) => ({
+            id: `blk-${now}-${i + 1}`,
+            type: 'paragraph' as const,
+            content: p,
+            isActive: true,
+          })),
+        },
+      ],
+    })
+
+    await loadDocs()
+    setCreateMenuOpen(false)
+    setPasteOpen(false)
+    setPasteText('')
+    toast({
+      title: 'Importação concluída!',
+      description: `"${title}" adicionado às Notas particulares.`,
+    })
+  }
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!isSupportedImportFile(file)) {
+      toast({
+        title: 'Formato não suportado',
+        description: 'Envie um arquivo .md, .markdown, .txt ou .docx.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setImporting(true)
+    try {
+      const parsed = await parseImportFile(file)
+      await createImportedNote(parsed.title, parsed.content)
+    } catch (err) {
+      toast({
+        title: 'Falha na importação',
+        description: err instanceof Error ? err.message : 'Não foi possível ler o arquivo.',
+        variant: 'destructive',
+      })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handlePasteImport = async () => {
+    const text = pasteText.trim()
+    if (!text) return
+    setImporting(true)
+    try {
+      const firstLine = text
+        .split('\n')[0]
+        .replace(/^#{1,6}\s*/, '')
+        .slice(0, 80)
+      await createImportedNote(firstLine || 'Nota Colada', text)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const filteredDocs = docs.filter((doc) => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
@@ -235,33 +331,125 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
       {/* ==============================================================
           SIDEBAR DO SEGUNDO CÉREBRO (Conforme prints do Genspark)
           ============================================================== */}
-      <aside className="w-full lg:w-64 min-w-0 bg-slate-900/90 border-r border-slate-800/80 p-4 flex flex-col justify-between shrink-0 space-y-6 overflow-hidden">
+      <aside className="w-full lg:w-72 min-w-0 bg-slate-900/90 border-r border-slate-800/80 p-4 flex flex-col justify-between shrink-0 space-y-6 overflow-y-auto">
         <div className="space-y-4 min-w-0">
           {/* Topo: Logo & Botão Criar */}
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-800/60 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-800/60 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="w-8 h-8 shrink-0 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center ring-1 ring-purple-500/20">
                 <Brain className="w-4 h-4 text-purple-400" />
               </div>
-              <span className="font-black text-sm tracking-tight text-white uppercase font-heading truncate">
+              <span className="font-black text-sm tracking-tight text-white uppercase font-heading truncate min-w-0">
                 Segundo Cérebro
               </span>
             </div>
             <Badge
               variant="outline"
-              className="text-[9px] font-mono text-purple-400 border-purple-500/30"
+              className="shrink-0 text-[9px] font-mono text-purple-400 border-purple-500/30 hidden min-[340px]:inline-flex"
             >
               v2.4
             </Badge>
           </div>
 
-          <Button
-            type="button"
-            onClick={() => handleCreateNew('documento')}
-            className="w-full h-10 rounded-xl bg-white hover:bg-slate-200 text-slate-950 font-black text-xs gap-2 shadow-lg shadow-black/40 transition-all hover:scale-[1.02]"
-          >
-            <Plus className="w-4 h-4 text-slate-950" />+ Criar ou enviar
-          </Button>
+          <div className="relative">
+            <Button
+              type="button"
+              onClick={() => setCreateMenuOpen((v) => !v)}
+              disabled={importing}
+              className="w-full h-10 rounded-xl bg-white hover:bg-slate-200 text-slate-950 font-black text-xs gap-2 shadow-lg shadow-black/40 transition-all hover:scale-[1.02]"
+            >
+              <Plus className="w-4 h-4 text-slate-950" />
+              {importing ? 'Importando…' : '+ Criar ou enviar'}
+            </Button>
+
+            {createMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setCreateMenuOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="absolute z-30 mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 shadow-xl shadow-black/50 overflow-hidden text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateMenuOpen(false)
+                      fileInputRef.current?.click()
+                    }}
+                    className="w-full text-left px-3 py-2.5 text-slate-200 hover:bg-purple-900/40 hover:text-white flex items-center gap-2 font-semibold"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    Importar arquivo (.md, .txt, .docx)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateMenuOpen(false)
+                      setPasteOpen(true)
+                    }}
+                    className="w-full text-left px-3 py-2.5 text-slate-200 hover:bg-purple-900/40 hover:text-white flex items-center gap-2 font-semibold border-t border-slate-800"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    Colar texto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateMenuOpen(false)
+                      handleCreateNew('documento')
+                    }}
+                    className="w-full text-left px-3 py-2.5 text-slate-200 hover:bg-purple-900/40 hover:text-white flex items-center gap-2 font-semibold border-t border-slate-800"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    Novo documento em branco
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {pasteOpen && (
+            <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-950/80 p-2">
+              <Textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={5}
+                placeholder="Cole aqui o conteúdo da nota (.md, texto livre)…"
+                className="text-[11px] bg-slate-900 border-slate-800 text-slate-200 placeholder:text-slate-500 resize-y"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={importing || !pasteText.trim()}
+                  onClick={handlePasteImport}
+                  className="h-7 text-[11px] font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
+                >
+                  {importing ? 'Importando…' : 'Importar'}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setPasteOpen(false)
+                    setPasteText('')
+                  }}
+                  className="h-7 text-[11px] text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".md,.markdown,.txt,.docx"
+            className="hidden"
+            onChange={handleFileSelected}
+          />
 
           {/* Menu Principal */}
           <nav className="space-y-1 text-xs min-w-0">
@@ -526,12 +714,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               </Button>
             </div>
 
-            <div className="px-3 py-1.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-              <div className="flex items-center gap-3">
-                <span className="hover:text-slate-200 cursor-pointer">📎 Padrão</span>
-                <span className="hover:text-slate-200 cursor-pointer">📁 Contexto de Trabalho</span>
+            <div className="px-3 py-1.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-[11px] text-slate-400">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="hover:text-slate-200 cursor-pointer whitespace-nowrap">
+                  📎 Padrão
+                </span>
+                <span className="hover:text-slate-200 cursor-pointer whitespace-nowrap">
+                  📁 Contexto de Trabalho
+                </span>
               </div>
-              <span className="text-[10px] text-purple-400/80">
+              <span className="text-[10px] text-purple-400/80 whitespace-nowrap sm:text-right">
                 Pressione Enter para consultar a memória
               </span>
             </div>
@@ -561,18 +753,18 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
 
         {/* Seção "Comece aqui" (Cards de Início do Print 3 + Banner de Templates) */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-white uppercase tracking-wider font-heading">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-sm font-black text-white uppercase tracking-wider font-heading whitespace-nowrap">
               Comece aqui
             </h2>
             <Button
               type="button"
               size="sm"
               onClick={() => setLessonGalleryOpen(true)}
-              className="h-8 text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl gap-1.5 shadow-md shadow-purple-900/30"
+              className="h-8 text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl gap-1.5 shadow-md shadow-purple-900/30 shrink-0"
             >
               <GraduationCap className="w-3.5 h-3.5" />
-              Galeria de Templates de Aulas (6 Prontos)
+              Galeria de Templates
             </Button>
           </div>
 
