@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T15:44:55.561Z",
+  "generatedAt": "2026-11-15T16:26:43.466Z",
   "collections": [
     {
       "name": "users",
@@ -5896,6 +5896,12 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "gtm_container_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -6208,6 +6214,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "annotations",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -6337,6 +6349,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "progress",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "watched_seconds",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

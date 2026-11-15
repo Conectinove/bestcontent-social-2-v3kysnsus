@@ -6,6 +6,7 @@
 //  - GET  /backend/v1/portals/metrics/{portalId}  -> analytics de visitas (dono)
 //  - GET  /backend/v1/portals/visits-export/{id}  -> exporta visitas (dono)
 //  - POST /backend/v1/portals/video-plays/{token} -> registra play de vídeo (público)
+//  - POST /backend/v1/portals/video-progress/{token} -> registra progresso de vídeo (público)
 //  - POST /backend/v1/portals/theme               -> salva as cores por marca (dono)
 // Regra da casa: TODA lógica INLINE dentro do callback (JSVM não enxerga
 // funções de nível superior — 'Hook scoping error').
@@ -189,9 +190,79 @@ routerAdd('POST', '/backend/v1/portals/video-plays/{token}', (e) => {
   play.set('page_slug', pageSlug)
   play.set('page_id', pageId)
   play.set('media', mediaId)
+  // Engajamento (pedido "adicionar metricas de engajamento de video"):
+  // progresso em % (0..100) e tempo assistido em segundos, informados pelo
+  // player da página pública em cada evento de progresso. Play simples fica
+  // com 0% até o player reportar progresso — assim a % média de conclusão
+  // reflete quem de fato assistiu.
+  const progressRaw = Number(body.progress)
+  const progress = isFinite(progressRaw) ? Math.min(100, Math.max(0, Math.round(progressRaw))) : 0
+  const watchedRaw = Number(body.watchedSeconds)
+  const watched =
+    isFinite(watchedRaw) && watchedRaw > 0 ? Math.min(86400, Math.round(watchedRaw)) : 0
+  play.set('progress', String(progress))
+  play.set('watched_seconds', String(watched))
   $app.save(play)
 
   return e.json(200, { success: true })
+})
+
+// ---------- Vídeo: registra PROGRESSO de vídeo próprio (PÚBLICO) ----------
+// Engajamento contínuo: o player chama em cada marco (25/50/75/100%).
+// Atualiza o record do play (mais novo da mídia+página) com o melhor
+// progresso e o tempo assistido acumulado — sem criar record novo por marco.
+routerAdd('POST', '/backend/v1/portals/video-progress/{token}', (e) => {
+  const token = (e.request.pathValue('token') || '').trim()
+  if (!token) return e.badRequest('Token ausente.')
+
+  let portal = null
+  try {
+    portal = $app.findFirstRecordByFilter(
+      'brand_portals',
+      'share_token = {:token} && published = true',
+      { token },
+    )
+  } catch (_) {
+    return e.notFound('Portal não encontrado.')
+  }
+
+  const body = e.requestInfo().body || {}
+  const mediaId = String(body.mediaId || '').slice(0, 20)
+  if (!mediaId) return e.badRequest('mediaId é obrigatório.')
+  const pageId = String(body.pageId || '').slice(0, 20)
+
+  const progressRaw = Number(body.progress)
+  if (!isFinite(progressRaw)) return e.badRequest('progress é obrigatório (0..100).')
+  const progress = Math.min(100, Math.max(0, Math.round(progressRaw)))
+  const watchedRaw = Number(body.watchedSeconds)
+  const watched =
+    isFinite(watchedRaw) && watchedRaw > 0 ? Math.min(86400, Math.round(watchedRaw)) : 0
+
+  // Record mais novo do play desta mídia (e página, quando informada) — é o
+  // que o próprio hook de play acabou de criar nesta sessão.
+  let play = null
+  try {
+    let filter = 'portal = {:portal} && media = {:media}'
+    const params = { portal: portal.id, media: mediaId }
+    if (pageId) {
+      filter += ' && page_id = {:page}'
+      params.page = pageId
+    }
+    play = $app.findFirstRecordByFilter('portal_video_plays', filter, params)
+  } catch (_) {
+    return e.json(200, { success: true, updated: false })
+  }
+
+  // Melhor progresso vence (o visitante pode voltar o vídeo); tempo assistido
+  // acumula a diferença enviada pelo player (delta desde o último marco).
+  const prevProgress = Number(play.getString('progress') || 0) || 0
+  if (progress > prevProgress) play.set('progress', String(progress))
+  const prevWatched = Number(play.getString('watched_seconds') || 0) || 0
+  const nextWatched = Math.min(86400, prevWatched + watched)
+  play.set('watched_seconds', String(nextWatched))
+  $app.save(play)
+
+  return e.json(200, { success: true, updated: true })
 })
 
 // ---------- Analytics: métricas de visitas (SÓ O DONO) ----------
@@ -351,9 +422,23 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
     videoTotal = plays.length
     const perMedia = {}
     const mediaMeta = {}
+    const mediaEng = {}
+    let progressSum = 0
+    let watchedSum = 0
+    let completed = 0
     for (const p of plays) {
       const mid = p.getString('media') || 'desconhecido'
       perMedia[mid] = (perMedia[mid] || 0) + 1
+      // Engajamento (pedido "adicionar metricas de engajamento de video"):
+      // % médio concluído e tempo total assistido, por mídia e no agregado.
+      const prog = Number(p.getString('progress') || 0) || 0
+      const watched = Number(p.getString('watched_seconds') || 0) || 0
+      progressSum += prog
+      watchedSum += watched
+      if (prog >= 75) completed += 1
+      if (!mediaEng[mid]) mediaEng[mid] = { progress_sum: 0, watched_sum: 0 }
+      mediaEng[mid].progress_sum += prog
+      mediaEng[mid].watched_sum += watched
       if (!mediaMeta[mid]) {
         mediaMeta[mid] = {
           page_slug: p.getString('page_slug') || 'principal',
@@ -371,6 +456,8 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
         page_slug: mediaMeta[mid].page_slug,
         page_id: mediaMeta[mid].page_id,
         last_play_at: mediaMeta[mid].last_play_at,
+        avg_progress: Math.round(mediaEng[mid].progress_sum / perMedia[mid]),
+        watched_seconds: mediaEng[mid].watched_sum,
       }))
   } catch (_) {
     videoTotal = 0
@@ -387,6 +474,13 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
     recent: recentItems,
     video_total: videoTotal,
     video_ranking: videoRanking,
+    // Engajamento agregado (pedido "adicionar metricas de engajamento de video"):
+    // % médio concluído, tempo total assistido e quantos plays passaram de 75%.
+    video_engagement: {
+      avg_progress: videoTotal > 0 ? Math.round(progressSum / videoTotal) : 0,
+      watched_seconds: watchedSum,
+      completed: completed,
+    },
   })
 })
 

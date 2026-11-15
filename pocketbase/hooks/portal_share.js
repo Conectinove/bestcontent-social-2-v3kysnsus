@@ -138,6 +138,9 @@ routerAdd('GET', '/backend/v1/portals/share/{token}', (e) => {
   const textColor = portal.getString('text_color')
   const buttonColor = portal.getString('button_color')
   const gaId = portal.getString('ga_measurement_id')
+  // Google Tag Manager (pedido "integar com google tag manager"): ID do
+  // contêiner GTM-XXXXXX injetado na página pública, no padrão do GA.
+  const gtmId = portal.getString('gtm_container_id')
 
   // Logo do portal: arquivo próprio (migration 0118) ou o logo da marca.
   // Sem arquivo próprio, monta a URL do logo da marca (filename -> caminho /api/files).
@@ -166,6 +169,7 @@ routerAdd('GET', '/backend/v1/portals/share/{token}', (e) => {
     text_color: textColor,
     button_color: buttonColor,
     ga_measurement_id: gaId,
+    gtm_container_id: gtmId,
     theme,
     portal_id: portal.id,
   })
