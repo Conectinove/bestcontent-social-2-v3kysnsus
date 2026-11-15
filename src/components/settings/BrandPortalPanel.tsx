@@ -34,7 +34,11 @@ import {
   type PortalColors,
 } from '@/services/brand-portals'
 import { getPortalMetrics, type PortalMetrics } from '@/services/portal-visits'
-import { PortalVisitsMetrics } from '@/components/settings/PortalVisitsMetrics'
+import { listPortalPages } from '@/services/portal-pages'
+import {
+  PortalVisitsMetrics,
+  type PortalPageOption,
+} from '@/components/settings/PortalVisitsMetrics'
 import { PortalPagesManager } from '@/components/settings/PortalPagesManager'
 import { BrandThemeColorPicker } from '@/components/settings/BrandThemeColorPicker'
 import {
@@ -67,6 +71,8 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
   const [logoBusy, setLogoBusy] = useState(false)
   const [gaInput, setGaInput] = useState('')
   const [savingGa, setSavingGa] = useState(false)
+  const [pageFilter, setPageFilter] = useState('')
+  const [pageOptions, setPageOptions] = useState<PortalPageOption[]>([])
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   const loadPortal = useCallback(async () => {
@@ -82,14 +88,14 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
     if (!portal?.portalId) return
     setLoadingMetrics(true)
     try {
-      setMetrics(await getPortalMetrics(portal.portalId))
+      setMetrics(await getPortalMetrics(portal.portalId, pageFilter))
     } catch (err) {
       console.error('Erro ao carregar métricas do portal:', err)
       setMetrics(null)
     } finally {
       setLoadingMetrics(false)
     }
-  }, [portal?.portalId])
+  }, [portal?.portalId, pageFilter])
 
   useEffect(() => {
     void loadPortal()
@@ -110,6 +116,22 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
   useEffect(() => {
     setGaInput(portal?.gaMeasurementId || '')
   }, [portal?.gaMeasurementId])
+
+  // Opções do filtro de analytics (pedido "filtrar analytics por pagina"):
+  // lista as páginas internas do portal pelo serviço de portal-pages.
+  useEffect(() => {
+    let alive = true
+    listPortalPages(brandId)
+      .then((pages) => {
+        if (alive) setPageOptions(pages.map((p) => ({ id: p.id, title: p.title })))
+      })
+      .catch(() => {
+        if (alive) setPageOptions([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [brandId])
 
   const initialColors: Partial<PortalColors> | undefined = portal
     ? {
@@ -454,6 +476,9 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
             loading={loadingMetrics}
             portalId={portal.portalId}
             brandName={brandName}
+            pageOptions={pageOptions}
+            pageFilter={pageFilter}
+            onPageFilterChange={setPageFilter}
           />
         </CardContent>
       </Card>

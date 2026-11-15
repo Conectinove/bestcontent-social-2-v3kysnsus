@@ -112,7 +112,9 @@ export function PortalPageVersionsDialog({
   const resolvedRef = versions.find((v) => v.id === compareRef) || null
   const resolvedWith =
     compareWith === 'current' ? null : versions.find((v) => v.id === compareWith) || null
-  const accent = page.content?.theme?.accent || undefined
+  // theme vem do índice [key: string]: unknown — cast explícito (padrão de rasterize.ts)
+  const theme = page.content?.theme as { accent?: string } | undefined
+  const accent = theme?.accent || undefined
 
   const handleCompare = () => {
     if (!resolvedRef) {
