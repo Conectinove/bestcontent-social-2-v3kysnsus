@@ -566,13 +566,13 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
       <DialogContent className="nb-accent-scope max-w-4xl w-[95vw] max-h-[90vh] flex flex-col bg-slate-950 border-slate-800 text-slate-100 p-0 rounded-3xl overflow-hidden shadow-2xl">
         {/* Header Superior */}
         <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-slate-800 bg-slate-900/80">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-linear-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/40">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 rounded-2xl bg-linear-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/40">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <DialogTitle className="text-lg sm:text-xl font-black font-heading text-white flex items-center gap-2">
+              <div className="min-w-0">
+                <DialogTitle className="text-base sm:text-xl font-black font-heading text-white flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span>Conectores do Segundo Cérebro</span>
                   <Badge className="bg-purple-900/50 text-purple-300 border-purple-700/50 text-[10px] font-bold">
                     Multi-Nuvem
@@ -591,7 +591,7 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
               size="icon"
               onClick={loadStatuses}
               disabled={loadingStatuses}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-400 hover:text-white shrink-0"
               title="Atualizar status"
             >
               <RefreshCw className={`w-4 h-4 ${loadingStatuses ? 'animate-spin' : ''}`} />

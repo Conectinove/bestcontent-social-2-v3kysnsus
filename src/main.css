@@ -370,7 +370,7 @@
    da rede (--nb-accent). O painel do Segundo Cérebro consome essas variáveis
    nos seus elementos de destaque (chips, títulos e botões primários). */
 .nb-theme-scope {
-  --nb-accent-live: var(--connector-accent, 262 83% 58%);
+  --nb-accent-live: var(--accent-color, var(--connector-accent, 262 83% 58%));
 }
 .nb-theme-scope .nb-accent-text {
   color: hsl(var(--nb-accent-live));

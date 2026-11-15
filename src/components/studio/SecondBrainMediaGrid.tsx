@@ -247,7 +247,7 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="nb-accent-scope nb-theme-scope max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border-slate-800 text-slate-100 w-[calc(100vw-1.5rem)] sm:w-full rounded-2xl">
+        <DialogContent className="nb-accent-scope nb-theme-scope max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border-slate-800 text-slate-100 w-[calc(100vw-1rem)] sm:w-full rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg min-w-0">
               <ImageIcon className="w-4 h-4 shrink-0 nb-accent-text" />

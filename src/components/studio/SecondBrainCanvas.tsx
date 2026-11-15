@@ -29,6 +29,7 @@ import {
   Cloud,
   Layers,
   GraduationCap,
+  Images,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +48,7 @@ import {
   type SecondBrainBlock,
 } from '@/services/second-brain'
 import MagicAuthorEditor from './MagicAuthorEditor'
+import { SecondBrainMediaGrid } from './SecondBrainMediaGrid'
 import { ConnectorsContextModal, type ConnectorsTab } from './ConnectorsContextModal'
 import { LessonTemplateGalleryModal } from './LessonTemplateGalleryModal'
 import type { LessonTemplate } from '@/services/lesson-templates'
@@ -88,6 +90,24 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
 
   // Galeria de Templates de Aulas
   const [lessonGalleryOpen, setLessonGalleryOpen] = useState(false)
+
+  // Grid de Mídias & Anexos (Edição Avançada de imagens do documento)
+  const [mediaGridOpen, setMediaGridOpen] = useState(false)
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+
+  // Mantém o id do doc "ativo" (último aberto) para a grade de Mídias & Anexos,
+  // que vive na tela de lista — onde selectedDoc é null.
+  useEffect(() => {
+    if (selectedDoc) setSelectedDocId(selectedDoc.id)
+  }, [selectedDoc])
+
+  // Persiste o doc editado (grade de mídias / edição avançada) e recarrega a lista
+  const handleSelectedDocUpdated = async (updated: { modules: any[] }) => {
+    if (!selectedDocId) return
+    const saved = await updateSecondBrainDoc(selectedDocId, { modules: updated.modules })
+    setSelectedDocId(saved?.id || selectedDocId)
+    await loadDocs()
+  }
 
   // Importação de arquivos (.md / .txt / .docx) e colar texto
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -326,6 +346,10 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
     safeSidebarPage * SIDEBAR_PAGE_SIZE,
     safeSidebarPage * SIDEBAR_PAGE_SIZE + SIDEBAR_PAGE_SIZE,
   )
+
+  // Doc para a grade de Mídias & Anexos — reflete edições persistidas na hora,
+  // mesmo antes do loadDocs() terminar (a lista usa os docs recarregados).
+  const selectedListDoc = docs.find((d) => d.id === selectedDocId) || selectedDoc
 
   // Se tem um documento aberto no MagicAuthor
   if (selectedDoc) {
@@ -593,6 +617,15 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               <span className="truncate">Histórico de Projetos</span>
             </div>
 
+            <button
+              type="button"
+              onClick={() => setMediaGridOpen(true)}
+              className="w-full min-w-0 flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold text-left border border-slate-800/70 text-slate-300 hover:text-slate-100 hover:bg-slate-800/50 hover:border-slate-700 transition-all"
+            >
+              <Images className="w-4 h-4 text-purple-400 shrink-0" />
+              <span className="truncate">Mídias &amp; Anexos</span>
+            </button>
+
             <div
               onClick={() => {
                 setConnectorsInitialTab('gmail')
@@ -724,7 +757,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
       {/* ==============================================================
           CONTEÚDO CENTRAL: TELA INICIAL (Conforme Print 3)
           ============================================================== */}
-      <main className="flex-1 p-5 sm:p-8 space-y-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 p-5 sm:p-8 space-y-8 overflow-y-auto overflow-x-hidden">
         {/* Cabeçalho de Boas-Vindas */}
         <div className="space-y-3">
           <div className="nb-accent-text flex items-center gap-2 text-xs font-semibold text-purple-400">
@@ -742,14 +775,14 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             onSubmit={handleAsk}
             className="relative rounded-2xl bg-slate-900 border border-slate-800 p-2 shadow-xl focus-within:border-purple-500/80 transition-all max-w-3xl"
           >
-            <div className="flex items-center gap-2 px-3 py-2">
+            <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
               <Search className="w-5 h-5 text-purple-400 shrink-0" />
               <input
                 type="text"
                 value={askQuery}
                 onChange={(e) => setAskQuery(e.target.value)}
                 placeholder="Pergunte qualquer coisa — notas, e-mails, reuniões, ideias, próximos passos…"
-                className="w-full bg-transparent text-xs sm:text-sm text-white placeholder:text-slate-400 focus:outline-hidden"
+                className="flex-1 min-w-[9rem] bg-transparent text-xs sm:text-sm text-white placeholder:text-slate-400 focus:outline-hidden"
               />
               <Button
                 type="submit"
@@ -816,7 +849,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <button
               type="button"
               onClick={() => setLessonGalleryOpen(true)}
@@ -1120,6 +1153,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
         onOpenChange={setLessonGalleryOpen}
         onSelectTemplate={handleApplyLessonTemplate}
       />
+
+      {/* Modal de Mídias & Anexos (grade + Edição Avançada das imagens do documento) */}
+      {selectedListDoc && (
+        <SecondBrainMediaGrid
+          open={mediaGridOpen}
+          onOpenChange={setMediaGridOpen}
+          doc={selectedListDoc}
+          onDocUpdated={handleSelectedDocUpdated}
+        />
+      )}
     </div>
   )
 }

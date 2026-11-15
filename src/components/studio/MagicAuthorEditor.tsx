@@ -428,14 +428,14 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
                   onChange={(e) => setCurrentDoc({ ...currentDoc, title: e.target.value })}
                   onBlur={() => setIsEditingTitle(false)}
                   onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
-                  className="h-9 font-bold text-base bg-slate-800 border-purple-500 text-white rounded-lg px-2 w-full min-w-0"
+                  className="h-9 font-bold text-sm sm:text-base bg-slate-800 border-purple-500 text-white rounded-lg px-2 w-full min-w-0"
                 />
               ) : (
                 <button
                   type="button"
                   onClick={() => setIsEditingTitle(true)}
                   title="Renomear documento"
-                  className="group flex items-start gap-2 text-base font-extrabold text-white hover:text-purple-300 transition-colors text-left min-w-0 leading-snug py-1"
+                  className="group flex items-start gap-2 text-sm sm:text-base font-extrabold text-white hover:text-purple-300 transition-colors text-left min-w-0 leading-snug py-1"
                 >
                   <span className="min-w-0">{currentDoc.title || 'Nova Nota'}</span>
                   <Edit2 className="w-3.5 h-3.5 mt-1 shrink-0 text-slate-500 group-hover:text-purple-400 transition-colors" />
@@ -446,7 +446,7 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
 
           {/* Ações: rótulos encolhem para ícone+tooltip em telas estreitas,
               para as colunas de baixo nunca ficarem espremidas */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -555,7 +555,7 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
       )}
 
       {/* 2. TOOLBAR RICA (Formatação, Fontes e Ações Rápidas) */}
-      <div className="h-11 px-4 border-b border-slate-800 bg-slate-900/50 flex items-center gap-1 sm:gap-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
+      <div className="min-h-11 py-1 px-4 border-b border-slate-800 bg-slate-900/50 flex flex-wrap items-center gap-1 sm:gap-2 text-xs shrink-0">
         <div className="flex items-center gap-1 border-r border-slate-800 pr-2">
           <Button variant="ghost" size="icon" className="w-7 h-7 text-slate-400 hover:text-white">
             <Bold className="w-3.5 h-3.5" />
@@ -596,15 +596,11 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
             onClick={() => handleAddBlock('title')}
             className="h-7 text-[11px] font-semibold border-purple-500/30 text-purple-300 hover:bg-purple-950/40 gap-1"
           >
-            <Plus className="w-3 h-3" />+ Título
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleAddBlock('paragraph')}
-            className="h-7 text-[11px] font-semibold border-slate-700 text-slate-300 hover:bg-slate-800 gap-1"
-          >
-            <Plus className="w-3 h-3" />+ Parágrafo
+            <Plus className="w-3 h-3" />
+            <span className="hidden sm:inline">+ Título</span>
+            <span className="sm:hidden" aria-hidden="true">
+              +Tít.
+            </span>
           </Button>
           <Button
             size="sm"
@@ -612,7 +608,23 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
             onClick={() => handleAddBlock('quiz')}
             className="h-7 text-[11px] font-semibold border-amber-500/30 text-amber-300 hover:bg-amber-950/40 gap-1"
           >
-            <HelpCircle className="w-3 h-3" />+ Quiz
+            <HelpCircle className="w-3 h-3" />
+            <span className="hidden sm:inline">+ Quiz</span>
+            <span className="sm:hidden" aria-hidden="true">
+              +Quiz
+            </span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleAddBlock('paragraph')}
+            className="h-7 text-[11px] font-semibold border-slate-700 text-slate-300 hover:bg-slate-800 gap-1"
+          >
+            <Plus className="w-3 h-3" />
+            <span className="hidden sm:inline">+ Parág.</span>
+            <span className="sm:hidden" aria-hidden="true">
+              +Par.
+            </span>
           </Button>
         </div>
       </div>
@@ -622,7 +634,7 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
           B) MODO EDITOR DE BLOCOS: Sidebar de módulos + lista de blocos configuráveis
       */}
       <div className="flex-1 flex overflow-hidden">
-        {viewMode === 'interactive' ? (
+        {viewMode === 'interactive' && showPedagogicalSidebar ? (
           <>
             {/* PAINEL ESQUERDO: ASSISTENTE PEDAGÓGICO MAGICAUTHOR (Conforme Print) */}
             {showPedagogicalSidebar && (
@@ -647,10 +659,11 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
             />
           </>
         ) : (
-          /* MODO EDITOR DE BLOCOS CLÁSSICO */
+          /* MODO EDITOR DE BLOCOS CLÁSSICO (também usado quando o Assistente
+             Pedagógico está oculto em telas < lg — mesma grade de módulos+blocos) */
           <div className="flex-1 flex overflow-hidden">
             {/* SIDEBAR DE MÓDULOS (Esquerda) */}
-            <aside className="w-64 sm:w-72 border-r border-slate-800 bg-slate-900/60 p-4 flex flex-col shrink-0 overflow-y-auto">
+            <aside className="w-48 sm:w-64 lg:w-72 border-r border-slate-800 bg-slate-900/60 p-3 sm:p-4 flex flex-col shrink-0 overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   Módulos ({currentDoc.modules.length})

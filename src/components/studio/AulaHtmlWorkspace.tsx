@@ -96,8 +96,8 @@ export const AulaHtmlWorkspace: React.FC<AulaHtmlWorkspaceProps> = ({
       }`}
     >
       {/* Barra de Abas: Arquivos da Aula | aula.html | Código-fonte */}
-      <div className="h-12 px-4 border-b border-slate-800/80 bg-slate-950/70 flex items-center justify-between shrink-0 select-none">
-        <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="min-h-12 py-1.5 px-3 sm:px-4 border-b border-slate-800/80 bg-slate-950/70 flex flex-wrap items-center justify-between gap-1.5 shrink-0 select-none">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
           {/* Tag "Arquivos da Aula" */}
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 font-semibold">
             <span className="w-2 h-2 rounded-full bg-purple-500" />
@@ -134,7 +134,7 @@ export const AulaHtmlWorkspace: React.FC<AulaHtmlWorkspaceProps> = ({
         </div>
 
         {/* Lado Direito: Comentário, Edição e Escala 100% */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <Button
             variant="ghost"
             size="sm"
@@ -186,10 +186,10 @@ export const AulaHtmlWorkspace: React.FC<AulaHtmlWorkspaceProps> = ({
       </div>
 
       {/* Conteúdo Principal do Canvas Central */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex items-center justify-center">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 flex items-center justify-center">
         {activeTab === 'aula' ? (
           /* Visualizador estilo Canvas Negro do Print */
-          <div className="w-full max-w-3xl min-h-[460px] rounded-3xl bg-[#030611] border border-slate-800/80 shadow-2xl p-6 sm:p-10 flex flex-col justify-start relative group transition-all">
+          <div className="w-full max-w-3xl min-h-[420px] rounded-3xl bg-[#030611] border border-slate-800/80 shadow-2xl p-4 sm:p-10 flex flex-col justify-start relative group transition-all">
             <div className="space-y-4">
               <h1 className="text-2xl sm:text-3xl font-black text-white font-heading tracking-tight flex items-center gap-2">
                 <span>#</span>
@@ -242,10 +242,12 @@ export const AulaHtmlWorkspace: React.FC<AulaHtmlWorkspaceProps> = ({
           </div>
         ) : (
           /* Visualizador de Código HTML com Ação de Copiar / Baixar */
-          <div className="w-full max-w-4xl h-full flex flex-col rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden shadow-2xl">
-            <div className="p-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-400">aula.html — Código-fonte</span>
-              <div className="flex items-center gap-2">
+          <div className="w-full max-w-4xl h-full flex flex-col rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden shadow-2xl min-w-0">
+            <div className="p-3 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-mono text-slate-400 truncate min-w-0">
+                aula.html — Código-fonte
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
                   variant="outline"
