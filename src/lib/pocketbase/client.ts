@@ -5,6 +5,6 @@ pb.autoCancellation(false)
 
 export default pb
 
-// GUARDA DE REGRESSÃO: manter SEMPRE o export nomeado também —
-// várias partes do app importam { pb } (regressão silenciosa já ocorreu 8x).
+// GUARDA DE REGRESSÃO (v0.0.225): manter SEMPRE o duplo export.
+// Rodadas anteriores já quebraram o build 9 vezes por perder o export nomeado.
 export { pb }
