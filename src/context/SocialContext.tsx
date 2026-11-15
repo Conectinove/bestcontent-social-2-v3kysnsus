@@ -208,6 +208,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   return (
     <SocialContext.Provider
       value={{
+        user,
         brands,
         posts,
         ideas,

@@ -1,65 +1,18 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Palette, ArrowRight, Instagram, Globe, Upload, Sparkles } from 'lucide-react'
+import { Plus, Palette, ArrowRight, Instagram, Globe, Sparkles } from 'lucide-react'
 import { QuickOnboardingModal } from '@/components/QuickOnboardingModal'
 import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
 import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { toast } from '@/hooks/use-toast'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
-
-const EMPTY_FORM = {
-  name: '',
-  description: '',
-  instagram: '',
-  tiktok: '',
-  youtube: '',
-  facebook: '',
-  website: '',
-  color_theme: '#BF2A95',
-}
+import { useState } from 'react'
 
 export default function Brands() {
-  const { brands, addBrand } = useSocial()
+  const { brands } = useSocial()
   const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
   const [quickOnboardOpen, setQuickOnboardOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [logo, setLogo] = useState<File | null>(null)
 
-  const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }))
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.name.trim()) {
-      toast({ title: 'Erro', description: 'O nome da marca é obrigatório.' })
-      return
-    }
-    setLoading(true)
-    try {
-      await addBrand({ ...form, logo })
-      toast({ title: 'Marca criada!', description: `${form.name} foi adicionada.` })
-      setForm(EMPTY_FORM)
-      setLogo(null)
-      setOpen(false)
-    } catch (err) {
-      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
-    } finally {
-      setLoading(false)
-    }
-  }
+  const openWizard = () => navigate('/app/brand-wizard/new')
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -81,24 +34,16 @@ export default function Brands() {
             <Sparkles className="w-4 h-4 text-primary" /> Vamos agilizar! (IA)
           </Button>
           <Button
-            variant="outline"
-            onClick={() => navigate('/app/onboarding')}
-            className="gap-2 text-xs border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950 font-semibold"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-            Assistente de Marca (Wizard)
-          </Button>
-          <Button
-            onClick={() => setOpen(true)}
+            onClick={openWizard}
             className="bg-primary hover:bg-primary/90 text-white gap-2 text-xs"
           >
-            <Plus className="w-4 h-4" /> Adicionar Marca
+            <Plus className="w-4 h-4" /> Nova marca
           </Button>
         </div>
       </div>
 
       {/* Gestão Unificada & Deduplicação de Marcas */}
-      <OrganizationBrandManager onAddNewBrand={() => setOpen(true)} />
+      <OrganizationBrandManager onAddNewBrand={openWizard} />
 
       <div className="pt-4 border-t border-border">
         <h2 className="text-base font-bold text-foreground mb-3">Cards Visuais de Marcas</h2>
@@ -111,9 +56,21 @@ export default function Brands() {
             className="overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col"
           >
             <div className="relative h-28 bg-muted">
-              <img src={brand.coverImage} alt={brand.name} className="w-full h-full object-cover" />
+              {brand.coverImage && (
+                <img
+                  src={brand.coverImage}
+                  alt={brand.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
               <div className="absolute -bottom-6 left-4 ring-4 ring-card rounded-full overflow-hidden bg-white w-14 h-14 shadow-sm">
-                <img src={brand.logo} alt={brand.name} className="w-full h-full object-cover" />
+                {brand.logo ? (
+                  <img src={brand.logo} alt={brand.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center font-bold text-lg">
+                    {(brand.name || 'M')[0].toUpperCase()}
+                  </div>
+                )}
               </div>
             </div>
             <CardContent className="pt-8 px-4 pb-4 flex-1 flex flex-col justify-between space-y-4">
@@ -123,16 +80,22 @@ export default function Brands() {
                   {brand.description}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3 text-xs text-muted-foreground">
-                  {brand.handles.instagram && (
+                  {brand.handles?.instagram && (
                     <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
                       <Instagram className="w-3 h-3 text-pink-500" />
                       {brand.handles.instagram}
                     </span>
                   )}
-                  {brand.handles.tiktok && (
+                  {brand.handles?.tiktok && (
                     <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
                       <Globe className="w-3 h-3 text-cyan-500" />
                       {brand.handles.tiktok}
+                    </span>
+                  )}
+                  {brand.handles?.youtube && (
+                    <span className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded">
+                      <Globe className="w-3 h-3 text-red-500" />
+                      {brand.handles.youtube}
                     </span>
                   )}
                 </div>
@@ -148,118 +111,6 @@ export default function Brands() {
           </Card>
         ))}
       </div>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle>Adicionar Nova Marca</DialogTitle>
-              <DialogDescription>
-                Cadastre sua empresa para gerar posts sob medida.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3 my-4">
-              <div>
-                <label className="text-xs font-semibold mb-1 block">Nome da Marca *</label>
-                <Input
-                  placeholder="Ex: Aurora Fitwear"
-                  value={form.name}
-                  onChange={(e) => set('name', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold mb-1 block">Descrição</label>
-                <Textarea
-                  placeholder="Segmento, diferenciais e tom de voz"
-                  value={form.description}
-                  onChange={(e) => set('description', e.target.value)}
-                  className="h-20 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold mb-1 block">Logo</label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById('logo-input')?.click()}
-                  >
-                    <Upload className="w-3.5 h-3.5" /> {logo ? logo.name : 'Escolher arquivo'}
-                  </Button>
-                  <input
-                    id="logo-input"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => setLogo(e.target.files?.[0] || null)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Instagram</label>
-                  <Input
-                    placeholder="@aurora.fit"
-                    value={form.instagram}
-                    onChange={(e) => set('instagram', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">TikTok</label>
-                  <Input
-                    placeholder="@aurorafit"
-                    value={form.tiktok}
-                    onChange={(e) => set('tiktok', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">YouTube</label>
-                  <Input
-                    placeholder="@aurorafit"
-                    value={form.youtube}
-                    onChange={(e) => set('youtube', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Facebook</label>
-                  <Input
-                    placeholder="/aurorafit"
-                    value={form.facebook}
-                    onChange={(e) => set('facebook', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Website</label>
-                  <Input
-                    placeholder="aurora.com"
-                    value={form.website}
-                    onChange={(e) => set('website', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Cor do tema</label>
-                  <input
-                    type="color"
-                    value={form.color_theme}
-                    onChange={(e) => set('color_theme', e.target.value)}
-                    className="w-full h-9 rounded-md border border-border cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading} className="bg-primary text-white">
-                {loading ? 'Criando...' : 'Criar Marca'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <QuickOnboardingModal open={quickOnboardOpen} onOpenChange={setQuickOnboardOpen} />
     </div>

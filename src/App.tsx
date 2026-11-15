@@ -49,6 +49,7 @@ import SalesFunnelPage from './pages/SalesFunnelPage'
 import DatabasePage from './pages/DatabasePage'
 
 import Onboarding from './pages/Onboarding'
+import BrandWizard from './components/brands/BrandWizard'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
@@ -72,6 +73,9 @@ const App = () => (
               <Route path="/app/onboarding" element={<Onboarding />} />
               <Route path="/app/brand-wizard" element={<Onboarding />} />
               <Route path="/app/wizard-marca" element={<Onboarding />} />
+              {/* Wizard de marca (v2): /new = criação com formulário vazio, /:id = edição */}
+              <Route path="/app/brand-wizard/new" element={<BrandWizard />} />
+              <Route path="/app/brand-wizard/:id" element={<BrandWizard />} />
 
               {/* Authenticated routes inside Layout */}
               <Route element={<Layout />}>

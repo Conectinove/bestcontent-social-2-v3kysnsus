@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   X,
   Check,
@@ -43,18 +43,26 @@ const STEPS = [
 export default function BrandWizard() {
   const navigate = useNavigate()
   const { id } = useParams()
-  const isEdit = Boolean(id)
+  // Edição = rota /app/brand-wizard/:id (id real, não "new"). user/refreshAll vêm
+  // do SocialContext (que repassa do AuthContext) — era isso que causava o falso
+  // "Sessão expirada" quando user chegava undefined.
+  const isEdit = Boolean(id) && id !== 'new'
   const { user, refreshAll, brands, selectedBrandId, setSelectedBrandId } = useSocial()
+  const [searchParams] = useSearchParams()
+  // Rota de criação: /app/brand-wizard/new (ou ?new=1) — formulário sempre vazio.
+  const isCreate = id === 'new' || searchParams.get('new') === '1'
 
   const [step, setStep] = useState(1)
   const [data, setData] = useState<BrandWizardData>(emptyData())
-  const [loading, setLoading] = useState(isEdit)
+  const [loading, setLoading] = useState(!isCreate)
   const [saving, setSaving] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     if (!isEdit) return
     let alive = true
+    setLoading(true)
     getBrand(id as string)
       .then((record: any) => {
         if (!alive) return
@@ -62,13 +70,19 @@ export default function BrandWizard() {
         setLoading(false)
       })
       .catch(() => {
+        if (!alive) return
         toast({ title: 'Marca não encontrada', description: 'Comece uma nova marca.' })
-        navigate('/app/pages?tab=brands', { replace: true })
+        setLoadFailed(true)
+        setLoading(false)
       })
     return () => {
       alive = false
     }
   }, [id])
+
+  useEffect(() => {
+    if (loadFailed) navigate('/app/brands', { replace: true })
+  }, [loadFailed, navigate])
 
   const planCount = brands.length
 
@@ -140,7 +154,7 @@ export default function BrandWizard() {
     })
     await refreshAll()
     if (!isEdit && savedId) setSelectedBrandId(savedId)
-    navigate('/app/pages?tab=brands')
+    navigate('/app/brands')
   }
 
   function goTo(next: number) {
@@ -307,7 +321,7 @@ export default function BrandWizard() {
           </div>
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          {planCount} marca{planCount === 1 ? '' : 's'} no seu plano
+          {planCount} de 20 marcas no seu plano
         </p>
       </main>
     </div>

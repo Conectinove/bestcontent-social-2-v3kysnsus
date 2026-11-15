@@ -1,5 +1,3 @@
-import type { SocialBrand } from '@/context/SocialContext'
-
 export type BrandWizardData = {
   name: string
   description: string
@@ -65,7 +63,7 @@ export const STYLE_OPTIONS = [
   'Dark mode',
 ]
 
-export function fromRecordToWizardData(record: SocialBrand & Record<string, any>): BrandWizardData {
+export function fromRecordToWizardData(record: Record<string, any>): BrandWizardData {
   return {
     name: record.name || '',
     description: record.description || '',
