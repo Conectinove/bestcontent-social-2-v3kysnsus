@@ -27,6 +27,26 @@ routerAdd('GET', '/backend/v1/secondbrain/stock-search', (e) => {
   const q = info.query || {}
   const provider = String(q.provider || 'unsplash').toLowerCase()
   const query = String(q.q || '').trim()
+  // Filtros avançados suportados nativamente pelas duas APIs (Unsplash e Pexels).
+  const ORIENTATIONS = ['square', 'landscape', 'portrait']
+  const COLORS = [
+    'black',
+    'white',
+    'gray',
+    'red',
+    'orange',
+    'yellow',
+    'green',
+    'blue',
+    'purple',
+    'pink',
+  ]
+  const orientation = ORIENTATIONS.includes(String(q.orientation || '').toLowerCase())
+    ? String(q.orientation).toLowerCase()
+    : ''
+  const color = COLORS.includes(String(q.color || '').toLowerCase())
+    ? String(q.color).toLowerCase()
+    : ''
 
   if (!query) {
     return e.json(200, {
@@ -49,10 +69,13 @@ routerAdd('GET', '/backend/v1/secondbrain/stock-search', (e) => {
       })
     }
     try {
+      let url =
+        'https://api.unsplash.com/search/photos?per_page=24&content_filter=high&query=' +
+        encodeURIComponent(query)
+      if (orientation) url += '&orientation=' + encodeURIComponent(orientation)
+      if (color) url += '&color=' + encodeURIComponent(color)
       const res = $http.send({
-        url:
-          'https://api.unsplash.com/search/photos?per_page=24&content_filter=high&query=' +
-          encodeURIComponent(query),
+        url: url,
         method: 'GET',
         headers: { Authorization: 'Client-ID ' + key },
         timeout: 20,
@@ -103,8 +126,11 @@ routerAdd('GET', '/backend/v1/secondbrain/stock-search', (e) => {
       })
     }
     try {
+      let url = 'https://api.pexels.com/v1/search?per_page=24&query=' + encodeURIComponent(query)
+      if (orientation) url += '&orientation=' + encodeURIComponent(orientation)
+      if (color) url += '&color=' + encodeURIComponent(color)
       const res = $http.send({
-        url: 'https://api.pexels.com/v1/search?per_page=24&query=' + encodeURIComponent(query),
+        url: url,
         method: 'GET',
         headers: { Authorization: key },
         timeout: 20,

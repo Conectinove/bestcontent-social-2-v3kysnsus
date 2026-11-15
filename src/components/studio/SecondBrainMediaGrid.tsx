@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  ArrowDownUp,
+  ChevronDown,
   FileText,
   History,
   Image as ImageIcon,
+  KeyRound,
   LayoutTemplate,
   Loader2,
+  Palette,
   Plus,
   Search,
   Sliders,
@@ -50,6 +54,10 @@ import {
   searchStockProvider,
   stockAttribution,
   fetchStockStatus,
+  sortMediaItems,
+  MEDIA_SORT_OPTIONS,
+  ORIENTATION_OPTIONS,
+  COLOR_OPTIONS,
   type SecondBrainDateFilter,
   type SecondBrainMediaFilters,
   type SecondBrainMediaItem,
@@ -278,6 +286,8 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
   const [templateShared, setTemplateShared] = useState(false)
   const [pendingTemplate, setPendingTemplate] = useState<AdvancedCustomizationState | null>(null)
   const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
 
   /* ------------------------- Fontes do documento ------------------------ */
   const mediaItems: MediaItem[] = useMemo(() => {
@@ -605,31 +615,195 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
               ? stockLoading.pexels
               : false
 
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  }, [sourceItems, filters, customRange])
+
+  const visibleItems = useMemo(
+    () => sortMediaItems(visibleItemsFiltered, filters.sort),
+    [visibleItemsFiltered, filters.sort],
+  )
+
+  const hasAnyContent =
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+
+  /* ------------------------------- Ações -------------------------------- */
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
   const visibleItems = useMemo(() => {
     const range = filters.period === 'custom' ? customRangeToWindow(customRange) : null
     const base = sourceItems.map(toServiceItem)
     const filtered = applyMediaFilters(base, filters)
-    if (filters.period !== 'custom') {
-      return filtered.map((i) => {
-        const original = sourceItems.find((s) => s.id === i.id)
-        return { ...(original as MediaItem), ...i }
-      })
-    }
-    // Período custom: janela [de, até] aplicada sobre o que passou nos filtros
-    return filtered
-      .filter((i) => {
+    const withSource = filtered.map((i) => {
+      const original = sourceItems.find((s) => s.id === i.id)
+      return { ...(original as MediaItem), ...i }
+    })
+    // Período custom: janela [de, até] sobre o que passou nos filtros
+    if (filters.period === 'custom') {
+      return withSource.filter((i) => {
         if (!i.createdAt) return false
         const ts = new Date(i.createdAt).getTime()
-        if (!Number.isFinite(ts)) return false
-        return range ? ts >= range.fromTs && ts <= range.toTs : true
+        return Number.isFinite(ts) && range ? ts >= range.fromTs && ts <= range.toTs : true
       })
-      .map((i) => {
-        const original = sourceItems.find((s) => s.id === i.id)
-        return { ...(original as MediaItem), ...i }
-      })
+    }
+    return sortMediaItems(withSource, filters.sort)
   }, [sourceItems, filters, customRange])
 
   const hasAnyContent =
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+
+  /* ------------------------------- Ações -------------------------------- */
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  }, [sourceItems, filters, customRange])
+
+  const visibleItems = useMemo(
+    () => sortMediaItems(visibleItemsFiltered, filters.sort),
+    [visibleItemsFiltered, filters.sort],
+  )
+
+  const hasAnyContent =
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+
+  /* ------------------------------- Ações -------------------------------- */
+=======
+  const visibleItems = useMemo(() => {
+    const range = filters.period === 'custom' ? customRangeToWindow(customRange) : null
+    const base = sourceItems.map(toServiceItem)
+    const filtered = applyMediaFilters(base, filters)
+    const withSource = filtered.map((i) => {
+      const original = sourceItems.find((s) => s.id === i.id)
+      return { ...(original as MediaItem), ...i }
+    })
+    // Período custom: janela [de, até] sobre o que passou nos filtros
+    if (filters.period === 'custom') {
+      return withSource.filter((i) => {
+        if (!i.createdAt) return false
+        const ts = new Date(i.createdAt).getTime()
+        return Number.isFinite(ts) && range ? ts >= range.fromTs && ts <= range.toTs : true
+      })
+    }
+    return sortMediaItems(withSource, filters.sort)
+  }, [sourceItems, filters, customRange])
+
+  const hasAnyContent =
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  }, [sourceItems, filters, customRange])
+
+  const visibleItems = useMemo(
+    () => sortMediaItems(visibleItemsFiltered, filters.sort),
+    [visibleItemsFiltered, filters.sort],
+  )
+
+  const hasAnyContent =
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  }, [sourceItems, filters, customRange])
+
+  const visibleItems = useMemo(
+    () => sortMediaItems(visibleItemsFiltered, filters.sort),
+    [visibleItemsFiltered, filters.sort],
+  )
+
+  const hasAnyContent =
+    mediaItems.length > 0 ||
+    docFiles.length > 0 ||
+    bankItems.length > 0 ||
+    uploadsItems.length > 0 ||
+    favorites.length > 0
+=======
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isStockTab = tab === 'unsplash' || tab === 'pexels'
     mediaItems.length > 0 ||
     docFiles.length > 0 ||
     bankItems.length > 0 ||

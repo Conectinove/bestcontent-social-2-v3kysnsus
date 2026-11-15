@@ -32,16 +32,89 @@ export interface SecondBrainMediaItem {
   meta?: Record<string, unknown>
 }
 
+export type SecondBrainMediaSort = 'recent' | 'oldest' | 'name_asc' | 'name_desc'
+export type SecondBrainOrientationFilter = 'any' | 'square' | 'landscape' | 'portrait'
+export type SecondBrainColorFilter =
+  | 'any'
+  | 'black'
+  | 'white'
+  | 'gray'
+  | 'red'
+  | 'orange'
+  | 'yellow'
+  | 'green'
+  | 'blue'
+  | 'purple'
+  | 'pink'
+
 export interface SecondBrainMediaFilters {
   query: string
   type: 'all' | SecondBrainMediaType
   period: SecondBrainDateFilter
+  sort: SecondBrainMediaSort
+  orientation: SecondBrainOrientationFilter
+  color: SecondBrainColorFilter
 }
 
 export const DEFAULT_MEDIA_FILTERS: SecondBrainMediaFilters = {
   query: '',
   type: 'all',
   period: 'all',
+  sort: 'recent',
+  orientation: 'any',
+  color: 'any',
+}
+
+export const MEDIA_SORT_OPTIONS: Array<{ key: SecondBrainMediaSort; label: string }> = [
+  { key: 'recent', label: 'Mais recentes' },
+  { key: 'oldest', label: 'Mais antigas' },
+  { key: 'name_asc', label: 'Nome A-Z' },
+  { key: 'name_desc', label: 'Nome Z-A' },
+]
+
+export const ORIENTATION_OPTIONS: Array<{ key: SecondBrainOrientationFilter; label: string }> = [
+  { key: 'any', label: 'Qualquer orientação' },
+  { key: 'square', label: 'Quadrada' },
+  { key: 'landscape', label: 'Paisagem' },
+  { key: 'portrait', label: 'Retrato' },
+]
+
+export const COLOR_OPTIONS: Array<{ key: SecondBrainColorFilter; label: string }> = [
+  { key: 'any', label: 'Qualquer cor' },
+  { key: 'black', label: 'Preto' },
+  { key: 'white', label: 'Branco' },
+  { key: 'gray', label: 'Cinza' },
+  { key: 'red', label: 'Vermelho' },
+  { key: 'orange', label: 'Laranja' },
+  { key: 'yellow', label: 'Amarelo' },
+  { key: 'green', label: 'Verde' },
+  { key: 'blue', label: 'Azul' },
+  { key: 'purple', label: 'Roxo' },
+  { key: 'pink', label: 'Rosa' },
+]
+
+/** Ordena itens já filtrados (fontes locais e remotas). */
+export function sortMediaItems<T extends { name: string; createdAt?: string }>(
+  items: T[],
+  sort: SecondBrainMediaSort,
+): T[] {
+  const out = [...items]
+  switch (sort) {
+    case 'oldest':
+      return out.sort((a, b) => tsOf(a.createdAt) - tsOf(b.createdAt))
+    case 'name_asc':
+      return out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+    case 'name_desc':
+      return out.sort((a, b) => b.name.localeCompare(a.name, 'pt-BR'))
+    case 'recent':
+    default:
+      return out.sort((a, b) => tsOf(b.createdAt) - tsOf(a.createdAt))
+  }
+}
+
+const tsOf = (v?: string): number => {
+  const ts = v ? new Date(v).getTime() : NaN
+  return Number.isFinite(ts) ? ts : 0
 }
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i
@@ -266,15 +339,19 @@ export interface StockSearchState {
 export async function searchStockProvider(
   provider: 'unsplash' | 'pexels',
   q: string,
+  opts?: { orientation?: SecondBrainOrientationFilter; color?: SecondBrainColorFilter },
 ): Promise<StockSearchState> {
   if (!q.trim()) {
     return { loading: false, configured: true, message: null, results: [] }
   }
   try {
-    const res = await pb.send(
-      `/backend/v1/secondbrain/stock-search?provider=${provider}&q=${encodeURIComponent(q)}`,
-      { method: 'GET' },
-    )
+    const params = new URLSearchParams({ provider, q })
+    // Unsplash/Pexels suportam orientação e cor nativamente — repassados ao hook.
+    if (opts?.orientation && opts.orientation !== 'any') params.set('orientation', opts.orientation)
+    if (opts?.color && opts.color !== 'any') params.set('color', opts.color)
+    const res = await pb.send(`/backend/v1/secondbrain/stock-search?${params.toString()}`, {
+      method: 'GET',
+    })
     const data = res as {
       success?: boolean
       configured?: boolean
