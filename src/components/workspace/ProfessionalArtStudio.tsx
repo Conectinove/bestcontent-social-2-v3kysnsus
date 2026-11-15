@@ -127,6 +127,7 @@ export interface ProfessionalArtStudioProps {
   onMoveSlide: (from: number, to: number) => void
   onUpdateSlide: (index: number, patch: Partial<CarouselSlide>) => void
   onOpenPreviewCarouselModal: () => void
+  onOpenAdvancedEditor?: () => void
 }
 
 export function ProfessionalArtStudio({
@@ -152,6 +153,7 @@ export function ProfessionalArtStudio({
   onMoveSlide,
   onUpdateSlide,
   onOpenPreviewCarouselModal,
+  onOpenAdvancedEditor,
 }: ProfessionalArtStudioProps) {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<
@@ -315,6 +317,18 @@ export function ProfessionalArtStudio({
         </div>
 
         <div className="flex items-center gap-1.5 self-end sm:self-auto">
+          {onOpenAdvancedEditor && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenAdvancedEditor}
+              className="text-xs h-7 px-2 text-purple-600 dark:text-purple-400 border-purple-500/30 gap-1"
+              title="Abrir o editor avançado de mídia (filtros, texto, proporção e presets sobre a imagem)"
+            >
+              <Wand2 className="w-3 h-3" />
+              <span className="hidden sm:inline">Edição Avançada</span>
+            </Button>
+          )}
           {previousPreset && (
             <Button
               variant="outline"

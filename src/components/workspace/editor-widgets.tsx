@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { NetworkHashtagGenerator } from '@/components/NetworkHashtagGenerator'
-import { getTemplates } from '@/services/post-templates'
+import { getTemplates, type PostTemplate } from '@/services/post-templates'
 
 const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'LinkedIn', 'Twitter/X']
 
@@ -193,14 +193,16 @@ export function MediaWidget({
   mediaPreview,
   onFileChange,
   onOpenImageBank,
+  onOpenAdvancedEditor,
 }: {
   mediaPreview: string
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void
   onOpenImageBank?: () => void
+  onOpenAdvancedEditor?: () => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0">
       <input
         ref={fileRef}
         type="file"
@@ -209,29 +211,29 @@ export function MediaWidget({
         onChange={onFileChange}
       />
       {mediaPreview ? (
-        <div className="relative rounded-lg overflow-hidden border border-border">
+        <div className="relative rounded-lg overflow-hidden border border-border min-w-0">
           <img src={mediaPreview} alt="Preview" className="w-full h-24 object-cover" />
-          <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-[10px] gap-2 transition-opacity p-2">
+          <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 focus-within:opacity-100 flex flex-wrap items-center justify-center text-white text-[10px] gap-2 transition-opacity p-2">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="bg-white/20 hover:bg-white/30 px-2 py-1 rounded flex items-center gap-1"
+              className="bg-white/20 hover:bg-white/30 px-2 py-1 rounded flex items-center gap-1 whitespace-nowrap"
             >
-              <Upload className="w-3 h-3" /> Upload
+              <Upload className="w-3 h-3 shrink-0" /> <span className="truncate">Upload</span>
             </button>
             {onOpenImageBank && (
               <button
                 type="button"
                 onClick={onOpenImageBank}
-                className="bg-purple-600/80 hover:bg-purple-600 px-2 py-1 rounded flex items-center gap-1"
+                className="bg-purple-600/80 hover:bg-purple-600 px-2 py-1 rounded flex items-center gap-1 whitespace-nowrap"
               >
-                <ImageIcon className="w-3 h-3" /> Banco
+                <ImageIcon className="w-3 h-3 shrink-0" /> <span className="truncate">Banco</span>
               </button>
             )}
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -251,6 +253,20 @@ export function MediaWidget({
             </button>
           ) : null}
         </div>
+      )}
+      {onOpenAdvancedEditor && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onOpenAdvancedEditor}
+          disabled={!mediaPreview}
+          title="Abrir o mesmo motor de edição avançada do Estúdio: filtros, overlays, vinheta, gradiente, texto e proporção"
+          className="w-full text-[11px] h-8 gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+        >
+          <Wand2 className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Edição Avançada</span>
+        </Button>
       )}
     </div>
   )
@@ -373,8 +389,14 @@ export function MetricsWidget() {
   )
 }
 
-export function TemplatesWidget({ onSelect }: { onSelect?: (id: string) => void }) {
-  const [templates, setTemplates] = useState<any[]>([])
+export function TemplatesWidget({
+  onSelect,
+  selectedTemplateId,
+}: {
+  onSelect?: (template: PostTemplate) => void
+  selectedTemplateId?: string
+}) {
+  const [templates, setTemplates] = useState<PostTemplate[]>([])
   useEffect(() => {
     getTemplates()
       .then((data) => setTemplates(data || []))
@@ -387,12 +409,18 @@ export function TemplatesWidget({ onSelect }: { onSelect?: (id: string) => void 
       {templates.slice(0, 6).map((t) => (
         <button
           key={t.id}
-          onClick={() => onSelect?.(t.id)}
-          className="w-full text-left p-2 rounded-lg hover:bg-muted/50 transition-colors"
+          type="button"
+          onClick={() => onSelect?.(t)}
+          title={`Aplicar o modelo "${t.name}" ao post`}
+          className={`w-full text-left p-2 rounded-lg border transition-colors min-w-0 ${
+            selectedTemplateId === t.id
+              ? 'border-primary/60 bg-primary/10'
+              : 'border-transparent hover:bg-muted/50'
+          }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Layout className="w-3 h-3 text-primary shrink-0" />
-            <span className="text-[10px] font-medium truncate">{t.name}</span>
+            <span className="text-[10px] font-medium truncate flex-1 min-w-0">{t.name}</span>
             <Badge variant="secondary" className="text-[9px] ml-auto shrink-0">
               {t.type}
             </Badge>

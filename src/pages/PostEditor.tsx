@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   X,
   Save,
+  Wand2,
 } from 'lucide-react'
 import { getPost, updatePost } from '@/services/posts'
 import { improveText, generateCaption, generateHashtags } from '@/services/ai'
@@ -65,6 +66,8 @@ import { CarouselPreviewModal } from '@/components/workspace/CarouselPreviewModa
 import { createPost } from '@/services/posts'
 import { Copy } from 'lucide-react'
 import type { PremiumElement } from '@/services/premium-elements'
+import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
+import type { PostTemplate } from '@/services/post-templates'
 
 interface PlacedElement {
   uid: string
@@ -151,6 +154,8 @@ export default function PostEditor() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [carouselPreviewOpen, setCarouselPreviewOpen] = useState(false)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [advancedEditorOpen, setAdvancedEditorOpen] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
   useEffect(() => {
     if (!postId) return
@@ -392,6 +397,55 @@ export default function PostEditor() {
 
   const removePlacedElement = (uid: string) =>
     setPlacedElements((prev) => prev.filter((el) => el.uid !== uid))
+
+  /** Resultado do motor de Edição Avançada do Studio aplicado à mídia do post. */
+  const handleAdvancedMediaSave = (resultUrl: string) => {
+    setMediaPreview(resultUrl)
+    if (resultUrl.startsWith('data:')) {
+      // Rasterizada: vira arquivo e substitui a mídia ao salvar o post
+      fetch(resultUrl)
+        .then((r) => r.blob())
+        .then((blob) => setMediaFile(new File([blob], 'arte-editada.png', { type: 'image/png' })))
+        .catch(() => {})
+    } else {
+      setMediaFile(null)
+    }
+    toast({
+      title: 'Edição avançada aplicada',
+      description:
+        'Salve o post para persistir a mídia editada na Biblioteca e nas publicações agendadas.',
+    })
+  }
+
+  /** Aplica um template da Biblioteca ao post em edição (mesma calibragem do /app/create). */
+  const handleApplyTemplate = (template: PostTemplate) => {
+    setSelectedTemplateId(template.id)
+    const layout = (template.layout_data as Record<string, any>) || {}
+    if (!content.trim() && layout.headline) setContent(layout.headline)
+    if (!caption.trim() && layout.subhead) {
+      const call = layout.ctaText ? `\n\n👉 ${layout.ctaText}` : ''
+      setCaption(`${layout.headline || template.name}\n\n${layout.subhead}${call}`)
+    }
+    if (template.network && template.network !== 'all') {
+      const netLabel: Record<string, string> = {
+        instagram: 'Instagram',
+        facebook: 'Facebook',
+        linkedin: 'LinkedIn',
+        whatsapp: 'WhatsApp',
+        tiktok: 'TikTok',
+        youtube: 'YouTube',
+        twitter: 'Twitter/X',
+      }
+      const next = netLabel[template.network]
+      if (next) setPlatform(next)
+    }
+    toast({
+      title: 'Modelo Aplicado com Sucesso!',
+      description: `"${template.name}" calibrado com dimensões ${
+        template.dimensions || 'otimizadas'
+      } e paleta personalizada.`,
+    })
+  }
 
   const handleApprove = async () => {
     if (!postId || !user?.id) return
@@ -637,7 +691,12 @@ export default function PostEditor() {
             mediaPreview={mediaPreview}
             onFileChange={handleFileChange}
             onOpenImageBank={() => setImageBankOpen(true)}
+            onOpenAdvancedEditor={() => setAdvancedEditorOpen(true)}
           />
+        )
+      case 'templates':
+        return (
+          <TemplatesWidget selectedTemplateId={selectedTemplateId} onSelect={handleApplyTemplate} />
         )
       case 'schedule':
         return (
@@ -1031,6 +1090,16 @@ export default function PostEditor() {
             setSlides(slides.map((s, i) => (i === idx ? { ...s, ...patch } : s)))
           }}
           onOpenPreviewCarouselModal={() => setCarouselPreviewOpen(true)}
+          onOpenAdvancedEditor={() => setAdvancedEditorOpen(true)}
+        />
+
+        {/* Edição Avançada (mesmo motor do Studio) aplicada à mídia do post */}
+        <EditorAdvancedMediaDialog
+          open={advancedEditorOpen}
+          onOpenChange={setAdvancedEditorOpen}
+          mediaUrl={mediaPreview}
+          title={content || 'Mídia do post'}
+          onSave={handleAdvancedMediaSave}
         />
 
         {/* Modal de Prévia do Carrossel */}
