@@ -32,6 +32,7 @@ import {
 } from '@/lib/theme-file'
 import { ThemeEditorDialog, type ThemeEditorSubmit } from '@/components/studio/ThemeEditorDialog'
 import { NetworkThemeSubmenu } from '@/components/studio/NetworkThemeSubmenu'
+import { ThemePreviewCard } from '@/components/studio/ThemePreviewCard'
 import { NETWORK_THEMES, type NetworkThemeId as NtwId } from '@/lib/network-themes'
 
 interface StudioThemeSwitcherProps {
@@ -260,6 +261,14 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
                       })()}
                     </span>
                     <span className="flex-1 min-w-0">
+                      {/* PRÉVIA (mini mockup) consistente em todas as telas: o
+                          mesmo card do gerenciador de Configurações, com a
+                          faixa do accent da rede social ativa do tema. */}
+                      {t.colors && (
+                        <span className="mb-1.5 hidden group-hover:block">
+                          <ThemePreviewCard theme={t} active={active} compact />
+                        </span>
+                      )}
                       <span className="flex items-center gap-1 truncate text-sm font-medium">
                         {t.name}
                         {isTeam && (

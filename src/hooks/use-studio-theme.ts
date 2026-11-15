@@ -47,8 +47,15 @@ export interface StudioCustomColors {
   text: string // texto principal, ex: "#fafafa"
 }
 
+import { createStudioTheme as createStudioThemeRemote } from '@/services/studio-themes'
+
 const STORAGE_KEY = 'midiaviva_studio_theme'
 const CUSTOM_THEMES_KEY = 'midiaviva_studio_custom_themes'
+import {
+  updateStudioTheme as updateStudioThemeRemote,
+  type StudioThemeInput,
+} from '@/services/studio-themes'
+import { NETWORK_THEMES } from '@/lib/network-themes'
 
 /** Temas embutidos do Studio — mapeiam as variáveis --primary/--accent do app. */
 export const BUILTIN_STUDIO_THEMES: StudioThemeOption[] = [
@@ -213,18 +220,46 @@ export function loadCustomThemes(): StudioThemeOption[] {
           t.colors &&
           typeof t.colors.primary === 'string',
       )
-      .map((t: any) => buildCustomTheme(t.name, t.colors, t.id))
+      .map((t: any) => ({
+        ...buildCustomTheme(t.name, t.colors, t.id),
+        network: t.network || undefined,
+        accentOverride: t.accentOverride || undefined,
+        scope: t.scope === 'team' ? ('team' as const) : ('personal' as const),
+        isShared: Boolean(t.isShared),
+        origin: t.origin === 'mine' || t.origin === 'team' ? t.origin : ('mine' as const),
+        remoteId: t.remoteId || undefined,
+        ownerId: t.ownerId || undefined,
+        ownerName: t.ownerName || undefined,
+      }))
   } catch {
     return []
   }
 }
 
-/** Salva a lista completa de temas personalizados no localStorage. */
+/**
+ * Salva a lista completa de temas personalizados no localStorage — inclui os
+ * metadados (rede-alvo, accent da rede, escopo pessoal/equipe, origem, remoteId
+ * e dono) para que o tema sobreviva ao reload exatamente como foi criado.
+ */
 export function persistCustomThemes(themes: StudioThemeOption[]) {
   try {
     localStorage.setItem(
       CUSTOM_THEMES_KEY,
-      JSON.stringify(themes.map((t) => ({ id: t.id, name: t.name, colors: t.colors }))),
+      JSON.stringify(
+        themes.map((t) => ({
+          id: t.id,
+          name: t.name,
+          colors: t.colors,
+          network: t.network || null,
+          accentOverride: t.accentOverride || null,
+          scope: t.scope || null,
+          isShared: Boolean(t.isShared),
+          origin: t.origin || null,
+          remoteId: t.remoteId || null,
+          ownerId: t.ownerId || null,
+          ownerName: t.ownerName || null,
+        })),
+      ),
     )
   } catch {
     /* intentionally ignored */
@@ -267,7 +302,39 @@ export function useStudioTheme(brands: Brand[]) {
       return 'violeta-dark'
     }
   })
-  const [customThemes, setCustomThemes] = useState<StudioThemeOption[]>(() => loadCustomThemes())
+  const [customThemes, setCustomThemes] = useState<StudioThemeOption[]>(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_THEMES_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter(
+              (t: any) =>
+                t &&
+                typeof t.id === 'string' &&
+                typeof t.name === 'string' &&
+                t.colors &&
+                typeof t.colors.primary === 'string',
+            )
+            .map((t: any) => ({
+              ...buildCustomTheme(t.name, t.colors, t.id),
+              network: t.network || undefined,
+              accentOverride: t.accentOverride || undefined,
+              scope: t.scope === 'team' ? 'team' : 'personal',
+              isShared: Boolean(t.isShared),
+              origin: t.origin === 'mine' ? 'mine' : 'team',
+              remoteId: t.remoteId || undefined,
+              ownerId: t.ownerId || undefined,
+              ownerName: t.ownerName || undefined,
+            }))
+        }
+      }
+    } catch {
+      /* fallback abaixo */
+    }
+    return loadCustomThemes()
+  })
 
   const brandThemes = useMemo(() => buildBrandThemes(brands), [brands])
   const allThemes = useMemo(
@@ -382,16 +449,79 @@ export function useStudioTheme(brands: Brand[]) {
     isShared?: boolean
   }): Promise<void> => {
     const newTheme = buildCustomTheme(opts.name, opts.colors)
-    if (opts.isShared) newTheme.isShared = true
     if (opts.network && opts.network !== 'none') newTheme.network = opts.network
-    if (opts.isShared) newTheme.scope = 'team'
-    else newTheme.scope = 'personal'
+    newTheme.isShared = Boolean(opts.isShared)
+    newTheme.scope = opts.isShared ? 'team' : 'personal'
     setCustomThemes((prev) => {
       const next = [...prev, newTheme]
       persistCustomThemes(next)
       return next
     })
     setThemeId(newTheme.id)
+    // Persiste também na coleção studio_themes (best-effort): sem rede não
+    // perde o tema — na próxima carga, fetchStudioThemes/remoteId reconcilia.
+    try {
+      const remote = await createStudioThemeRemote({
+        name: newTheme.name,
+        colors: opts.colors,
+        network: newTheme.network || null,
+        isShared: newTheme.isShared,
+        scope: newTheme.scope,
+      })
+      setCustomThemes((prev) => {
+        const next = prev.map((t) =>
+          t.id === newTheme.id ? { ...t, remoteId: remote.remoteId } : t,
+        )
+        persistCustomThemes(next)
+        return next
+      })
+    } catch {
+      /* silencioso — tema segue funcional no localStorage */
+    }
+  }
+
+  /** Edita um tema personalizado do Studio (nome, cores, rede) e persiste. */
+  const updateCustomTheme = (id: StudioThemeId, input: StudioThemeInput): void => {
+    const target = customThemes.find((t) => t.id === id)
+    if (!target) return
+    const network =
+      input.network && input.network !== 'none' ? (input.network as NetworkThemeId) : undefined
+    const accentOverride =
+      network && NETWORK_THEMES[network as keyof typeof NETWORK_THEMES]
+        ? NETWORK_THEMES[network as keyof typeof NETWORK_THEMES].primary
+        : target.accentOverride
+    const updated: StudioThemeOption = {
+      ...target,
+      name: input.name || target.name,
+      colors: input.colors,
+      mode:
+        (input.colors.background || '').toLowerCase().startsWith('#') &&
+        hexToHslTokens(input.colors.background)!.l > 50
+          ? 'light'
+          : 'dark',
+      network,
+      accentOverride,
+      preview: `linear-gradient(135deg, ${input.colors.primary}, ${input.colors.surface})`,
+      isShared: input.isShared !== undefined ? Boolean(input.isShared) : target.isShared,
+      scope: input.scope !== undefined ? input.scope : target.scope,
+    }
+    setCustomThemes((prev) => {
+      const next = prev.map((t) => (t.id === id ? updated : t))
+      persistCustomThemes(next)
+      return next
+    })
+    if (target.remoteId) {
+      updateStudioThemeRemote(target.remoteId, {
+        name: updated.name,
+        colors: input.colors,
+        network: updated.network || null,
+        accentOverride: updated.accentOverride || null,
+        isShared: updated.isShared,
+        scope: updated.scope,
+      }).catch(() => {
+        /* silencioso — estado local já aplicado */
+      })
+    }
   }
 
   /**
@@ -434,6 +564,7 @@ export function useStudioTheme(brands: Brand[]) {
     setThemeId,
     allThemes,
     addCustomTheme,
+    updateCustomTheme,
     addImportedTheme,
     removeCustomTheme,
   }

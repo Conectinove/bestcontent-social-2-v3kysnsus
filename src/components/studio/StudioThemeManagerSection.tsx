@@ -136,7 +136,7 @@ export function StudioThemeManagerSection() {
                 >
                   <Download className="h-3 w-3" />
                 </Button>
-                {t.origin === 'mine' && t.remoteId && (
+                {t.origin === 'mine' && (
                   <>
                     <Button
                       size="icon"

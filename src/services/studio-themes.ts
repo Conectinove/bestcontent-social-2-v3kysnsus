@@ -101,7 +101,8 @@ export function recordToThemeOption(rec: StudioThemeRecord): StudioThemeOption {
 export async function fetchStudioThemes(): Promise<StudioThemeOption[]> {
   const authId = pb.authStore.record?.id
   if (!authId) return []
-  const company = (pb.authStore.record as any)?.company || ''
+  const company = ((pb.authStore.record as any)?.company || '') as string
+  if (typeof company !== 'string') return []
 
   const mine = await pb
     .collection(COLLECTION)

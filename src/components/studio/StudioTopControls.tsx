@@ -5,6 +5,8 @@ import { StudioThemeSwitcher } from '@/components/studio/StudioThemeSwitcher'
 import type { StudioThemeOption, StudioCustomColors } from '@/hooks/use-studio-theme'
 import type { StudioWindowMode } from '@/hooks/use-studio-window'
 import type { NetworkThemeId } from '@/lib/network-themes'
+import type { ParsedThemeInput } from '@/lib/theme-file'
+import type { ThemeEditorSubmit } from '@/components/studio/ThemeEditorDialog'
 
 interface StudioTopControlsProps {
   themes: StudioThemeOption[]
@@ -15,6 +17,7 @@ interface StudioTopControlsProps {
     colors: StudioCustomColors
     network?: NetworkThemeId
     isShared?: boolean
+    scope?: 'team' | 'personal'
   }) => Promise<void> | void
   onDeleteCustomTheme: (id: string) => void
   /** Marca/desmarca um tema salvo no banco como compartilhado com a equipe. */
@@ -23,6 +26,15 @@ interface StudioTopControlsProps {
   /** Rede social ativa (variação de accent) — 'none' = neutro. */
   networkId?: NetworkThemeId
   onSelectNetwork?: (id: NetworkThemeId) => void
+  /** Aplica o accent da rede ao tema ativo e persiste. */
+  onApplyNetworkAccent?: (id: NetworkThemeId) => void
+  /** Pré-visualização sem confirmar (hover) — delega ao motor de temas. */
+  onStartPreviewTheme?: (id: string) => void
+  onCancelPreviewTheme?: () => void
+  /** Importa um tema validado de arquivo JSON. */
+  onImportTheme?: (input: ParsedThemeInput) => void
+  /** Edita um tema personalizado existente. */
+  onUpdateTheme?: (id: string, input: ThemeEditorSubmit) => Promise<void> | void
   windowMode: StudioWindowMode
   onChangeWindowMode: (mode: StudioWindowMode) => void
 }
@@ -41,6 +53,11 @@ export const StudioTopControls: React.FC<StudioTopControlsProps> = ({
   isSavingTheme,
   networkId,
   onSelectNetwork,
+  onApplyNetworkAccent,
+  onStartPreviewTheme,
+  onCancelPreviewTheme,
+  onImportTheme,
+  onUpdateTheme,
   windowMode,
   onChangeWindowMode,
 }) => {
@@ -58,6 +75,11 @@ export const StudioTopControls: React.FC<StudioTopControlsProps> = ({
         isSaving={isSavingTheme}
         networkId={networkId}
         onSelectNetwork={onSelectNetwork}
+        onApplyNetworkAccent={onApplyNetworkAccent}
+        onStartPreview={onStartPreviewTheme}
+        onCancelPreview={onCancelPreviewTheme}
+        onImportTheme={onImportTheme}
+        onUpdateTheme={onUpdateTheme}
       />
 
       {showCompact ? (

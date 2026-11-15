@@ -36,7 +36,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { toast } from '@/hooks/use-toast'
 import {
   STUDIO_MODELS,
   StudioMediaType,
@@ -69,10 +68,9 @@ import { recordStudioPromptHistory } from '@/services/studio-prompt-history'
 import { StudioAdvancedEditorDialog } from '@/components/studio/StudioAdvancedEditorDialog'
 import { StudioSectionDialog, StudioSectionId } from '@/components/studio/StudioSectionDialog'
 import { StudioTopControls } from '@/components/studio/StudioTopControls'
-import { useStudioTheme } from '@/hooks/use-studio-theme'
+import { useAppTheme } from '@/hooks/use-app-theme'
 import { useStudioWindowMode } from '@/hooks/use-studio-window'
-import { updateStudioTheme } from '@/services/studio-themes'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from '@/hooks/use-toast'
 
 // Componentes da Interface Estilo Genspark
 import { StudioSidebar } from '@/components/studio/StudioSidebar'
@@ -88,35 +86,17 @@ import { SecondBrainCanvas } from '@/components/studio/SecondBrainCanvas'
 export default function AiMediaStudioPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { brands, activeBrand } = useSocial()
+  const { activeBrand } = useSocial()
 
-  // Tema do Estúdio (claro/escuro/marcas/personalizados) aplicado na sub-árvore via data-studio-theme
-  const studioTheme = useStudioTheme(brands)
+  // Tema do app (motor unificado: presets, marcas, personalizados, rede e equipe).
+  // A prévia/mini mockup e o accent da rede funcionam igual ao Header — a troca
+  // de tema reflete no app inteiro, e o seletor local do Estúdio reaproveita o
+  // mesmo StudioThemeSwitcher com o mesmo motor useAppTheme.
+  const appTheme = useAppTheme()
+  const studioTheme = appTheme
   // Compartilhamento de temas com a equipe (toggle no seletor de tema do Estúdio)
-  const { toast } = useToast()
-  const [savingTheme, setSavingTheme] = useState(false)
-  const handleToggleShared = async (id: string, isShared: boolean) => {
-    const target = studioTheme.allThemes.find((t) => t.id === id)
-    if (!target) return
-    setSavingTheme(true)
-    try {
-      if (target.remoteId) {
-        await updateStudioTheme(target.remoteId, { isShared })
-      }
-      toast({
-        title: isShared
-          ? `Tema "${target.name}" compartilhado com a equipe`
-          : `Tema "${target.name}" agora é privado`,
-      })
-    } catch {
-      toast({
-        title: 'Não foi possível atualizar o compartilhamento',
-        variant: 'destructive',
-      })
-    } finally {
-      setSavingTheme(false)
-    }
-  }
+  const handleToggleShared = appTheme.toggleShared
+  const savingTheme = appTheme.isSaving
 
   // Modo de janela do Estúdio: normal / maximizado / compacto (persistido)
   const { windowMode, setMode: setWindowMode, isMaximized, isCompact } = useStudioWindowMode()
@@ -511,6 +491,13 @@ export default function AiMediaStudioPage() {
             onDeleteCustomTheme={studioTheme.removeCustomTheme}
             onToggleSharedTheme={handleToggleShared}
             isSavingTheme={savingTheme}
+            networkId={studioTheme.networkId}
+            onSelectNetwork={studioTheme.setNetworkId}
+            onApplyNetworkAccent={studioTheme.applyNetworkAccent}
+            onStartPreviewTheme={studioTheme.startPreview}
+            onCancelPreviewTheme={studioTheme.cancelPreview}
+            onImportTheme={studioTheme.importTheme}
+            onUpdateTheme={studioTheme.updateCustomTheme}
             windowMode={windowMode}
             onChangeWindowMode={setWindowMode}
           />
