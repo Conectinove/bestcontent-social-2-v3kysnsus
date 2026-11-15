@@ -497,7 +497,8 @@ export default function TopicDetail() {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-xs text-foreground">{rAuthor}</span>
-                          {getTopicRoleBadge(rAuthor, reply.tags || []).map((b) => (
+                          {/* CommunityReply não tem tags no schema — cargo derivado só do nome do autor */}
+                          {getTopicRoleBadge(rAuthor).map((b) => (
                             <CommunityRoleBadge key={b} roleBadge={b} />
                           ))}
                         </div>
