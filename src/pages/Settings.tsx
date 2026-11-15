@@ -66,8 +66,18 @@ import { getBrandPortal, type BrandPortalRecord } from '@/services/brand-portals
 import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
 import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
-import { Building2, Webhook, Target, Mail, RefreshCw, ShieldCheck, UserCog } from 'lucide-react'
+import {
+  Building2,
+  Webhook,
+  Target,
+  Mail,
+  RefreshCw,
+  ShieldCheck,
+  UserCog,
+  UserPlus,
+} from 'lucide-react'
 import { OrgMembersPermissionsPanel } from '@/components/settings/OrgMembersPermissionsPanel'
+import { OrgInvitesPanel } from '@/components/settings/OrgInvitesPanel'
 import { BrandPortalPanel } from '@/components/settings/BrandPortalPanel'
 import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
 import { MasterSettingsPanel } from '@/components/brandkit/MasterSettingsPanel'
@@ -601,6 +611,13 @@ export default function Settings() {
                       Permissões por membro
                     </h3>
                     <OrgMembersPermissionsPanel isAdmin={user?.role === 'admin'} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                      <UserPlus className="w-4 h-4 text-primary" />
+                      Convidar membros (email)
+                    </h3>
+                    <OrgInvitesPanel isAdmin={user?.role === 'admin'} />
                   </div>
                 </div>
               )}

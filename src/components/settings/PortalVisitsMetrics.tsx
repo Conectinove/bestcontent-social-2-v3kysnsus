@@ -75,6 +75,8 @@ export function PortalVisitsMetrics({ metrics, loading }: PortalVisitsMetricsPro
     )
   }
 
+  const series = metrics.daily_series || []
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
@@ -103,6 +105,53 @@ export function PortalVisitsMetrics({ metrics, loading }: PortalVisitsMetricsPro
           accent="text-amber-600 dark:text-amber-400"
         />
       </div>
+
+      {series.length > 0 && (
+        <div className="rounded-lg border border-border/70 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              Visitas por dia (últimos 30 dias)
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {fmt(series.reduce((acc, p) => acc + (p.count || 0), 0))} no período
+            </p>
+          </div>
+          <div className="flex items-end gap-[3px] h-24">
+            {series.map((p) => {
+              const max = Math.max(1, ...series.map((x) => x.count || 0))
+              const h = Math.round(((p.count || 0) / max) * 100)
+              const [y, m, d] = p.date.split('-')
+              const dayLabel = d && m ? `${d}/${m}` : p.date
+              return (
+                <div
+                  key={p.date}
+                  className="flex-1 min-w-0 h-full flex flex-col justify-end items-center gap-1 group"
+                  title={`${dayLabel}: ${fmt(p.count || 0)} visita${(p.count || 0) === 1 ? '' : 's'}`}
+                >
+                  <div
+                    className="w-full rounded-t bg-violet-500/80 group-hover:bg-violet-500 transition-colors"
+                    style={{ height: `${Math.max(h, p.count > 0 ? 6 : 2)}%` }}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex gap-[3px]">
+            {series.map((p, i) => {
+              const [y, m, d] = p.date.split('-')
+              const dayLabel = d && m ? `${d}/${m}` : p.date
+              return (
+                <div
+                  key={p.date}
+                  className="flex-1 min-w-0 text-center text-[8px] text-muted-foreground leading-none"
+                >
+                  {i % 5 === 0 ? dayLabel : ''}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-lg border border-border/70 divide-y divide-border/60">
         <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">

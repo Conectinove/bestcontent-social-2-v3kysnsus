@@ -2,14 +2,24 @@ import { useEffect, useState } from 'react'
 import { Loader2, AlertTriangle, Home, ArrowLeft } from 'lucide-react'
 import { useParams, Link } from 'react-router-dom'
 import { getPortalByToken } from '@/services/brand-portals'
-import { fetchPublicPortalPages, recordPortalVisit } from '@/services/portal-pages'
+import {
+  fetchPublicPortalPages,
+  recordPortalVisit,
+  type PortalBlock,
+} from '@/services/portal-pages'
+import { PortalBlockView } from '@/components/settings/PortalBlocksEditor'
 
 interface PortalData {
   id: string
   brandId: string
   brandName: string
   accentColor: string | null
-  pages: Array<{ id: string; title: string; slug: string; content: { text?: string } }>
+  pages: Array<{
+    id: string
+    title: string
+    slug: string
+    content: { text?: string; blocks?: PortalBlock[] }
+  }>
 }
 
 /** Página pública do portal (rota /portal/:token) — cor da marca + páginas internas. */
@@ -37,7 +47,7 @@ export default function BrandPortalPage() {
               id: p.id,
               title: p.title,
               slug: p.slug,
-              content: (p.content as { text?: string }) || {},
+              content: (p.content as { text?: string; blocks?: PortalBlock[] }) || {},
             })),
           })
         })
@@ -74,6 +84,7 @@ export default function BrandPortalPage() {
   const current = data.pages.find((p) => p.slug === activeSlug)
   const heroPage = !activeSlug
   const pageText = current?.content?.text || ''
+  const pageBlocks = Array.isArray(current?.content?.blocks) ? current!.content!.blocks! : []
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -162,7 +173,15 @@ export default function BrandPortalPage() {
                 {current?.title}
               </h2>
               <div className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed">
-                {pageText || 'Página sem conteúdo ainda.'}
+                {pageBlocks.length > 0 ? (
+                  <div className="space-y-3">
+                    {pageBlocks.map((b) => (
+                      <PortalBlockView key={b.id} block={b} />
+                    ))}
+                  </div>
+                ) : (
+                  pageText || 'Página sem conteúdo ainda.'
+                )}
               </div>
             </article>
           </>

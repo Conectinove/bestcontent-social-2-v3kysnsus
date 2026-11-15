@@ -56,6 +56,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ClientApprovalPage from './pages/ClientApprovalPage'
 import ImportPresetPage from './pages/ImportPresetPage'
 import BrandPortalPage from './pages/BrandPortalPage'
+import OrgInviteAcceptPage from './pages/OrgInviteAcceptPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 import AdminRoute from './components/navigation/AdminRoute'
 
@@ -76,6 +77,8 @@ const App = () => (
               <Route path="/importar-preset" element={<ImportPresetPage />} />
               {/* Portal público de marca: servido FORA do layout autenticado */}
               <Route path="/portal/:token" element={<BrandPortalPage />} />
+              {/* Aceite público de convite de organização (fora do layout autenticado) */}
+              <Route path="/convite/:token" element={<OrgInviteAcceptPage />} />
 
               {/* Onboarding / Assistente de Marca independente e imersivo */}
               <Route path="/app/onboarding" element={<Onboarding />} />

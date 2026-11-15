@@ -13,7 +13,9 @@ import {
   slugifyTitle,
   type PortalPage,
   type PortalPageContent,
+  type PortalBlock,
 } from '@/services/portal-pages'
+import { PortalBlocksEditor } from '@/components/settings/PortalBlocksEditor'
 
 interface PortalPagesManagerProps {
   brandId: string
@@ -24,7 +26,7 @@ interface DraftState {
   id: string | null
   title: string
   slug: string
-  text: string
+  blocks: PortalBlock[]
   is_visible: boolean
   sort_order: number
 }
@@ -33,7 +35,7 @@ const emptyDraft = (order: number): DraftState => ({
   id: null,
   title: '',
   slug: '',
-  text: '',
+  blocks: [],
   is_visible: true,
   sort_order: order,
 })
@@ -69,7 +71,7 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
     }
     setSaving(true)
     const slug = (draft.slug || slugifyTitle(draft.title)).slice(0, 100)
-    const content: PortalPageContent = { text: draft.text }
+    const content: PortalPageContent = { blocks: draft.blocks }
     try {
       if (draft.id) {
         await updatePortalPage(draft.id, {
@@ -216,7 +218,7 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
                       id: p.id,
                       title: p.title,
                       slug: p.slug,
-                      text: typeof p.content?.text === 'string' ? p.content.text : '',
+                      blocks: Array.isArray(p.content?.blocks) ? p.content.blocks : [],
                       is_visible: p.is_visible,
                       sort_order: p.sort_order,
                     })
@@ -284,12 +286,10 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Conteúdo</label>
-            <Textarea
-              value={draft.text}
-              onChange={(e) => setDraft((d) => (d ? { ...d, text: e.target.value } : d))}
-              placeholder="Escreva o texto desta página..."
-              rows={5}
+            <label className="text-xs font-semibold">Conteúdo (blocos arrastáveis)</label>
+            <PortalBlocksEditor
+              blocks={draft.blocks}
+              onChange={(blocks) => setDraft((d) => (d ? { ...d, blocks } : d))}
             />
           </div>
           <div className="flex items-center justify-between">

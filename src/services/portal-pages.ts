@@ -1,7 +1,16 @@
 import pb from '@/lib/pocketbase/client'
 
+export interface PortalBlock {
+  id: string
+  type: 'title' | 'text' | 'image' | 'cta' | 'spacer'
+  text?: string
+  url?: string
+  height?: number
+}
+
 export interface PortalPageContent {
   text?: string
+  blocks?: PortalBlock[]
   sections?: { title: string; body: string }[]
   contact?: { email?: string; phone?: string; whatsapp?: string; address?: string }
   [key: string]: unknown

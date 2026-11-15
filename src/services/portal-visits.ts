@@ -8,12 +8,18 @@ export interface PortalVisitItem {
   referrer: string
 }
 
+export interface PortalDailyPoint {
+  date: string
+  count: number
+}
+
 export interface PortalMetrics {
   success: boolean
   total: number
   last_24h: number
   last_7d: number
   last_30d: number
+  daily_series?: PortalDailyPoint[]
   recent: PortalVisitItem[]
 }
 

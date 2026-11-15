@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, Navigate } from 'react-router-dom'
+import { Link, useNavigate, Navigate, useSearchParams } from 'react-router-dom'
 import { Sparkles, ArrowRight, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,8 @@ import { toast } from '@/hooks/use-toast'
 export default function Login() {
   const { login, isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/app/feed'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +26,7 @@ export default function Login() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/app/feed" replace />
+    return <Navigate to={redirect} replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +44,7 @@ export default function Login() {
       return
     }
     toast({ title: 'Bem-vindo de volta!', description: 'Sessão iniciada com sucesso.' })
-    navigate('/app/feed')
+    navigate(redirect)
   }
 
   return (

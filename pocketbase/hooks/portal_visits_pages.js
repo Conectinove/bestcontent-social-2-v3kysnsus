@@ -156,12 +156,62 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
     })
   }
 
+  // ---- Série diária dos últimos 30 dias (pedido: "gráfico de visitas por dia") ----
+  // Conta por dia via findRecordsByFilter (created >= d30) e buckets em memória:
+  // o JSVM do PocketBase não expõe GROUP BY direto ao hooks.
+  const seriesMap = {}
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000)
+    const key = d.toISOString().slice(0, 10)
+    seriesMap[key] = 0
+  }
+  let dayVisits = []
+  try {
+    dayVisits = $app.findRecordsByFilter(
+      'portal_visits',
+      'portal = {:id} && created >= {:d30}',
+      '-created',
+      10000,
+      0,
+      {
+        id: portalId,
+        d30,
+      },
+    )
+  } catch (_) {
+    dayVisits = []
+  }
+  for (const v of dayVisits) {
+    // created vem em UTC ("2026-02-03 14:22:01.123Z"): desloca para o fuso local
+    // do servidor antes de agrupar por dia, para o bucket bater com o dia local.
+    const offMin = now.getTimezoneOffset()
+    let created = v.getString('created') || ''
+    if (created.indexOf('T') === -1) created = created.replace(' ', 'T')
+    let dLocal = null
+    try {
+      dLocal = new Date(created.replace('Z', '') + 'Z')
+    } catch (_) {
+      dLocal = null
+    }
+    if (!dLocal || isNaN(dLocal.getTime())) continue
+    const local = new Date(dLocal.getTime() - offMin * 60000)
+    const key = local.toISOString().slice(0, 10)
+    if (seriesMap[key] !== undefined) seriesMap[key] = seriesMap[key] + 1
+  }
+  const daily_series = []
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000)
+    const key = d.toISOString().slice(0, 10)
+    daily_series.push({ date: key, count: seriesMap[key] || 0 })
+  }
+
   return e.json(200, {
     success: true,
     total,
     last_24h: last24h,
     last_7d: last7d,
     last_30d: last30d,
+    daily_series,
     recent: recentItems,
   })
 })
