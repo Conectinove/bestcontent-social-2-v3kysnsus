@@ -345,7 +345,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[850px] bg-slate-950 text-slate-100 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
+    <div className="nb-accent-scope flex flex-col lg:flex-row min-h-[850px] bg-slate-950 text-slate-100 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
       {/* ==============================================================
           SIDEBAR DO SEGUNDO CÉREBRO (Conforme prints do Genspark)
           ============================================================== */}
@@ -597,7 +597,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('gmail')
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
+              className="nb-conn-card p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">
@@ -622,7 +622,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('googledrive')
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
+              className="nb-conn-card p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">
@@ -648,7 +648,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('outlook' as any)
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
+              className="nb-conn-card p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">
@@ -672,7 +672,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('onedrive' as any)
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
+              className="nb-conn-card p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">

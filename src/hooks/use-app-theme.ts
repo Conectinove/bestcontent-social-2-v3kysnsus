@@ -20,6 +20,7 @@ import {
   type StudioThemeInput,
 } from '@/services/studio-themes'
 import type { ParsedThemeInput } from '@/lib/theme-file'
+import { pb } from '@/lib/pocketbase/client'
 import {
   loadNetworkThemeId,
   saveNetworkThemeId,
@@ -132,6 +133,55 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
   useEffect(() => {
     saveNetworkThemeId(networkId)
   }, [networkId])
+
+  // SYNC REALTIME COM A EQUIPE: quando um tema compartilhado ("Compartilhar
+  // com a equipe") é criado/editado por outro membro da organização, re-busca
+  // e re-aplica as CSS vars sem recarregar a página. Se o tema alterado for
+  // o ativo, o efeito de applyThemeVars abaixo dispara sozinho.
+  useEffect(() => {
+    if (!remoteKey) return
+    let active = true
+    let unsub: (() => Promise<void>) | undefined
+    let cancelled = false
+
+    pb.collection('studio_themes')
+      .subscribe('*', () => {
+        if (!active) return
+        fetchStudioThemes()
+          .then((list) => {
+            if (!active) return
+            const mine = list.filter((t) => t.origin === 'mine')
+            const team = list.filter((t) => t.origin === 'team')
+            setTeamThemes(team)
+            setCustomThemes((prev) => {
+              const remoteIds = new Set(mine.map((t) => t.remoteId))
+              const localOnly = prev.filter((t) => !t.remoteId)
+              const merged = [...mine, ...localOnly.filter((t) => !remoteIds.has(t.id))]
+              persistCustomThemes(merged)
+              return merged
+            })
+          })
+          .catch(() => {
+            /* silencioso — a próxima mudança re-tenta */
+          })
+      })
+      .then((fn) => {
+        if (cancelled) {
+          fn().catch(() => {})
+        } else {
+          unsub = fn
+        }
+      })
+      .catch(() => {
+        /* silencioso — realtime é best-effort */
+      })
+
+    return () => {
+      active = false
+      cancelled = true
+      unsub?.().catch(() => {})
+    }
+  }, [remoteKey])
 
   // Aplica as variáveis CSS do tema no nível global (:root).
   // Durante a pré-visualização (hover), mostra o tema temporário; ao sair,
@@ -402,6 +452,18 @@ export function applyThemeVars(theme: StudioThemeOption, networkId: NetworkTheme
   const primary = networkTheme ? networkTheme.primary : theme.primary
   const accent = networkTheme ? networkTheme.accent : theme.accent
   const ring = networkTheme ? networkTheme.primary : theme.ring
+
+  // Accent da rede ativa usado pelos cards de conectores (Segundo Cérebro +
+  // modal de conexões). Prioridade: rede escolhida > accentOverride do tema >
+  // primary do tema; cai no violeta padrão quando nada define.
+  const connectorAccent =
+    networkTheme?.primary ||
+    (theme.accentOverride && /^[\d.]+ [\d.]+% [\d.]+%$/.test(theme.accentOverride)
+      ? theme.accentOverride
+      : '') ||
+    (primaryTokens ? hslStr(primaryTokens) : '') ||
+    '262 83% 58%'
+  root.style.setProperty('--connector-accent', connectorAccent)
 
   root.style.setProperty('--primary', primary)
   root.style.setProperty('--primary-foreground', '0 0% 100%')

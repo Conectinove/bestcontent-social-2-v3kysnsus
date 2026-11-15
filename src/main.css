@@ -302,3 +302,65 @@
     display: none;
   }
 }
+
+/* ===== Accent da rede social ativa nos cards de conectores ===== */
+/* --connector-accent é definido por applyThemeVars (use-app-theme.ts): primary
+   da rede ativa, senão accentOverride do tema, senão o primary do tema. Os
+   cards de conexão (Segundo Cérebro + modal de conectores) passam a usar este
+   accent em vez das cores fixas genéricas (amber/rose/cyan...). */
+:root {
+  --connector-accent: 262 83% 58%;
+}
+
+/* Tiles de ícone dos cards (bg-{cor}-500/10 border-{cor}-500/20) */
+.nb-accent-scope .bg-amber-500\/10,
+.nb-accent-scope .bg-rose-500\/10,
+.nb-accent-scope .bg-cyan-500\/10,
+.nb-accent-scope .bg-pink-500\/10,
+.nb-accent-scope .bg-blue-500\/10,
+.nb-accent-scope .bg-sky-500\/10,
+.nb-accent-scope .bg-emerald-500\/10,
+.nb-accent-scope .bg-green-500\/10 {
+  background-color: hsl(var(--connector-accent) / 0.12);
+  border-color: hsl(var(--connector-accent) / 0.28);
+}
+
+/* Ícones dos cards e da sidebar do Segundo Céubro (text-{cor}-400) */
+.nb-accent-scope .text-amber-400,
+.nb-accent-scope .text-rose-400,
+.nb-accent-scope .text-cyan-400,
+.nb-accent-scope .text-pink-400,
+.nb-accent-scope .text-blue-400,
+.nb-accent-scope .text-sky-400,
+.nb-accent-scope .text-emerald-400,
+.nb-accent-scope .text-green-400 {
+  color: hsl(var(--connector-accent));
+}
+
+/* Borda dos cards (destaque + glow no hover) */
+.nb-accent-scope .border-slate-800 {
+  border-color: hsl(var(--connector-accent) / 0.35);
+}
+.nb-accent-scope .border-slate-800:hover {
+  border-color: hsl(var(--connector-accent) / 0.65);
+  box-shadow:
+    0 0 0 1px hsl(var(--connector-accent) / 0.2),
+    0 10px 30px -14px hsl(var(--connector-accent) / 0.5);
+}
+
+/* Botão "Conectar" dos cards (ConnectorButton estilizado via [&>button]:bg-...).
+   Exclui os botões slate (secundários) para não pintá-los de accent. */
+.nb-accent-scope [class*='[&>button]:bg-']:not([class*='slate']) > button {
+  background-color: hsl(var(--connector-accent));
+  color: hsl(var(--connector-accent-contrast, 0 0% 100%));
+}
+.nb-accent-scope [class*='[&>button]:hover:bg-']:not([class*='slate']):hover > button {
+  background-color: hsl(var(--connector-accent) / 0.85);
+}
+/* Ícone de status "Conectado" dos cards do Segundo Cérebro ganha o accent */
+.nb-accent-scope .nb-conn-card {
+  border-color: hsl(var(--connector-accent) / 0.35);
+}
+.nb-accent-scope .nb-conn-card:hover {
+  border-color: hsl(var(--connector-accent) / 0.65);
+}
