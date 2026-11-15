@@ -23,15 +23,18 @@ import {
   type GmailMessageItem,
   type ImportedContextItem,
 } from '@/services/google-connectors'
-import {
-  searchUserOutlookMessages,
-  searchUserOneDriveFiles,
-  searchUserSharePointFiles,
-  type OutlookMessageItem,
-  type CloudDriveFileItem,
-} from '@/services/microsoft-connectors'
+import { searchUserOutlookMessages, type OutlookMessageItem } from '@/services/microsoft-connectors'
 import { fetchPipedriveData, fetchHubspotData, type CrmRecordItem } from '@/services/crm-connectors'
-import { fetchCanvaAssets, type CanvaAssetItem } from '@/services/canva-connectors'
+import {
+  createGoogleCalendarEventsForPosts,
+  type GoogleCalendarEventInput,
+  type GoogleCalendarSyncResult,
+} from '@/services/google-connectors'
+import {
+  fetchInstagramAccounts,
+  fetchFacebookPages,
+  type SocialAccountItem,
+} from '@/services/social-accounts-connectors'
 import {
   FileText,
   Mail,
@@ -55,6 +58,10 @@ import {
   DollarSign,
   Tag,
   ImageIcon,
+  Instagram as InstagramIcon,
+  Facebook as FacebookIcon,
+  CalendarPlus,
+  CalendarCheck,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -69,13 +76,11 @@ interface ConnectorsContextModalProps {
     | 'googledocs'
     | 'googlesheets'
     | 'outlook'
-    | 'onedrive'
-    | 'one_drive'
-    | 'sharepoint'
-    | 'share_point'
     | 'pipedrive'
     | 'hubspot'
-    | 'canva'
+    | 'instagram'
+    | 'facebook'
+    | 'googlecalendar'
 }
 
 export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
@@ -119,17 +124,12 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
   const [loadingOutlook, setLoadingOutlook] = useState(false)
   const [importingOutlookId, setImportingOutlookId] = useState<string | null>(null)
 
-  // OneDrive state
-  const [oneDriveFiles, setOneDriveFiles] = useState<CloudDriveFileItem[]>([])
-  const [oneDriveSearch, setOneDriveSearch] = useState('')
-  const [loadingOneDrive, setLoadingOneDrive] = useState(false)
-  const [importingOneDriveId, setImportingOneDriveId] = useState<string | null>(null)
+  // Social state (Instagram / Facebook)
+  const [instagramAccounts, setInstagramAccounts] = useState<SocialAccountItem[]>([])
+  const [loadingInstagram, setLoadingInstagram] = useState(false)
 
-  // SharePoint state
-  const [sharePointFiles, setSharePointFiles] = useState<CloudDriveFileItem[]>([])
-  const [sharePointSearch, setSharePointSearch] = useState('')
-  const [loadingSharePoint, setLoadingSharePoint] = useState(false)
-  const [importingSharePointId, setImportingSharePointId] = useState<string | null>(null)
+  const [facebookPages, setFacebookPages] = useState<SocialAccountItem[]>([])
+  const [loadingFacebook, setLoadingFacebook] = useState(false)
 
   // Docs direct URL / ID
   const [docIdInput, setDocIdInput] = useState('')
@@ -158,12 +158,6 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
   const [hubspotSearch, setHubspotSearch] = useState('')
   const [loadingHubspot, setLoadingHubspot] = useState(false)
   const [importingHubspotId, setImportingHubspotId] = useState<string | null>(null)
-
-  // Canva state
-  const [canvaDesigns, setCanvaDesigns] = useState<CanvaAssetItem[]>([])
-  const [canvaSearch, setCanvaSearch] = useState('')
-  const [loadingCanva, setLoadingCanva] = useState(false)
-  const [importingCanvaId, setImportingCanvaId] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -236,27 +230,24 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
     }
   }
 
-  // Carregar OneDrive
-  const handleLoadOneDrive = async () => {
-    if (getStatus('one_drive') !== 'connected') return
-    setLoadingOneDrive(true)
+  // Carregar contas sociais (Instagram / Facebook)
+  const handleLoadInstagramAccounts = async () => {
+    if (getStatus('instagram') !== 'connected') return
+    setLoadingInstagram(true)
     try {
-      const files = await searchUserOneDriveFiles(oneDriveSearch)
-      setOneDriveFiles(files)
+      setInstagramAccounts(await fetchInstagramAccounts())
     } finally {
-      setLoadingOneDrive(false)
+      setLoadingInstagram(false)
     }
   }
 
-  // Carregar SharePoint
-  const handleLoadSharePoint = async () => {
-    if (getStatus('share_point') !== 'connected') return
-    setLoadingSharePoint(true)
+  const handleLoadFacebookPages = async () => {
+    if (getStatus('facebook') !== 'connected') return
+    setLoadingFacebook(true)
     try {
-      const files = await searchUserSharePointFiles(sharePointSearch)
-      setSharePointFiles(files)
+      setFacebookPages(await fetchFacebookPages())
     } finally {
-      setLoadingSharePoint(false)
+      setLoadingFacebook(false)
     }
   }
 
@@ -287,18 +278,6 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
     }
   }
 
-  // Carregar designs Canva
-  const handleLoadCanva = async () => {
-    if (getStatus('canva') !== 'connected') return
-    setLoadingCanva(true)
-    try {
-      const res = await fetchCanvaAssets(canvaSearch)
-      setCanvaDesigns(res.designs || [])
-    } finally {
-      setLoadingCanva(false)
-    }
-  }
-
   useEffect(() => {
     if (activeTab === 'googledrive' && getStatus('googledrive') === 'connected') {
       handleLoadDriveFiles()
@@ -306,16 +285,14 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
       handleLoadGmail()
     } else if (activeTab === 'outlook' && getStatus('outlook') === 'connected') {
       handleLoadOutlook()
-    } else if (activeTab === 'onedrive' && getStatus('one_drive') === 'connected') {
-      handleLoadOneDrive()
-    } else if (activeTab === 'sharepoint' && getStatus('share_point') === 'connected') {
-      handleLoadSharePoint()
+    } else if (activeTab === 'instagram' && getStatus('instagram') === 'connected') {
+      handleLoadInstagramAccounts()
+    } else if (activeTab === 'facebook' && getStatus('facebook') === 'connected') {
+      handleLoadFacebookPages()
     } else if (activeTab === 'pipedrive' && getStatus('pipedrive') === 'connected') {
       handleLoadPipedrive()
     } else if (activeTab === 'hubspot' && getStatus('hubspot') === 'connected') {
       handleLoadHubspot()
-    } else if (activeTab === 'canva' && getStatus('canva') === 'connected') {
-      handleLoadCanva()
     }
   }, [activeTab, connectors])
 
@@ -420,84 +397,6 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
       onOpenChange(false)
     } finally {
       setImportingOutlookId(null)
-    }
-  }
-
-  const handleImportOneDriveFile = async (file: CloudDriveFileItem) => {
-    setImportingOneDriveId(file.id)
-    try {
-      const fullContent = [
-        `Arquivo de Referência: ${file.name}`,
-        `Origem: Microsoft OneDrive`,
-        file.author ? `Autor: ${file.author}` : null,
-        file.modifiedAt
-          ? `Última modificação: ${new Date(file.modifiedAt).toLocaleDateString('pt-BR')}`
-          : null,
-        file.webUrl ? `Link: ${file.webUrl}` : null,
-        '',
-        `Diretriz Pedagógica: Utilize a estrutura e os dados do documento ${file.name} como base de conhecimento prioritária para geração dos blocos de aula.`,
-      ]
-        .filter(Boolean)
-        .join('\n')
-
-      const item: ImportedContextItem = {
-        id: `ctx-onedrive-${file.id}`,
-        source: 'one_drive',
-        title: file.name,
-        subtitle: `OneDrive · ${file.author || 'Documento'}`,
-        content: fullContent,
-        origin: file.webUrl,
-        type: 'onedrive',
-        metadata: { fileId: file.id, source: 'onedrive' },
-        createdAt: new Date().toISOString(),
-      }
-      onImportContext(item)
-      toast({
-        title: 'Arquivo do OneDrive importado!',
-        description: `"${file.name}" anexado ao contexto pedagógico.`,
-      })
-      onOpenChange(false)
-    } finally {
-      setImportingOneDriveId(null)
-    }
-  }
-
-  const handleImportSharePointFile = async (file: CloudDriveFileItem) => {
-    setImportingSharePointId(file.id)
-    try {
-      const fullContent = [
-        `Documento Institucional: ${file.name}`,
-        `Origem: Microsoft SharePoint`,
-        file.author ? `Responsável: ${file.author}` : null,
-        file.modifiedAt
-          ? `Última revisão: ${new Date(file.modifiedAt).toLocaleDateString('pt-BR')}`
-          : null,
-        file.webUrl ? `Link do Portal: ${file.webUrl}` : null,
-        '',
-        `Conteúdo de Referência Institucional extraído de ${file.name}. Aplicar metodologia ativa e diretrizes de ensino híbrido.`,
-      ]
-        .filter(Boolean)
-        .join('\n')
-
-      const item: ImportedContextItem = {
-        id: `ctx-sharepoint-${file.id}`,
-        source: 'share_point',
-        title: file.name,
-        subtitle: `SharePoint · ${file.author || 'Institucional'}`,
-        content: fullContent,
-        origin: file.webUrl,
-        type: 'sharepoint',
-        metadata: { fileId: file.id, source: 'sharepoint' },
-        createdAt: new Date().toISOString(),
-      }
-      onImportContext(item)
-      toast({
-        title: 'Documento do SharePoint importado!',
-        description: `"${file.name}" adicionado ao contexto com sucesso.`,
-      })
-      onOpenChange(false)
-    } finally {
-      setImportingSharePointId(null)
     }
   }
 
@@ -666,48 +565,7 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
     }
   }
 
-  // Importação de Canva
-  const handleImportCanvaDesign = (design: CanvaAssetItem) => {
-    setImportingCanvaId(design.id)
-    try {
-      const lines = [
-        `Fonte: Canva Design Studio`,
-        `Título: ${design.title}`,
-        design.editUrl ? `Link de Edição Canva: ${design.editUrl}` : null,
-        design.thumbnailUrl ? `Miniatura/Asset: ${design.thumbnailUrl}` : null,
-        design.updatedAt ? `Última modificação: ${design.updatedAt}` : null,
-        '',
-        `Design visual importado da biblioteca Canva do usuário para apoiar criação de posts, carrosséis e banners.`,
-      ]
-        .filter(Boolean)
-        .join('\n')
-
-      const ctx: ImportedContextItem = {
-        id: `ctx-canva-${design.id}`,
-        source: 'canva',
-        title: design.title,
-        subtitle: `Canva Design · ${design.updatedAt || 'Recente'}`,
-        content: lines,
-        origin: design.editUrl,
-        imageUrl: design.thumbnailUrl,
-        type: 'canva',
-        metadata: {
-          canvaId: design.id,
-          editUrl: design.editUrl,
-          thumbnailUrl: design.thumbnailUrl,
-        },
-        createdAt: new Date().toISOString(),
-      }
-      onImportContext(ctx)
-      toast({
-        title: 'Design Canva importado!',
-        description: `"${design.title}" agora faz parte do contexto ativo.`,
-      })
-      onOpenChange(false)
-    } finally {
-      setImportingCanvaId(null)
-    }
-  }
+  // Removido: Canva saiu do conjunto de conectores do app
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -727,9 +585,9 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                   </Badge>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400">
-                  Conecte suas contas pessoais do Google, Microsoft (Outlook, OneDrive, SharePoint),
-                  CRMs (Pipedrive, HubSpot) e Canva para importar contexto ativo direto nas suas
-                  notas e IA.
+                  Conecte suas contas pessoais do Google, Microsoft (Outlook), redes sociais
+                  (Instagram, Facebook), CRMs (Pipedrive, HubSpot) e Google Agenda para importar
+                  contexto ativo e publicar automaticamente.
                 </DialogDescription>
               </div>
             </div>
@@ -788,22 +646,32 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                 )}
               </TabsTrigger>
               <TabsTrigger
-                value="onedrive"
+                value="instagram"
                 className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
               >
-                <Cloud className="w-3.5 h-3.5 text-blue-400" />
-                <span>OneDrive</span>
-                {getStatus('one_drive') === 'connected' && (
+                <InstagramIcon className="w-3.5 h-3.5 text-pink-400" />
+                <span>Instagram</span>
+                {getStatus('instagram') === 'connected' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
               </TabsTrigger>
               <TabsTrigger
-                value="sharepoint"
+                value="facebook"
                 className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
               >
-                <Layers className="w-3.5 h-3.5 text-teal-400" />
-                <span>SharePoint</span>
-                {getStatus('share_point') === 'connected' && (
+                <FacebookIcon className="w-3.5 h-3.5 text-blue-400" />
+                <span>Facebook</span>
+                {getStatus('facebook') === 'connected' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="googlecalendar"
+                className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
+              >
+                <CalendarPlus className="w-3.5 h-3.5 text-sky-400" />
+                <span>Google Agenda</span>
+                {getStatus('googlecalendar') === 'connected' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
               </TabsTrigger>
@@ -844,16 +712,6 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                 <UsersIcon className="w-3.5 h-3.5 text-orange-400" />
                 <span>HubSpot</span>
                 {getStatus('hubspot') === 'connected' && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                )}
-              </TabsTrigger>
-              <TabsTrigger
-                value="canva"
-                className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
-              >
-                <Palette className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Canva</span>
-                {getStatus('canva') === 'connected' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
               </TabsTrigger>
@@ -987,83 +845,126 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                   </div>
                 </div>
 
-                {/* Card Microsoft OneDrive */}
+                {/* Card Instagram */}
                 <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <Cloud className="w-5 h-5 text-blue-400" />
+                      <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+                        <InstagramIcon className="w-5 h-5 text-pink-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-white">OneDrive</div>
-                        <div className="text-xs text-slate-400">Documentos e pastas na nuvem</div>
+                        <div className="text-sm font-bold text-white">Instagram</div>
+                        <div className="text-xs text-slate-400">Publicação automática de posts</div>
                       </div>
                     </div>
                     <Badge
                       className={
-                        getStatus('one_drive') === 'connected'
+                        getStatus('instagram') === 'connected'
                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
                           : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
                       }
                     >
-                      {getStatus('one_drive') === 'connected' ? 'Conectado' : 'Desconectado'}
+                      {getStatus('instagram') === 'connected' ? 'Conectado' : 'Desconectado'}
                     </Badge>
                   </div>
                   <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
                     <ConnectorButton
-                      toolkit="one_drive"
-                      name="OneDrive"
-                      className="[&>button]:bg-blue-600 [&>button]:hover:bg-blue-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                      toolkit="instagram"
+                      name="Instagram"
+                      className="[&>button]:bg-pink-600 [&>button]:hover:bg-pink-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
                     />
-                    {getStatus('one_drive') === 'connected' && (
+                    {getStatus('instagram') === 'connected' && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setActiveTab('onedrive')}
+                        onClick={() => setActiveTab('instagram')}
                         className="text-xs border-slate-700 text-slate-300 hover:text-white"
                       >
-                        Navegar →
+                        Ver contas →
                       </Button>
                     )}
                   </div>
                 </div>
 
-                {/* Card Microsoft SharePoint */}
+                {/* Card Facebook */}
                 <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
-                        <Layers className="w-5 h-5 text-teal-400" />
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <FacebookIcon className="w-5 h-5 text-blue-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-white">SharePoint</div>
-                        <div className="text-xs text-slate-400">Bases e arquivos de equipe</div>
+                        <div className="text-sm font-bold text-white">Facebook</div>
+                        <div className="text-xs text-slate-400">Publicação automática de posts</div>
                       </div>
                     </div>
                     <Badge
                       className={
-                        getStatus('share_point') === 'connected'
+                        getStatus('facebook') === 'connected'
                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
                           : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
                       }
                     >
-                      {getStatus('share_point') === 'connected' ? 'Conectado' : 'Desconectado'}
+                      {getStatus('facebook') === 'connected' ? 'Conectado' : 'Desconectado'}
                     </Badge>
                   </div>
                   <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
                     <ConnectorButton
-                      toolkit="share_point"
-                      name="SharePoint"
-                      className="[&>button]:bg-teal-600 [&>button]:hover:bg-teal-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                      toolkit="facebook"
+                      name="Facebook"
+                      className="[&>button]:bg-blue-600 [&>button]:hover:bg-blue-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
                     />
-                    {getStatus('share_point') === 'connected' && (
+                    {getStatus('facebook') === 'connected' && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setActiveTab('sharepoint')}
+                        onClick={() => setActiveTab('facebook')}
                         className="text-xs border-slate-700 text-slate-300 hover:text-white"
                       >
-                        Bases →
+                        Ver páginas →
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Google Agenda */}
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                        <CalendarPlus className="w-5 h-5 text-sky-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">Google Agenda</div>
+                        <div className="text-xs text-slate-400">
+                          Sincronizar posts agendados como eventos
+                        </div>
+                      </div>
+                    </div>
+                    <Badge
+                      className={
+                        getStatus('googlecalendar') === 'connected'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
+                      }
+                    >
+                      {getStatus('googlecalendar') === 'connected' ? 'Conectado' : 'Desconectado'}
+                    </Badge>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <ConnectorButton
+                      toolkit="googlecalendar"
+                      name="Google Agenda"
+                      className="[&>button]:bg-sky-600 [&>button]:hover:bg-sky-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                    />
+                    {getStatus('googlecalendar') === 'connected' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setActiveTab('googlecalendar')}
+                        className="text-xs border-slate-700 text-slate-300 hover:text-white"
+                      >
+                        Ver agenda →
                       </Button>
                     )}
                   </div>
@@ -1232,47 +1133,6 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                     )}
                   </div>
                 </div>
-
-                {/* Card Canva */}
-                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-cyan-400" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-white">Canva</div>
-                        <div className="text-xs text-slate-400">Designs, artes e carrosséis</div>
-                      </div>
-                    </div>
-                    <Badge
-                      className={
-                        getStatus('canva') === 'connected'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
-                          : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
-                      }
-                    >
-                      {getStatus('canva') === 'connected' ? 'Conectado' : 'Desconectado'}
-                    </Badge>
-                  </div>
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                    <ConnectorButton
-                      toolkit="canva"
-                      name="Canva"
-                      className="[&>button]:bg-cyan-600 [&>button]:hover:bg-cyan-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
-                    />
-                    {getStatus('canva') === 'connected' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setActiveTab('canva')}
-                        className="text-xs border-slate-700 text-slate-300 hover:text-white"
-                      >
-                        Ver Designs →
-                      </Button>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Dica de Privacidade */}
@@ -1283,10 +1143,10 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                     Multi-Nuvem Pessoal & Privacidade Segura:
                   </span>
                   <p className="leading-relaxed">
-                    Cada usuário conecta suas próprias contas da Microsoft e Google com autenticação
-                    direta. O Segundo Cérebro lê exclusivamente os arquivos e e-mails que você
-                    selecionar para os chips de Contexto Ativo, que alimentam as gerações
-                    pedagógicas do MagicAuthor.
+                    Cada usuário conecta as próprias contas (Google, Microsoft, Instagram, Facebook
+                    e CRMs) com autenticação direta. O app lê exclusivamente o que você selecionar
+                    para os chips de Contexto Ativo e publica nos seus perfis — nada é compartilhado
+                    entre usuários.
                   </p>
                 </div>
               </div>
@@ -1717,96 +1577,76 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
               )}
             </TabsContent>
 
-            {/* ABA 5: ONEDRIVE */}
-            <TabsContent value="onedrive" className="space-y-4 m-0">
-              {getStatus('one_drive') !== 'connected' ? (
+            {/* ABA: INSTAGRAM */}
+            <TabsContent value="instagram" className="space-y-4 m-0">
+              {getStatus('instagram') !== 'connected' ? (
                 <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
-                  <Cloud className="w-12 h-12 text-blue-400 mx-auto opacity-70" />
+                  <InstagramIcon className="w-12 h-12 text-pink-400 mx-auto opacity-70" />
                   <div className="max-w-md mx-auto space-y-1">
-                    <div className="text-base font-bold text-white">OneDrive não conectado</div>
+                    <div className="text-base font-bold text-white">Instagram não conectado</div>
                     <div className="text-xs text-slate-400">
-                      Conecte sua conta do Microsoft OneDrive para selecionar arquivos, slides e
-                      documentos de texto como contexto pedagógico.
+                      Conecte sua conta do Instagram para ver as contas comerciais disponíveis e
+                      agendar publicação automática de posts.
                     </div>
                   </div>
                   <ConnectorButton
-                    toolkit="one_drive"
-                    name="OneDrive"
-                    className="flex justify-center [&>button]:bg-blue-600 [&>button]:hover:bg-blue-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                    toolkit="instagram"
+                    name="Instagram"
+                    className="flex justify-center [&>button]:bg-pink-600 [&>button]:hover:bg-pink-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
                   />
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <Input
-                        value={oneDriveSearch}
-                        onChange={(e) => setOneDriveSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleLoadOneDrive()}
-                        placeholder="Buscar arquivos no seu OneDrive..."
-                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge className="bg-pink-500/20 text-pink-300 border-pink-500/30 text-xs">
+                      {instagramAccounts.length} conta(s) comercial(is)
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLoadInstagramAccounts}
+                        disabled={loadingInstagram}
+                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 mr-1.5 ${loadingInstagram ? 'animate-spin' : ''}`}
+                        />
+                        Atualizar
+                      </Button>
+                      <ConnectorButton
+                        toolkit="instagram"
+                        name="Instagram"
+                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
                       />
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={handleLoadOneDrive}
-                      disabled={loadingOneDrive}
-                      className="bg-purple-600 hover:bg-purple-500 text-xs font-semibold rounded-xl"
-                    >
-                      {loadingOneDrive ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        'Buscar'
-                      )}
-                    </Button>
                   </div>
 
-                  <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-                    {loadingOneDrive && oneDriveFiles.length === 0 ? (
+                  <div className="space-y-2">
+                    {loadingInstagram && instagramAccounts.length === 0 ? (
                       <div className="p-8 text-center text-xs text-slate-400">
-                        Buscando arquivos no seu OneDrive...
+                        Carregando suas contas do Instagram...
                       </div>
-                    ) : oneDriveFiles.length === 0 ? (
+                    ) : instagramAccounts.length === 0 ? (
                       <div className="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-2xl">
-                        Nenhum arquivo encontrado no OneDrive.
+                        Nenhuma conta comercial do Instagram encontrada. Verifique se o perfil está
+                        vinculado a uma Página do Facebook.
                       </div>
                     ) : (
-                      oneDriveFiles.map((file) => (
+                      instagramAccounts.map((acc) => (
                         <div
-                          key={file.id}
-                          className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 transition-all"
+                          key={acc.id}
+                          className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-3"
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                              <Cloud className="w-4 h-4 text-blue-400" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-white truncate">
-                                {file.name}
-                              </div>
-                              <div className="text-[11px] text-slate-400 truncate">
-                                {file.author || 'OneDrive'} ·{' '}
-                                {file.modifiedAt
-                                  ? new Date(file.modifiedAt).toLocaleDateString('pt-BR')
-                                  : 'Recente'}
-                              </div>
+                          <div className="w-8 h-8 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
+                            <InstagramIcon className="w-4 h-4 text-pink-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-white truncate">{acc.name}</div>
+                            <div className="text-[11px] text-slate-400 truncate">
+                              {acc.subtitle || 'Instagram Professional'}
                             </div>
                           </div>
-
-                          <Button
-                            size="sm"
-                            disabled={importingOneDriveId === file.id}
-                            onClick={() => handleImportOneDriveFile(file)}
-                            className="h-7 text-xs bg-purple-600 hover:bg-purple-500 text-white rounded-lg gap-1 shrink-0"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>
-                              {importingOneDriveId === file.id
-                                ? 'Importando...'
-                                : 'Inserir Contexto'}
-                            </span>
-                          </Button>
                         </div>
                       ))
                     )}
@@ -1815,99 +1655,123 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
               )}
             </TabsContent>
 
-            {/* ABA 6: SHAREPOINT */}
-            <TabsContent value="sharepoint" className="space-y-4 m-0">
-              {getStatus('share_point') !== 'connected' ? (
+            {/* ABA: FACEBOOK */}
+            <TabsContent value="facebook" className="space-y-4 m-0">
+              {getStatus('facebook') !== 'connected' ? (
                 <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
-                  <Layers className="w-12 h-12 text-teal-400 mx-auto opacity-70" />
+                  <FacebookIcon className="w-12 h-12 text-blue-400 mx-auto opacity-70" />
                   <div className="max-w-md mx-auto space-y-1">
-                    <div className="text-base font-bold text-white">SharePoint não conectado</div>
+                    <div className="text-base font-bold text-white">Facebook não conectado</div>
                     <div className="text-xs text-slate-400">
-                      Conecte sua conta do Microsoft SharePoint para integrar diretrizes
-                      institucionais, matrizes curriculares e bases de conhecimento da organização.
+                      Conecte sua conta do Facebook para ver suas Páginas e agendar publicação
+                      automática de posts.
                     </div>
                   </div>
                   <ConnectorButton
-                    toolkit="share_point"
-                    name="SharePoint"
-                    className="flex justify-center [&>button]:bg-teal-600 [&>button]:hover:bg-teal-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                    toolkit="facebook"
+                    name="Facebook"
+                    className="flex justify-center [&>button]:bg-blue-600 [&>button]:hover:bg-blue-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
                   />
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <Input
-                        value={sharePointSearch}
-                        onChange={(e) => setSharePointSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleLoadSharePoint()}
-                        placeholder="Buscar documentos no SharePoint da instituição..."
-                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                      {facebookPages.length} página(s)
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLoadFacebookPages}
+                        disabled={loadingFacebook}
+                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 mr-1.5 ${loadingFacebook ? 'animate-spin' : ''}`}
+                        />
+                        Atualizar
+                      </Button>
+                      <ConnectorButton
+                        toolkit="facebook"
+                        name="Facebook"
+                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
                       />
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={handleLoadSharePoint}
-                      disabled={loadingSharePoint}
-                      className="bg-purple-600 hover:bg-purple-500 text-xs font-semibold rounded-xl"
-                    >
-                      {loadingSharePoint ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        'Buscar'
-                      )}
-                    </Button>
                   </div>
 
-                  <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-                    {loadingSharePoint && sharePointFiles.length === 0 ? (
+                  <div className="space-y-2">
+                    {loadingFacebook && facebookPages.length === 0 ? (
                       <div className="p-8 text-center text-xs text-slate-400">
-                        Consultando sites e bibliotecas do SharePoint...
+                        Carregando suas Páginas do Facebook...
                       </div>
-                    ) : sharePointFiles.length === 0 ? (
+                    ) : facebookPages.length === 0 ? (
                       <div className="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-2xl">
-                        Nenhum documento encontrado no SharePoint.
+                        Nenhuma Página encontrada nesta conta do Facebook.
                       </div>
                     ) : (
-                      sharePointFiles.map((file) => (
+                      facebookPages.map((page) => (
                         <div
-                          key={file.id}
-                          className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 transition-all"
+                          key={page.id}
+                          className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-3"
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
-                              <Layers className="w-4 h-4 text-teal-400" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-white truncate">
-                                {file.name}
-                              </div>
-                              <div className="text-[11px] text-slate-400 truncate">
-                                {file.author || 'Instituição'} ·{' '}
-                                {file.modifiedAt
-                                  ? new Date(file.modifiedAt).toLocaleDateString('pt-BR')
-                                  : 'Recente'}
-                              </div>
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                            <FacebookIcon className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-white truncate">{page.name}</div>
+                            <div className="text-[11px] text-slate-400 truncate">
+                              {page.subtitle || 'Página do Facebook'}
                             </div>
                           </div>
-
-                          <Button
-                            size="sm"
-                            disabled={importingSharePointId === file.id}
-                            onClick={() => handleImportSharePointFile(file)}
-                            className="h-7 text-xs bg-purple-600 hover:bg-purple-500 text-white rounded-lg gap-1 shrink-0"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>
-                              {importingSharePointId === file.id
-                                ? 'Importando...'
-                                : 'Inserir Contexto'}
-                            </span>
-                          </Button>
                         </div>
                       ))
                     )}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ABA: GOOGLE AGENDA */}
+            <TabsContent value="googlecalendar" className="space-y-4 m-0">
+              {getStatus('googlecalendar') !== 'connected' ? (
+                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
+                  <CalendarPlus className="w-12 h-12 text-sky-400 mx-auto opacity-70" />
+                  <div className="max-w-md mx-auto space-y-1">
+                    <div className="text-base font-bold text-white">
+                      Google Agenda não conectada
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Conecte sua conta do Google para criar eventos na sua Agenda a partir dos
+                      posts agendados no calendário editorial.
+                    </div>
+                  </div>
+                  <ConnectorButton
+                    toolkit="googlecalendar"
+                    name="Google Agenda"
+                    className="flex justify-center [&>button]:bg-sky-600 [&>button]:hover:bg-sky-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                  />
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                        <CalendarCheck className="w-5 h-5 text-sky-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">Agenda conectada</div>
+                        <div className="text-xs text-slate-400">
+                          Use o botão “Sincronizar com Google Agenda” no Calendário editorial para
+                          criar os eventos dos posts agendados.
+                        </div>
+                      </div>
+                    </div>
+                    <ConnectorButton
+                      toolkit="googlecalendar"
+                      name="Google Agenda"
+                      className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
+                    />
                   </div>
                 </div>
               )}
@@ -2418,172 +2282,12 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                 </div>
               )}
             </TabsContent>
-
-            {/* ABA: CANVA DESIGNS */}
-            <TabsContent value="canva" className="space-y-4 m-0">
-              {getStatus('canva') !== 'connected' ? (
-                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
-                  <Palette className="w-12 h-12 text-cyan-400 mx-auto opacity-70" />
-                  <div className="max-w-md mx-auto space-y-1">
-                    <div className="text-base font-bold text-white">Canva não conectado</div>
-                    <div className="text-xs text-slate-400">
-                      Conecte sua conta pessoal do Canva para listar e importar seus designs, posts
-                      e carrosséis direto para o Segundo Cérebro.
-                    </div>
-                  </div>
-                  <ConnectorButton
-                    toolkit="canva"
-                    name="Canva"
-                    className="flex justify-center [&>button]:bg-cyan-600 [&>button]:hover:bg-cyan-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30 text-xs">
-                        {canvaDesigns.length} designs disponíveis
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleLoadCanva}
-                        disabled={loadingCanva}
-                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
-                      >
-                        <RefreshCw
-                          className={`w-3.5 h-3.5 mr-1.5 ${loadingCanva ? 'animate-spin' : ''}`}
-                        />
-                        Atualizar
-                      </Button>
-                      <ConnectorButton
-                        toolkit="canva"
-                        name="Canva"
-                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <Input
-                        value={canvaSearch}
-                        onChange={(e) => setCanvaSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleLoadCanva()}
-                        placeholder="Buscar designs por título no Canva..."
-                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={handleLoadCanva}
-                      disabled={loadingCanva}
-                      className="bg-cyan-600 hover:bg-cyan-500 text-xs font-semibold rounded-xl"
-                    >
-                      {loadingCanva ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Buscar'}
-                    </Button>
-                  </div>
-
-                  {/* Grid de Designs Canva */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1">
-                    {loadingCanva && (
-                      <div className="col-span-full p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
-                        Carregando seus designs do Canva...
-                      </div>
-                    )}
-
-                    {!loadingCanva && canvaDesigns.length === 0 && (
-                      <div className="col-span-full p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
-                        <Palette className="w-8 h-8 text-slate-500 mx-auto" />
-                        <div className="text-xs text-slate-400">
-                          Nenhum design encontrado no seu Canva.
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleLoadCanva}
-                          className="text-xs border-slate-700 text-slate-300"
-                        >
-                          Recarregar Biblioteca
-                        </Button>
-                      </div>
-                    )}
-
-                    {!loadingCanva &&
-                      canvaDesigns.map((design) => (
-                        <div
-                          key={design.id}
-                          className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex flex-col justify-between gap-3 group transition-all"
-                        >
-                          <div className="space-y-2">
-                            {design.thumbnailUrl ? (
-                              <div className="w-full h-28 rounded-xl bg-slate-950 overflow-hidden relative border border-slate-800/60">
-                                <img
-                                  src={design.thumbnailUrl}
-                                  alt={design.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-full h-28 rounded-xl bg-cyan-950/20 border border-cyan-800/30 flex items-center justify-center">
-                                <Palette className="w-8 h-8 text-cyan-400/60" />
-                              </div>
-                            )}
-
-                            <div>
-                              <div className="text-xs font-semibold text-white truncate">
-                                {design.title}
-                              </div>
-                              <div className="text-[11px] text-slate-400 truncate">
-                                {design.updatedAt || 'Design recente'}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
-                            {design.editUrl && (
-                              <a
-                                href={design.editUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1"
-                              >
-                                Abrir no Canva ↗
-                              </a>
-                            )}
-                            <Button
-                              size="sm"
-                              onClick={() => handleImportCanvaDesign(design)}
-                              disabled={importingCanvaId === design.id}
-                              className="ml-auto bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
-                            >
-                              {importingCanvaId === design.id ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Plus className="w-3.5 h-3.5 mr-1" />
-                                  Importar
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
           </Tabs>
         </div>
 
         {/* Rodapé Informativo */}
         <div className="px-6 py-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">
-          <span>Segundo Cérebro · Integração Direta de Nuvem</span>
+          <span>Conectores Pessoais · Integração Direta de Nuvem</span>
           <Button
             variant="ghost"
             size="sm"
