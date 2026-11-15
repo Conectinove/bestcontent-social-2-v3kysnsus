@@ -465,16 +465,16 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
       >
         <DialogTitle className="sr-only">Busca Rápida e Ações (Ctrl+K)</DialogTitle>
         <DialogDescription className="sr-only">
-          Pesquise termos recentes, assuntos em alta e atalhos rápidos do MidiaViva.
+          Pesquise termos recentes, assuntos em alta e atalhos rápidos da MudarCursos.
         </DialogDescription>
 
         {/* Topo do Modelo DonnaVende: Input com Ícone de Lupa e Badge */}
         <div className="p-3 sm:p-4 border-b border-border/60 bg-muted/20">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-purple-500/40 bg-card shadow-xs focus-within:border-purple-600 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-            {/* Pill de contexto r/mudarcurso (fiel ao visual DonnaVende) */}
+            {/* Pill de contexto /mudarcursos */}
             <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold text-xs shrink-0 border border-purple-500/20">
               <Search className="w-3 h-3 text-purple-600" />
-              <span>r/mudarcurso</span>
+              <span>/mudarcursos</span>
             </span>
             <Search className="w-4 h-4 text-purple-600 shrink-0 sm:hidden" />
             <input
@@ -485,7 +485,7 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
                 setQuery(e.target.value)
                 setSelectedIndex(0)
               }}
-              placeholder="Buscar no Reddit MudarCurso ou MidiaViva..."
+              placeholder="Buscar na MudarCursos..."
               className="flex-1 bg-transparent text-sm sm:text-base text-foreground placeholder:text-muted-foreground outline-none font-medium min-w-0"
               aria-label="Campo de busca rápida"
             />
