@@ -249,7 +249,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/80">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-2xl bg-purple-600/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold">
               <Search className="w-5 h-5" />
             </div>
             <h1 className="text-2xl font-black text-foreground">Ferramentas de SEO Social</h1>
@@ -263,7 +263,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"
-            className="text-xs border-purple-500/30 text-purple-600 font-bold px-3 py-1"
+            className="text-xs border-primary/30 text-primary font-bold px-3 py-1"
           >
             Algoritmos Atualizados 2025
           </Badge>
@@ -273,13 +273,13 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
       <Tabs defaultValue="analyzer" className="space-y-6">
         <TabsList className="bg-muted/60 p-1 rounded-2xl border border-border">
           <TabsTrigger value="analyzer" className="rounded-xl text-xs font-bold gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Analisador de Legenda
+            <Sparkles className="w-3.5 h-3.5 text-primary" /> Analisador de Legenda
           </TabsTrigger>
           <TabsTrigger value="keywords" className="rounded-xl text-xs font-bold gap-2">
-            <Hash className="w-3.5 h-3.5 text-purple-600" /> Palavras-Chave & Volume
+            <Hash className="w-3.5 h-3.5 text-primary" /> Palavras-Chave & Volume
           </TabsTrigger>
           <TabsTrigger value="checklists" className="rounded-xl text-xs font-bold gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" /> Checklist por Rede
+            <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Checklist por Rede
           </TabsTrigger>
         </TabsList>
 
@@ -309,7 +309,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                           onClick={() => setSelectedNetwork(net)}
                           className={`px-2.5 py-1 rounded-xl text-xs font-semibold capitalize transition-all ${
                             selectedNetwork === net
-                              ? 'bg-purple-600 text-white shadow-xs'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
                               : 'bg-muted/60 hover:bg-muted text-muted-foreground'
                           }`}
                         >
@@ -329,7 +329,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                     value={captionInput}
                     onChange={(e) => setCaptionInput(e.target.value)}
                     placeholder="Cole ou redija o texto para avaliar a pontuação de SEO..."
-                    className="text-xs rounded-2xl resize-none font-medium leading-relaxed bg-muted/30 focus-visible:ring-purple-500"
+                    className="text-xs rounded-2xl resize-none font-medium leading-relaxed bg-muted/30 focus-visible:ring-primary/40"
                   />
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
                     <span>
@@ -402,7 +402,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                       type="button"
                       onClick={handleApplyAiOptimization}
                       disabled={improvingWithAi || !captionInput.trim()}
-                      className="rounded-xl text-xs h-9 px-3 bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5 shadow-xs"
+                      className="rounded-xl text-xs h-9 px-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1.5 shadow-xs"
                     >
                       {improvingWithAi ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -460,8 +460,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                   <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Gancho da 1ª Linha
-                        (Hook)
+                        <Sparkles className="w-3.5 h-3.5 text-primary" /> Gancho da 1ª Linha (Hook)
                       </span>
                       <Badge
                         variant="outline"
@@ -481,17 +480,17 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                     {/* Alternativas sugeridas */}
                     {analysis.breakdown.hook.suggestedAlternatives && (
                       <div className="pt-1 space-y-1">
-                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block">
+                        <span className="text-[10px] font-bold text-primary block">
                           Alternativas sugeridas para a 1ª linha:
                         </span>
                         {analysis.breakdown.hook.suggestedAlternatives.map((alt, i) => (
                           <div
                             key={i}
                             onClick={() => handleApplyAlternativeHook(alt)}
-                            className="p-1.5 rounded-xl bg-card border border-border/70 hover:border-purple-500/40 text-[11px] text-foreground cursor-pointer flex items-center justify-between transition-colors"
+                            className="p-1.5 rounded-xl bg-card border border-border/70 hover:border-primary/40 text-[11px] text-foreground cursor-pointer flex items-center justify-between transition-colors"
                           >
                             <span className="truncate">"{alt}"</span>
-                            <span className="text-purple-600 font-bold text-[10px] shrink-0 ml-1">
+                            <span className="text-primary font-bold text-[10px] shrink-0 ml-1">
                               Usar
                             </span>
                           </div>
@@ -504,7 +503,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                   <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Bookmark className="w-3.5 h-3.5 text-purple-600" /> Chamada para Ação (CTA)
+                        <Bookmark className="w-3.5 h-3.5 text-primary" /> Chamada para Ação (CTA)
                       </span>
                       <Badge
                         variant="outline"
@@ -524,17 +523,17 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                     {/* CTAs sugeridas */}
                     {analysis.breakdown.cta.suggestedCtas && (
                       <div className="pt-1 space-y-1">
-                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block">
+                        <span className="text-[10px] font-bold text-primary block">
                           Exemplos de alta conversão:
                         </span>
                         {analysis.breakdown.cta.suggestedCtas.slice(0, 2).map((ctaEx, i) => (
                           <div
                             key={i}
                             onClick={() => handleApplyCta(ctaEx)}
-                            className="p-1.5 rounded-xl bg-card border border-border/70 hover:border-purple-500/40 text-[11px] text-foreground cursor-pointer flex items-center justify-between transition-colors"
+                            className="p-1.5 rounded-xl bg-card border border-border/70 hover:border-primary/40 text-[11px] text-foreground cursor-pointer flex items-center justify-between transition-colors"
                           >
                             <span className="truncate">{ctaEx}</span>
-                            <span className="text-purple-600 font-bold text-[10px] shrink-0 ml-1">
+                            <span className="text-primary font-bold text-[10px] shrink-0 ml-1">
                               Inserir
                             </span>
                           </div>
@@ -547,7 +546,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                   <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-purple-600" /> Legibilidade e Respiro
+                        <Layers className="w-3.5 h-3.5 text-primary" /> Legibilidade e Respiro
                       </span>
                       <Badge
                         variant="outline"
@@ -569,7 +568,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                   <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Hash className="w-3.5 h-3.5 text-purple-600" /> Densidade de Hashtags
+                        <Hash className="w-3.5 h-3.5 text-primary" /> Densidade de Hashtags
                       </span>
                       <Badge
                         variant="outline"
@@ -591,14 +590,14 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
 
                 {/* Recomendações Acionáveis */}
                 {analysis.recommendations.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                  <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-primary flex items-center gap-1">
                       <TrendingUp className="w-3.5 h-3.5" /> Ações Práticas para Elevar o Score:
                     </span>
                     <ul className="space-y-1 text-xs text-foreground/90">
                       {analysis.recommendations.map((rec, i) => (
                         <li key={i} className="flex items-start gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                           <span>{rec}</span>
                         </li>
                       ))}
@@ -613,15 +612,15 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
         {/* TAB 2: PALAVRAS-CHAVE EM CAMADAS & BOTÃO COMBINAR MIX */}
         <TabsContent value="keywords" className="space-y-6">
           {/* Card Superior: Motor em 3 Camadas & Botão Combinar */}
-          <Card className="p-6 rounded-3xl border-purple-500/30 bg-purple-500/5 space-y-5 shadow-xs">
+          <Card className="p-6 rounded-3xl border-primary/30 bg-primary/5 space-y-5 shadow-xs">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-purple-600" />
+                  <Layers className="w-5 h-5 text-primary" />
                   <h3 className="text-base font-black text-foreground">
                     Sugestões em Camadas por Nicho ({nicheInput})
                   </h3>
-                  <Badge className="bg-purple-600 text-white text-[10px] font-bold">
+                  <Badge className="bg-primary text-primary-foreground text-[10px] font-bold">
                     Head + Long-tails + Locais
                   </Badge>
                 </div>
@@ -643,7 +642,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                       description: `${mix.length} termos selecionados (Mix Head + Long-tail + Local) prontos para colar.`,
                     })
                   }}
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-2xl h-9 gap-1.5 shadow-sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-2xl h-9 gap-1.5 shadow-sm"
                 >
                   <Shuffle className="w-3.5 h-3.5" />
                   <span>Combinar Mix (8-12 Termos)</span>
@@ -660,7 +659,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                       description: `${mix.length} palavras-chave inseridas como hashtags estratégicas no editor.`,
                     })
                   }}
-                  className="text-xs font-bold rounded-2xl h-9 gap-1.5 border-purple-500/30 text-purple-700 dark:text-purple-300"
+                  className="text-xs font-bold rounded-2xl h-9 gap-1.5 border-primary/30 text-primary"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Aplicar na Legenda</span>
@@ -669,7 +668,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
             </div>
 
             {/* Filtro de Camadas */}
-            <div className="flex items-center gap-2 pt-2 border-t border-purple-500/20 flex-wrap">
+            <div className="flex items-center gap-2 pt-2 border-t border-primary/20 flex-wrap">
               <span className="text-xs font-bold text-muted-foreground mr-1">
                 Filtrar por camada:
               </span>
@@ -687,7 +686,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                   onClick={() => setKeywordLayerFilter(f.key)}
                   className={`text-[11px] h-7 rounded-xl ${
                     keywordLayerFilter === f.key
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
                       : 'border-border'
                   }`}
                 >
@@ -713,7 +712,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                 return (
                   <Card
                     key={idx}
-                    className="p-4 rounded-2xl border-border bg-card space-y-3 hover:border-purple-500/40 transition-all flex flex-col justify-between"
+                    className="p-4 rounded-2xl border-border bg-card space-y-3 hover:border-primary/40 transition-all flex flex-col justify-between"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
@@ -723,7 +722,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                         >
                           {kw.layerLabel}
                         </Badge>
-                        <span className="text-[10px] font-mono font-bold text-purple-600">
+                        <span className="text-[10px] font-mono font-bold text-primary">
                           Score {kw.relevanceScore}%
                         </span>
                       </div>
@@ -758,7 +757,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                         </div>
                         <div className="p-1.5 rounded-lg bg-muted/40">
                           <span className="text-[9px] text-muted-foreground block">Intenção</span>
-                          <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 capitalize">
+                          <span className="text-[10px] font-bold text-primary capitalize">
                             {kw.intent}
                           </span>
                         </div>
@@ -798,7 +797,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                             description: `"${kw.keyword}" adicionado ao texto da análise.`,
                           })
                         }}
-                        className="text-[11px] h-8 px-2.5 rounded-xl border-purple-500/30 text-purple-600 hover:bg-purple-500/10 font-bold"
+                        className="text-[11px] h-8 px-2.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 font-bold"
                       >
                         + Legenda
                       </Button>
@@ -830,7 +829,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                 />
                 <Button
                   onClick={handleSearchKeywords}
-                  className="h-9 px-4 rounded-xl text-xs bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1"
+                  className="h-9 px-4 rounded-xl text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1"
                 >
                   <Search className="w-3.5 h-3.5" /> Buscar
                 </Button>
@@ -838,7 +837,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
             </div>
 
             <div className="p-3 rounded-2xl bg-muted/40 border border-border/80 text-xs text-muted-foreground flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-purple-600 shrink-0" />
+              <AlertCircle className="w-4 h-4 text-primary shrink-0" />
               <span>
                 <strong>Aviso de Estimativa:</strong> Volumes e métricas calibrados por benchmarks
                 de mercado até conexão de APIs nativas.
@@ -849,7 +848,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
               {keywordsList.map((k, i) => (
                 <div
                   key={i}
-                  className="p-4 rounded-2xl bg-muted/30 border border-border/70 hover:border-purple-500/40 transition-all space-y-3"
+                  className="p-4 rounded-2xl bg-muted/30 border border-border/70 hover:border-primary/40 transition-all space-y-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-xs font-bold text-foreground">{k.term}</span>
@@ -874,9 +873,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                     </div>
                     <div>
                       <span className="text-[10px] text-muted-foreground block">Intenção</span>
-                      <span className="font-bold text-purple-600 dark:text-purple-400">
-                        {k.intent}
-                      </span>
+                      <span className="font-bold text-primary">{k.intent}</span>
                     </div>
                   </div>
 
@@ -890,7 +887,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                         description: `"${k.term}" foi adicionado ao analisador.`,
                       })
                     }}
-                    className="w-full h-8 text-[11px] rounded-xl font-bold text-purple-600 hover:bg-purple-500/10 gap-1"
+                    className="w-full h-8 text-[11px] rounded-xl font-bold text-primary hover:bg-primary/10 gap-1"
                   >
                     <span>Usar no post</span>
                     <ArrowRight className="w-3 h-3" />
@@ -929,7 +926,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                     onClick={() => setSelectedNetwork(net)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
                       selectedNetwork === net
-                        ? 'bg-purple-600 text-white shadow-xs'
+                        ? 'bg-primary text-primary-foreground shadow-xs'
                         : 'bg-muted/60 hover:bg-muted text-muted-foreground'
                     }`}
                   >
@@ -966,7 +963,7 @@ Crie um gancho magnético e específico na 1ª linha antes do corte de '...mais'
                     </p>
                   </div>
 
-                  <Badge className="bg-purple-600/15 text-purple-700 dark:text-purple-300 border-0 text-[10px] font-bold shrink-0 self-start sm:self-center">
+                  <Badge className="bg-primary/15 text-primary border-0 text-[10px] font-bold shrink-0 self-start sm:self-center">
                     Recomendado
                   </Badge>
                 </div>
