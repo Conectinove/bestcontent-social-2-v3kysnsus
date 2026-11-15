@@ -5,5 +5,6 @@ pb.autoCancellation(false)
 
 export default pb
 
-// GUARDA: manter sempre o export nomeado também — regressão silenciosa já 12x
+// GUARDA DE REGRESSÃO: manter SEMPRE o export nomeado { pb } além do default —
+// já perdeu 13 vezes na árvore e quebra silenciosamente imports `import { pb } from ...`
 export { pb }

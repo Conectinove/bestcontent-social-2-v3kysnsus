@@ -42,6 +42,54 @@ export async function getCommunityTopics(
   }
 }
 
+/**
+ * Página de posts do feed com paginação real no servidor (getList).
+ * Enriquece replies_count com UMA query agregada (count) em vez de N+1.
+ */
+export async function getCommunityTopicsPaged(
+  page: number,
+  pageSize = 12,
+  filter?: string,
+  sort = '-created',
+): Promise<{ items: CommunityTopic[]; totalItems: number; totalPages: number; page: number }> {
+  try {
+    const res = await pb.collection('community_topics').getList<CommunityTopic>(page, pageSize, {
+      filter,
+      sort,
+      expand: 'user,category',
+    })
+
+    const topicIds = res.items.map((t) => t.id)
+    let countsByTopic: Record<string, number> = {}
+    if (topicIds.length > 0) {
+      try {
+        // 1 requisição para toda a página: pega só o campo topic e conta localmente
+        const replyRecords = await pb.collection('community_replies').getFullList<{
+          topic: string
+        }>({
+          filter: `topic ?= "${topicIds.join('" || topic ?= "')}"`,
+          fields: 'topic',
+        })
+        countsByTopic = replyRecords.reduce<Record<string, number>>((acc, r) => {
+          acc[r.topic] = (acc[r.topic] || 0) + 1
+          return acc
+        }, {})
+      } catch {
+        countsByTopic = {}
+      }
+    }
+
+    return {
+      items: res.items.map((t) => ({ ...t, replies_count: countsByTopic[t.id] || 0 })),
+      totalItems: res.totalItems,
+      totalPages: res.totalPages,
+      page: res.page,
+    }
+  } catch {
+    return { items: [], totalItems: 0, totalPages: 0, page }
+  }
+}
+
 export async function getUserLikedTopicIds(): Promise<string[]> {
   try {
     const currentUserId = pb.authStore.record?.id

@@ -243,6 +243,12 @@ export default function Feed() {
   const [categories, setCategories] = useState<CommunityCategory[]>([])
   const [likedTopicIds, setLikedTopicIds] = useState<Set<string>>(new Set())
   const [loadingFeed, setLoadingFeed] = useState(true)
+  // Paginação server-side: página atual, flags de fim/limite da listagem
+  const FEED_PAGE_SIZE = 12
+  const [feedPage, setFeedPage] = useState(1)
+  const [feedTotalItems, setFeedTotalItems] = useState(0)
+  const [loadingMoreFeed, setLoadingMoreFeed] = useState(false)
+  const [feedExhausted, setFeedExhausted] = useState(false)
   const [feedFilter, setFeedFilter] = useState<'todos' | 'populares' | 'fixados'>('todos')
   const [selectedCategory, setSelectedCategory] = useState<string>('todas')
   const [mediaTypeFilter, setMediaTypeFilter] = useState<'todos' | 'com_imagem' | 'somente_texto'>(
@@ -286,16 +292,32 @@ export default function Feed() {
   const [isDeleting, setIsDeleting] = useState(false)
   const fileImportRef = useRef<HTMLInputElement>(null)
 
-  // Load feed data from PocketBase
+  // Load feed data from PocketBase (página 1) + categorias + curtidas do usuário
   const loadFeedData = async () => {
     try {
-      const [topicsData, categoriesData, userLikes] = await Promise.all([
+      const [topicsPage, categoriesData, userLikes] = await Promise.all([
         // Membros comuns só veem posts ativos; admin (curadoria) vê tudo
-        getCommunityTopics(isAdmin ? undefined : 'is_active = true'),
+        getCommunityTopicsPaged(1, FEED_PAGE_SIZE, isAdmin ? undefined : 'is_active = true'),
         getCommunityCategories(),
         getUserLikedTopicIds(),
       ])
-      setTopics(topicsData)
+      // Realtime/refresh: mescla com o que já está carregado (páginas antigas preservadas,
+      // novos posts entram no topo, sem duplicar) — exceto no primeiro load (limpa skeleton)
+      setTopics((prev) => {
+        if (!loadingFeed && prev.length > 0) {
+          const seen = new Set(topicsPage.items.map((t) => t.id))
+          const older = prev.filter((t) => !seen.has(t.id))
+          return [...topicsPage.items, ...older]
+        }
+        return topicsPage.items
+      })
+      setFeedPage(1)
+      setFeedTotalItems(topicsPage.totalItems)
+      setFeedExhausted(topicsPage.totalItems <= FEED_PAGE_SIZE)
+      // Novo lote veio completo ⇒ pode haver mais páginas; se veio menos, acabou
+      if (topicsPage.items.length < FEED_PAGE_SIZE) {
+        setFeedExhausted(true)
+      }
       setCategories(categoriesData)
       setLikedTopicIds(new Set(userLikes))
       if (categoriesData.length > 0 && !composerCategory) {
@@ -308,11 +330,40 @@ export default function Feed() {
     }
   }
 
+  // "Carregar mais": anexa a próxima página ao stream, sem duplicar (merge por id)
+  const loadMoreFeed = async () => {
+    if (loadingMoreFeed || feedExhausted) return
+    setLoadingMoreFeed(true)
+    try {
+      const nextPage = feedPage + 1
+      const topicsPage = await getCommunityTopicsPaged(
+        nextPage,
+        FEED_PAGE_SIZE,
+        isAdmin ? undefined : 'is_active = true',
+      )
+      setTopics((prev) => {
+        const seen = new Set(prev.map((t) => t.id))
+        const fresh = topicsPage.items.filter((t) => !seen.has(t.id))
+        return [...prev, ...fresh]
+      })
+      setFeedPage(nextPage)
+      setFeedTotalItems(topicsPage.totalItems)
+      if (topicsPage.items.length < FEED_PAGE_SIZE) {
+        setFeedExhausted(true)
+      }
+    } catch {
+      // silencioso: usuário pode tentar de novo
+    } finally {
+      setLoadingMoreFeed(false)
+    }
+  }
+
   useEffect(() => {
     loadFeedData()
   }, [])
 
-  // Realtime updates
+  // Realtime updates: refresh da página 1 — novos posts aparecem no topo;
+  // os já carregados continuam (merge por id evita duplicação durante paginação)
   useRealtime('community_topics', () => {
     loadFeedData()
   })
