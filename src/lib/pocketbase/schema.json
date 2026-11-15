@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T06:44:17.640Z",
+  "generatedAt": "2026-11-15T06:59:57.087Z",
   "collections": [
     {
       "name": "users",
@@ -190,6 +190,13 @@
           "required": false,
           "system": false,
           "selectValues": ["in_app", "email", "push", "all"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["member", "admin", "gestor"]
         }
       ],
       "indexes": [
@@ -5454,8 +5461,8 @@
         "list": "@request.auth.id != \"\" && (user = @request.auth.id || (is_shared = true && user.company = @request.auth.record.company))",
         "view": "@request.auth.id != \"\" && (user = @request.auth.id || (is_shared = true && user.company = @request.auth.record.company))",
         "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
-        "update": "@request.auth.id != \"\" && user = @request.auth.id",
-        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+        "update": "@request.auth.id != \"\" && (user = @request.auth.id || (@request.auth.record.company != \"\" && @request.auth.record.company = user.company && scope != \"personal\" && (@request.auth.record.role = \"admin\" || @request.auth.record.role = \"gestor\" || @request.auth.record.plan = \"max\" || @request.auth.record.plan = \"enterprise\")))",
+        "delete": "@request.auth.id != \"\" && (user = @request.auth.id || (@request.auth.record.company != \"\" && @request.auth.record.company = user.company && scope != \"personal\" && (@request.auth.record.role = \"admin\" || @request.auth.record.role = \"gestor\" || @request.auth.record.plan = \"max\" || @request.auth.record.plan = \"enterprise\")))"
       },
       "fields": [
         {
@@ -5546,6 +5553,12 @@
           "required": false,
           "system": false,
           "selectValues": ["team", "personal"]
+        },
+        {
+          "name": "is_org_default",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
