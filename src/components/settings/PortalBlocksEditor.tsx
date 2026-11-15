@@ -12,16 +12,24 @@ import {
   Youtube,
   Minus,
   Quote,
+  Upload,
+  Loader2,
+  Link2,
+  FileVideo,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { type PortalBlock, type PortalBlockType, slugifyTitle } from '@/services/portal-pages'
+import { uploadPortalVideo, PORTAL_VIDEO_MAX_BYTES } from '@/services/portal-media'
 
 interface PortalBlocksEditorProps {
   blocks: PortalBlock[]
   onChange: (blocks: PortalBlock[]) => void
+  /** Necessário para vídeo próprio: dono do record em portal_media. */
+  userId?: string
+  brandId?: string
 }
 
 let seq = 0
@@ -63,11 +71,63 @@ export function blockTypeLabel(type: PortalBlockType): string {
   return BLOCK_TYPES.find((b) => b.type === type)?.label ?? type
 }
 
-export function PortalBlocksEditor({ blocks, onChange }: PortalBlocksEditorProps) {
+export function PortalBlocksEditor({ blocks, onChange, userId, brandId }: PortalBlocksEditorProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
   const [galleryInput, setGalleryInput] = useState<Record<string, string>>({})
+  const [videoMode, setVideoMode] = useState<Record<string, 'link' | 'upload'>>({})
+  const [uploadingBlock, setUploadingBlock] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  /** Envia o arquivo de vídeo escolhido e liga o bloco ao record criado. */
+  const handleVideoUpload = async (block: PortalBlock, file: File | undefined) => {
+    if (!file) return
+    if (!userId || !brandId) {
+      toast({
+        title: 'Não foi possível enviar',
+        description: 'Contexto do portal ausente.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (file.size > PORTAL_VIDEO_MAX_BYTES) {
+      toast({
+        title: 'Vídeo muito grande',
+        description: `O arquivo tem ${(file.size / (1024 * 1024)).toFixed(1)} MB e o limite é 50 MB. Compacte ou use um link do YouTube/Vimeo.`,
+        variant: 'destructive',
+      })
+      return
+    }
+    setUploadingBlock(block.id)
+    try {
+      const media = await uploadPortalVideo(userId, brandId, file)
+      onChange(
+        blocks.map((b) =>
+          b.id === block.id
+            ? { ...b, mediaId: media.id, mediaName: file.name, url: '', type: 'video' }
+            : b,
+        ),
+      )
+      toast({ title: 'Vídeo enviado', description: `"${file.name}" será reproduzido no portal.` })
+    } catch (err) {
+      toast({
+        title: 'Erro ao enviar vídeo',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploadingBlock(null)
+    }
+  }
+
+  /** Desliga o vídeo próprio do bloco (o record continua para reuso via biblioteca). */
+  const detachOwnVideo = (block: PortalBlock) => {
+    onChange(
+      blocks.map((b) =>
+        b.id === block.id ? { ...b, mediaId: undefined, mediaName: undefined } : b,
+      ),
+    )
+  }
 
   const addBlock = (type: PortalBlockType) => {
     const def = BLOCK_TYPES.find((b) => b.type === type)
@@ -284,12 +344,84 @@ export function PortalBlocksEditor({ blocks, onChange }: PortalBlocksEditorProps
               )}
 
               {block.type === 'video' && (
-                <Input
-                  value={block.url || ''}
-                  onChange={(e) => patchBlock(block.id, { url: e.target.value })}
-                  placeholder="URL do vídeo (YouTube ou Vimeo)"
-                  className="h-8 text-sm"
-                />
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant={
+                        (!videoMode[block.id] && !block.mediaId) || videoMode[block.id] === 'link'
+                          ? 'secondary'
+                          : 'outline'
+                      }
+                      size="sm"
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => setVideoMode((m) => ({ ...m, [block.id]: 'link' }))}
+                    >
+                      <Link2 className="size-3" /> Link
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={
+                        block.mediaId || videoMode[block.id] === 'upload' ? 'secondary' : 'outline'
+                      }
+                      size="sm"
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => setVideoMode((m) => ({ ...m, [block.id]: 'upload' }))}
+                    >
+                      <Upload className="size-3" /> Vídeo próprio
+                    </Button>
+                  </div>
+
+                  {(!videoMode[block.id] && !block.mediaId) || videoMode[block.id] === 'link' ? (
+                    <Input
+                      value={block.url || ''}
+                      onChange={(e) => patchBlock(block.id, { url: e.target.value })}
+                      placeholder="URL do vídeo (YouTube ou Vimeo)"
+                      className="h-8 text-sm"
+                    />
+                  ) : block.mediaId ? (
+                    <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-2 py-1.5">
+                      <span className="flex min-w-0 items-center gap-1.5 text-xs">
+                        <FileVideo className="size-3.5 shrink-0 text-primary" />
+                        <span className="truncate">{block.mediaName || 'Vídeo enviado'}</span>
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 shrink-0 gap-1 text-[10px] text-destructive"
+                        onClick={() => detachOwnVideo(block)}
+                      >
+                        <Trash2 className="size-3" /> Remover
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-2 py-3 text-xs text-muted-foreground hover:bg-muted/40">
+                      {uploadingBlock === block.id ? (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin" />
+                          Enviando vídeo…
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="size-3.5" />
+                          Escolher arquivo de vídeo (MP4/WebM, até 50 MB)
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                        className="hidden"
+                        disabled={uploadingBlock === block.id}
+                        onChange={(e) => {
+                          e.preventDefault()
+                          void handleVideoUpload(block, e.target.files?.[0])
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                  )}
+                </>
               )}
 
               {block.type === 'divider' && (

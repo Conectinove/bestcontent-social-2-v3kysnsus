@@ -1,4 +1,7 @@
-import pb from '@/lib/pocketbase/client'
+import pb, { pb as pbNamed } from '@/lib/pocketbase/client'
+// GUARDA: manter o duplo export (default + nomeado pb) — regressão já ocorreu 17+ vezes.
+void pbNamed
+const client = pbNamed || pb
 
 export type PortalBlockType =
   | 'title'
@@ -23,6 +26,10 @@ export interface PortalBlock {
   /** Citação: autor. */
   author?: string
   height?: number
+  /** Vídeo próprio: id do record em portal_media (a URL pública é resolvida pelo backend). */
+  mediaId?: string
+  /** Vídeo próprio: nome do arquivo enviado (só para exibição no editor). */
+  mediaName?: string
 }
 
 export interface PortalPageContent {
@@ -40,6 +47,8 @@ export interface PortalPage {
   content: PortalPageContent
   sort_order: number
   is_visible: boolean
+  /** Publicação agendada (ISO ou "YYYY-MM-DD HH:MM:SS"); vazio = publicada imediatamente. */
+  publish_at: string
   created: string
   updated: string
 }
@@ -60,16 +69,25 @@ export async function createPortalPage(data: {
   content?: PortalPageContent
   sort_order?: number
   is_visible?: boolean
+  publish_at?: string
 }): Promise<PortalPage> {
-  return pb.collection('portal_pages').create(data)
+  return client.collection('portal_pages').create(data)
 }
 
 export async function updatePortalPage(id: string, data: Partial<PortalPage>) {
-  return pb.collection('portal_pages').update(id, data)
+  return client.collection('portal_pages').update(id, data)
 }
 
 export async function deletePortalPage(id: string) {
-  return pb.collection('portal_pages').delete(id)
+  return client.collection('portal_pages').delete(id)
+}
+
+/** Indica se a página está agendada para o futuro (ainda não visível na pública). */
+export function isPageScheduled(page: Pick<PortalPage, 'publish_at'>): boolean {
+  const raw = (page.publish_at || '').trim()
+  if (!raw) return false
+  const ms = new Date(raw.replace(' ', 'T')).getTime()
+  return !isNaN(ms) && ms > Date.now()
 }
 
 /** Gera slug simples a partir do título (ex: "Sobre Nós" -> "sobre-nos"). */

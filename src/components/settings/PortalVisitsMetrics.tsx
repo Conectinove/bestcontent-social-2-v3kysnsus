@@ -1,12 +1,22 @@
 import { useState } from 'react'
-import { Eye, MousePointerClick, CalendarDays, Activity } from 'lucide-react'
+import { Eye, MousePointerClick, CalendarDays, Activity, Download, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { PortalMetrics } from '@/services/portal-visits'
+import { toast } from '@/hooks/use-toast'
+import {
+  fetchVisitsExport,
+  buildVisitsCsv,
+  downloadVisitsCsv,
+  type PortalMetrics,
+} from '@/services/portal-visits'
 
 interface PortalVisitsMetricsProps {
   metrics: PortalMetrics | null
   loading: boolean
+  /** Id do portal — quando presente, mostra o botão "Exportar relatório" (pedido 4). */
+  portalId?: string
+  brandName?: string
 }
 
 function fmt(n: number) {
@@ -50,8 +60,37 @@ function MetricChip({
   )
 }
 
-/** Analytics de visitas do portal (pedido 2): totais + visitas recentes. */
-export function PortalVisitsMetrics({ metrics, loading }: PortalVisitsMetricsProps) {
+/** Analytics de visitas do portal (pedido 2): totais + visitas recentes + exportação. */
+export function PortalVisitsMetrics({
+  metrics,
+  loading,
+  portalId,
+  brandName,
+}: PortalVisitsMetricsProps) {
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    if (!portalId) return
+    setExporting(true)
+    try {
+      const exportData = await fetchVisitsExport(portalId)
+      const csv = buildVisitsCsv(metrics, exportData, brandName || 'Portal')
+      downloadVisitsCsv(csv, brandName || 'portal')
+      toast({
+        title: 'Relatório exportado',
+        description: `${exportData.count} visita${exportData.count === 1 ? '' : 's'} no arquivo CSV.`,
+      })
+    } catch (err) {
+      toast({
+        title: 'Erro ao exportar relatório',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex gap-3">
@@ -79,6 +118,24 @@ export function PortalVisitsMetrics({ metrics, loading }: PortalVisitsMetricsPro
 
   return (
     <div className="space-y-3">
+      {portalId && (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1"
+            onClick={() => void handleExport()}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            Exportar relatório (CSV)
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap gap-3">
         <MetricChip
           icon={Eye}

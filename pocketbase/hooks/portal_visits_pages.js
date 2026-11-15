@@ -4,7 +4,8 @@
 //  - GET  /backend/v1/portals/pages/{token}       -> páginas internas (público)
 //  - POST /backend/v1/portals/visits/{token}      -> registra visita (público)
 //  - GET  /backend/v1/portals/metrics/{portalId}  -> analytics de visitas (dono)
-//  - POST /backend/v1/portals/theme               -> salva a cor por marca (dono)
+//  - GET  /backend/v1/portals/visits-export/{id}  -> exporta visitas (dono)
+//  - POST /backend/v1/portals/theme               -> salva as cores por marca (dono)
 // Regra da casa: TODA lógica INLINE dentro do callback (JSVM não enxerga
 // funções de nível superior — 'Hook scoping error').
 // =========================================================================
@@ -40,14 +41,49 @@ routerAdd('GET', '/backend/v1/portals/pages/{token}', (e) => {
     pages = []
   }
 
+  const nowMs = Date.now()
   const items = []
   for (const p of pages) {
+    // ---- Agendamento (pedido "agendar publicação de páginas"): página com
+    // publish_at no futuro NÃO aparece na pública (nem na navegação). ----
+    const publishRaw = p.getString('publish_at') || ''
+    if (publishRaw) {
+      let publishMs = NaN
+      try {
+        publishMs = new Date(publishRaw.replace(' ', 'T')).getTime()
+      } catch (_) {
+        publishMs = NaN
+      }
+      if (!isNaN(publishMs) && publishMs > nowMs) continue
+    }
+
     let content = {}
     try {
       content = JSON.parse(p.getString('content') || '{}')
     } catch (_) {
       content = { text: p.getString('content') || '' }
     }
+
+    // ---- Vídeo próprio (pedido "upload de vídeo próprio"): blocos de vídeo
+    // com mediaId resolvem a URL pública do arquivo em portal_media. ----
+    const blocks = content && content.blocks
+    if (Array.isArray(blocks)) {
+      for (const b of blocks) {
+        if (!b || b.type !== 'video' || !b.mediaId) continue
+        try {
+          const media = $app.findRecordById('portal_media', String(b.mediaId))
+          const file = media.getString('file')
+          if (file) {
+            const fileUrl = '/api/files/portal_media/' + media.id + '/' + file
+            b.url = fileUrl
+            b.mediaUrl = fileUrl
+          }
+        } catch (_) {
+          // mídia removida: deixa a url como está (ou vazia)
+        }
+      }
+    }
+
     items.push({
       id: p.id,
       title: p.getString('title'),
@@ -214,6 +250,45 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
     daily_series,
     recent: recentItems,
   })
+})
+
+// ---------- Analytics: exportação das visitas (SÓ O DONO) ----------
+// Pedido "exportar relatorio de analytics": devolve TODOS os registros de
+// visita (até 10 mil, mais recentes primeiro) para o frontend montar o CSV.
+routerAdd('GET', '/backend/v1/portals/visits-export/{portalId}', (e) => {
+  const userId = e.auth?.id
+  if (!userId) return e.unauthorizedError('Autenticação necessária.')
+  const portalId = e.request.pathValue('portalId') || ''
+
+  let portal = null
+  try {
+    portal = $app.findRecordById('brand_portals', portalId)
+  } catch (_) {
+    return e.notFound('Portal não encontrado.')
+  }
+  if (portal.getString('user') !== userId) {
+    return e.forbidden('Só o dono do portal pode exportar as visitas.')
+  }
+
+  let visits = []
+  try {
+    visits = $app.findRecordsByFilter('portal_visits', 'portal = {:id}', '-created', 10000, 0, {
+      id: portalId,
+    })
+  } catch (_) {
+    visits = []
+  }
+
+  const items = []
+  for (const v of visits) {
+    items.push({
+      at: v.get('created'),
+      page_slug: v.getString('page_slug') || 'principal',
+      referrer: v.getString('referrer') || '',
+    })
+  }
+
+  return e.json(200, { success: true, count: items.length, visits: items })
 })
 
 // ---------- Cores do tema por marca (SÓ O DONO) ----------

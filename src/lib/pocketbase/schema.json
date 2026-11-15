@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T14:57:32.847Z",
+  "generatedAt": "2026-11-15T15:19:55.602Z",
   "collections": [
     {
       "name": "users",
@@ -6035,6 +6035,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "publish_at",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -6115,6 +6121,152 @@
         "CREATE UNIQUE INDEX idx_org_invites_token ON org_invites (token)",
         "CREATE INDEX idx_org_invites_user ON org_invites (user)"
       ]
+    },
+    {
+      "name": "portal_page_versions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "page",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "portal_pages"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "publish_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_visible",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_portal_page_versions_page ON portal_page_versions (page, created DESC)",
+        "CREATE INDEX idx_portal_page_versions_user ON portal_page_versions (user)"
+      ]
+    },
+    {
+      "name": "portal_media",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "portal",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brand_portals"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "file",
+          "type": "file",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "size",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mime",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
     }
   ]
 }

@@ -447,7 +447,12 @@ export function BrandPortalPanel({ brandId, userId }: BrandPortalPanelProps) {
       <Card>
         <CardContent className="p-5 space-y-3">
           <p className="text-sm font-bold">Analytics de visitas</p>
-          <PortalVisitsMetrics metrics={metrics} loading={loadingMetrics} />
+          <PortalVisitsMetrics
+            metrics={metrics}
+            loading={loadingMetrics}
+            portalId={portalId}
+            brandName={brand?.name}
+          />
         </CardContent>
       </Card>
 

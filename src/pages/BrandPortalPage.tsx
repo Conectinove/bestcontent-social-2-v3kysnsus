@@ -110,6 +110,18 @@ export function PortalBlockView({ block, accent }: { block: PortalBlock; accent:
     )
   }
   if (block.type === 'video') {
+    // Vídeo próprio enviado: URL completa do arquivo no backend, reproduzido em <video>.
+    if (block.mediaId) {
+      if (!block.mediaUrl) return null
+      return (
+        <video
+          controls
+          preload="metadata"
+          className="aspect-video w-full overflow-hidden rounded-xl bg-black/90"
+          src={block.mediaUrl}
+        />
+      )
+    }
     const embed = toVideoEmbedUrl(block.url || '')
     if (!embed) return null
     return (
