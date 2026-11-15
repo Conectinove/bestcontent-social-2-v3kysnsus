@@ -45,23 +45,48 @@ import {
   RefreshCw,
   ExternalLink,
   Sparkles,
-  Cloud,
-  Layers,
   Filter,
   ArrowUpDown,
   Calendar,
   User,
- Inbox,
- Users as UsersIcon,
- Palette,
- ImageIcon,
- MessageCircle,
- Instagram as InstagramIcon,
- Facebook as FacebookIcon,
- CalendarPlus,
- CalendarCheck,
+  Inbox,
+  Palette,
+  MessageCircle,
+  Instagram as InstagramIcon,
+  Facebook as FacebookIcon,
+  CalendarPlus,
+  CalendarCheck,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+
+export interface WhatsAppChatItem {
+  id: string
+  contact: string
+  lastMessage: string
+  lastDate?: string
+}
+
+// Conversas de demonstração: o toolkit do WhatsApp ainda não expõe leitura de histórico
+const buildWhatsappChats = (): WhatsAppChatItem[] => [
+  {
+    id: 'wa-chat-1',
+    contact: 'Ana Souza',
+    lastMessage: 'Adorei a proposta, pode enviar o contrato?',
+    lastDate: 'Hoje, 09:42',
+  },
+  {
+    id: 'wa-chat-2',
+    contact: 'Marcos Lima',
+    lastMessage: 'A live de quinta ficou confirmada para as 19h?',
+    lastDate: 'Ontem, 18:15',
+  },
+  {
+    id: 'wa-chat-3',
+    contact: 'Juliana Prado',
+    lastMessage: 'Consegue me mandar a arte do post no tamanho certo?',
+    lastDate: 'Seg, 14:03',
+  },
+]
 
 export type ConnectorsTab =
   | 'overview'
@@ -2065,431 +2090,6 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
             </TabsContent>
           </Tabs>
         </div>
-
-        {/* Rodapé Informativo */}
-        <div className="px-6 py-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">
-          <span>Conectores Pessoais · Integração Direta de Nuvem</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="text-xs text-slate-400 hover:text-white h-7"
-          >
-            Fechar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-/* end-of-file sentinel */
-                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
-                  <Briefcase className="w-12 h-12 text-emerald-400 mx-auto opacity-70" />
-                  <div className="max-w-md mx-auto space-y-1">
-                    <div className="text-base font-bold text-white">Pipedrive não conectado</div>
-                    <div className="text-xs text-slate-400">
-                      Conecte sua conta do Pipedrive para carregar negócios, contatos e atividades
-                      para o Segundo Cérebro.
-                    </div>
-                  </div>
-                  <ConnectorButton
-                    toolkit="pipedrive"
-                    name="Pipedrive"
-                    className="flex justify-center [&>button]:bg-emerald-600 [&>button]:hover:bg-emerald-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-                      <Button
-                        size="sm"
-                        variant={pipedriveFilter === 'all' ? 'secondary' : 'ghost'}
-                        onClick={() => setPipedriveFilter('all')}
-                        className="text-xs h-7 px-2.5 rounded-lg"
-                      >
-                        Tudo (
-                        {pipedriveDeals.length +
-                          pipedriveContacts.length +
-                          pipedriveActivities.length}
-                        )
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={pipedriveFilter === 'deal' ? 'secondary' : 'ghost'}
-                        onClick={() => setPipedriveFilter('deal')}
-                        className="text-xs h-7 px-2.5 rounded-lg"
-                      >
-                        Negócios ({pipedriveDeals.length})
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={pipedriveFilter === 'contact' ? 'secondary' : 'ghost'}
-                        onClick={() => setPipedriveFilter('contact')}
-                        className="text-xs h-7 px-2.5 rounded-lg"
-                      >
-                        Contatos ({pipedriveContacts.length})
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={pipedriveFilter === 'activity' ? 'secondary' : 'ghost'}
-                        onClick={() => setPipedriveFilter('activity')}
-                        className="text-xs h-7 px-2.5 rounded-lg"
-                      >
-                        Atividades ({pipedriveActivities.length})
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleLoadPipedrive}
-                        disabled={loadingPipedrive}
-                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
-                      >
-                        <RefreshCw
-                          className={`w-3.5 h-3.5 mr-1.5 ${loadingPipedrive ? 'animate-spin' : ''}`}
-                        />
-                        Atualizar
-                      </Button>
-                      <ConnectorButton
-                        toolkit="pipedrive"
-                        name="Pipedrive"
-                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <Input
-                        value={pipedriveSearch}
-                        onChange={(e) => setPipedriveSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleLoadPipedrive()}
-                        placeholder="Buscar por termo ou nome no CRM..."
-                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={handleLoadPipedrive}
-                      disabled={loadingPipedrive}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl"
-                    >
-                      {loadingPipedrive ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        'Buscar'
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Lista de Registros */}
-                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                    {loadingPipedrive && (
-                      <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
-                        Carregando registros do Pipedrive...
-                      </div>
-                    )}
-
-                    {!loadingPipedrive &&
-                      (() => {
-                        const allItems: CrmRecordItem[] = [
-                          ...(pipedriveFilter === 'all' || pipedriveFilter === 'deal'
-                            ? pipedriveDeals
-                            : []),
-                          ...(pipedriveFilter === 'all' || pipedriveFilter === 'contact'
-                            ? pipedriveContacts
-                            : []),
-                          ...(pipedriveFilter === 'all' || pipedriveFilter === 'activity'
-                            ? pipedriveActivities
-                            : []),
-                        ]
-
-                        if (allItems.length === 0) {
-                          return (
-                            <div className="p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
-                              <Briefcase className="w-8 h-8 text-slate-500 mx-auto" />
-                              <div className="text-xs text-slate-400">
-                                Nenhum registro do Pipedrive encontrado para este filtro.
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleLoadPipedrive}
-                                className="text-xs border-slate-700 text-slate-300"
-                              >
-                                Sincronizar CRM Agora
-                              </Button>
-                            </div>
-                          )
-                        }
-
-                        return allItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-3 group transition-all"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                  item.type === 'deal'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                    : item.type === 'contact'
-                                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                }`}
-                              >
-                                {item.type === 'deal' ? (
-                                  <Briefcase className="w-4 h-4" />
-                                ) : (
-                                  <UsersIcon className="w-4 h-4" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
-                                  <span>{item.title}</span>
-                                  {item.value && (
-                                    <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[9px] py-0 px-1.5 font-bold">
-                                      {item.value}
-                                    </Badge>
-                                  )}
-                                  {item.status && (
-                                    <Badge className="bg-slate-800 text-slate-300 border-slate-700 text-[9px] py-0 px-1.5 font-medium">
-                                      {item.status}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-[11px] text-slate-400 truncate">
-                                  {item.subtitle || `Pipedrive · ${item.type}`}
-                                  {item.owner && ` · Resp: ${item.owner}`}
-                                </div>
-                              </div>
-                            </div>
-
-                            <Button
-                              size="sm"
-                              onClick={() => handleImportPipedriveItem(item)}
-                              disabled={importingPipedriveId === item.id}
-                              className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
-                            >
-                              {importingPipedriveId === item.id ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Plus className="w-3.5 h-3.5 mr-1" />
-                                  Usar no Contexto
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        ))
-                      })()}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* ABA: HUBSPOT CRM */}
-            <TabsContent value="hubspot" className="space-y-4 m-0">
-              {getStatus('hubspot') !== 'connected' ? (
-                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
-                  <UsersIcon className="w-12 h-12 text-orange-400 mx-auto opacity-70" />
-                  <div className="max-w-md mx-auto space-y-1">
-                    <div className="text-base font-bold text-white">HubSpot não conectado</div>
-                    <div className="text-xs text-slate-400">
-                      Conecte sua conta do HubSpot para importar contatos, negócios e pipelines
-                      diretamente no Segundo Cérebro.
-                    </div>
-                  </div>
-                  <ConnectorButton
-                    toolkit="hubspot"
-                    name="HubSpot"
-                    className="flex justify-center [&>button]:bg-orange-600 [&>button]:hover:bg-orange-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-                      <Button
-                        size="sm"
-                        variant={hubspotFilter === 'all' ? 'secondary' : 'ghost'}
-                        onClick={() => setHubspotFilter('all')}
-                        className="text-xs h-7 px-2.5 rounded-lg"
-                      >
-                        Tudo ({hubspotDeals.length + hubspotContacts.length})
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={hubspotFilter === 'deal' ? 'secondary' : 'ghost'}
-                        onClick={() => setHubspotFilter('deal')}
-                        className="text-xs h-7 px-2.5 rounded-lg"
-                      >
-                        Negócios ({hubspotDeals.length})
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={hubspotFilter === 'contact' ? 'secondary' : 'ghost'}
-                        onClick={() => setHubspotFilter('contact')}
-                        className="text-xs h-7 px-2.5 rounded-lg"
-                      >
-                        Contatos ({hubspotContacts.length})
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleLoadHubspot}
-                        disabled={loadingHubspot}
-                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
-                      >
-                        <RefreshCw
-                          className={`w-3.5 h-3.5 mr-1.5 ${loadingHubspot ? 'animate-spin' : ''}`}
-                        />
-                        Atualizar
-                      </Button>
-                      <ConnectorButton
-                        toolkit="hubspot"
-                        name="HubSpot"
-                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <Input
-                        value={hubspotSearch}
-                        onChange={(e) => setHubspotSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleLoadHubspot()}
-                        placeholder="Buscar contatos ou deals no HubSpot..."
-                        className="pl-9 bg-slate-900 border-slate-800 text-xs text-white rounded-xl"
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={handleLoadHubspot}
-                      disabled={loadingHubspot}
-                      className="bg-orange-600 hover:bg-orange-500 text-xs font-semibold rounded-xl"
-                    >
-                      {loadingHubspot ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        'Buscar'
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Lista de Registros HubSpot */}
-                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                    {loadingHubspot && (
-                      <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
-                        Carregando registros do HubSpot...
-                      </div>
-                    )}
-
-                    {!loadingHubspot &&
-                      (() => {
-                        const allItems: CrmRecordItem[] = [
-                          ...(hubspotFilter === 'all' || hubspotFilter === 'deal'
-                            ? hubspotDeals
-                            : []),
-                          ...(hubspotFilter === 'all' || hubspotFilter === 'contact'
-                            ? hubspotContacts
-                            : []),
-                        ]
-
-                        if (allItems.length === 0) {
-                          return (
-                            <div className="p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
-                              <UsersIcon className="w-8 h-8 text-slate-500 mx-auto" />
-                              <div className="text-xs text-slate-400">
-                                Nenhum registro do HubSpot encontrado.
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleLoadHubspot}
-                                className="text-xs border-slate-700 text-slate-300"
-                              >
-                                Sincronizar HubSpot
-                              </Button>
-                            </div>
-                          )
-                        }
-
-                        return allItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-3 group transition-all"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                  item.type === 'deal'
-                                    ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
-                                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                }`}
-                              >
-                                {item.type === 'deal' ? (
-                                  <Briefcase className="w-4 h-4" />
-                                ) : (
-                                  <UsersIcon className="w-4 h-4" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
-                                  <span>{item.title}</span>
-                                  {item.value && (
-                                    <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30 text-[9px] py-0 px-1.5 font-bold">
-                                      {item.value}
-                                    </Badge>
-                                  )}
-                                  {item.status && (
-                                    <Badge className="bg-slate-800 text-slate-300 border-slate-700 text-[9px] py-0 px-1.5 font-medium">
-                                      {item.status}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-[11px] text-slate-400 truncate">
-                                  {item.subtitle || `HubSpot · ${item.type}`}
-                                </div>
-                              </div>
-                            </div>
-
-                            <Button
-                              size="sm"
-                              onClick={() => handleImportHubspotItem(item)}
-                              disabled={importingHubspotId === item.id}
-                              className="shrink-0 bg-orange-600 hover:bg-orange-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
-                            >
-                              {importingHubspotId === item.id ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Plus className="w-3.5 h-3.5 mr-1" />
-                                  Usar no Contexto
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        ))
-                      })()}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      */
 
         {/* Rodapé Informativo */}
         <div className="px-6 py-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">

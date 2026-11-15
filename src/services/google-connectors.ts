@@ -46,6 +46,7 @@ export interface ImportedContextItem {
     | 'pipedrive'
     | 'hubspot'
     | 'canva'
+    | 'whatsapp'
     | 'pedagogico'
     | 'manual'
   title: string
@@ -64,6 +65,7 @@ export interface ImportedContextItem {
     | 'pipedrive'
     | 'hubspot'
     | 'canva'
+    | 'whatsapp'
     | 'text'
   metadata?: Record<string, any>
   createdAt: string

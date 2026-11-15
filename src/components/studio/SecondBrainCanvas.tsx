@@ -122,6 +122,15 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
     loadDocs()
   }, [])
 
+  // Clamp da página da sidebar: docs pode encolher (import/exclusão) e a página atual
+  // sair do range — volta para a última página válida. SIDEBAR_PAGE_SIZE é declarado
+  // junto da paginação, mais abaixo no corpo do componente.
+  const SIDEBAR_PAGE_SIZE = 5
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(docs.length / SIDEBAR_PAGE_SIZE) - 1)
+    if (sidebarPage > maxPage) setSidebarPage(maxPage)
+  }, [docs.length, sidebarPage])
+
   const handleCreateNew = async (type: SecondBrainDocType = 'documento', title?: string) => {
     const defaultTitle =
       title ||
@@ -311,7 +320,6 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
   })
 
   // Paginação da lista "Meu Drive" na sidebar — mostra mais que 5 documentos, com páginas
-  const SIDEBAR_PAGE_SIZE = 5
   const sidebarTotalPages = Math.max(1, Math.ceil(docs.length / SIDEBAR_PAGE_SIZE))
   const safeSidebarPage = Math.min(sidebarPage, sidebarTotalPages - 1)
   const sidebarDocs = docs.slice(
