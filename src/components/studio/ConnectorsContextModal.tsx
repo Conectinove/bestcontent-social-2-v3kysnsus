@@ -1054,83 +1054,87 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                   </div>
                 </div>
 
-                {/* Card Pipedrive CRM */}
+                {/* Card Canva */}
                 <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-emerald-400" />
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-cyan-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-white">Pipedrive CRM</div>
-                        <div className="text-xs text-slate-400">Negócios, pessoas e atividades</div>
+                        <div className="text-sm font-bold text-white">Canva</div>
+                        <div className="text-xs text-slate-400">
+                          Designs e artes no Segundo Cérebro
+                        </div>
                       </div>
                     </div>
                     <Badge
                       className={
-                        getStatus('pipedrive') === 'connected'
+                        getStatus('canva') === 'connected'
                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
                           : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
                       }
                     >
-                      {getStatus('pipedrive') === 'connected' ? 'Conectado' : 'Desconectado'}
+                      {getStatus('canva') === 'connected' ? 'Conectado' : 'Desconectado'}
                     </Badge>
                   </div>
                   <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
                     <ConnectorButton
-                      toolkit="pipedrive"
-                      name="Pipedrive"
-                      className="[&>button]:bg-emerald-600 [&>button]:hover:bg-emerald-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                      toolkit="canva"
+                      name="Canva"
+                      className="[&>button]:bg-cyan-600 [&>button]:hover:bg-cyan-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
                     />
-                    {getStatus('pipedrive') === 'connected' && (
+                    {getStatus('canva') === 'connected' && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setActiveTab('pipedrive')}
+                        onClick={() => setActiveTab('canva')}
                         className="text-xs border-slate-700 text-slate-300 hover:text-white"
                       >
-                        Ver Negócios →
+                        Ver designs →
                       </Button>
                     )}
                   </div>
                 </div>
 
-                {/* Card HubSpot CRM */}
+                {/* Card WhatsApp */}
                 <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                        <UsersIcon className="w-5 h-5 text-orange-400" />
+                      <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                        <MessageCircle className="w-5 h-5 text-green-400" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-white">HubSpot CRM</div>
-                        <div className="text-xs text-slate-400">Contatos, leads e pipeline</div>
+                        <div className="text-sm font-bold text-white">WhatsApp</div>
+                        <div className="text-xs text-slate-400">
+                          Mensagens e conversas com clientes
+                        </div>
                       </div>
                     </div>
                     <Badge
                       className={
-                        getStatus('hubspot') === 'connected'
+                        getStatus('whatsapp') === 'connected'
                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]'
                           : 'bg-slate-800 text-slate-400 border-slate-700 text-[10px]'
                       }
                     >
-                      {getStatus('hubspot') === 'connected' ? 'Conectado' : 'Desconectado'}
+                      {getStatus('whatsapp') === 'connected' ? 'Conectado' : 'Desconectado'}
                     </Badge>
                   </div>
                   <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
                     <ConnectorButton
-                      toolkit="hubspot"
-                      name="HubSpot"
-                      className="[&>button]:bg-orange-600 [&>button]:hover:bg-orange-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
+                      toolkit="whatsapp"
+                      name="WhatsApp"
+                      className="[&>button]:bg-green-600 [&>button]:hover:bg-green-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-semibold [&>button]:rounded-xl [&>button]:border-none"
                     />
-                    {getStatus('hubspot') === 'connected' && (
+                    {getStatus('whatsapp') === 'connected' && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setActiveTab('hubspot')}
+                        onClick={() => setActiveTab('whatsapp')}
                         className="text-xs border-slate-700 text-slate-300 hover:text-white"
                       >
-                        Ver Contatos →
+                        Ver conversas →
                       </Button>
                     )}
                   </div>
@@ -1145,10 +1149,10 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                     Multi-Nuvem Pessoal & Privacidade Segura:
                   </span>
                   <p className="leading-relaxed">
-                    Cada usuário conecta as próprias contas (Google, Microsoft, Instagram, Facebook
-                    e CRMs) com autenticação direta. O app lê exclusivamente o que você selecionar
-                    para os chips de Contexto Ativo e publica nos seus perfis — nada é compartilhado
-                    entre usuários.
+                    Cada usuário conecta as próprias contas (Google, Microsoft, redes sociais, Canva
+                    e WhatsApp) com autenticação direta. O app lê exclusivamente o que você
+                    selecionar para os chips de Contexto Ativo e publica nos seus perfis — nada é
+                    compartilhado entre usuários.
                   </p>
                 </div>
               </div>

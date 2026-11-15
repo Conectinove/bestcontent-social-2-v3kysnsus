@@ -65,6 +65,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
   const [activeMenu, setActiveMenu] = useState<'inicio' | 'sobre_mim' | 'mapa_memoria'>('inicio')
   const [filterType, setFilterType] = useState<'todos' | 'drive' | 'notas' | 'projetos'>('todos')
   const [searchQuery, setSearchQuery] = useState('')
+  const [sidebarPage, setSidebarPage] = useState(0)
 
   // Pergunta Rápida no Segundo Cérebro
   const [askQuery, setAskQuery] = useState('')
@@ -309,6 +310,15 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
     return true
   })
 
+  // Paginação da lista "Meu Drive" na sidebar — mostra mais que 5 documentos, com páginas
+  const SIDEBAR_PAGE_SIZE = 5
+  const sidebarTotalPages = Math.max(1, Math.ceil(docs.length / SIDEBAR_PAGE_SIZE))
+  const safeSidebarPage = Math.min(sidebarPage, sidebarTotalPages - 1)
+  const sidebarDocs = docs.slice(
+    safeSidebarPage * SIDEBAR_PAGE_SIZE,
+    safeSidebarPage * SIDEBAR_PAGE_SIZE + SIDEBAR_PAGE_SIZE,
+  )
+
   // Se tem um documento aberto no MagicAuthor
   if (selectedDoc) {
     return (
@@ -498,6 +508,9 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <div className="flex items-center gap-2 text-xs font-bold text-slate-300 px-1 min-w-0">
               <FolderClosed className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               <span className="truncate">Meu Drive</span>
+              <span className="ml-auto shrink-0 text-[9px] font-mono text-purple-400/80 bg-purple-950/40 border border-purple-800/40 rounded-md px-1.5 py-0.5">
+                {docs.length} docs
+              </span>
             </div>
 
             <div className="space-y-1 pl-2 text-[11px] min-w-0">
@@ -506,7 +519,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 <span className="truncate">Notas privadas (.md / docs)</span>
               </div>
 
-              {docs.slice(0, 5).map((doc) => (
+              {sidebarDocs.map((doc) => (
                 <button
                   key={doc.id}
                   type="button"
@@ -517,6 +530,32 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                   <span className="truncate">{doc.title}</span>
                 </button>
               ))}
+
+              {sidebarTotalPages > 1 && (
+                <div className="flex items-center justify-between gap-1 pt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSidebarPage(Math.max(0, safeSidebarPage - 1))}
+                    disabled={safeSidebarPage === 0}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold text-purple-300 bg-purple-950/30 border border-purple-800/40 hover:bg-purple-900/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap">
+                    {safeSidebarPage + 1}/{sidebarTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSidebarPage(Math.min(sidebarTotalPages - 1, safeSidebarPage + 1))
+                    }
+                    disabled={safeSidebarPage >= sidebarTotalPages - 1}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold text-purple-300 bg-purple-950/30 border border-purple-800/40 hover:bg-purple-900/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Próxima →
+                  </button>
+                </div>
+              )}
 
               <button
                 type="button"
