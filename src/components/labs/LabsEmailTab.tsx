@@ -6,22 +6,40 @@ import {
   Download,
   Loader2,
   Mail,
+  Pencil,
+  Plus,
+  Save,
   Send,
   Share2,
-  Sparkles,
+  Trash2,
   Globe,
-  QrCode,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { ConnectorButton } from '@/components/skip/ConnectorButton'
 import { listConnectors, execute } from '@/lib/skipConnectors'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
+import {
+  applyTemplateVariables,
+  deleteLabsEmailTemplate,
+  extractTemplateVariables,
+  listLabsEmailTemplates,
+  saveLabsEmailTemplate,
+  type LabsEmailTemplate,
+} from '@/services/labs-email-templates'
 
 // =========================================================================
 // ABA EMAIL — Compositor + envio real pelo Gmail conectado do usuário
@@ -30,23 +48,29 @@ import { cn } from '@/lib/utils'
 // o email parte do Gmail DO usuário logado via conector — nunca da conta do
 // builder, sem OAuth hand-rolled, sem $http, sem secrets.
 // Ferramenta usada: GMAIL_SEND_EMAIL (slug confirmado via find_app_connector_tools).
+// Templates customizáveis persistidos em labs_email_templates (migration 0126),
+// com variáveis de substituição {{nome}}, {{empresa}} etc.
 // =========================================================================
 
-interface EmailTemplate {
-  id: string
+const VARIABLE_HINTS: Array<{ key: string; label: string }> = [
+  { key: '{{nome}}', label: 'Nome' },
+  { key: '{{empresa}}', label: 'Empresa' },
+  { key: '{{assunto}}', label: 'Assunto' },
+  { key: '{{data}}', label: 'Data' },
+]
+
+interface StarterTemplate {
   name: string
   description: string
-  icon: typeof Mail
   subject: string
   html: string
 }
 
-const EMAIL_TEMPLATES: EmailTemplate[] = [
+/** Modelos de partida — copiamos para o compositor; o usuário salva como template próprio. */
+const STARTER_TEMPLATES: StarterTemplate[] = [
   {
-    id: 'newsletter',
     name: 'Newsletter',
     description: 'Layout limpo de boletim com destaque editorial',
-    icon: Send,
     subject: 'Sua newsletter semanal',
     html: `<div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:32px;">
   <h1 style="font-size:22px;color:#111;">Sua newsletter semanal</h1>
@@ -56,10 +80,8 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
 </div>`,
   },
   {
-    id: 'promocional',
     name: 'Promocional',
     description: 'Chamada direta com botão de ação em destaque',
-    icon: Sparkles,
     subject: 'Oferta especial para você',
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;text-align:center;">
   <h1 style="font-size:24px;color:#111;">Oferta especial</h1>
@@ -68,10 +90,8 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
 </div>`,
   },
   {
-    id: 'transacional',
     name: 'Transacional',
     description: 'Mensagem objetiva de confirmação/aviso',
-    icon: CheckCircle2,
     subject: 'Confirmação de ação',
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;">
   <h2 style="color:#111;">Ação confirmada</h2>
@@ -79,10 +99,8 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
 </div>`,
   },
   {
-    id: 'convite',
     name: 'Convite',
     description: 'Convite de evento com data e CTA',
-    icon: QrCode,
     subject: 'Você está convidado',
     html: `<div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:40px;text-align:center;border:1px solid #eee;border-radius:12px;">
   <p style="letter-spacing:2px;font-size:11px;color:#999;">VOCÊ ESTÁ CONVIDADO</p>
@@ -98,11 +116,24 @@ export function LabsEmailTab() {
 
   const [subject, setSubject] = useState('')
   const [to, setTo] = useState('')
-  const [html, setHtml] = useState(EMAIL_TEMPLATES[0].html)
-  const [activeTemplate, setActiveTemplate] = useState<string>('newsletter')
+  const [html, setHtml] = useState(STARTER_TEMPLATES[0].html)
+  const [activeTemplate, setActiveTemplate] = useState<string>('')
   const [sending, setSending] = useState(false)
   const [gmailConnected, setGmailConnected] = useState(false)
   const [checkingConnection, setCheckingConnection] = useState(true)
+
+  // Templates personalizados (persistidos no banco)
+  const [templates, setTemplates] = useState<LabsEmailTemplate[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [showVars, setShowVars] = useState(false)
+  const [vars, setVars] = useState<Record<string, string>>({})
+
+  // Dialog salvar/editar template
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [tplName, setTplName] = useState('')
+  const [tplDescription, setTplDescription] = useState('')
+  const [savingTpl, setSavingTpl] = useState(false)
 
   const checkConnection = useCallback(async () => {
     try {
@@ -114,8 +145,24 @@ export function LabsEmailTab() {
     setCheckingConnection(false)
   }, [])
 
+  const loadTemplates = useCallback(async () => {
+    if (!user) {
+      setLoadingTemplates(false)
+      return
+    }
+    try {
+      setTemplates(await listLabsEmailTemplates(user.id))
+    } catch {
+      // Falha silenciosa: a aba continua usável sem templates salvos
+      setTemplates([])
+    } finally {
+      setLoadingTemplates(false)
+    }
+  }, [user])
+
   useEffect(() => {
     checkConnection()
+    loadTemplates()
     // Re-checa quando o usuário volta do fluxo de conexão (aba ganha foco)
     const onVisible = () => {
       if (document.visibilityState === 'visible') checkConnection()
@@ -126,17 +173,115 @@ export function LabsEmailTab() {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('focus', onVisible)
     }
-  }, [checkConnection])
+  }, [checkConnection, loadTemplates])
 
-  const handleTemplate = (tpl: EmailTemplate) => {
+  // ----------------------- Templates personalizados -----------------------
+
+  const openSaveDialog = (tpl?: LabsEmailTemplate) => {
+    if (tpl) {
+      setEditingId(tpl.id)
+      setTplName(tpl.name)
+      setTplDescription(tpl.description)
+    } else {
+      setEditingId(null)
+      setTplName('')
+      setTplDescription('')
+    }
+    setSaveOpen(true)
+  }
+
+  const handleSaveTemplate = async () => {
+    if (!user) return
+    if (!tplName.trim()) {
+      toast({
+        title: 'Nome obrigatório',
+        description: 'Dê um nome ao template.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setSavingTpl(true)
+    try {
+      const saved = await saveLabsEmailTemplate({
+        id: editingId || undefined,
+        user: user.id,
+        name: tplName,
+        description: tplDescription,
+        subject: subject,
+        html: html,
+      })
+      toast({
+        title: editingId ? 'Template atualizado' : 'Template salvo',
+        description: `"${saved.name}" ${editingId ? 'atualizado' : 'criado'} com sucesso.`,
+      })
+      setSaveOpen(false)
+      setActiveTemplate(saved.id)
+      loadTemplates()
+    } catch {
+      toast({
+        title: 'Falha ao salvar template',
+        description: 'Não foi possível gravar o template. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingTpl(false)
+    }
+  }
+
+  const handleApplyTemplate = (tpl: LabsEmailTemplate) => {
     setActiveTemplate(tpl.id)
     setSubject(tpl.subject)
     setHtml(tpl.html)
+    toast({ title: 'Template aplicado', description: `"${tpl.name}" carregado no compositor.` })
+  }
+
+  const handleDeleteTemplate = async (tpl: LabsEmailTemplate) => {
+    try {
+      await deleteLabsEmailTemplate(tpl.id)
+      if (activeTemplate === tpl.id) setActiveTemplate('')
+      toast({ title: 'Template excluído', description: `"${tpl.name}" foi removido.` })
+      loadTemplates()
+    } catch {
+      toast({
+        title: 'Falha ao excluir',
+        description: 'Não foi possível remover o template.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleStarter = (tpl: StarterTemplate) => {
+    setActiveTemplate('')
+    setSubject(tpl.subject)
+    setHtml(tpl.html)
     toast({
-      title: 'Template aplicado',
-      description: `Modelo "${tpl.name}" carregado no compositor.`,
+      title: 'Modelo carregado',
+      description: `Modelo "${tpl.name}" no compositor — salve-o para personalizá-lo.`,
     })
   }
+
+  // ----------------------- Variáveis -----------------------
+
+  const usedVars = extractTemplateVariables(subject, html)
+  const varNames =
+    usedVars.length > 0 ? usedVars : VARIABLE_HINTS.map((v) => v.key.replace(/[{}]/g, ''))
+
+  const setVar = (name: string, value: string) => setVars((prev) => ({ ...prev, [name]: value }))
+
+  const handleApplyVars = () => {
+    setSubject(applyTemplateVariables(subject, vars))
+    setHtml(applyTemplateVariables(html, vars))
+    toast({
+      title: 'Variáveis aplicadas',
+      description: 'Os placeholders {{...}} foram substituídos no compositor.',
+    })
+  }
+
+  const insertVar = (token: string) => {
+    setHtml((prev) => `${prev}\n${token}`)
+  }
+
+  // ----------------------- Envio -----------------------
 
   const validate = (): string | null => {
     if (!to.trim()) return 'Informe o destinatário no campo "Para".'
@@ -198,11 +343,13 @@ export function LabsEmailTab() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `email-${activeTemplate}-${Date.now()}.html`
+    a.download = `email-${activeTemplate || 'compositor'}-${Date.now()}.html`
     a.click()
     URL.revokeObjectURL(url)
     toast({ title: 'Arquivo baixado', description: 'O HTML do email foi baixado.' })
   }
+
+  const renderVarName = (name: string) => name.replace(/[{}]/g, '').trim()
 
   return (
     <div className="space-y-6">
@@ -269,16 +416,77 @@ export function LabsEmailTab() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email-html" className="text-xs font-semibold">
-            Corpo (HTML)
-          </Label>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <Label htmlFor="email-html" className="text-xs font-semibold">
+              Corpo (HTML)
+            </Label>
+            <button
+              type="button"
+              onClick={() => setShowVars((v) => !v)}
+              className="text-[11px] font-bold text-primary hover:underline"
+            >
+              {showVars ? 'Ocultar variáveis' : 'Variáveis {{...}}'}
+            </button>
+          </div>
+
+          {showVars && (
+            <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-2">
+              <p className="text-[11px] text-muted-foreground">
+                Placeholders encontrados no assunto/corpo. Preencha e aplique para substituir.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {varNames.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => insertVar(`{{${renderVarName(name)}}}`)}
+                    className="px-2 py-0.5 rounded-full border border-primary/40 text-[10px] font-bold text-primary hover:bg-primary/10"
+                  >
+                    + {`{{${renderVarName(name)}}}`}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {varNames.map((name) => {
+                  const clean = renderVarName(name)
+                  return (
+                    <div key={clean} className="space-y-0.5">
+                      <Label
+                        htmlFor={`var-${clean}`}
+                        className="text-[10px] font-bold uppercase text-muted-foreground"
+                      >
+                        {clean}
+                      </Label>
+                      <Input
+                        id={`var-${clean}`}
+                        value={vars[clean] || ''}
+                        onChange={(e) => setVar(clean, e.target.value)}
+                        placeholder={`Valor de ${clean}`}
+                        className="text-xs rounded-xl"
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleApplyVars}
+                className="rounded-xl text-xs font-bold"
+              >
+                Aplicar variáveis
+              </Button>
+            </div>
+          )}
+
           <textarea
             id="email-html"
             value={html}
             onChange={(e) => setHtml(e.target.value)}
             rows={10}
             className="w-full rounded-xl border border-border/80 bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-y"
-            placeholder="<h1>Olá!</h1><p>Escreva seu HTML...</p>"
+            placeholder="<h1>Olá {{nome}}!</h1><p>Escreva seu HTML...</p>"
           />
         </div>
 
@@ -301,6 +509,26 @@ export function LabsEmailTab() {
             type="button"
             size="sm"
             variant="outline"
+            onClick={() => openSaveDialog()}
+            className="rounded-xl text-xs font-bold gap-1.5"
+          >
+            <Save className="w-3.5 h-3.5" /> Salvar como template
+          </Button>
+          {activeTemplate && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => openSaveDialog(templates.find((t) => t.id === activeTemplate))}
+              className="rounded-xl text-xs font-bold gap-1.5"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Atualizar template
+            </Button>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
             onClick={handleCopy}
             className="rounded-xl text-xs font-bold gap-1.5"
           >
@@ -318,35 +546,110 @@ export function LabsEmailTab() {
         </div>
       </Card>
 
+      {/* Meus templates (persistidos) */}
       <div className="space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Templates de Email
-        </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {EMAIL_TEMPLATES.map((tpl) => {
-            const Icon = tpl.icon
-            const isActive = activeTemplate === tpl.id
-            return (
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Meus templates
+          </h4>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => openSaveDialog()}
+            className="h-7 text-[11px] gap-1"
+          >
+            <Plus className="w-3 h-3" /> Novo
+          </Button>
+        </div>
+        {loadingTemplates ? (
+          <Card className="p-6 flex items-center justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          </Card>
+        ) : templates.length === 0 ? (
+          <Card className="p-6 text-center space-y-1">
+            <p className="text-xs font-semibold text-foreground">Nenhum template salvo</p>
+            <p className="text-[11px] text-muted-foreground">
+              Monte o email no compositor e clique em "Salvar como template" — ele fica disponível
+              aqui para reutilizar.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {templates.map((tpl) => (
               <Card
                 key={tpl.id}
-                onClick={() => handleTemplate(tpl)}
                 className={cn(
-                  'p-4 space-y-1.5 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50',
-                  isActive && 'border-primary/60 bg-primary/5',
+                  'p-4 space-y-1.5 transition-all duration-200 hover:shadow-md hover:border-primary/50',
+                  activeTemplate === tpl.id && 'border-primary/60 bg-primary/5',
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <Icon
-                    className={cn('w-4 h-4', isActive ? 'text-primary' : 'text-muted-foreground')}
-                  />
-                  <h5 className="text-xs font-bold text-foreground">{tpl.name}</h5>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 min-w-0">
+                    <h5 className="text-xs font-bold text-foreground truncate">{tpl.name}</h5>
+                    {tpl.description && (
+                      <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+                        {tpl.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      title="Editar metadados"
+                      onClick={() => openSaveDialog(tpl)}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      title="Excluir template"
+                      onClick={() => handleDeleteTemplate(tpl)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {tpl.description}
-                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full rounded-xl text-[11px] font-bold"
+                  onClick={() => handleApplyTemplate(tpl)}
+                >
+                  Aplicar no compositor
+                </Button>
               </Card>
-            )
-          })}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modelos de partida */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Modelos de partida
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {STARTER_TEMPLATES.map((tpl) => (
+            <Card
+              key={tpl.name}
+              onClick={() => handleStarter(tpl)}
+              className="p-4 space-y-1.5 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50"
+            >
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <h5 className="text-xs font-bold text-foreground">{tpl.name}</h5>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{tpl.description}</p>
+            </Card>
+          ))}
         </div>
       </div>
 
@@ -372,6 +675,73 @@ export function LabsEmailTab() {
           </p>
         )}
       </Card>
+
+      {/* Dialog salvar/editar template */}
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">
+              {editingId ? 'Editar template' : 'Salvar template'}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              O assunto e o corpo atuais do compositor são gravados no template
+              {editingId ? ' (substituindo o conteúdo anterior).' : '.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="tpl-name" className="text-xs font-semibold">
+                Nome do template
+              </Label>
+              <Input
+                id="tpl-name"
+                value={tplName}
+                onChange={(e) => setTplName(e.target.value)}
+                placeholder="Ex.: Newsletter de lançamento"
+                className="text-xs rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tpl-desc" className="text-xs font-semibold">
+                Descrição (opcional)
+              </Label>
+              <Input
+                id="tpl-desc"
+                value={tplDescription}
+                onChange={(e) => setTplDescription(e.target.value)}
+                placeholder="Para que serve este template"
+                className="text-xs rounded-xl"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Dica: use variáveis como <code className="font-bold">{'{{nome}}'}</code> e{' '}
+              <code className="font-bold">{'{{empresa}}'}</code> no corpo — ao aplicar o template,
+              preencha os valores no painel de variáveis.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setSaveOpen(false)}
+              className="rounded-xl text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveTemplate}
+              disabled={savingTpl}
+              className="rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              {savingTpl ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              {editingId ? 'Salvar alterações' : 'Salvar template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

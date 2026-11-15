@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CalendarClock, Loader2, Sparkles, FileText, Clock } from 'lucide-react'
+import {
+  CalendarClock,
+  Loader2,
+  Sparkles,
+  FileText,
+  Clock,
+  BarChart3,
+  LayoutList,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -10,6 +18,8 @@ import { useToast } from '@/hooks/use-toast'
 import { pb } from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { useAuth } from '@/context/AuthContext'
+import { LabsScheduledDashboard } from '@/components/labs/LabsScheduledDashboard'
+import { LabsPostMetrics } from '@/components/labs/LabsPostMetrics'
 
 // =========================================================================
 // ABA POST — Criação e AGENDAMENTO de posts sociais
@@ -23,6 +33,8 @@ import { useAuth } from '@/context/AuthContext'
 // =========================================================================
 
 // Redes suportadas pelo campo `platform` da coleção posts
+// (select expandido na migration 0126: + WhatsApp, Threads, Pinterest,
+//  Telegram, Kwai, Google Business)
 const NETWORKS = [
   { id: 'Instagram', label: 'Instagram' },
   { id: 'TikTok', label: 'TikTok' },
@@ -30,6 +42,12 @@ const NETWORKS = [
   { id: 'Facebook', label: 'Facebook' },
   { id: 'YouTube', label: 'YouTube' },
   { id: 'Twitter/X', label: 'Twitter/X' },
+  { id: 'WhatsApp', label: 'WhatsApp' },
+  { id: 'Threads', label: 'Threads' },
+  { id: 'Pinterest', label: 'Pinterest' },
+  { id: 'Telegram', label: 'Telegram' },
+  { id: 'Kwai', label: 'Kwai' },
+  { id: 'Google Business', label: 'Google Business' },
 ] as const
 
 type NetworkId = (typeof NETWORKS)[number]['id']
@@ -86,6 +104,8 @@ export function LabsPostTab() {
   const [creating, setCreating] = useState(false)
   const [recent, setRecent] = useState<RecentPost[]>([])
   const [loadingRecent, setLoadingRecent] = useState(true)
+  const [section, setSection] = useState<'agendados' | 'metricas' | 'recentes'>('agendados')
+  const [reloadKey, setReloadKey] = useState(0)
 
   const loadRecent = useCallback(async () => {
     if (!user) return
@@ -180,6 +200,7 @@ export function LabsPostTab() {
       setCaption('')
       setScheduledAt('')
       loadRecent()
+      setReloadKey((k) => k + 1)
     } catch (err) {
       toast({
         title: 'Falha ao salvar',
@@ -267,55 +288,82 @@ export function LabsPostTab() {
         </Button>
       </Card>
 
-      {/* Lista de posts recentes */}
+      {/* Seções: Dashboard de agendamento | Métricas | Posts recentes */}
       <div className="space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Posts recentes
-        </h4>
-        {loadingRecent ? (
-          <Card className="p-6 flex items-center justify-center">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          </Card>
-        ) : recent.length === 0 ? (
-          <Card className="p-6 text-center space-y-1">
-            <p className="text-xs font-semibold text-foreground">Nenhum post ainda</p>
-            <p className="text-[11px] text-muted-foreground">
-              Crie seu primeiro post no formulário acima.
-            </p>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {recent.map((p) => (
-              <Card key={p.id} className="p-4 space-y-2">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[9px] font-bold uppercase">
-                      {p.platform}
-                    </Badge>
-                    <Badge variant="outline" className={statusBadgeClass(p.status)}>
-                      {STATUS_LABELS[p.status] || p.status}
-                    </Badge>
-                  </div>
-                  {p.status === 'scheduled' && p.scheduled_date && (
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] font-bold border-amber-500/40 text-amber-600 gap-1"
-                    >
-                      <CalendarClock className="w-3 h-3" />
-                      Agendado para {formatDateTime(p.scheduled_date)}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs text-foreground leading-relaxed line-clamp-2">
-                  {p.caption || p.content}
-                </p>
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {formatDateTime(p.created)}
-                </p>
-              </Card>
-            ))}
-          </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(
+            [
+              { id: 'agendados', label: 'Agendados', icon: LayoutList },
+              { id: 'metricas', label: 'Métricas de engajamento', icon: BarChart3 },
+              { id: 'recentes', label: 'Posts recentes', icon: Clock },
+            ] as const
+          ).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSection(id)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors inline-flex items-center gap-1.5 ${
+                section === id
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border/80 text-muted-foreground hover:text-foreground hover:border-primary/40'
+              }`}
+            >
+              <Icon className="w-3 h-3" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {section === 'agendados' && <LabsScheduledDashboard reloadKey={reloadKey} />}
+        {section === 'metricas' && (
+          <LabsPostMetrics posts={recent} reloadKey={reloadKey + recent.length} />
         )}
+
+        {section === 'recentes' &&
+          (loadingRecent ? (
+            <Card className="p-6 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            </Card>
+          ) : recent.length === 0 ? (
+            <Card className="p-6 text-center space-y-1">
+              <p className="text-xs font-semibold text-foreground">Nenhum post ainda</p>
+              <p className="text-[11px] text-muted-foreground">
+                Crie seu primeiro post no formulário acima.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {recent.map((p) => (
+                <Card key={p.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[9px] font-bold uppercase">
+                        {p.platform}
+                      </Badge>
+                      <Badge variant="outline" className={statusBadgeClass(p.status)}>
+                        {STATUS_LABELS[p.status] || p.status}
+                      </Badge>
+                    </div>
+                    {p.status === 'scheduled' && p.scheduled_date && (
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] font-bold border-amber-500/40 text-amber-600 gap-1"
+                      >
+                        <CalendarClock className="w-3 h-3" />
+                        Agendado para {formatDateTime(p.scheduled_date)}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-foreground leading-relaxed line-clamp-2">
+                    {p.caption || p.content}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {formatDateTime(p.created)}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          ))}
       </div>
     </div>
   )

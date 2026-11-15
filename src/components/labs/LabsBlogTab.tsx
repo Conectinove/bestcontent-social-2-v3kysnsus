@@ -51,13 +51,22 @@ const emptyDraft = (): Draft => ({
   status: 'draft',
 })
 
-// Redes-alvo para compartilhar o artigo (chips)
+// Redes-alvo para compartilhar o artigo (chips) — mesmos valores do select
+// `platform` da coleção posts (expandido na migration 0126). Um post é criado
+// por rede selecionada, com título + trecho (180 chars) como legenda.
 const SHARE_NETWORKS = [
   { id: 'Instagram', label: 'Instagram' },
   { id: 'Facebook', label: 'Facebook' },
   { id: 'LinkedIn', label: 'LinkedIn' },
   { id: 'Twitter/X', label: 'Twitter/X' },
   { id: 'TikTok', label: 'TikTok' },
+  { id: 'YouTube', label: 'YouTube' },
+  { id: 'WhatsApp', label: 'WhatsApp' },
+  { id: 'Threads', label: 'Threads' },
+  { id: 'Pinterest', label: 'Pinterest' },
+  { id: 'Telegram', label: 'Telegram' },
+  { id: 'Kwai', label: 'Kwai' },
+  { id: 'Google Business', label: 'Google Business' },
 ] as const
 
 /** Caption derivada do artigo: título + trecho curto do conteúdo. */
