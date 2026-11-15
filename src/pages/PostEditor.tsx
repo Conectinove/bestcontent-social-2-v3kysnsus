@@ -68,6 +68,7 @@ import { Copy } from 'lucide-react'
 import type { PremiumElement } from '@/services/premium-elements'
 import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
 import type { PostTemplate } from '@/services/post-templates'
+import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
 
 interface PlacedElement {
   uid: string
@@ -156,6 +157,17 @@ export default function PostEditor() {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
   const [advancedEditorOpen, setAdvancedEditorOpen] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
+
+  // Colaboração em tempo real: outra sessão salvou o MESMO post?
+  // Best-effort, nunca bloqueia o save local — só avisa.
+  const { remoteEdit: remotePostEdit, dismissRemoteEdit: setRemotePostEditDismissed } =
+    useLiveEditCollaboration<Record<string, unknown>>(postId, !!postId, {
+      collection: 'posts',
+      keyField: 'id',
+      userNameField: 'reviewer_name',
+      titleField: 'content',
+      payloadField: 'content',
+    })
 
   useEffect(() => {
     if (!postId) return
@@ -537,6 +549,7 @@ export default function PostEditor() {
       if (scheduledDate) data.scheduled_date = scheduledDate
       if (mediaFile) data.media = mediaFile
       await updatePost(postId, data)
+      registerOwnPostSave(postId)
       toast({
         title: publish ? 'Publicado!' : 'Salvo!',
         description: publish ? 'Seu post foi publicado.' : 'Post atualizado.',
@@ -892,6 +905,46 @@ export default function PostEditor() {
       }
     >
       <div className="space-y-3 pb-4">
+        {/* Colaboração em tempo real: outro editor salvou o MESMO post */}
+        {remotePostEdit && (
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                {remotePostEdit.userName || 'Outra pessoa'} atualizou este post
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {String(remotePostEdit.payload ?? '')}
+              </p>
+            </div>
+            <div className="flex gap-1.5 shrink-0">
+              <Button
+                size="sm"
+                className="h-7 text-[11px] font-bold"
+                onClick={async () => {
+                  const rec = await getPost(postId!)
+                  setContent(rec.content || '')
+                  setCaption(rec.caption || '')
+                  setRemotePostEditDismissed()
+                  toast({ title: 'Post atualizado!', description: 'Conteúdo remoto aplicado.' })
+                }}
+              >
+                Atualizar agora
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[11px]"
+                onClick={() => {
+                  setRemotePostEditDismissed()
+                  toast({ title: 'Ok', description: 'Seu trabalho local foi mantido.' })
+                }}
+              >
+                Manter meu trabalho
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Canvas de Pré-visualização da Arte com Suporte a Formato e Camadas */}
         <div className="flex justify-center">
           <div

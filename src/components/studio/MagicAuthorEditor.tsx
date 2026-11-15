@@ -60,6 +60,7 @@ import { PedagogicalAssistantPanel, type ActiveContextItem } from './Pedagogical
 import { AulaHtmlWorkspace } from './AulaHtmlWorkspace'
 import { ConnectorsContextModal, type ConnectorsTab } from './ConnectorsContextModal'
 import { AdvancedArtifactEditorModal } from './AdvancedArtifactEditorModal'
+import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
 
 interface MagicAuthorEditorProps {
   doc: SecondBrainDoc
@@ -102,10 +103,27 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
   const activeModule =
     currentDoc.modules.find((m) => m.id === selectedModuleId) || currentDoc.modules[0]
 
+  // Colaboração em tempo real (docs do Segundo Cérebro): outra sessão salvou
+  // o MESMO documento? Best-effort, nunca bloqueia o save local — só avisa.
+  const isOpenDoc = !!doc.id && !doc.id.startsWith('doc-seed-') && !doc.id.startsWith('doc-17')
+  const {
+    remoteEdit: remoteDocEdit,
+    dismissRemoteEdit: dismissDocEdit,
+    registerOwnSave: registerOwnDocSave,
+  } = useLiveEditCollaboration<Partial<SecondBrainDoc>>(isOpenDoc ? doc.id : null, isOpenDoc, {
+    collection: 'second_brain_docs',
+    keyField: 'id',
+    userNameField: 'author_name',
+    titleField: 'title',
+    payloadField: 'modules',
+    mapRecord: (_rec, payload) => (payload ? { modules: payload as SecondBrainModule[] } : null),
+  })
+
   const handleSave = async () => {
     setSaving(true)
     try {
       const updated = await saveSecondBrainDoc(currentDoc)
+      if (isOpenDoc && updated.id) registerOwnDocSave(updated.id)
       setCurrentDoc(updated)
       onSaveComplete?.(updated)
       toast({

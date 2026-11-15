@@ -19,6 +19,7 @@ import {
   type StudioEditPreset,
 } from '@/services/studio-edit-presets'
 import { downloadPresetFile, parsePresetFile, pickPresetFile } from '@/lib/preset-file'
+import { askExportAdvisor, type ExportAdvisorResult } from '@/services/export-advisor'
 
 interface EditPresetsPanelProps {
   /** Estado atual da customização — é o que será salvo no preset. */
@@ -40,6 +41,9 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [name, setName] = useState('')
+  const [adviceFor, setAdviceFor] = useState<string | null>(null)
+  const [adviceLoading, setAdviceLoading] = useState(false)
+  const [advice, setAdvice] = useState<ExportAdvisorResult | null>(null)
 
   const refresh = async () => {
     setLoading(true)
@@ -112,6 +116,36 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
       toast({ title: 'Não foi possível excluir o preset', variant: 'destructive' })
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  // IA: dicas do consultor de exportação ANTES de baixar o arquivo
+  const handleAskAi = async (preset: StudioEditPreset) => {
+    if (adviceFor === preset.id) {
+      setAdviceFor(null)
+      setAdvice(null)
+      return
+    }
+    setAdviceFor(preset.id)
+    setAdviceLoading(true)
+    setAdvice(null)
+    try {
+      const res = await askExportAdvisor({
+        network: 'Instagram',
+        contentType: `preset "${preset.name}"`,
+        settings: preset.settings,
+      })
+      setAdvice(res)
+      if (!res.tips.length) {
+        toast({
+          title: 'Sem dicas agora',
+          description: res.summary || 'Este preset já parece pronto para exportar.',
+        })
+      }
+    } catch {
+      toast({ title: 'Consultor de exportação indisponível', variant: 'destructive' })
+    } finally {
+      setAdviceLoading(false)
     }
   }
 
@@ -240,6 +274,21 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
           <Button
             size="sm"
             variant="ghost"
+            onClick={() => handleAskAi(preset)}
+            disabled={adviceLoading}
+            className="h-7 px-2 text-[11px] font-bold gap-1 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+            title="Sugerir com IA: dicas antes de exportar"
+          >
+            {adviceLoading && adviceFor === preset.id ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <WandSparkles className="w-3 h-3" />
+            )}
+            Sugerir com IA
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() => handleExport(preset)}
             className="h-7 px-1.5 text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
             title="Exportar preset como arquivo JSON"
@@ -270,6 +319,35 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
           </Button>
         </div>
       ))}
+
+      {/* Dicas do consultor de exportação (IA) — renderizadas antes de baixar */}
+      {adviceFor && advice && (
+        <div className="rounded-xl border border-purple-500/25 bg-purple-500/5 p-2 space-y-1">
+          <p className="text-[11px] font-black uppercase tracking-tight text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+            <WandSparkles className="w-3.5 h-3.5" /> Sugestões para exportar
+          </p>
+          {advice.summary && (
+            <p className="text-[10px] text-muted-foreground">
+              {advice.summary}
+              {advice.source === 'fallback' ? ' (modo offline)' : ''}
+            </p>
+          )}
+          <ul className="space-y-0.5">
+            {advice.tips.map((tip, i) => (
+              <li key={i} className="text-[11px] text-foreground/90 flex gap-1">
+                <span className="text-purple-500">•</span>
+                {tip}
+              </li>
+            ))}
+          </ul>
+          {(advice.recommendedFormat || advice.recommendedRatio) && (
+            <p className="text-[10px] text-muted-foreground">
+              Recomendado: {advice.recommendedFormat}
+              {advice.recommendedRatio ? ` · proporção ${advice.recommendedRatio}` : ''}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
