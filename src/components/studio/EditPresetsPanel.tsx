@@ -1,5 +1,13 @@
-import React, { useEffect, useState } from 'react'
-import { Bookmark, BookmarkPlus, Loader2, Trash2, WandSparkles } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+import {
+  Bookmark,
+  BookmarkPlus,
+  Download,
+  Loader2,
+  Trash2,
+  Upload,
+  WandSparkles,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -10,6 +18,7 @@ import {
   deleteEditPreset,
   type StudioEditPreset,
 } from '@/services/studio-edit-presets'
+import { downloadPresetFile, parsePresetFile, pickPresetFile } from '@/lib/preset-file'
 
 interface EditPresetsPanelProps {
   /** Estado atual da customização — é o que será salvo no preset. */
@@ -29,6 +38,7 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
   const [name, setName] = useState('')
 
   const refresh = async () => {
@@ -77,7 +87,11 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
 
   const handleApply = (preset: StudioEditPreset) => {
     const settings = preset.settings
-    if (!settings || typeof settings !== 'object' || !settings.primaryColor) {
+    if (
+      !settings ||
+      typeof settings !== 'object' ||
+      !(settings as AdvancedCustomizationState).primaryColor
+    ) {
       toast({
         title: 'Preset vazio ou corrompido',
         description: 'Não foi possível aplicar este preset.',
@@ -101,6 +115,55 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
     }
   }
 
+  // Exportar: baixa o preset como arquivo JSON "midiaviva-preset"
+  const handleExport = (preset: StudioEditPreset) => {
+    if (!preset.settings || !preset.settings.primaryColor) {
+      toast({
+        title: 'Preset vazio ou corrompido',
+        description: 'Não foi possível exportar este preset.',
+        variant: 'destructive',
+      })
+      return
+    }
+    downloadPresetFile(preset.name, preset.settings)
+    toast({
+      title: `Preset “${preset.name}” exportado`,
+      description: 'Arquivo JSON baixado — importe em outra conta/equipe.',
+    })
+  }
+
+  // Importar: lê o arquivo JSON, valida e recria o preset na lista
+  const handleImport = async () => {
+    const raw = await pickPresetFile()
+    if (!raw) return
+    const parsed = parsePresetFile(raw)
+    if (!parsed.ok || !parsed.input) {
+      toast({
+        title: 'Arquivo de preset inválido',
+        description: parsed.error,
+        variant: 'destructive',
+      })
+      return
+    }
+    setImporting(true)
+    try {
+      const created = await saveEditPreset(parsed.input.name, parsed.input.settings)
+      setPresets((prev) => [created, ...prev])
+      toast({
+        title: `Preset “${created.name}” importado!`,
+        description: 'Clique em Aplicar para usar na arte aberta.',
+      })
+    } catch {
+      toast({
+        title: 'Não foi possível importar o preset',
+        description: 'Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2">
       <div className="flex items-center justify-between">
@@ -108,7 +171,24 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
           <Bookmark className="w-3.5 h-3.5 text-purple-600" />
           Meus Presets de Edição
         </span>
-        {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+        <div className="flex items-center gap-1">
+          {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleImport}
+            disabled={importing}
+            className="h-7 px-2 text-[11px] font-bold gap-1 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+            title="Importar preset de arquivo .json"
+          >
+            {importing ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Upload className="w-3 h-3" />
+            )}
+            Importar
+          </Button>
+        </div>
       </div>
 
       {/* Salvar preset atual */}
@@ -157,6 +237,15 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
               {preset.updated ? new Date(preset.updated).toLocaleDateString('pt-BR') : ''}
             </p>
           </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleExport(preset)}
+            className="h-7 px-1.5 text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
+            title="Exportar preset como arquivo JSON"
+          >
+            <Download className="w-3 h-3" />
+          </Button>
           <Button
             size="sm"
             variant="ghost"

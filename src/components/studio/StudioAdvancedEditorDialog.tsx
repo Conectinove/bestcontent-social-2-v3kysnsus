@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Save, Type as TypeIcon } from 'lucide-react'
+import { History, Loader2, Save, Type as TypeIcon, Users } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,9 @@ import {
 } from '@/components/workspace/ProfessionalArtStudio'
 import type { StudioCreationRecord } from '@/services/ai-studio'
 import { EditPresetsPanel } from './EditPresetsPanel'
+import { EditHistoryPanel } from './EditHistoryPanel'
+import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
+import { saveEditVersion } from '@/services/studio-edit-versions'
 
 interface StudioAdvancedEditorDialogProps {
   open: boolean
@@ -66,8 +69,22 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
   const [isSaving, setIsSaving] = useState(false)
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [imgReady, setImgReady] = useState(false)
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
 
   const isImage = creation?.type === 'image' || Boolean(creation?.preview_url)
+
+  /** Chave estável da mídia/post: colaboração + histórico são por mídia. */
+  const targetKey = useMemo(() => {
+    if (!creation) return ''
+    if (creation.id) return `creation:${creation.id}`
+    return `creation:${creation.title || 'sem-titulo'}:${creation.preview_url || ''}`
+  }, [creation])
+
+  // Colaboração em tempo real: outra pessoa da mesma organização salvou?
+  const { remoteEdit, dismissRemoteEdit, registerOwnSave } = useLiveEditCollaboration(
+    targetKey,
+    open,
+  )
 
   // Reset do estado ao abrir uma nova mídia
   useEffect(() => {
@@ -255,6 +272,21 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
       }
 
       onSave(dataUrl || creation.preview_url)
+
+      // Histórico: cada salvamento vira uma versão restaurável (migration 0103)
+      saveEditVersion({
+        targetKey,
+        title: creation.title || '',
+        settings: customization,
+      })
+        .then((v) => {
+          if (v) {
+            registerOwnSave(v.id)
+            setHistoryRefreshKey((k) => k + 1)
+          }
+        })
+        .catch(() => {})
+
       toast({
         title: 'Edição avançada aplicada!',
         description: dataUrl
@@ -273,6 +305,37 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-(--breakpoint-2xl) w-[96vw] max-h-[92vh] overflow-y-auto rounded-3xl">
         <DialogHeader>
+          {/* Aviso de edição remota (colaboração em tempo real) */}
+          {remoteEdit && (
+            <div className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+              <Users className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span className="text-foreground/90">
+                <b>{remoteEdit.userName}</b> editou esta arte agora.
+              </span>
+              <div className="flex-1" />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (remoteEdit.settings) {
+                    setCustomization({ ...DEFAULT_CUSTOMIZATION, ...remoteEdit.settings })
+                  }
+                  dismissRemoteEdit()
+                }}
+                className="h-7 px-2 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Atualizar agora
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={dismissRemoteEdit}
+                className="h-7 px-2 text-[11px] font-bold"
+                title="Manter meu trabalho em andamento"
+              >
+                Manter o meu
+              </Button>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="bg-purple-600 text-white uppercase text-[10px] font-black">
               Edição Avançada da Arte
@@ -424,6 +487,18 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
               current={customization}
               onApply={(next) => setCustomization({ ...DEFAULT_CUSTOMIZATION, ...next })}
             />
+
+            {/* Histórico de versões + Assistente de Edição (IA nativa) */}
+            {targetKey && (
+              <EditHistoryPanel
+                targetKey={targetKey}
+                title={creation.title || ''}
+                current={customization}
+                onRestore={(next) => setCustomization({ ...DEFAULT_CUSTOMIZATION, ...next })}
+                refreshKey={historyRefreshKey}
+                network="studio"
+              />
+            )}
 
             {/* Camadas de texto */}
             <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2">
