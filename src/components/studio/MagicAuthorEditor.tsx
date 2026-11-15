@@ -34,6 +34,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LayoutGrid,
+  Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -500,6 +501,46 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
           </div>
         </div>
       </header>
+
+      {/* Banner de edição remota (colaboração em tempo real do Segundo Cérebro):
+          nunca sobrescreve silenciosamente — o usuário escolhe atualizar ou manter. */}
+      {remoteDocEdit && (
+        <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-2 border-b border-amber-500/40 bg-amber-500/10 text-xs shrink-0">
+          <Users className="w-4 h-4 shrink-0 text-amber-400" />
+          <span className="text-amber-100/90">
+            <b>{remoteDocEdit.userName}</b> editou este documento agora.
+          </span>
+          <div className="flex-1" />
+          <Button
+            size="sm"
+            onClick={() => {
+              if (remoteDocEdit.payload?.modules?.length) {
+                setCurrentDoc((prev) => ({
+                  ...prev,
+                  modules: remoteDocEdit.payload!.modules as SecondBrainModule[],
+                }))
+              }
+              dismissDocEdit()
+              toast({
+                title: 'Documento atualizado',
+                description: 'As alterações da outra sessão foram aplicadas neste editor.',
+              })
+            }}
+            className="h-7 px-2 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            Atualizar agora
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={dismissDocEdit}
+            className="h-7 px-2 text-[11px] font-bold text-amber-100 hover:text-white"
+            title="Manter meu trabalho em andamento"
+          >
+            Manter meu trabalho
+          </Button>
+        </div>
+      )}
 
       {/* 2. TOOLBAR RICA (Formatação, Fontes e Ações Rápidas) */}
       <div className="h-11 px-4 border-b border-slate-800 bg-slate-900/50 flex items-center gap-1 sm:gap-2 overflow-x-auto text-xs shrink-0 no-scrollbar">

@@ -160,14 +160,17 @@ export default function PostEditor() {
 
   // Colaboração em tempo real: outra sessão salvou o MESMO post?
   // Best-effort, nunca bloqueia o save local — só avisa.
-  const { remoteEdit: remotePostEdit, dismissRemoteEdit: setRemotePostEditDismissed } =
-    useLiveEditCollaboration<Record<string, unknown>>(postId, !!postId, {
-      collection: 'posts',
-      keyField: 'id',
-      userNameField: 'reviewer_name',
-      titleField: 'content',
-      payloadField: 'content',
-    })
+  const {
+    remoteEdit: remotePostEdit,
+    dismissRemoteEdit: setRemotePostEditDismissed,
+    registerOwnSave: registerOwnPostSave,
+  } = useLiveEditCollaboration<Record<string, unknown>>(postId, !!postId, {
+    collection: 'posts',
+    keyField: 'id',
+    userNameField: 'reviewer_name',
+    titleField: 'content',
+    payloadField: 'content',
+  })
 
   useEffect(() => {
     if (!postId) return

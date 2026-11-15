@@ -316,8 +316,8 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
               <Button
                 size="sm"
                 onClick={() => {
-                  if (remoteEdit.settings) {
-                    setCustomization({ ...DEFAULT_CUSTOMIZATION, ...remoteEdit.settings })
+                  if (remoteEdit.payload) {
+                    setCustomization({ ...DEFAULT_CUSTOMIZATION, ...remoteEdit.payload })
                   }
                   dismissRemoteEdit()
                 }}
