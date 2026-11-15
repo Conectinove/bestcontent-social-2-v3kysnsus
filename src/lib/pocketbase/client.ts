@@ -1,9 +1,9 @@
 import PocketBase from 'pocketbase'
 
-// GUARDA: manter SEMPRE o duplo export (default + nomeado `pb`).
-// Este export nomeado já se perdeu 20x em rodadas anteriores — não remover.
 const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
 pb.autoCancellation(false)
 
+// Guarda da casa (regressão já aconteceu 20×): manter o DUPLO EXPORT —
+// default E nomeado — qualquer rodada que toque imports de pb confere aqui.
 export { pb }
 export default pb
