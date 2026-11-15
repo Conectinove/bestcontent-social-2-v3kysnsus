@@ -19,6 +19,9 @@ import {
   BookOpen,
   Presentation,
   Wand2,
+  CheckSquare,
+  Square,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +36,11 @@ import { dataUrlToFile } from '@/lib/advanced-media'
 import { downloadAssetMedia } from '@/lib/download-utils'
 import { getImageUrlErrorMessage } from '@/lib/image-upload'
 import { getAssetUrl, uploadImageBankAsset } from '@/services/image-bank'
+import { rasterizeImageToFormat, type RasterizeFormat } from '@/lib/rasterize'
+import { applyPresetToAssets, type BulkProgress } from '@/services/bulk-preset'
+import { listEditPresets, type StudioEditPreset } from '@/services/studio-edit-presets'
+import { ExportFormatDialog, BulkPresetDialog } from '@/pages/brandKit/BulkPresetDialogs'
+import { persistEditedUrl } from '@/pages/brandKit/edited-urls'
 
 export interface BrandAsset {
   id: string
@@ -78,6 +86,17 @@ export function BrandKitPage() {
   // URL da mídia EDITADA por asset (rasterizada no editor) — alimenta download e preview
   const [sessionEditedUrls, setEditedUrls] = useState<Record<string, string>>({})
   const [downloadingEditedId, setDownloadingEditedId] = useState<string | null>(null)
+  // Export em PNG/JPG/WebP (pedido 3)
+  const [exportTarget, setExportTarget] = useState<BrandAsset | null>(null)
+  const [exporting, setExporting] = useState(false)
+  // Aplicar preset em lote (pedido 4)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [presets, setPresets] = useState<StudioEditPreset[]>([])
+  const [presetsLoading, setPresetsLoading] = useState(false)
+  const [presetPickerOpen, setPresetPickerOpen] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
   const [persistedEditedUrls, setPersistedEditedUrls] = useState<Record<string, string>>(() => {
     try {
       const raw = localStorage.getItem('brandkit:edited-urls')
@@ -360,7 +379,6 @@ export function BrandKitPage() {
       } else if (activeCategory !== 'all' && asset.category !== activeCategory) {
         return false
       }
-
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         return (
@@ -434,41 +452,108 @@ export function BrandKitPage() {
     }
   }
 
-  /** Baixa a imagem já editada (com filtros/ajustes aplicados); fallback: original. */
-  const handleDownloadEdited = async (asset: BrandAsset) => {
-    const editedUrl = editedUrls[asset.id]
-    if (!editedUrl) {
+  /** Baixa a imagem já editada; abre o seletor PNG/JPG/WebP (pedido 3). */
+  const handleDownloadEdited = (asset: BrandAsset) => {
+    if (!editedUrls[asset.id]) {
       handleDownload(asset, 'original')
       return
     }
-    setDownloadingEditedId(asset.id)
+    setExportTarget(asset)
+  }
+
+  /** Re-rasteriza a versão editada no formato escolhido e baixa. */
+  const handleExportEdited = async (asset: BrandAsset, format: RasterizeFormat) => {
+    const editedUrl = editedUrls[asset.id]
+    if (!editedUrl) return
+    setExporting(true)
     try {
-      if (editedUrl.startsWith('data:')) {
-        const a = document.createElement('a')
-        a.href = editedUrl
-        a.download = `${asset.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-editada.png`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-      } else {
+      const baseName = asset.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-')
+      const dataUrl = await rasterizeImageToFormat(editedUrl, format)
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `${baseName}-editada.${format === 'jpeg' ? 'jpg' : format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      toast({
+        title: `Download iniciado (${format === 'jpeg' ? 'JPG' : format.toUpperCase()})`,
+        description: `Asset "${asset.title}" exportado com os ajustes aplicados.`,
+      })
+      setExportTarget(null)
+    } catch {
+      // Fallback CORS: baixa o arquivo persistido direto (mantém extensão pedida)
+      try {
         await downloadAssetMedia(editedUrl, {
-          filename: `${asset.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-editada.png`,
+          filename: `${asset.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-editada.${
+            format === 'jpeg' ? 'jpg' : format
+          }`,
           mediaType: 'image',
         })
+        setExportTarget(null)
+      } catch {
+        window.open(editedUrl, '_blank')
+        toast({
+          title: 'Abrimos a imagem em nova aba',
+          description: 'O navegador bloqueou o download direto (CORS). Use "Salvar imagem como…".',
+        })
       }
-      toast({
-        title: 'Download da versão editada iniciado',
-        description: `Asset "${asset.title}" baixado com os ajustes da Edição Avançada aplicados.`,
-      })
-    } catch {
-      // Fallback resiliente: se algo falhar, baixa o original
-      handleDownload(asset, 'original')
     } finally {
-      setDownloadingEditedId(null)
+      setExporting(false)
     }
   }
 
-  /** Grava a mídia editada (data:→PNG) no acervo de imagens, vinculada à marca ativa. */
+  // Seleção múltipla (pedido 4)
+  const toggleSelected = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedIds([])
+  }
+
+  const handleApplyBulkPreset = async (preset: StudioEditPreset) => {
+    const items = selectedIds
+      .map((id) => baseAssets.find((a) => a.id === id))
+      .filter((a): a is BrandAsset => Boolean(a))
+      .map((a) => ({
+        assetId: a.id,
+        srcUrl: a.imageUrl,
+        name: a.title,
+        category: 'geral',
+        brand: currentBrand?.id,
+        aspectRatio: a.aspectRatio,
+        previousEditedUrl: editedUrls[a.id],
+      }))
+    setPresetPickerOpen(false)
+    setBulkOpen(true)
+    setBulkProgress({ done: 0, total: items.length, currentName: '', ok: 0, failed: 0 })
+    const result = await applyPresetToAssets(items, preset, setBulkProgress)
+    // Re-carrega o mapa do localStorage após o lote (badge Editado + preview)
+    try {
+      const raw = localStorage.getItem('brandkit:edited-urls')
+      if (raw) setPersistedEditedUrls(JSON.parse(raw))
+    } catch {
+      /* ignore */
+    }
+    setBulkOpen(false)
+    setBulkProgress(null)
+    exitSelectMode()
+    toast({
+      title: `Preset “${preset.name}” aplicado em lote`,
+      description: `${result.ok} asset(s) atualizados${result.failed ? `, ${result.failed} falharam` : ''}.`,
+      variant: result.failed ? 'destructive' : 'default',
+    })
+  }
+
+  const handleAdvancedSave = async (asset: BrandAsset, resultUrl: string) => {
+    setAdvancedAsset(null)
+    setSavingEdit(true)
+    // Guarda o resultado editado para download/preview imediato (mesmo se o upload falhar)
+    setEditedUrls((prev) => ({ ...prev, [asset.id]: resultUrl }))
+    try {
+=======
   const handleAdvancedSave = async (asset: BrandAsset, resultUrl: string) => {
     setAdvancedAsset(null)
     setSavingEdit(true)

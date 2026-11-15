@@ -6,11 +6,16 @@ import {
   Download,
   Loader2,
   Package,
+  Share2,
   Square,
   Trash2,
   Upload,
+  Users,
   WandSparkles,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -19,6 +24,7 @@ import {
   listEditPresets,
   saveEditPreset,
   deleteEditPreset,
+  setEditPresetShared,
   type StudioEditPreset,
 } from '@/services/studio-edit-presets'
 import {
@@ -56,6 +62,8 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
   // Seleção múltipla (pedido 3): checkbox por preset + exportar em lote.
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [savingBundle, setSavingBundle] = useState(false)
+  const [sharingId, setSharingId] = useState<string | null>(null)
+  const userId = String(pb.authStore.record?.id || pb.authStore.model?.id || '')
 
   const refresh = async () => {
     setLoading(true)
@@ -117,6 +125,25 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
     }
     onApply(settings)
     toast({ title: `Preset “${preset.name}” aplicado` })
+  }
+
+  // Compartilhar com a equipe (migration 0112): só o dono liga/desliga.
+  const handleToggleShare = async (preset: StudioEditPreset, next: boolean) => {
+    setSharingId(preset.id)
+    try {
+      await setEditPresetShared(preset.id, next)
+      setPresets((prev) => prev.map((p) => (p.id === preset.id ? { ...p, is_shared: next } : p)))
+      toast({
+        title: next ? `Preset “${preset.name}” compartilhado` : 'Compartilhamento desativado',
+        description: next
+          ? 'Membros da mesma empresa já podem ver e aplicar este preset.'
+          : 'O preset voltou a ser visível só para você.',
+      })
+    } catch {
+      toast({ title: 'Não foi possível alterar o compartilhamento', variant: 'destructive' })
+    } finally {
+      setSharingId(null)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -359,9 +386,21 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-foreground truncate">{preset.name}</p>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <p className="text-xs font-bold text-foreground truncate">{preset.name}</p>
+              {preset.is_shared && preset.user !== userId && (
+                <Badge
+                  variant="outline"
+                  className="text-[9px] gap-0.5 border-purple-500/40 text-purple-600 dark:text-purple-400 shrink-0"
+                >
+                  <Users className="w-2.5 h-2.5" />
+                  Equipe
+                </Badge>
+              )}
+            </div>
             <p className="text-[10px] text-muted-foreground">
               {preset.updated ? new Date(preset.updated).toLocaleDateString('pt-BR') : ''}
+              {preset.is_shared && preset.user === userId ? ' · compartilhado' : ''}
             </p>
           </div>
           <Button
@@ -379,6 +418,20 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
             )}
             Sugerir com IA
           </Button>
+          {preset.user === userId && (
+            <div
+              className="flex items-center gap-1 shrink-0"
+              title="Compartilhar com a equipe da empresa"
+            >
+              <Share2 className="w-3 h-3 text-muted-foreground" />
+              <Switch
+                checked={preset.is_shared}
+                disabled={sharingId === preset.id}
+                onCheckedChange={(v) => void handleToggleShare(preset, v)}
+                className="scale-75"
+              />
+            </div>
+          )}
           <Button
             size="sm"
             variant="ghost"
