@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Save, Type as TypeIcon, FlipHorizontal, FlipVertical } from 'lucide-react'
+import {
+  Loader2,
+  Save,
+  Type as TypeIcon,
+  FlipHorizontal,
+  FlipVertical,
+  LayoutTemplate,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -29,6 +36,8 @@ interface SecondBrainAdvancedImageEditorProps {
     filter: string
     customization: AdvancedCustomizationState
   }) => void
+  /** Salva a composição atual como modelo de mídia (studio_edit_presets). */
+  onSaveAsTemplate?: (settings: AdvancedCustomizationState) => void
 }
 
 /** Mesmo filtro CSS do motor do Studio (buildStudioImageFilter), local para não acoplar. */
@@ -79,6 +88,7 @@ export const SecondBrainAdvancedImageEditor: React.FC<SecondBrainAdvancedImageEd
   imageUrl,
   initialCustomization,
   onSave,
+  onSaveAsTemplate,
 }) => {
   const { toast } = useToast()
   const [customization, setCustomization] = useState<AdvancedCustomizationState>(DEFAULT_STATE)
@@ -346,6 +356,18 @@ export const SecondBrainAdvancedImageEditor: React.FC<SecondBrainAdvancedImageEd
           >
             Cancelar
           </Button>
+          {onSaveAsTemplate && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onSaveAsTemplate(customization)}
+              className="h-9 border-slate-700 text-slate-300 hover:text-white text-xs gap-1.5 rounded-xl"
+              title="Guardar composição atual para aplicar em outra mídia"
+            >
+              <LayoutTemplate className="w-3.5 h-3.5" />
+              Salvar como modelo
+            </Button>
+          )}
           <Button
             type="button"
             onClick={handleSave}
