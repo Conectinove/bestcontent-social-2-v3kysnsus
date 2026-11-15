@@ -3,9 +3,8 @@ import PocketBase from 'pocketbase'
 const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
 pb.autoCancellation(false)
 
-// GUARDA DE REGRESSÃO (21ª ocorrência): NUNCA remover o export nomeado abaixo.
-// Diversos arquivos importam { pb } (nomeado) — ex. src/pages/Library.tsx.
-// Manter SEMPRE o duplo export: default + nomeado.
-export default pb
-
+// GUARDA: manter o duplo export (default + nomeado) — o código do projeto importa
+// dos dois jeitos (`import pb from ...` e `import { pb } from ...`).
+// Este export nomeado já regrediu 22 vezes; NÃO remova.
 export { pb }
+export default pb
