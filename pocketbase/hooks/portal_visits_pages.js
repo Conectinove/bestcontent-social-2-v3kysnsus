@@ -269,9 +269,10 @@ routerAdd('POST', '/backend/v1/portals/theme', (e) => {
     portal = null
   }
   if (portal) {
-    if (bg) portal.set('bg_color', bg)
-    if (txt) portal.set('text_color', txt)
-    if (btn) portal.set('button_color', btn)
+    // Vazio = reset (a página pública cai pro fallback do accent).
+    portal.set('bg_color', bg)
+    portal.set('text_color', txt)
+    portal.set('button_color', btn)
     let theme = {}
     try {
       theme = JSON.parse(portal.getString('theme_snapshot') || '{}')
@@ -279,9 +280,9 @@ routerAdd('POST', '/backend/v1/portals/theme', (e) => {
       theme = {}
     }
     if (accent) theme.accent_color = accent
-    if (bg) theme.bg_color = bg
-    if (txt) theme.text_color = txt
-    if (btn) theme.button_color = btn
+    theme.bg_color = bg
+    theme.text_color = txt
+    theme.button_color = btn
     portal.set('theme_snapshot', JSON.stringify(theme))
     $app.save(portal)
   }

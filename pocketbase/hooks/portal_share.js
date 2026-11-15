@@ -140,7 +140,12 @@ routerAdd('GET', '/backend/v1/portals/share/{token}', (e) => {
   const gaId = portal.getString('ga_measurement_id')
 
   // Logo do portal: arquivo próprio (migration 0118) ou o logo da marca.
-  let logoUrl = brand.getString('logo')
+  // Sem arquivo próprio, monta a URL do logo da marca (filename -> caminho /api/files).
+  const brandLogoFile = brand.getString('logo')
+  let logoUrl = ''
+  if (brandLogoFile) {
+    logoUrl = '/api/files/brands/' + brandId + '/' + brandLogoFile
+  }
   const logoFile = portal.getString('logo_file')
   if (logoFile) {
     logoUrl = '/api/files/brand_portals/' + portal.id + '/' + logoFile
