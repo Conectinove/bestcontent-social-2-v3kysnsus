@@ -1329,7 +1329,16 @@ function PresetListDialog({
   selectedCount: number
   onPick: (preset: StudioEditPreset) => void
 }) {
-  return <BulkPresetPickerDialog {...props} />
+  return (
+    <BulkPresetPickerDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      presets={presets}
+      loading={loading}
+      selectedCount={selectedCount}
+      onPick={onPick}
+    />
+  )
 }
 
 function BulkPresetPickerDialog({

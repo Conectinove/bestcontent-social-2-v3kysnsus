@@ -167,15 +167,15 @@ export async function rasterizeEditedImage(input: RasterizeInput): Promise<strin
       const y = py - totalH / 2 + i * lineHeight + lineHeight / 2
       if (layer.bgColor && line.trim()) {
         const metrics = ctx.measureText(line)
-        const pad = (layer.bgPadding || 0) * fontScale
+        const pad = Number(layer.bgPadding || 0) * fontScale
         const boxW = metrics.width + pad * 2
         let bx = px - metrics.width / 2 - pad
         if (layer.align === 'left') bx = px - pad
         if (layer.align === 'right') bx = px - metrics.width - pad
-        ctx.fillStyle = layer.bgColor
+        ctx.fillStyle = String(layer.bgColor || '#000000')
         ctx.fillRect(bx, y - lineHeight / 2, boxW, lineHeight)
       }
-      ctx.fillStyle = layer.color
+      ctx.fillStyle = String(layer.color || '#ffffff')
       ctx.fillText(line, px, y)
     })
   })
