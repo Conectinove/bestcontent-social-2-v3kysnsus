@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T08:23:34.076Z",
+  "generatedAt": "2026-11-15T08:39:11.287Z",
   "collections": [
     {
       "name": "users",
@@ -5588,6 +5588,39 @@
         },
         {
           "name": "theme_map",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "studio_edit_presets",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "settings",
           "type": "json",
           "required": false,
           "system": false
