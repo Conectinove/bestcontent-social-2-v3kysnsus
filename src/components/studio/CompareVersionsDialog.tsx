@@ -17,11 +17,16 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ArrowRight, GitCompareArrows, Minus, Plus } from 'lucide-react'
+import { VersionZoomPane, clampZoom, clampZoomState, type ZoomState } from './VersionZoomPane'
+import type { TextLayer } from '@/services/studio-edit-versions'
 
 /**
- * Comparação visual de versões do histórico de edições (pedido 2):
- * escolhe duas versões (ou versão vs. estado atual) e mostra os settings
- * lado a lado com as diferenças destacadas (mudou/adicionado/removido).
+ * Comparação de versões do histórico de edições (pedidos 1 e 4):
+ * - lado a lado com PRÉVIA RASTERIZADA da imagem de cada versão (mesmo motor
+ *   da exportação PNG/JPG/WebP), com placeholder quando não há imagem;
+ * - zoom/pan SINCRONIZADOS (mesmo estado nos dois lados) por botões +/−,
+ *   scroll, arrastar e pinça;
+ * - diff textual dos ajustes com as diferenças destacadas abaixo.
  */
 
 export interface CompareVersionEntry {
@@ -29,6 +34,10 @@ export interface CompareVersionEntry {
   version_label: string
   editor_name?: string
   settings?: Record<string, unknown> | null
+  /** URL da imagem base da versão (preview_url/result_url do snapshot). */
+  image_url?: string | null
+  text_layers?: TextLayer[] | null
+  aspect_ratio?: string
   created?: string
 }
 
@@ -39,6 +48,12 @@ interface CompareVersionsDialogProps {
   versions: CompareVersionEntry[]
   /** Estado atual do editor (comparação "versão vs. atual"). */
   currentSettings?: Record<string, unknown> | null
+  /** Imagem base do estado atual (para rasterizar o lado "atual"). */
+  currentImageUrl?: string | null
+  /** Camadas de texto do estado atual (rasterização do lado "atual"). */
+  currentTextLayers?: TextLayer[] | null
+  /** Proporção atual do editor. */
+  currentAspectRatio?: string
 }
 
 /** Labels legíveis para os ajustes (não exibir chaves cruas). */
@@ -55,6 +70,7 @@ const SETTING_LABELS: Record<string, string> = {
   borderWidth: 'Espessura da borda',
   borderColor: 'Cor da borda',
   shadow: 'Sombra',
+  vignette: 'Vinheta',
   gradientMode: 'Modo do gradiente',
   overlayColor: 'Cor do overlay',
   primaryColor: 'Cor primária',
@@ -154,9 +170,14 @@ export function CompareVersionsDialog({
   onOpenChange,
   versions,
   currentSettings,
+  currentImageUrl,
+  currentTextLayers,
+  currentAspectRatio,
 }: CompareVersionsDialogProps) {
   const [leftId, setLeftId] = useState<string>('')
   const [rightId, setRightId] = useState<string>('')
+  // Zoom/pan sincronizados: UM estado para os dois lados (pedido 1).
+  const [view, setView] = useState<ZoomState>({ zoom: 1, x: 0, y: 0 })
 
   const options = useMemo(() => {
     const list = versions.map((v) => ({
@@ -169,43 +190,91 @@ export function CompareVersionsDialog({
     return list
   }, [versions, currentSettings])
 
-  const settingsById = useMemo(() => {
-    const map: Record<string, Record<string, unknown> | null> = {}
-    for (const v of versions) map[v.id] = v.settings ?? null
-    if (currentSettings) map['__current__'] = currentSettings
+  const byId = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        settings: Record<string, unknown> | null
+        image: string | null
+        textLayers: TextLayer[] | null
+        ratio: string
+      } | null
+    > = {}
+    for (const v of versions) {
+      map[v.id] = {
+        settings: v.settings ?? null,
+        image: v.image_url || null,
+        textLayers: v.text_layers ?? null,
+        ratio: v.aspect_ratio || '',
+      }
+    }
+    if (currentSettings) {
+      map['__current__'] = {
+        settings: currentSettings,
+        image: currentImageUrl || null,
+        textLayers: currentTextLayers ?? null,
+        ratio: currentAspectRatio || '',
+      }
+    }
     return map
-  }, [versions, currentSettings])
+  }, [versions, currentSettings, currentImageUrl, currentTextLayers, currentAspectRatio])
 
   const leftIdSafe = leftId || options[0]?.id || ''
   const rightIdSafe = rightId || options[1]?.id || leftIdSafe
 
-  const left = settingsById[leftIdSafe] ?? null
-  const right = settingsById[rightIdSafe] ?? null
+  const left = byId[leftIdSafe] ?? null
+  const right = byId[rightIdSafe] ?? null
   const rows = useMemo(
-    () => (open && leftIdSafe !== rightIdSafe ? diffSettings(left, right) : []),
+    () => (open && leftIdSafe !== rightIdSafe ? diffSettings(left?.settings, right?.settings) : []),
     [open, leftIdSafe, rightIdSafe, left, right],
   )
 
   const leftLabel = options.find((o) => o.id === leftIdSafe)?.label || '—'
   const rightLabel = options.find((o) => o.id === rightIdSafe)?.label || '—'
 
+  const zoomIn = () => setView((s) => clampZoomState({ ...s, zoom: clampZoom(s.zoom * 1.25) }))
+  const zoomOut = () => setView((s) => clampZoomState({ ...s, zoom: clampZoom(s.zoom / 1.25) }))
+  const zoomReset = () => setView({ zoom: 1, x: 0, y: 0 })
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <GitCompareArrows className="w-4 h-4 text-primary" />
             Comparar versões
           </DialogTitle>
           <DialogDescription>
-            Escolha duas versões (ou versão vs. atual) para ver os ajustes lado a lado.
+            Prévias rasterizadas lado a lado (zoom sincronizado) + diff dos ajustes.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Prévias rasterizadas com zoom/pan sincronizado (pedidos 1 e 4) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <VersionZoomPane
+            label={`Antes — ${leftLabel}`}
+            src={left?.image}
+            settings={left?.settings ?? null}
+            textLayers={left?.textLayers ?? undefined}
+            aspectRatio={left?.ratio || undefined}
+            view={view}
+            onViewChange={setView}
+          />
+          <VersionZoomPane
+            label={`Depois — ${rightLabel}`}
+            src={right?.image}
+            settings={right?.settings ?? null}
+            textLayers={right?.textLayers ?? undefined}
+            aspectRatio={right?.ratio || undefined}
+            view={view}
+            onViewChange={setView}
+          />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="space-y-1">
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
-              Antes
+              Versão antes
             </p>
             <Select value={leftIdSafe} onValueChange={setLeftId}>
               <SelectTrigger className="h-8 text-xs">
@@ -222,7 +291,7 @@ export function CompareVersionsDialog({
           </div>
           <div className="space-y-1">
             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
-              Depois
+              Versão depois
             </p>
             <Select value={rightIdSafe} onValueChange={setRightId}>
               <SelectTrigger className="h-8 text-xs">
@@ -239,7 +308,7 @@ export function CompareVersionsDialog({
           </div>
         </div>
 
-        <ScrollArea className="h-[46vh] rounded-xl border border-border">
+        <ScrollArea className="h-[30vh] rounded-xl border border-border">
           <div className="p-3 space-y-1.5">
             {rows.length === 0 ? (
               <p className="text-xs text-muted-foreground py-6 text-center">
@@ -286,14 +355,40 @@ export function CompareVersionsDialog({
           <span className="truncate">
             <b>{leftLabel}</b> <ArrowRight className="inline w-3 h-3 mx-0.5" /> <b>{rightLabel}</b>
           </span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-[11px]"
-            onClick={() => onOpenChange(false)}
-          >
-            Fechar
-          </Button>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 w-7 p-0"
+              onClick={zoomOut}
+              title="Diminuir zoom"
+            >
+              <Minus className="w-3 h-3" />
+            </Button>
+            <span className="text-[10px] font-mono w-10 text-center">
+              {Math.round(view.zoom * 100)}%
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 w-7 p-0"
+              onClick={zoomIn}
+              title="Ampliar"
+            >
+              <Plus className="w-3 h-3" />
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={zoomReset}>
+              1:1
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-[11px]"
+              onClick={() => onOpenChange(false)}
+            >
+              Fechar
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

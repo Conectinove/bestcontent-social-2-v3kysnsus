@@ -11,6 +11,7 @@ import {
   Trash2,
   Upload,
   Users,
+  Link2,
   WandSparkles,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,7 @@ import {
   pickPresetFile,
 } from '@/lib/preset-file'
 import { askExportAdvisor, type ExportAdvisorResult } from '@/services/export-advisor'
+import { createPresetShareLink } from '@/services/preset-share'
 
 interface EditPresetsPanelProps {
   /** Estado atual da customização — é o que será salvo no preset. */
@@ -63,6 +65,7 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [savingBundle, setSavingBundle] = useState(false)
   const [sharingId, setSharingId] = useState<string | null>(null)
+  const [linkLoadingId, setLinkLoadingId] = useState<string | null>(null)
   const userId = String(pb.authStore.record?.id || pb.authStore.model?.id || '')
 
   const refresh = async () => {
@@ -143,6 +146,28 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
       toast({ title: 'Não foi possível alterar o compartilhamento', variant: 'destructive' })
     } finally {
       setSharingId(null)
+    }
+  }
+
+  // Link externo (pedido 2): gera/renova o token e copia a URL pública.
+  // Regenerar invalida o link anterior (o token antigo deixa de existir).
+  const handleCopyLink = async (preset: StudioEditPreset) => {
+    setLinkLoadingId(preset.id)
+    try {
+      const url = await createPresetShareLink(preset.id)
+      await navigator.clipboard.writeText(url)
+      toast({
+        title: 'Link copiado!',
+        description: 'Quem abrir o link (em qualquer conta) importa o preset.',
+      })
+    } catch {
+      toast({
+        title: 'Não foi possível gerar o link',
+        description: 'Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLinkLoadingId(null)
     }
   }
 
@@ -432,6 +457,20 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
               />
             </div>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void handleCopyLink(preset)}
+            disabled={linkLoadingId === preset.id}
+            className="h-7 px-1.5 text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
+            title="Gerar/copiar link externo do preset (regenerar invalida o link antigo)"
+          >
+            {linkLoadingId === preset.id ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Link2 className="w-3 h-3" />
+            )}
+          </Button>
           <Button
             size="sm"
             variant="ghost"

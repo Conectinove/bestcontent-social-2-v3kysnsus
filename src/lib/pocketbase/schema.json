@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T13:23:02.519Z",
+  "generatedAt": "2026-11-15T13:53:58.306Z",
   "collections": [
     {
       "name": "users",
@@ -5649,9 +5649,18 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "share_token",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_studio_edit_presets_shared ON studio_edit_presets (is_shared)"]
+      "indexes": [
+        "CREATE INDEX idx_studio_edit_presets_shared ON studio_edit_presets (is_shared)",
+        "CREATE INDEX idx_studio_edit_presets_share_token ON studio_edit_presets (share_token)"
+      ]
     },
     {
       "name": "studio_edit_versions",

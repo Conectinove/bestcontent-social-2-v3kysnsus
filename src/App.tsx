@@ -54,6 +54,7 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ClientApprovalPage from './pages/ClientApprovalPage'
+import ImportPresetPage from './pages/ImportPresetPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 import AdminRoute from './components/navigation/AdminRoute'
 
@@ -70,6 +71,8 @@ const App = () => (
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/waitlist" element={<LandingPage />} />
               <Route path="/review/:slug" element={<ClientApprovalPage />} />
+              {/* Link externo de preset (pedido 2): página pública de importação */}
+              <Route path="/importar-preset" element={<ImportPresetPage />} />
 
               {/* Onboarding / Assistente de Marca independente e imersivo */}
               <Route path="/app/onboarding" element={<Onboarding />} />
