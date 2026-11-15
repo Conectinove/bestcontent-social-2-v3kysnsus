@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Sparkles, HelpCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Sparkles, HelpCircle, ArrowRight, Wand2, CalendarCheck } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 import { LandingHeader } from '@/components/landing/Header'
 import { WaitlistForm } from '@/components/landing/WaitlistForm'
 import { FeaturesSection } from '@/components/landing/FeaturesSection'
@@ -14,6 +16,7 @@ import {
 
 export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState<string | undefined>(undefined)
+  const { user } = useAuth()
 
   const handleSelectPlan = (plan: string) => {
     setSelectedPlan(plan)
@@ -53,6 +56,52 @@ export default function LandingPage() {
               </p>
 
               <FeaturesSection />
+
+              {/* CTAs da home: sempre apontam para telas reais do portal */}
+              <div className="flex flex-wrap items-center gap-3 mt-8">
+                {user ? (
+                  <>
+                    <Link
+                      to="/app/visao-geral"
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-600/25 hover:from-purple-700 hover:to-indigo-700 transition-all"
+                    >
+                      Ir para o Portal
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      to="/app/criar"
+                      className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-white px-5 py-2.5 text-sm font-bold text-purple-700 hover:bg-purple-50 transition-all"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                      Criar Conteúdo
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/signup"
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-600/25 hover:from-purple-700 hover:to-indigo-700 transition-all"
+                    >
+                      Criar conta grátis
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      to="/app/visao-geral"
+                      className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-white px-5 py-2.5 text-sm font-bold text-purple-700 hover:bg-purple-50 transition-all"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                      Conhecer o portal
+                    </Link>
+                  </>
+                )}
+                <Link
+                  to="/app/calendar"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-purple-600 transition-colors"
+                >
+                  <CalendarCheck className="h-4 w-4" />
+                  Ver agenda editorial
+                </Link>
+              </div>
             </div>
 
             {/* Waitlist Form Right */}

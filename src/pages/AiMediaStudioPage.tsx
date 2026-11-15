@@ -638,7 +638,12 @@ export default function AiMediaStudioPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      navigate('/app/criar')
+                      navigate('/app/criar', {
+                        state: {
+                          mediaUrl: selectedCreationModal.preview_url,
+                          mediaPreviewUrl: selectedCreationModal.preview_url,
+                        },
+                      })
                       setSelectedCreationModal(null)
                     }}
                     className="rounded-full text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white"

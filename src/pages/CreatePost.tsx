@@ -1601,7 +1601,7 @@ export default function CreatePost() {
                 Mídia do Post (Imagem / Vídeo)
               </label>
 
-              {media ? (
+              {media || mediaPreviewUrl ? (
                 <div className="p-3 rounded-xl border border-purple-500/30 bg-purple-50/40 dark:bg-purple-950/20 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden shrink-0 border border-border">
@@ -1615,10 +1615,12 @@ export default function CreatePost() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold truncate max-w-[200px] sm:max-w-xs">
-                        {media.name}
+                        {media ? media.name : 'Mídia do Studio de IA'}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        {(media.size / 1024).toFixed(1)} KB &middot; Pronto para envio
+                        {media
+                          ? `${(media.size / 1024).toFixed(1)} KB · Pronto para envio`
+                          : 'Importada do Studio · Pronta para envio'}
                       </p>
                     </div>
                   </div>

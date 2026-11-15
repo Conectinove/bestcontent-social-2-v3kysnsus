@@ -18,10 +18,16 @@ export function LandingHeader() {
         </Link>
 
         <Link
-          to={user ? '/app/feed' : '/login'}
-          className="text-sm font-semibold text-slate-800 hover:text-purple-600 transition-colors"
+          to="/app/criar"
+          className="hidden sm:inline text-sm font-semibold text-slate-800 hover:text-purple-600 transition-colors"
         >
-          Entrar na plataforma
+          Criar conteúdo
+        </Link>
+        <Link
+          to={user ? '/app/feed' : '/login'}
+          className="text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg px-4 py-2 shadow-sm hover:from-purple-700 hover:to-indigo-700 transition-colors"
+        >
+          {user ? 'Entrar na plataforma' : 'Fazer login'}
         </Link>
       </div>
     </header>
