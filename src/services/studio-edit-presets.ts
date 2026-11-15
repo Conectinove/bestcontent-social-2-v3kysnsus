@@ -55,6 +55,7 @@ export async function listEditPresets(): Promise<StudioEditPreset[]> {
 export async function saveEditPreset(
   name: string,
   settings: AdvancedCustomizationState,
+  isShared = false,
 ): Promise<StudioEditPreset> {
   const userId = pb.authStore.model?.id
   if (!userId) throw new Error('Usuário não autenticado')
@@ -62,7 +63,7 @@ export async function saveEditPreset(
     name: name.trim(),
     settings: JSON.parse(JSON.stringify(settings)),
     user: userId,
-    is_shared: false,
+    is_shared: isShared,
   })
   return mapRecord(record)
 }
