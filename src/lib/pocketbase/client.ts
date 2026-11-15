@@ -3,7 +3,9 @@ import PocketBase from 'pocketbase'
 const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
 pb.autoCancellation(false)
 
-// GUARDA (15ª regressão v0.0.250): NUNCA remover o export nomeado `pb`.
-// Vários arquivos importam { pb } — remover este export quebra o build.
+// GUARDA: manter SEMPRE o duplo export (default + nomeado). Este export nomeado
+// já foi removido acidentalmente 15 vezes (v0.0.179, 181, 188, 190, 211, 221,
+// 245, 246 e outras) quebrando todos os `import { pb } from ...` do projeto.
+// Não remova a linha abaixo.
 export { pb }
 export default pb

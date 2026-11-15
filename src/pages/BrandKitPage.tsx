@@ -12,7 +12,6 @@ import {
   Filter,
   Image as ImageIcon,
   Smartphone,
-  Square,
   Monitor,
   FileText,
   Shirt,
@@ -22,12 +21,19 @@ import {
   CheckSquare,
   Square,
   Loader2,
+  PackageOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useSocial } from '@/context/SocialContext'
 import { toast } from '@/hooks/use-toast'
 import { MudarCursoLogoKit } from '@/components/brandkit/MudarCursoLogoKit'
@@ -40,7 +46,6 @@ import { rasterizeImageToFormat, type RasterizeFormat } from '@/lib/rasterize'
 import { applyPresetToAssets, type BulkProgress } from '@/services/bulk-preset'
 import { listEditPresets, type StudioEditPreset } from '@/services/studio-edit-presets'
 import { ExportFormatDialog, BulkPresetDialog } from '@/pages/brandKit/BulkPresetDialogs'
-import { persistEditedUrl } from '@/pages/brandKit/edited-urls'
 
 export interface BrandAsset {
   id: string
@@ -71,7 +76,7 @@ export interface BrandAsset {
 }
 
 export function BrandKitPage() {
-  const { currentBrand, brands } = useSocial()
+  const { currentBrand } = useSocial()
   const activeBrandName = currentBrand?.name || 'MudarCurso'
   const activeBrandColor = currentBrand?.color_theme || '#7C3AED'
 
@@ -127,6 +132,25 @@ export function BrandKitPage() {
       /* quota cheia — segue em memória */
     }
   }, [sessionEditedUrls, persistedEditedUrls])
+
+  // Presets disponíveis para o lote: os do usuário + os compartilhados pela equipe.
+  useEffect(() => {
+    let alive = true
+    setPresetsLoading(true)
+    listEditPresets()
+      .then((list) => {
+        if (alive) setPresets(list)
+      })
+      .catch(() => {
+        if (alive) setPresets([])
+      })
+      .finally(() => {
+        if (alive) setPresetsLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   // Assets da identidade visual inspirados na referência visual MudarCurso
   // Fotografia com iluminação violeta elétrica, proporções 9:16, 1:1, 16:9
@@ -508,6 +532,12 @@ export function BrandKitPage() {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
+  const toggleSelectAllFiltered = () => {
+    setSelectedIds((prev) =>
+      prev.length === filteredAssets.length ? [] : filteredAssets.map((a) => a.id),
+    )
+  }
+
   const exitSelectMode = () => {
     setSelectMode(false)
     setSelectedIds([])
@@ -547,13 +577,6 @@ export function BrandKitPage() {
     })
   }
 
-  const handleAdvancedSave = async (asset: BrandAsset, resultUrl: string) => {
-    setAdvancedAsset(null)
-    setSavingEdit(true)
-    // Guarda o resultado editado para download/preview imediato (mesmo se o upload falhar)
-    setEditedUrls((prev) => ({ ...prev, [asset.id]: resultUrl }))
-    try {
-=======
   const handleAdvancedSave = async (asset: BrandAsset, resultUrl: string) => {
     setAdvancedAsset(null)
     setSavingEdit(true)
@@ -693,13 +716,80 @@ export function BrandKitPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Filter className="w-3.5 h-3.5 text-primary" />
-              <span>
-                Exibindo <strong>{filteredAssets.length}</strong> de {baseAssets.length} assets
-              </span>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={selectMode ? 'default' : 'outline'}
+                onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                className="h-9 rounded-xl text-xs font-bold gap-1.5"
+                title="Selecionar vários assets para aplicar um preset em lote"
+              >
+                {selectMode ? (
+                  <CheckSquare className="w-3.5 h-3.5" />
+                ) : (
+                  <Square className="w-3.5 h-3.5" />
+                )}
+                {selectMode ? 'Sair da seleção' : 'Selecionar'}
+              </Button>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Filter className="w-3.5 h-3.5 text-primary" />
+                <span>
+                  Exibindo <strong>{filteredAssets.length}</strong> de {baseAssets.length} assets
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* BARRA DO MODO SELEÇÃO (pedido 4): contagem + aplicar preset em lote */}
+          {selectMode && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={toggleSelectAllFiltered}
+                  className="flex items-center gap-1.5 text-xs font-bold text-foreground hover:text-primary"
+                >
+                  {filteredAssets.length > 0 && selectedIds.length === filteredAssets.length ? (
+                    <CheckSquare className="w-4 h-4 text-primary" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                  Selecionar todos ({filteredAssets.length})
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.length} selecionado(s)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setPresetPickerOpen(true)}
+                  disabled={selectedIds.length === 0 || presetsLoading || presets.length === 0}
+                  className="h-9 rounded-xl text-xs font-bold gap-1.5"
+                  title={
+                    presets.length === 0
+                      ? 'Nenhum preset disponível — salve um na Edição Avançada'
+                      : 'Aplicar o preset escolhido em todos os assets selecionados'
+                  }
+                >
+                  {presetsLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  Aplicar preset em lote
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={exitSelectMode}
+                  className="h-9 rounded-xl text-xs"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* CHIPS DE CATEGORIA ESTILO MUDARCURSO */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
@@ -771,13 +861,41 @@ export function BrandKitPage() {
               const isCopied = copiedId === asset.id
               const isReels = asset.aspectRatio === '9:16'
               const isBanner = asset.aspectRatio === '16:9'
+              const isSelected = selectMode && selectedIds.includes(asset.id)
 
               return (
                 <div
                   key={asset.id}
-                  onClick={() => setSelectedAsset(asset)}
-                  className="group relative rounded-3xl overflow-hidden bg-card border border-border/70 hover:border-primary/50 hover:shadow-2xl transition-all cursor-pointer flex flex-col justify-between"
+                  onClick={() =>
+                    selectMode &&
+                    toggleSelected(asset.id, { stopPropagation: () => {} } as React.MouseEvent)
+                  }
+                  className={
+                    'group relative rounded-3xl overflow-hidden bg-card border transition-all flex flex-col justify-between ' +
+                    (isSelected
+                      ? 'border-primary border-2 shadow-xl'
+                      : 'border-border/70 hover:border-primary/50 hover:shadow-2xl cursor-pointer')
+                  }
                 >
+                  {/* Checkbox de seleção (pedido 4) — só visível no modo seleção */}
+                  {selectMode && (
+                    <button
+                      type="button"
+                      onClick={(e) => toggleSelected(asset.id, e)}
+                      className="absolute top-4 left-1/2 -translate-x-1/2 z-30 w-9 h-9 rounded-xl bg-black/70 backdrop-blur-md border-2 flex items-center justify-center transition-colors"
+                      style={{
+                        borderColor: isSelected ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.3)',
+                      }}
+                      aria-label={isSelected ? 'Desmarcar asset' : 'Marcar asset'}
+                    >
+                      {isSelected ? (
+                        <Check className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Square className="w-4 h-4 text-white/80" />
+                      )}
+                    </button>
+                  )}
+
                   {/* Visual Preview com Overlay Violeta e Badge de Proporção */}
                   <div
                     className={`relative w-full overflow-hidden bg-muted ${
@@ -869,7 +987,7 @@ export function BrandKitPage() {
                               handleDownload(asset, 'original')
                             }
                           }}
-                          disabled={downloadingEditedId === asset.id}
+                          disabled={downloadingEditedId === asset.id || selectMode}
                           className="flex-1 h-9 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs gap-1.5 shadow-sm"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -921,7 +1039,7 @@ export function BrandKitPage() {
                           e.stopPropagation()
                           setAdvancedAsset(asset)
                         }}
-                        disabled={savingEdit}
+                        disabled={savingEdit || selectMode}
                         className="w-full h-9 rounded-xl border-primary/40 text-primary hover:bg-primary/10 text-xs font-semibold gap-1.5"
                       >
                         <Wand2 className="w-3.5 h-3.5" />
@@ -988,6 +1106,31 @@ export function BrandKitPage() {
           onSave={(url) => handleAdvancedSave(advancedAsset, url)}
         />
       )}
+
+      {/* Seletor de formato PNG/JPG/WebP para o asset editado (pedido 3) */}
+      <ExportFormatDialog
+        open={Boolean(exportTarget)}
+        onOpenChange={(o) => !o && setExportTarget(null)}
+        assetName={exportTarget?.title}
+        busy={exporting}
+        onExport={(format) => handleExportEdited(exportTarget as BrandAsset, format)}
+      />
+
+      {/* Seletor de preset + progresso do lote (pedido 4) */}
+      <BulkPresetDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        presetName={bulkProgress?.currentName || ''}
+        progress={bulkProgress}
+      />
+      <PresetPickerDialog
+        open={presetPickerOpen}
+        onOpenChange={setPresetPickerOpen}
+        presets={presets}
+        loading={presetsLoading}
+        selectedCount={selectedIds.length}
+        onPick={handleApplyBulkPreset}
+      />
 
       {/* MODAL DETALHE DO ASSET (INSPIRADO NA REFERÊNCIA DO LOVABLE) */}
       {selectedAsset && (
@@ -1126,5 +1269,125 @@ export function BrandKitPage() {
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * Escolhe qual preset aplicar no lote de assets selecionados (pedido 4):
+ * lista presets do usuário + compartilhados pela equipe (migration 0112).
+ */
+function PresetPickerDialog({
+  open,
+  onOpenChange,
+  presets,
+  loading,
+  selectedCount,
+  onPick,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  presets: StudioEditPreset[]
+  loading: boolean
+  selectedCount: number
+  onPick: (preset: StudioEditPreset) => void
+}) {
+  return (
+    <BulkPresetDialogWrapper
+      open={open}
+      onOpenChange={onOpenChange}
+      presets={presets}
+      loading={loading}
+      selectedCount={selectedCount}
+      onPick={onPick}
+    />
+  )
+}
+
+function BulkPresetDialogWrapper(props: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  presets: StudioEditPreset[]
+  loading: boolean
+  selectedCount: number
+  onPick: (preset: StudioEditPreset) => void
+}) {
+  return <PresetListDialog {...props} />
+}
+
+function PresetListDialog({
+  open,
+  onOpenChange,
+  presets,
+  loading,
+  selectedCount,
+  onPick,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  presets: StudioEditPreset[]
+  loading: boolean
+  selectedCount: number
+  onPick: (preset: StudioEditPreset) => void
+}) {
+  return <BulkPresetPickerDialog {...props} />
+}
+
+function BulkPresetPickerDialog({
+  open,
+  onOpenChange,
+  presets,
+  loading,
+  selectedCount,
+  onPick,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  presets: StudioEditPreset[]
+  loading: boolean
+  selectedCount: number
+  onPick: (preset: StudioEditPreset) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base flex items-center gap-2">
+            <PackageOpen className="w-4 h-4 text-primary" />
+            Aplicar preset em {selectedCount} asset(s)
+          </DialogTitle>
+          <DialogDescription>
+            Escolha o preset — ele será rasterizado sobre cada asset selecionado.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[50vh] overflow-y-auto space-y-1.5">
+          {loading && (
+            <p className="text-xs text-muted-foreground flex items-center gap-2 py-4 justify-center">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando presets…
+            </p>
+          )}
+          {!loading && presets.length === 0 && (
+            <p className="text-xs text-muted-foreground py-4 text-center">
+              Nenhum preset salvo ainda. Salve um na Edição Avançada de qualquer asset.
+            </p>
+          )}
+          {!loading &&
+            presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => onPick(preset)}
+                className="w-full flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 hover:border-primary/50 hover:bg-primary/5 text-left"
+              >
+                <span className="text-xs font-bold text-foreground truncate">{preset.name}</span>
+                {preset.is_shared && (
+                  <Badge variant="outline" className="text-[9px] shrink-0">
+                    Equipe
+                  </Badge>
+                )}
+              </button>
+            ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
