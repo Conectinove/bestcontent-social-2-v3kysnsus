@@ -302,6 +302,7 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
           onDeleteCustom={appTheme.removeCustomTheme}
           networkId={themeNetwork}
           onSelectNetwork={appTheme.setNetworkId}
+          onApplyNetworkAccent={appTheme.applyNetworkAccent}
           onToggleShared={appTheme.toggleShared}
           onStartPreview={appTheme.startPreview}
           onCancelPreview={appTheme.cancelPreview}

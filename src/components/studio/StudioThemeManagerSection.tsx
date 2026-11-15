@@ -13,6 +13,7 @@ import type { Brand } from '@/types'
 import type { NetworkThemeId } from '@/lib/network-themes'
 import { ThemePreviewCard } from '@/components/studio/ThemePreviewCard'
 import { ThemeEditorDialog } from '@/components/studio/ThemeEditorDialog'
+import { NetworkThemePresets } from '@/components/studio/NetworkThemePresets'
 import { downloadThemeFile, pickThemeFile, parseThemeFile } from '@/lib/theme-file'
 
 export function StudioThemeManagerSection() {
@@ -180,6 +181,8 @@ export function StudioThemeManagerSection() {
         Temas marcados como <strong>só p/ mim</strong> aplicam apenas à sua conta. Use o seletor no
         Header para alternar o escopo (equipe × pessoal) e compartilhar temas com a equipe.
       </p>
+
+      <NetworkThemePresets brands={brands} />
 
       <ThemeEditorDialog
         open={editorOpen}

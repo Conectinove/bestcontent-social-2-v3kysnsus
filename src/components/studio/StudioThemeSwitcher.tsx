@@ -31,6 +31,8 @@ import {
   type ParsedThemeInput,
 } from '@/lib/theme-file'
 import { ThemeEditorDialog, type ThemeEditorSubmit } from '@/components/studio/ThemeEditorDialog'
+import { NetworkThemeSubmenu } from '@/components/studio/NetworkThemeSubmenu'
+import { NETWORK_THEMES, type NetworkThemeId as NtwId } from '@/lib/network-themes'
 
 interface StudioThemeSwitcherProps {
   themes: StudioThemeOption[]
@@ -47,6 +49,8 @@ interface StudioThemeSwitcherProps {
   /** Rede social escolhida (variação de accent) — 'none' = sem rede. */
   networkId?: NetworkThemeId
   onSelectNetwork?: (id: NetworkThemeId) => void
+  /** Aplica o accent da rede ao tema ativo e persiste (localStorage + banco). */
+  onApplyNetworkAccent?: (id: NetworkThemeId) => void
   /** Marca/desmarca um tema salvo no banco como compartilhado com a equipe. */
   onToggleShared?: (id: string, isShared: boolean) => Promise<void> | void
   /** Pré-visualização: aplica o tema temporariamente (hover), sem confirmar. */
@@ -75,6 +79,7 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
   onDeleteCustom,
   networkId = 'none',
   onSelectNetwork,
+  onApplyNetworkAccent,
   onToggleShared,
   onStartPreview,
   onCancelPreview,
@@ -233,11 +238,27 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
                     className="flex flex-1 min-w-0 items-center gap-2 text-left"
                     title="Aplicar tema (clique para confirmar)"
                   >
+                    {/* Swatch: prévia do tema + ponto de accent da rede social */}
                     <span
-                      className="h-6 w-6 shrink-0 rounded-md border border-border shadow-sm"
+                      className="relative h-6 w-6 shrink-0 rounded-md border border-border shadow-sm"
                       style={{ background: t.preview }}
                       aria-hidden
-                    />
+                    >
+                      {(() => {
+                        const nid = (t.network || 'none') as NtwId
+                        const nt =
+                          nid !== 'none' ? NETWORK_THEMES[nid as keyof typeof NETWORK_THEMES] : null
+                        if (!nt && !t.accentOverride) return null
+                        return (
+                          <span
+                            className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background shadow"
+                            style={{
+                              background: nt ? `hsl(${nt.primary})` : `hsl(${t.accentOverride})`,
+                            }}
+                          />
+                        )
+                      })()}
+                    </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-1 truncate text-sm font-medium">
                         {t.name}
@@ -347,6 +368,11 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
               )
             })}
             <Separator className="my-2" />
+            <NetworkThemeSubmenu
+              networkId={networkId}
+              onSelectNetwork={onSelectNetwork}
+              onApplyNetworkAccent={onApplyNetworkAccent}
+            />
             <p className="px-2 pb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <WandSparkles className="h-3 w-3 shrink-0" />
               Passe o mouse para pré-visualizar; clique para aplicar.

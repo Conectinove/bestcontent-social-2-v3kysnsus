@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 import type { StudioThemeOption } from '@/hooks/use-studio-theme'
+import { NETWORK_THEMES, type NetworkThemeId } from '@/lib/network-themes'
 
 interface ThemePreviewCardProps {
   theme: StudioThemeOption
@@ -44,6 +45,22 @@ export function themeMockupTextStyle(theme: StudioThemeOption): React.CSSPropert
   return { color: theme.colors?.text || (theme.mode === 'dark' ? '#fafafa' : '#18181b') }
 }
 
+/**
+ * Cor de accent da REDE SOCIAL do tema (para a faixa/ponto de accent na prévia).
+ * Tema com rede-alvo usa o primary da rede (Instagram roxo, TikTok ciano...);
+ * tema sem rede usa o accentOverride persistido ou o accent padrão do tema.
+ */
+export function themeNetworkAccentCss(theme: StudioThemeOption): string {
+  const networkId = (theme.network || 'none') as NetworkThemeId
+  const networkTheme =
+    networkId !== 'none' && NETWORK_THEMES[networkId as keyof typeof NETWORK_THEMES]
+      ? NETWORK_THEMES[networkId as keyof typeof NETWORK_THEMES]
+      : null
+  if (networkTheme) return `hsl(${networkTheme.primary})`
+  if (theme.accentOverride) return `hsl(${theme.accentOverride})`
+  return theme.colors?.primary || '#7c3aed'
+}
+
 export const ThemePreviewCard: React.FC<ThemePreviewCardProps> = ({
   theme,
   active = false,
@@ -59,9 +76,17 @@ export const ThemePreviewCard: React.FC<ThemePreviewCardProps> = ({
       style={themeMockupStyle(theme)}
       aria-hidden
     >
+      {/* Faixa de accent da rede social do tema (sutil, 2px no topo) */}
+      <span
+        className="absolute inset-x-0 top-0 h-0.5"
+        style={{ background: themeNetworkAccentCss(theme) }}
+      />
       {/* "Janela" do mockup: barra + cartão + botão */}
       <div className="flex items-center gap-1 px-2 py-1.5" style={themeMockupSurfaceStyle(theme)}>
-        <span className="h-1.5 w-1.5 rounded-full bg-current opacity-30" />
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ background: themeNetworkAccentCss(theme) }}
+        />
         <span className="h-1.5 w-8 rounded-full bg-current opacity-20" />
         <span className="ml-auto h-3.5 w-9 rounded-full" style={themeMockupPrimaryStyle(theme)} />
       </div>

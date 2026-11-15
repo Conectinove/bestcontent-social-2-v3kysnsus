@@ -143,6 +143,34 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
   const setThemeId = useCallback((id: StudioThemeId) => setThemeIdState(id), [])
   const setNetworkId = useCallback((id: NetworkThemeId) => setNetworkIdState(id), [])
 
+  /**
+   * Preset por rede social: aplica o accent da rede sobre o tema ativo e
+   * persiste — localStorage (networkId, sempre) + banco (network/accentOverride
+   * do tema ativo, quando ele é um tema próprio com registro remoto).
+   */
+  const applyNetworkAccent = useCallback(
+    (id: NetworkThemeId) => {
+      setNetworkIdState(id)
+      const target = allThemes.find((t) => t.id === themeId)
+      if (!target || target.source !== 'custom' || target.origin !== 'mine' || !target.remoteId)
+        return
+      const network = id === 'none' ? undefined : id
+      const accentOverride = network ? NETWORK_THEMES[network].primary : undefined
+      setCustomThemes((prev) => {
+        const next = prev.map((t) => (t.id === themeId ? { ...t, network, accentOverride } : t))
+        persistCustomThemes(next)
+        return next
+      })
+      updateStudioTheme(target.remoteId, {
+        network: network || null,
+        accentOverride: accentOverride || null,
+      }).catch(() => {
+        /* silencioso — a rede já persistiu no localStorage */
+      })
+    },
+    [allThemes, themeId],
+  )
+
   /** Pré-visualização: aplica o tema na raiz SEM confirmar (hover no seletor). */
   const startPreview = useCallback(
     (id: StudioThemeId) => {
@@ -337,6 +365,7 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     teamThemes,
     networkId,
     setNetworkId,
+    applyNetworkAccent,
     addCustomTheme,
     importTheme,
     updateCustomTheme,
