@@ -155,7 +155,7 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
       persistCustomThemes(next)
       return next
     })
-    if (enriched.network) setNetworkIdState(enriched.network)
+    if (enriched.network) setNetworkIdState(normalizeNetworkThemeId(enriched.network))
     setThemeIdState(enriched.id)
     setIsSaving(false)
   }, [])
@@ -173,7 +173,7 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
       if (!target?.remoteId) return
       try {
         await updateStudioTheme(target.remoteId, { isShared })
-        etiquetas
+        // Sucesso: nada mais a fazer — o estado otimista já foi aplicado acima.
       } catch {
         /* silencioso — estado otimista já aplicado */
       }

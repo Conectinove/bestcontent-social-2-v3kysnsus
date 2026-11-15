@@ -71,6 +71,8 @@ import { StudioSectionDialog, StudioSectionId } from '@/components/studio/Studio
 import { StudioTopControls } from '@/components/studio/StudioTopControls'
 import { useStudioTheme } from '@/hooks/use-studio-theme'
 import { useStudioWindowMode } from '@/hooks/use-studio-window'
+import { updateStudioTheme } from '@/services/studio-themes'
+import { useToast } from '@/hooks/use-toast'
 
 // Componentes da Interface Estilo Genspark
 import { StudioSidebar } from '@/components/studio/StudioSidebar'
@@ -90,6 +92,31 @@ export default function AiMediaStudioPage() {
 
   // Tema do Estúdio (claro/escuro/marcas/personalizados) aplicado na sub-árvore via data-studio-theme
   const studioTheme = useStudioTheme(brands)
+  // Compartilhamento de temas com a equipe (toggle no seletor de tema do Estúdio)
+  const { toast } = useToast()
+  const [savingTheme, setSavingTheme] = useState(false)
+  const handleToggleShared = async (id: string, isShared: boolean) => {
+    const target = studioTheme.allThemes.find((t) => t.id === id)
+    if (!target) return
+    setSavingTheme(true)
+    try {
+      if (target.remoteId) {
+        await updateStudioTheme(target.remoteId, { isShared })
+      }
+      toast({
+        title: isShared
+          ? `Tema "${target.name}" compartilhado com a equipe`
+          : `Tema "${target.name}" agora é privado`,
+      })
+    } catch {
+      toast({
+        title: 'Não foi possível atualizar o compartilhamento',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingTheme(false)
+    }
+  }
 
   // Modo de janela do Estúdio: normal / maximizado / compacto (persistido)
   const { windowMode, setMode: setWindowMode, isMaximized, isCompact } = useStudioWindowMode()
@@ -482,6 +509,8 @@ export default function AiMediaStudioPage() {
             onSelectTheme={studioTheme.setThemeId}
             onCreateCustomTheme={studioTheme.addCustomTheme}
             onDeleteCustomTheme={studioTheme.removeCustomTheme}
+            onToggleSharedTheme={handleToggleShared}
+            isSavingTheme={savingTheme}
             windowMode={windowMode}
             onChangeWindowMode={setWindowMode}
           />

@@ -29,6 +29,10 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { useWorkspace, type WidgetType } from '@/hooks/use-workspace'
+import { networkIdFromPlatform } from '@/hooks/use-global-app-theme'
+import { NETWORK_THEMES, type NetworkThemeId } from '@/lib/network-themes'
+import { useAppTheme } from '@/hooks/use-app-theme'
+import type { Brand } from '@/types'
 import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
 import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
 import { ImageBankModal } from '@/components/ImageBankModal'
@@ -76,6 +80,9 @@ export default function PostEditor() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { brands } = useSocial()
+  // Motor de tema do app (accent por rede social + CSS vars do tema base)
+  const appTheme = useAppTheme(brands as Brand[], user?.id || '')
+  const { theme } = appTheme
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { isEnabled: isLabEnabled } = useLabsFeatures()
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -185,6 +192,21 @@ export default function PostEditor() {
       })
       .finally(() => setLoading(false))
   }, [postId, navigate])
+
+  // Tema por rede social: o accent do app muda conforme a rede do post aberto
+  useEffect(() => {
+    const net = networkIdFromPlatform(platform)
+    const root = document.documentElement
+    if (net !== 'none') {
+      root.setAttribute('data-app-theme-network', net)
+      root.style.setProperty('--primary', NETWORK_THEMES[net].primary)
+      root.style.setProperty('--accent', NETWORK_THEMES[net].accent)
+      root.style.setProperty('--ring', NETWORK_THEMES[net].primary)
+    } else {
+      root.removeAttribute('data-app-theme-network')
+      applyThemeVars(theme, 'none')
+    }
+  }, [platform, theme])
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

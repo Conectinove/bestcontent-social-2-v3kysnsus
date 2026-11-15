@@ -36,6 +36,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { EditProfileModal } from '@/components/EditProfileModal'
+import { StudioThemeSwitcher } from '@/components/studio/StudioThemeSwitcher'
+import { useGlobalAppTheme } from '@/hooks/use-global-app-theme'
+import type { NetworkThemeId } from '@/lib/network-themes'
 import { getPendingReviewPosts } from '@/services/posts'
 import {
   getMyNotifications,
@@ -65,6 +68,10 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
   } = useSocial()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  // Tema global do app (accent, cores, modo) + rede social ativa — em qualquer tela
+  const appTheme = useGlobalAppTheme(brands)
+  const themeNetwork: NetworkThemeId = appTheme.networkId
+  const activeTheme = appTheme.theme
   const [publishLoading, setPublishLoading] = useState(false)
   const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [searchPaletteOpen, setSearchPaletteOpen] = useState(false)
@@ -286,16 +293,29 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
           </Button>
         )}
 
+        {/* Theme Switcher global (tema + rede social + compartilhar com equipe) */}
+        <StudioThemeSwitcher
+          themes={appTheme.allThemes}
+          themeId={appTheme.themeId}
+          onSelect={appTheme.setThemeId}
+          onCreateCustom={appTheme.addCustomTheme}
+          onDeleteCustom={appTheme.removeCustomTheme}
+          networkId={themeNetwork}
+          onSelectNetwork={appTheme.setNetworkId}
+          onToggleShared={appTheme.toggleShared}
+          isSaving={appTheme.isSaving}
+        />
+
         {/* Theme Toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
           className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground rounded-xl shrink-0"
-          title="Alternar tema"
+          title={activeTheme.mode === 'dark' ? 'Tema claro' : 'Tema escuro'}
           aria-label="Alternar tema"
         >
-          {theme === 'dark' ? (
+          {activeTheme.mode === 'dark' ? (
             <Sun className="w-4 h-4 text-yellow-400" />
           ) : (
             <Moon className="w-4 h-4" />

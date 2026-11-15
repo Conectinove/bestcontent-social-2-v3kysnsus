@@ -26,14 +26,20 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { OfflineBanner } from './OfflineBanner'
 import { QuickOnboardingModal } from './QuickOnboardingModal'
+import { useSocial } from '@/context/SocialContext'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { useGlobalAppTheme } from '@/hooks/use-global-app-theme'
 import { cn } from '@/lib/utils'
 
 export default function Layout() {
   const { user, isAuthenticated, loading } = useAuth()
   const { menuLayout } = useCustomization()
   const location = useLocation()
+  // Tema global: aplica as CSS vars do tema escolhido em TODAS as telas do app
+  // (accent, cores, modo) — não só no Studio. Persiste no localStorage.
+  const { brands } = useSocial()
+  useGlobalAppTheme(brands)
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [quickOnboardingOpen, setQuickOnboardingOpen] = useState(false)

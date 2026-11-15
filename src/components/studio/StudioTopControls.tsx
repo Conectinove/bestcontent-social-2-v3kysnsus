@@ -4,13 +4,25 @@ import { Button } from '@/components/ui/button'
 import { StudioThemeSwitcher } from '@/components/studio/StudioThemeSwitcher'
 import type { StudioThemeOption, StudioCustomColors } from '@/hooks/use-studio-theme'
 import type { StudioWindowMode } from '@/hooks/use-studio-window'
+import type { NetworkThemeId } from '@/lib/network-themes'
 
 interface StudioTopControlsProps {
   themes: StudioThemeOption[]
   themeId: string
   onSelectTheme: (id: string) => void
-  onCreateCustomTheme: (name: string, colors: StudioCustomColors) => void
+  onCreateCustomTheme: (opts: {
+    name: string
+    colors: StudioCustomColors
+    network?: NetworkThemeId
+    isShared?: boolean
+  }) => Promise<void> | void
   onDeleteCustomTheme: (id: string) => void
+  /** Marca/desmarca um tema salvo no banco como compartilhado com a equipe. */
+  onToggleSharedTheme?: (id: string, isShared: boolean) => Promise<void> | void
+  isSavingTheme?: boolean
+  /** Rede social ativa (variação de accent) — 'none' = neutro. */
+  networkId?: NetworkThemeId
+  onSelectNetwork?: (id: NetworkThemeId) => void
   windowMode: StudioWindowMode
   onChangeWindowMode: (mode: StudioWindowMode) => void
 }
@@ -25,6 +37,10 @@ export const StudioTopControls: React.FC<StudioTopControlsProps> = ({
   onSelectTheme,
   onCreateCustomTheme,
   onDeleteCustomTheme,
+  onToggleSharedTheme,
+  isSavingTheme,
+  networkId,
+  onSelectNetwork,
   windowMode,
   onChangeWindowMode,
 }) => {
@@ -38,6 +54,10 @@ export const StudioTopControls: React.FC<StudioTopControlsProps> = ({
         onSelect={onSelectTheme}
         onCreateCustom={onCreateCustomTheme}
         onDeleteCustom={onDeleteCustomTheme}
+        onToggleShared={onToggleSharedTheme}
+        isSaving={isSavingTheme}
+        networkId={networkId}
+        onSelectNetwork={onSelectNetwork}
       />
 
       {showCompact ? (

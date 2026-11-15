@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Brand } from '@/types'
+import type { NetworkThemeId } from '@/lib/network-themes'
 
 export type StudioThemeId = string
 
@@ -27,6 +28,10 @@ export interface StudioThemeOption {
   origin?: 'mine' | 'team'
   /** Id do registro remoto na coleção studio_themes (quando persistido no banco). */
   remoteId?: string
+  /** Id do usuário dono do tema compartilhado (apenas temas da equipe). */
+  ownerId?: string
+  /** Nome do usuário dono do tema compartilhado (via expand, apenas equipe). */
+  ownerName?: string
 }
 
 export interface StudioCustomColors {
@@ -324,9 +329,14 @@ export function useStudioTheme(brands: Brand[]) {
     )
   }, [theme, themeId])
 
-  /** Cria um tema personalizado, salva, aplica na hora. */
-  const addCustomTheme = (name: string, colors: StudioCustomColors): StudioThemeOption => {
-    const newTheme = buildCustomTheme(name, colors)
+  /** Cria um tema personalizado (com rede + compartilhamento), salva, aplica na hora. */
+  const addCustomTheme = (opts: {
+    name: string
+    colors: StudioCustomColors
+    network?: NetworkThemeId
+    isShared?: boolean
+  }): StudioThemeOption => {
+    const newTheme = buildCustomTheme(opts.name, opts.colors)
     setCustomThemes((prev) => {
       const next = [...prev, newTheme]
       persistCustomThemes(next)
