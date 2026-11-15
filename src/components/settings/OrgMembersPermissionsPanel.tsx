@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Users,
@@ -12,9 +12,11 @@ import {
   Eye,
   Search,
   Clock,
+  Download,
+  Info,
+  Mail,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { listOrgInvites, type OrgInvite } from '@/services/org-invites'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,6 +28,9 @@ import {
   type OrgMember,
   type OrgRole,
 } from '@/services/org-members'
+import { cancelOrgInvite, resendOrgInvite, type OrgInvite } from '@/services/org-invites'
+import { MemberDetailsDialog } from '@/components/settings/MemberDetailsDialog'
+import { formatDateTimeBR, exportMembersCsv } from '@/lib/members-csv'
 
 const ROLE_META: Record<string, { label: string; icon: typeof Crown; cls: string }> = {
   owner: {
@@ -59,6 +64,7 @@ interface MemberRowProps {
 function MemberRow({ member, canManage, isPending }: MemberRowProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState<OrgRole | null>(null)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const qc = useQueryClient()
 
   const mutation = useMutation({
@@ -98,6 +104,10 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
             {member.name || member.email}
           </p>
           <p className="text-[11px] text-muted-foreground truncate">{member.email}</p>
+          <p className="text-[10px] text-muted-foreground/80 flex items-center gap-1">
+            <Clock className="w-2.5 h-2.5" />
+            Última atividade: {member.updated ? formatDateTimeBR(member.updated) : '—'}
+          </p>
         </div>
         <Badge variant="outline" className={`text-[10px] gap-1 ${meta.cls}`}>
           <CurrentIcon className="w-3 h-3" />
@@ -112,6 +122,16 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
             Pendente
           </Badge>
         )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs gap-1 shrink-0"
+          onClick={() => setDetailsOpen(true)}
+          title="Ver detalhes do membro"
+        >
+          <Info className="w-3.5 h-3.5" />
+          Detalhes
+        </Button>
         {canManage && (
           <Button
             variant="ghost"
@@ -125,6 +145,12 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
             />
           </Button>
         )}
+        <MemberDetailsDialog
+          member={member}
+          isPending={!!isPending}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+        />
       </div>
 
       {open && canManage && (
@@ -174,6 +200,129 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
   )
 }
 
+function PendingInvitesSection({
+  invites,
+  onChanged,
+}: {
+  invites: OrgInvite[]
+  onChanged: () => void
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const handleCancel = async (invite: OrgInvite) => {
+    setBusyId(invite.id)
+    try {
+      await cancelOrgInvite(invite.id)
+      toast({ title: 'Convite cancelado' })
+      onChanged()
+    } catch {
+      toast({
+        title: 'Erro ao cancelar convite',
+        description: 'Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleResend = async (invite: OrgInvite) => {
+    setBusyId(invite.id)
+    try {
+      await resendOrgInvite(invite.id)
+      toast({ title: 'Convite reenviado' })
+      onChanged()
+    } catch {
+      toast({
+        title: 'Erro ao reenviar convite',
+        description: 'Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleCopyLink = async (invite: OrgInvite) => {
+    const base = typeof window !== 'undefined' ? window.location.origin : ''
+    const url = `${base}/org/invite?token=${invite.token}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedId(invite.id)
+      toast({ title: 'Link copiado', description: url })
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch {
+      toast({
+        title: 'Não foi possível copiar',
+        description: 'Copie manualmente o token do convite.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+        <Clock className="w-3 h-3" />
+        {invites.length} convite(s) pendente(s) de aceitação
+      </p>
+      {invites.map((invite) => (
+        <div
+          key={invite.id}
+          className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2.5 rounded-lg border border-border/50 bg-muted/30"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-foreground truncate">{invite.email}</p>
+            <p className="text-[10px] text-muted-foreground">
+              Cargo: {invite.org_role || 'visualizador'} · Criado em{' '}
+              {invite.created ? formatDateTimeBR(invite.created) : '—'}
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[10px] gap-1"
+              onClick={() => handleCopyLink(invite)}
+              title="Copiar link do convite"
+            >
+              <Mail className="w-3 h-3" />
+              {copiedId === invite.id ? 'Copiado!' : 'Copiar link'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[10px] gap-1"
+              disabled={busyId === invite.id}
+              onClick={() => handleResend(invite)}
+              title="Reenviar convite"
+            >
+              {busyId === invite.id ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Mail className="w-3 h-3" />
+              )}
+              Reenviar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[10px] gap-1 text-destructive hover:text-destructive"
+              disabled={busyId === invite.id}
+              onClick={() => handleCancel(invite)}
+              title="Cancelar convite pendente"
+            >
+              <X className="w-3 h-3" />
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Painel de controle de usuários da organização (listar, buscar, filtrar por
  * cargo, ver status ativo/pendente e trocar permissões). */
 export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
@@ -214,6 +363,16 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
     }
     return counts
   }, [data])
+
+  // Exportar lista (membros + convites pendentes) em CSV.
+  const handleExportCsv = () => {
+    if (!data || data.length === 0) {
+      toast({ title: 'Nada para exportar', description: 'A lista de membros está vazia.' })
+      return
+    }
+    exportMembersCsv(data, pendingInvites)
+    toast({ title: 'Exportado', description: 'CSV de membros gerado com sucesso.' })
+  }
 
   if (!isAdmin) {
     return (
@@ -272,6 +431,16 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
           />
         </div>
         <div className="flex flex-wrap items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 text-[11px] gap-1 rounded-md"
+            onClick={handleExportCsv}
+            title="Exportar lista de membros em CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Exportar CSV
+          </Button>
           <button
             type="button"
             onClick={() => setRoleFilter('all')}
@@ -301,10 +470,13 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       {pendingInvites.length > 0 && (
-        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-          <Clock className="w-3 h-3" />
-          {pendingInvites.length} convite(s) pendente(s) de aceitação.
-        </p>
+        <PendingInvitesSection
+          invites={pendingInvites}
+          onChanged={() => {
+            qc.invalidateQueries({ queryKey: ['org-invites'] })
+            qc.invalidateQueries({ queryKey: ['org-members'] })
+          }}
+        />
       )}
 
       {filtered.length === 0 ? (

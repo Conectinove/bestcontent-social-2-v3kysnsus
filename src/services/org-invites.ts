@@ -75,6 +75,20 @@ export async function acceptOrgInvite(token: string): Promise<{ org_role: string
   return { org_role: res?.org_role || 'viewer', email: res?.email || '' }
 }
 
+/** Cancela um convite pendente: renova o registro com status 'cancelled'
+ * (o hook de criação renova em vez de duplicar só para 'pending', então
+ * atualizamos o registro direto via API de records). */
+export async function cancelOrgInvite(inviteId: string): Promise<void> {
+  await client.collection('org_invites').update(inviteId, { status: 'cancelled' })
+}
+
+/** Reativa/reenvia um convite pendente ou expirado: chama POST
+ * /backend/v1/org/invites com o mesmo email/cargo — o hook renova o
+ * registro existente com token e validade novos (30 dias). */
+export async function resendOrgInvite(invite: OrgInvite): Promise<void> {
+  await createOrgInvite(invite.email || '', invite.org_role || 'viewer', invite.org || '')
+}
+
 /** Monta o link copiável do convite. */
 export function buildInviteUrl(token: string): string {
   const base =

@@ -1,17 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Star, Search, Filter, RefreshCw, AlertCircle, Check } from 'lucide-react'
+import { Check, RefreshCw, Search, Star, Filter, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import {
   listSecondBrainFavorites,
@@ -32,14 +24,16 @@ import {
   type SecondBrainMediaSort,
   type SecondBrainOrientationFilter,
   type SecondBrainColorFilter,
-  type SecondBrainMediaFilters,
   MEDIA_SORT_OPTIONS,
   ORIENTATION_OPTIONS,
   COLOR_OPTIONS,
   sortMediaItems,
 } from '@/services/second-brain-media'
+import { Input } from '@/components/ui/input'
+import { analyzeImagesInto, dominantColorOf, orientationOf } from '@/lib/image-analysis'
 import type { SecondBrainDoc, SecondBrainModule, SecondBrainBlock } from '@/services/second-brain'
 import { cn } from '@/lib/utils'
+import { MediaGridAdvancedControls } from '@/components/studio/MediaGridAdvancedControls'
 
 /* ================================ TIPOS ================================ */
 
@@ -82,6 +76,15 @@ const DATE_FILTERS: { key: DateFilter; label: string }[] = [
   { key: '30d', label: '30 dias' },
   { key: 'custom', label: 'Custom' },
 ]
+
+/** Abas de mídia LOCAL que recebem a busca avançada (orientação/cor/ordenação). */
+const LOCAL_ADVANCED_TABS: Set<MediaTab> = new Set([
+  'documento',
+  'acervo',
+  'uploads',
+  'biblioteca',
+  'favoritos',
+])
 
 interface Props {
   open: boolean
@@ -168,7 +171,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
   const [customTo, setCustomTo] = useState('')
   const [search, setSearch] = useState('')
 
-  // Busca avançada (Unsplash/Pexels): orientação, cor e ordenação
+  // Busca avançada: orientação, cor e ordenação (stock + abas locais)
   const [orientation, setOrientation] = useState<SecondBrainOrientationFilter>('any')
   const [color, setColor] = useState<SecondBrainColorFilter>('any')
   const [sortBy, setSortBy] = useState<SecondBrainMediaSort>('recent')
@@ -389,7 +392,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
   const handleInsert = async (item: GridItem) => {
     const block: SecondBrainBlock = {
       id: `blk-${Date.now()}`,
-      type: item.type === 'imagem' ? 'paragraph' : 'paragraph',
+      type: 'paragraph',
       content:
         item.type === 'imagem' || item.type === 'video'
           ? `![${item.name}](${item.url})`
@@ -449,6 +452,35 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
     }
   }, [tab, favorites, documentItems, acervoItems, uploads, search, stock])
 
+  /* Análise local de imagem (orientação via dimensões + cor dominante via canvas)
+   * só nas abas locais, só para itens de imagem ainda não analisados. */
+  const needsAnalysis = useMemo(
+    () =>
+      LOCAL_ADVANCED_TABS.has(tab) &&
+      (orientation !== 'any' || color !== 'any') &&
+      rawItems.some((i) => i.type === 'imagem'),
+    [tab, orientation, color, rawItems],
+  )
+
+  const [analyzed, setAnalyzed] = useState<Record<string, { w: number; h: number; dom: string }>>(
+    {},
+  )
+
+  useEffect(() => {
+    if (!needsAnalysis) return
+    let cancelled = false
+    const pending = rawItems
+      .filter((i) => i.type === 'imagem' && i.thumbUrl && !analyzed[i.id])
+      .map((i) => ({ id: i.id, src: i.thumbUrl }))
+    if (pending.length === 0) return
+    analyzeImagesInto(pending, analyzed, (next) => {
+      if (!cancelled) setAnalyzed(next)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [needsAnalysis, rawItems, analyzed])
+
   const items: GridItem[] = useMemo(() => {
     let out = rawItems.filter((i) => typeFilter === 'all' || i.type === typeFilter)
     out = out.filter((i) => isWithinDate(i.createdAt, dateFilter, customFrom, customTo))
@@ -456,11 +488,44 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
       const q = search.trim().toLowerCase()
       out = out.filter((i) => i.name.toLowerCase().includes(q))
     }
-    if (tab === 'unsplash' || tab === 'pexels') {
+    if (orientation !== 'any' || color !== 'any') {
+      if (tab === 'unsplash' || tab === 'pexels' || LOCAL_ADVANCED_TABS.has(tab)) {
+        out = out.filter((i) => {
+          if (i.type !== 'imagem') return orientation === 'any' && color === 'any'
+          const info =
+            tab === 'unsplash' || tab === 'pexels'
+              ? orientationOf(i.width, i.height)
+              : orientationOf(analyzed[i.id]?.w ?? i.width, analyzed[i.id]?.h ?? i.height)
+          if (orientation !== 'any' && info !== orientation) return false
+          if (color !== 'any') {
+            if (tab === 'unsplash' || tab === 'pexels') {
+              // Nas abas de stock a cor já foi filtrada pela API; nada a refazer aqui.
+              return true
+            }
+            if (!analyzed[i.id]) return false // ainda analisando
+            return dominantColorOf(analyzed[i.id].dom) === color
+          }
+          return true
+        })
+      }
+    }
+    if (tab === 'unsplash' || tab === 'pexels' || LOCAL_ADVANCED_TABS.has(tab)) {
       out = sortMediaItems(out, sortBy)
     }
     return out
-  }, [rawItems, typeFilter, dateFilter, customFrom, customTo, search, tab, sortBy])
+  }, [
+    rawItems,
+    typeFilter,
+    dateFilter,
+    customFrom,
+    customTo,
+    search,
+    tab,
+    sortBy,
+    orientation,
+    color,
+    analyzed,
+  ])
 
   const showStockWarning =
     (tab === 'unsplash' && stockStatus.unsplash === false) ||
@@ -587,58 +652,22 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           </Button>
         </div>
 
-        {/* Busca avançada (apenas Unsplash/Pexels) */}
-        {(tab === 'unsplash' || tab === 'pexels') && (
-          <div className="flex flex-wrap items-end gap-2 pb-2 shrink-0">
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Orientação</Label>
-              <Select
-                value={orientation}
-                onValueChange={(v) => setOrientation(v as SecondBrainOrientationFilter)}
-              >
-                <SelectTrigger className="h-8 w-32 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ORIENTATION_OPTIONS.map((o) => (
-                    <SelectItem key={o.key} value={o.key}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Cor</Label>
-              <Select value={color} onValueChange={(v) => setColor(v as SecondBrainColorFilter)}>
-                <SelectTrigger className="h-8 w-32 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COLOR_OPTIONS.map((c) => (
-                    <SelectItem key={c.key} value={c.key}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Ordenação</Label>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SecondBrainMediaSort)}>
-                <SelectTrigger className="h-8 w-32 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEDIA_SORT_OPTIONS.map((s) => (
-                    <SelectItem key={s.key} value={s.key}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        {/* Busca avançada — abas de stock (API) e abas locais (análise no cliente) */}
+        {(tab === 'unsplash' || tab === 'pexels' || LOCAL_ADVANCED_TABS.has(tab)) && (
+          <MediaGridAdvancedControls
+            local={LOCAL_ADVANCED_TABS.has(tab)}
+            analyzing={
+              LOCAL_ADVANCED_TABS.has(tab) &&
+              needsAnalysis &&
+              Object.keys(analyzed).length < rawItems.filter((i) => i.type === 'imagem').length
+            }
+            orientation={orientation}
+            onOrientationChange={setOrientation}
+            color={color}
+            onColorChange={setColor}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+          />
         )}
 
         {/* Aviso de chaves ausentes (Unsplash/Pexels) — sempre em pt-BR */}

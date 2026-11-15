@@ -8,7 +8,11 @@ export const ORG_ROLES: { value: OrgRole; label: string; description: string }[]
   { value: 'owner', label: 'Proprietário', description: 'Acesso total, incluindo cobrança' },
   { value: 'admin', label: 'Admin', description: 'Gerencia membros, marcas e conteúdo' },
   { value: 'editor', label: 'Editor', description: 'Cria e edita conteúdo e portais' },
-  { value: 'viewer', label: 'Viewer', description: 'Somente leitura de relatórios e conteúdo' },
+  {
+    value: 'viewer',
+    label: 'Visualizador',
+    description: 'Somente leitura de relatórios e conteúdo',
+  },
 ]
 
 export interface OrgMember {
@@ -19,16 +23,19 @@ export interface OrgMember {
   org_role: OrgRole | ''
   avatar?: string
   created: string
+  /** Última atividade conhecida (atualização do registro no PocketBase). */
+  updated: string
+  verified?: boolean
 }
 
 /**
  * Lista os membros da organização (usuários da mesma conta/instância).
- * O painel mostra quem é admin/member hoje e o novo org_role granular.
+ * `updated` funciona como proxy de "última atividade" (o schema não tem campo próprio).
  */
 export async function listOrgMembers(): Promise<OrgMember[]> {
   const records = await client.collection('users').getFullList({
-    sort: '-created',
-    fields: 'id,name,email,role,org_role,avatar,created',
+    sort: '-updated',
+    fields: 'id,name,email,role,org_role,avatar,created,updated,verified',
   })
   return records as unknown as OrgMember[]
 }

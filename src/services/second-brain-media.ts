@@ -7,6 +7,7 @@ import pb from '@/lib/pocketbase/client'
 import { saveEditPreset, listEditPresets, deleteEditPreset } from '@/services/studio-edit-presets'
 import { saveEditVersion, listEditVersions } from '@/services/studio-edit-versions'
 import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
+import { nearestStockColor } from '@/lib/image-analysis'
 
 export type SecondBrainMediaType = 'imagem' | 'video' | 'anexo' | 'link'
 export type SecondBrainDateFilter = 'all' | 'today' | '7d' | '30d' | 'custom'
@@ -34,6 +35,7 @@ export interface SecondBrainMediaItem {
 
 export type SecondBrainMediaSort = 'recent' | 'oldest' | 'name_asc' | 'name_desc'
 export type SecondBrainOrientationFilter = 'any' | 'square' | 'landscape' | 'portrait'
+/** Superset: as 10 cores nativas das APIs + 11 extensões locais (filtro client-side). */
 export type SecondBrainColorFilter =
   | 'any'
   | 'black'
@@ -46,6 +48,62 @@ export type SecondBrainColorFilter =
   | 'blue'
   | 'purple'
   | 'pink'
+  | 'brown'
+  | 'beige'
+  | 'navy'
+  | 'teal'
+  | 'turquoise'
+  | 'gold'
+  | 'olive'
+  | 'maroon'
+  | 'cyan'
+  | 'magenta'
+  | 'silver'
+
+/** Cores nativas da API do Unsplash (a API do Pexels aceita as mesmas 10). */
+export const STOCK_COLOR_KEYS: ReadonlySet<string> = new Set([
+  'black',
+  'white',
+  'gray',
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'blue',
+  'purple',
+  'pink',
+])
+
+/** ~20 cores com nome pt-BR e hex de referência para análise local de imagem. */
+export const COLOR_OPTIONS: Array<{
+  key: SecondBrainColorFilter
+  label: string
+  hex: string
+  stock?: boolean
+}> = [
+  { key: 'any', label: 'Qualquer cor', hex: '#888888' },
+  { key: 'black', label: 'Preto', hex: '#1a1a1a', stock: true },
+  { key: 'white', label: 'Branco', hex: '#f5f5f5', stock: true },
+  { key: 'gray', label: 'Cinza', hex: '#9ca3af', stock: true },
+  { key: 'red', label: 'Vermelho', hex: '#dc2626', stock: true },
+  { key: 'orange', label: 'Laranja', hex: '#f97316', stock: true },
+  { key: 'yellow', label: 'Amarelo', hex: '#eab308', stock: true },
+  { key: 'green', label: 'Verde', hex: '#16a34a', stock: true },
+  { key: 'blue', label: 'Azul', hex: '#2563eb', stock: true },
+  { key: 'purple', label: 'Roxo', hex: '#9333ea', stock: true },
+  { key: 'pink', label: 'Rosa', hex: '#ec4899', stock: true },
+  { key: 'brown', label: 'Marrom', hex: '#92400e' },
+  { key: 'beige', label: 'Bege', hex: '#d6c7a1' },
+  { key: 'navy', label: 'Azul-marinho', hex: '#1e3a5f' },
+  { key: 'teal', label: 'Verde-água', hex: '#0d9488' },
+  { key: 'turquoise', label: 'Turquesa', hex: '#22d3ee' },
+  { key: 'gold', label: 'Dourado', hex: '#d4a017' },
+  { key: 'olive', label: 'Verde-oliva', hex: '#6b7231' },
+  { key: 'maroon', label: 'Vinho', hex: '#7f1d1d' },
+  { key: 'cyan', label: 'Ciano', hex: '#06b6d4' },
+  { key: 'magenta', label: 'Magenta', hex: '#c026d3' },
+  { key: 'silver', label: 'Prata', hex: '#c0c4c8' },
+]
 
 export interface SecondBrainMediaFilters {
   query: string
@@ -77,20 +135,6 @@ export const ORIENTATION_OPTIONS: Array<{ key: SecondBrainOrientationFilter; lab
   { key: 'square', label: 'Quadrada' },
   { key: 'landscape', label: 'Paisagem' },
   { key: 'portrait', label: 'Retrato' },
-]
-
-export const COLOR_OPTIONS: Array<{ key: SecondBrainColorFilter; label: string }> = [
-  { key: 'any', label: 'Qualquer cor' },
-  { key: 'black', label: 'Preto' },
-  { key: 'white', label: 'Branco' },
-  { key: 'gray', label: 'Cinza' },
-  { key: 'red', label: 'Vermelho' },
-  { key: 'orange', label: 'Laranja' },
-  { key: 'yellow', label: 'Amarelo' },
-  { key: 'green', label: 'Verde' },
-  { key: 'blue', label: 'Azul' },
-  { key: 'purple', label: 'Roxo' },
-  { key: 'pink', label: 'Rosa' },
 ]
 
 /** Ordena itens já filtrados (fontes locais e remotas). */
@@ -348,7 +392,13 @@ export async function searchStockProvider(
     const params = new URLSearchParams({ provider, q })
     // Unsplash/Pexels suportam orientação e cor nativamente — repassados ao hook.
     if (opts?.orientation && opts.orientation !== 'any') params.set('orientation', opts.orientation)
-    if (opts?.color && opts.color !== 'any') params.set('color', opts.color)
+    // A API aceita as 10 cores nativas; cores estendidas caem na mais próxima.
+    if (opts?.color && opts.color !== 'any') {
+      params.set(
+        'color',
+        STOCK_COLOR_KEYS.has(opts.color) ? opts.color : nearestStockColor(opts.color),
+      )
+    }
     const res = await pb.send(`/backend/v1/secondbrain/stock-search?${params.toString()}`, {
       method: 'GET',
     })
