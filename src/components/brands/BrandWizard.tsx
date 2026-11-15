@@ -129,10 +129,10 @@ export default function BrandWizard() {
     try {
       const payload = buildBrandPayload(data, user.id, logoFile)
       if (isEdit) {
-        await updateBrand(id as string, payload)
+        await updateBrand(id as string, payload as any)
         return id as string
       }
-      const created = await createBrand(payload)
+      const created = await createBrand(payload as any)
       return created?.id || null
     } catch (err: any) {
       toast({

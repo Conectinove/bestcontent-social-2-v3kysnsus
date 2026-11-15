@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Building2,
   AlertTriangle,
   GitMerge,
   Edit2,
   Check,
+  Copy,
   Star,
   Trash2,
   Loader2,
@@ -13,7 +15,10 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  AtSign,
+  Globe,
 } from 'lucide-react'
+import { parseJsonArray } from '@/lib/brand-wizard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,7 +33,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { useSocial } from '@/context/SocialContext'
-import { updateBrand, deleteBrand, mergeDuplicateBrands } from '@/services/brands'
+import { createBrand, updateBrand, deleteBrand, mergeDuplicateBrands } from '@/services/brands'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +43,7 @@ export interface OrganizationBrandManagerProps {
 
 export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandManagerProps) {
   const { brands, selectedBrandId, setSelectedBrandId, fetchBrands } = useSocial()
+  const navigate = useNavigate()
 
   // Edição inline
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -57,6 +63,69 @@ export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandMan
   // Confirmação de exclusão individual
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Duplicar marca — enum status só aceita 'active' | 'archived'
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+  const handleDuplicateBrand = async (brand: any) => {
+    setDuplicatingId(brand.id)
+    try {
+      const payload: Record<string, unknown> = {
+        name: `${brand.name || 'Marca'} (Cópia)`,
+        description: brand.description || '',
+        instagram: brand.instagram || '',
+        tiktok: brand.tiktok || '',
+        youtube: brand.youtube || '',
+        facebook: brand.facebook || '',
+        website: brand.website || brand.website_url || '',
+        color_theme: brand.color_theme || '',
+        color_primary: brand.color_primary || '',
+        color_secondary: brand.color_secondary || '',
+        color_accent: brand.color_accent || '',
+        voice_tone: brand.voice_tone || '',
+        online_presence: brand.online_presence || '',
+        sector: brand.sector || '',
+        tags: brand.tags || '',
+        target_audience: brand.target_audience || '',
+        brand_voice: brand.brand_voice || '',
+        visual_style: brand.visual_style || '',
+        essence: brand.essence || '',
+        objective: brand.objective || '',
+        style_preferences:
+          typeof brand.style_preferences === 'string'
+            ? brand.style_preferences
+            : JSON.stringify(parseJsonArray(brand.style_preferences)),
+        status: 'active',
+      }
+      await createBrand(payload)
+      await fetchBrands?.()
+      toast({
+        title: 'Marca duplicada!',
+        description: `"${payload.name}" foi criada como uma nova marca ativa.`,
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao duplicar',
+        description: err?.message || 'Não foi possível duplicar a marca.',
+        variant: 'destructive',
+      })
+    } finally {
+      setDuplicatingId(null)
+    }
+  }
+
+  // Copiar ID da marca
+  const handleCopyId = async (brand: any) => {
+    try {
+      await navigator.clipboard.writeText(brand.id)
+      toast({ title: 'ID copiado!', description: `${brand.id} está na área de transferência.` })
+    } catch {
+      toast({
+        title: 'Não foi possível copiar',
+        description: brand.id,
+        variant: 'destructive',
+      })
+    }
+  }
 
   // 1. Detectar grupos de duplicadas por nome (case insensitive, trim)
   const duplicateGroups = useMemo(() => {
@@ -285,16 +354,14 @@ export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandMan
             <span>Atualizar</span>
           </Button>
 
-          {onAddNewBrand && (
-            <Button
-              type="button"
-              onClick={onAddNewBrand}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl h-9 px-3.5 gap-1.5 shadow-xs min-h-[38px]"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Nova Marca</span>
-            </Button>
-          )}
+          <Button
+            type="button"
+            onClick={() => (onAddNewBrand ? onAddNewBrand() : navigate('/app/brand-wizard/new'))}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl h-9 px-3.5 gap-1.5 shadow-xs min-h-[38px]"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Nova Marca</span>
+          </Button>
         </div>
       </div>
 
@@ -427,7 +494,40 @@ export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandMan
                           {b.description || 'Sem descrição cadastrada.'}
                         </p>
 
-                        <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground flex-wrap">
+                        {/* Conexões de redes */}
+                        <div className="flex items-center gap-2.5 mt-2 text-[11px] text-muted-foreground flex-wrap">
+                          {b.instagram && (
+                            <span
+                              className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-md"
+                              title={`Instagram: ${b.instagram}`}
+                            >
+                              <AtSign className="w-3 h-3 text-pink-500" /> {b.instagram}
+                            </span>
+                          )}
+                          {b.tiktok && (
+                            <span
+                              className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-md"
+                              title={`TikTok: ${b.tiktok}`}
+                            >
+                              <Globe className="w-3 h-3 text-cyan-500" /> {b.tiktok}
+                            </span>
+                          )}
+                          {b.youtube && (
+                            <span
+                              className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-md"
+                              title={`YouTube: ${b.youtube}`}
+                            >
+                              <Globe className="w-3 h-3 text-red-500" /> {b.youtube}
+                            </span>
+                          )}
+                          {b.facebook && (
+                            <span
+                              className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-md"
+                              title={`Facebook: ${b.facebook}`}
+                            >
+                              <Globe className="w-3 h-3 text-blue-500" /> {b.facebook}
+                            </span>
+                          )}
                           {b.website && (
                             <a
                               href={
@@ -437,14 +537,61 @@ export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandMan
                               rel="noreferrer"
                               className="text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 font-medium"
                             >
-                              <span>{b.website.replace(/^https?:\/\//, '')}</span>
+                              <span>{String(b.website).replace(/^https?:\/\//, '')}</span>
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           )}
-                          <span className="font-mono text-[10px] text-muted-foreground/70">
-                            ID: {b.id}
-                          </span>
+                          {!b.instagram && !b.tiktok && !b.youtube && !b.facebook && !b.website && (
+                            <span className="italic opacity-70">Nenhuma rede conectada</span>
+                          )}
                         </div>
+
+                        {/* Tags */}
+                        {parseJsonArray(b.tags).length > 0 && (
+                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            {parseJsonArray(b.tags).map((tag: string) => (
+                              <Badge
+                                key={tag}
+                                variant="outline"
+                                className="text-[10px] font-semibold px-2 py-0 border-purple-300/60 dark:border-purple-700/60 text-purple-700 dark:text-purple-300 bg-purple-500/5"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Paleta de cores da marca */}
+                        {(b.color_primary || b.color_secondary || b.color_accent) && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                              Cores
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {[b.color_primary, b.color_secondary, b.color_accent]
+                                .filter(Boolean)
+                                .map((c: string, i: number) => (
+                                  <span
+                                    key={i}
+                                    title={c}
+                                    className="w-4 h-4 rounded-full border border-border/70 shadow-xs"
+                                    style={{ backgroundColor: c }}
+                                  />
+                                ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ID copiável */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyId(b)}
+                          className="mt-2 inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/80 hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer group/id"
+                          title="Clique para copiar o ID da marca"
+                        >
+                          <span>ID: {b.id}</span>
+                          <Copy className="w-3 h-3 opacity-0 group-hover/id:opacity-100 transition-opacity" />
+                        </button>
                       </div>
                     </div>
 
@@ -470,7 +617,7 @@ export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandMan
                         size="sm"
                         onClick={() => {
                           handleSetActiveBrand(b.id)
-                          window.location.href = `/app/onboarding?brand=${b.id}`
+                          navigate(`/app/brand-wizard/${b.id}`)
                         }}
                         className="rounded-xl text-xs h-9 px-3 font-semibold border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950 gap-1.5 min-h-[44px]"
                         title="Abrir no Assistente de Marca (Wizard)"
@@ -508,6 +655,23 @@ export function OrganizationBrandManager({ onAddNewBrand }: OrganizationBrandMan
                           <span>Mesclar</span>
                         </Button>
                       )}
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={duplicatingId === b.id}
+                        onClick={() => handleDuplicateBrand(b)}
+                        className="rounded-xl text-xs h-9 px-2.5 text-muted-foreground hover:text-foreground gap-1.5 min-h-[44px]"
+                        title="Duplicar marca com todos os dados (nome recebe sufixo (Cópia))"
+                      >
+                        {duplicatingId === b.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                        <span>Duplicar</span>
+                      </Button>
 
                       <Button
                         type="button"

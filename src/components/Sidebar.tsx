@@ -53,7 +53,14 @@ export function Sidebar({
   const { brands, selectedBrandId, setSelectedBrandId } = useSocial()
   const { user } = useAuth()
   const [brandDropdownOpen, setBrandDropdownOpen] = useState(false)
+  const [brandSearch, setBrandSearch] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const BRAND_LIMIT = 20
+  const filteredBrands = brandSearch.trim()
+    ? brands.filter((b: any) =>
+        (b.name || '').toLowerCase().includes(brandSearch.trim().toLowerCase()),
+      )
+    : brands
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -178,9 +185,55 @@ export function Sidebar({
                   </div>
                 </div>
 
+                {/* Contador X de 20 + barra de progresso do plano */}
+                <div className="px-1 pb-2.5 mb-2 border-b border-border/60">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-foreground">
+                      {brands.length} de {BRAND_LIMIT} no seu plano
+                    </span>
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      {Math.min(100, Math.round((brands.length / BRAND_LIMIT) * 100))}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-300',
+                        brands.length >= BRAND_LIMIT
+                          ? 'bg-rose-500'
+                          : brands.length >= BRAND_LIMIT * 0.8
+                            ? 'bg-amber-500'
+                            : 'bg-purple-600',
+                      )}
+                      style={{
+                        width: `${Math.min(100, (brands.length / BRAND_LIMIT) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Busca de marcas em tempo real */}
+                {brands.length > 3 && (
+                  <div className="relative px-1 pb-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      value={brandSearch}
+                      onChange={(e) => setBrandSearch(e.target.value)}
+                      placeholder="Buscar marca..."
+                      className="w-full h-8 pl-8 pr-3 rounded-lg bg-muted/60 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                    />
+                  </div>
+                )}
+
                 {/* Brand list */}
                 <div className="space-y-1 max-h-[280px] overflow-y-auto pr-0.5 scrollbar-thin">
-                  {brands.map((b: any) => {
+                  {filteredBrands.length === 0 && brandSearch.trim() && (
+                    <p className="text-[11px] text-muted-foreground text-center py-3 italic">
+                      Nenhuma marca encontrada para "{brandSearch}"
+                    </p>
+                  )}
+                  {filteredBrands.map((b: any) => {
                     const isSelected = activeBrand?.id === b.id || selectedBrandId === b.id
                     return (
                       <button
@@ -227,7 +280,7 @@ export function Sidebar({
                     type="button"
                     onClick={() => {
                       setBrandDropdownOpen(false)
-                      navigate('/app/brands')
+                      navigate('/app/brand-wizard/new')
                     }}
                     className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs font-semibold text-foreground hover:bg-muted transition-colors text-left"
                   >
