@@ -689,6 +689,7 @@ export async function getUserStudioCredits(userId?: string): Promise<{
 export async function updateStudioCreation(
   creationId: string,
   updates: Partial<Pick<StudioCreationRecord, 'preview_url' | 'title' | 'output_content'>>,
+  original?: StudioCreationRecord | null,
 ): Promise<StudioCreationRecord> {
   try {
     const r = await pb.collection('studio_creations').update(creationId, updates)
@@ -715,8 +716,9 @@ export async function updateStudioCreation(
       created: r.created,
     }
   } catch {
-    // Criação mock/local: devolve objeto atualizado para a UI continuar funcionando
-    return {
+    // Criação mock/local: devolve o record original (quando conhecido) com as mudanças aplicadas,
+    // preservando type/prompt/model e evitando descartar campos da UI
+    const base: StudioCreationRecord = original || {
       id: creationId,
       user: '',
       type: 'image',
@@ -726,8 +728,9 @@ export async function updateStudioCreation(
       model_name: '',
       relative_cost: 1,
       credits_used: 0,
-      ...updates,
-    } as StudioCreationRecord
+      preview_url: '',
+    }
+    return { ...base, ...updates } as StudioCreationRecord
   }
 }
 

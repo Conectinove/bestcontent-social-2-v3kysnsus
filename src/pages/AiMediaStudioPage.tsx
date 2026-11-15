@@ -151,7 +151,6 @@ export default function AiMediaStudioPage() {
 
   // Edição avançada da mídia gerada (mesmo mecanismo do editor de posts)
   const [isAdvancedEditorOpen, setIsAdvancedEditorOpen] = useState(false)
-  const [isSavingEdit, setIsSavingEdit] = useState(false)
   // Dialog de seções da sidebar (projetos / habilidades / estilos / ajuda)
   const [sectionDialog, setSectionDialog] = useState<StudioSectionId | null>(null)
 
@@ -188,11 +187,12 @@ export default function AiMediaStudioPage() {
   // Salvar resultado da Edição Avançada sobre a mídia gerada
   const handleSaveAdvancedEdit = async (editedPreviewUrl: string) => {
     if (!selectedCreationModal) return
-    setIsSavingEdit(true)
     try {
-      const updated = await updateStudioCreation(selectedCreationModal.id, {
-        preview_url: editedPreviewUrl,
-      })
+      const updated = await updateStudioCreation(
+        selectedCreationModal.id,
+        { preview_url: editedPreviewUrl },
+        selectedCreationModal,
+      )
       setCreations((prev) => {
         const next = prev.map((c) => (c.id === updated.id ? updated : c))
         setStudioMetrics(calculateStudioMetrics(next))
@@ -206,8 +206,6 @@ export default function AiMediaStudioPage() {
         description: 'A mídia original foi mantida. Tente novamente.',
         variant: 'destructive',
       })
-    } finally {
-      setIsSavingEdit(false)
     }
   }
 
@@ -709,16 +707,11 @@ export default function AiMediaStudioPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={isSavingEdit}
                     onClick={() => setIsAdvancedEditorOpen(true)}
                     className="rounded-full text-xs font-bold gap-1.5"
                     title="Abrir Edição Avançada da Arte (filtros, textos, proporção)"
                   >
-                    {isSavingEdit ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
-                    )}
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
                     <span>Edição Avançada</span>
                   </Button>
 
@@ -762,7 +755,6 @@ export default function AiMediaStudioPage() {
                   </Button>
                   <Button
                     size="sm"
-                    disabled={isSavingEdit}
                     onClick={() => {
                       navigate('/app/criar', {
                         state: {
@@ -787,24 +779,16 @@ export default function AiMediaStudioPage() {
       {selectedCreationModal && (
         <StudioAdvancedEditorDialog
           open={isAdvancedEditorOpen}
-          onOpenChange={(open) => {
-            setIsAdvancedEditorOpen(open)
-            if (!open) setIsSavingEdit(false)
-          }}
-          mediaUrl={selectedCreationModal.preview_url}
-          mediaType={selectedCreationModal.type}
-          title={selectedCreationModal.title}
-          isSaving={isSavingEdit}
-          onSave={async (dataUrl) => {
-            setIsAdvancedEditorOpen(false)
-            await handleSaveAdvancedEdit(dataUrl)
-          }}
+          onOpenChange={setIsAdvancedEditorOpen}
+          creation={selectedCreationModal}
+          onSave={handleSaveAdvancedEdit}
         />
       )}
 
       {/* Dialogs de seção da sidebar: Projetos, Habilidades, Estilos, Ajuda */}
       <StudioSectionDialog
-        sectionId={sectionDialog}
+        open={Boolean(sectionDialog)}
+        section={sectionDialog}
         onOpenChange={(open) => {
           if (!open) setSectionDialog(null)
         }}
@@ -813,11 +797,7 @@ export default function AiMediaStudioPage() {
           setSectionDialog(null)
           setSelectedCreationModal(item)
         }}
-        onNewCanvas={() => {
-          setSectionDialog(null)
-          handleNewCanvas()
-        }}
-        onApplyAction={handleSectionAction}
+        onAction={handleSectionAction}
       />
 
       {/* Modal de Assets Externos (Item 1 do pedido) */}
