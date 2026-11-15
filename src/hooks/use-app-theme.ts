@@ -1,48 +1,67 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Brand } from '@/types'
-import { pb } from '@/lib/pocketbase/client'
 import {
   loadCustomThemes,
-  saveThemeId,
-  loadThemeId,
-  buildBrandThemes,
-} from '@/hooks/use-studio-theme'
-import {
-  fetchTeamThemes,
-  saveStudioTheme,
-  deleteStudioTheme,
-  type StudioThemeRecord,
-} from '@/services/studio-themes'
-
-export type { StudioThemeOption, StudioCustomColors, StudioThemeId } from '@/hooks/use-studio-theme'
-
-import {
-  BUILTIN_STUDIO_THEMES,
+  persistCustomThemes,
   buildCustomTheme,
+  buildBrandThemes,
+  BUILTIN_STUDIO_THEMES,
+  hexToHslTokens,
+  hslStr,
   type StudioThemeOption,
   type StudioCustomColors,
   type StudioThemeId,
 } from '@/hooks/use-studio-theme'
+import {
+  createStudioTheme,
+  updateStudioTheme,
+  deleteStudioTheme,
+  fetchStudioThemes,
+} from '@/services/studio-themes'
+import {
+  loadNetworkThemeId,
+  saveNetworkThemeId,
+  normalizeNetworkThemeId,
+  NETWORK_THEMES,
+  type NetworkThemeId,
+} from '@/lib/network-themes'
+
+export type { StudioThemeOption, StudioCustomColors, StudioThemeId } from '@/hooks/use-studio-theme'
+export { hexToHslTokens, hslStr } from '@/hooks/use-studio-theme'
 
 export interface CreateThemeOptions {
   name: string
   colors: StudioCustomColors
-  network?: string
-  accentOverride?: string
+  network?: NetworkThemeId
   isShared?: boolean
 }
 
+const DEFAULT_THEME_ID: StudioThemeId = 'violeta-dark'
+
 /**
- * Tema aplicado no APP INTEIRO via CSS vars no `:root` (com fallback para o
- * `<body>` em navegadores sem suporte a `:root` inline styles — ver applyThemeVars).
- * A escolha persiste em localStorage (`midiaviva_studio_theme`) — sobrevive ao reload.
- * Temas personalizados: cache local instantâneo + persistência no banco (studio_themes),
- * incluindo associação a rede social e o flag de compartilhamento com a equipe.
+ * Tema aplicado no APP INTEIRO via CSS vars no `:root` (documentElement).
+ * Roda no layout autenticado global (`src/components/Layout.tsx`), então
+ * sidebar, header e todas as telas sob /app mudam de cor juntas.
+ *
+ * - Escolha do tema + rede social: localStorage (`midiaviva_studio_theme`,
+ *   `midiaviva_theme_network`) — sobrevive ao reload.
+ * - Temas personalizados: cache local instantâneo + persistência no banco
+ *   (coleção studio_themes), incluindo rede, accent e flag de compartilhamento.
+ * - Temas compartilhados pela equipe: carregados do banco (mesma company).
+ * - Rede social: aplica o accent da rede sobre o tema ativo (Instagram roxo/rosa,
+ *   TikTok ciano/rosa, LinkedIn azul...) sem trocar o tema base nem o modo.
  */
 export function useAppTheme(brands: Brand[], remoteKey: string = '') {
-  const [themeId, setThemeIdState] = useState<StudioThemeId>(() => loadThemeId())
+  const [themeId, setThemeIdState] = useState<StudioThemeId>(() => {
+    try {
+      return localStorage.getItem('midiaviva_studio_theme') || DEFAULT_THEME_ID
+    } catch {
+      return DEFAULT_THEME_ID
+    }
+  })
   const [customThemes, setCustomThemes] = useState<StudioThemeOption[]>(() => loadCustomThemes())
   const [teamThemes, setTeamThemes] = useState<StudioThemeOption[]>([])
+  const [networkId, setNetworkIdState] = useState<NetworkThemeId>(() => loadNetworkThemeId())
   const [isSaving, setIsSaving] = useState(false)
 
   const brandThemes = useMemo(() => buildBrandThemes(brands), [brands])
@@ -57,13 +76,25 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     [allThemes, themeId],
   )
 
-  // Carrega temas compartilhados pela equipe (uma vez por sessão de login)
+  // Carrega temas do usuário + compartilhados pela equipe (uma vez por login)
   useEffect(() => {
     if (!remoteKey) return
     let active = true
-    fetchTeamThemes()
+    fetchStudioThemes()
       .then((list) => {
-        if (active) setTeamThemes(list)
+        if (!active) return
+        // Temas remotos entram em teamThemes quando não são do usuário logado
+        const mine = list.filter((t) => t.origin === 'mine')
+        const team = list.filter((t) => t.origin === 'team')
+        setTeamThemes(team)
+        setCustomThemes((prev) => {
+          const remoteIds = new Set(mine.map((t) => t.remoteId))
+          const localOnly = prev.filter((t) => !t.remoteId)
+          // Merge: remotos (fonte da verdade) + locais sem remoteId
+          const merged = [...mine, ...localOnly.filter((t) => !remoteIds.has(t.id))]
+          persistCustomThemes(merged)
+          return merged
+        })
       })
       .catch(() => {
         /* silencioso — seletor funciona mesmo sem banco */
@@ -73,132 +104,81 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     }
   }, [remoteKey])
 
-  // Persistência da escolha (localStorage — critério 4: reload mantém o tema)
+  // Persistência da escolha (localStorage — reload mantém o tema)
   useEffect(() => {
-    saveThemeId(themeId)
+    try {
+      localStorage.setItem('midiaviva_studio_theme', themeId)
+    } catch {
+      /* intentionally ignored */
+    }
   }, [themeId])
 
-  // Aplica as variáveis CSS no nível global
+  // Persistência da rede social escolhida
   useEffect(() => {
-    applyThemeVars(theme)
-  }, [theme])
+    saveNetworkThemeId(networkId)
+  }, [networkId])
+
+  // Aplica as variáveis CSS do tema no nível global (:root)
+  useEffect(() => {
+    applyThemeVars(theme, networkId)
+  }, [theme, networkId])
 
   const setThemeId = useCallback((id: StudioThemeId) => setThemeIdState(id), [])
+  const setNetworkId = useCallback((id: NetworkThemeId) => setNetworkIdState(id), [])
 
-  /** Cria um tema personalizado (com rede/accent/compartilhamento) e aplica. */
-  const addCustomTheme = useCallback(
-    async (opts: CreateThemeOptions): Promise<StudioThemeOption> => {
-      const newTheme = buildCustomTheme(opts.name, opts.colors)
-      const enriched: StudioThemeOption = {
-        ...newTheme,
-        network: opts.network,
-        accentOverride: opts.accentOverride,
-        origin: opts.isShared ? ('team' as const) : ('mine' as const),
-        isShared: Boolean(opts.isShared),
-      }
-      if (opts.accentOverride) {
-        enriched.preview = `linear-gradient(135deg, ${opts.colors.primary}, ${opts.accentOverride})`
-      }
+  /** Cria um tema personalizado (com rede + compartilhamento) e aplica. */
+  const addCustomTheme = useCallback(async (opts: CreateThemeOptions): Promise<void> => {
+    const newTheme = buildCustomTheme(opts.name, opts.colors)
+    const enriched: StudioThemeOption = {
+      ...newTheme,
+      network: opts.network && opts.network !== 'none' ? opts.network : undefined,
+      accentOverride:
+        opts.network && opts.network !== 'none' ? NETWORK_THEMES[opts.network].primary : undefined,
+      origin: 'mine',
+      isShared: Boolean(opts.isShared),
+    }
+    setIsSaving(true)
+    try {
+      const saved = await createStudioTheme({
+        name: enriched.name,
+        colors: opts.colors,
+        network: enriched.network || null,
+        isShared: enriched.isShared,
+        accentOverride: enriched.accentOverride || null,
+      })
+      enriched.remoteId = saved.remoteId
+    } catch {
+      /* fallback: fica só no localStorage */
+    }
+    setCustomThemes((prev) => {
+      const next = [...prev, enriched]
+      persistCustomThemes(next)
+      return next
+    })
+    if (enriched.network) setNetworkIdState(enriched.network)
+    setThemeIdState(enriched.id)
+    setIsSaving(false)
+  }, [])
 
-      setIsSaving(true)
-      try {
-        // Persiste no banco (se falhar, segue só com cache local)
-        const record = await saveStudioTheme({
-          name: enriched.name,
-          network: enriched.network || '',
-          mode: enriched.mode,
-          color_background: opts.colors.background,
-          color_surface: opts.colors.surface,
-          color_primary: opts.colors.primary,
-          color_text: opts.colors.text,
-          accent_override: opts.accentOverride || '',
-          is_shared: Boolean(opts.isShared),
-          remote_id: enriched.id,
-        })
-        enriched.remoteId = record.id
-      } catch {
-        /* fallback: fica só no localStorage */
-      } finally {
-        setIsSaving(false)
-      }
-
+  /** Marca/desmarca compartilhamento com a equipe (persistido no banco). */
+  const toggleShared = useCallback(
+    async (id: StudioThemeId, isShared: boolean): Promise<void> => {
       setCustomThemes((prev) => {
-        const next = [...prev, enriched]
-        persistCustom(next)
+        const next = prev.map((t) => (t.id === id ? { ...t, isShared } : t))
+        persistCustomThemes(next)
         return next
       })
-      setThemeIdState(enriched.id)
-      return enriched
-    },
-    [],
-  )
-
-  /** Atualiza um tema personalizado existente (rede/accent/compartilhamento). */
-  const updateCustomTheme = useCallback(
-    async (id: StudioThemeId, patch: Partial<CreateThemeOptions>): Promise<void> => {
-      let updated: StudioThemeOption | null = null
-      setCustomThemes((prev) => {
-        const next = prev.map((t) => {
-          if (t.id !== id) return t
-          const merged = {
-            ...t,
-            network: patch.network !== undefined ? patch.network : t.network,
-            accentOverride:
-              patch.accentOverride !== undefined ? patch.accentOverride : t.accentOverride,
-            isShared: patch.isShared !== undefined ? Boolean(patch.isShared) : t.isShared,
-            origin: (patch.isShared ? 'team' : 'mine') as 'team' | 'mine',
-          }
-          if (patch.accentOverride && t.colors) {
-            merged.preview = `linear-gradient(135deg, ${t.colors.primary}, ${patch.accentOverride})`
-          }
-          updated = merged
-          return merged
-        })
-        persistCustom(next)
-        return next
-      })
-      setTeamThemes((prev) => {
-        const next = prev.map((t) => {
-          if (t.remoteId !== id) return t
-          const merged = {
-            ...t,
-            network: patch.network !== undefined ? patch.network : t.network,
-            isShared: patch.isShared !== undefined ? Boolean(patch.isShared) : t.isShared,
-          }
-          updated = merged
-          return merged
-        })
-        return next
-      })
-      // Persiste no banco (best-effort)
+      const target =
+        customThemes.find((t) => t.id === id) || teamThemes.find((t) => t.remoteId === id)
+      if (!target?.remoteId) return
       try {
-        const current =
-          customThemes.find((t) => t.id === id) || teamThemes.find((t) => t.remoteId === id)
-        if (current) {
-          await saveStudioTheme({
-            id: current.remoteId,
-            name: current.name,
-            network: (patch.network !== undefined ? patch.network : current.network) || '',
-            mode: current.mode,
-            color_background: current.colors?.background || '',
-            color_surface: current.colors?.surface || '',
-            color_primary: current.colors?.primary || '',
-            color_text: current.colors?.text || '',
-            accent_override:
-              (patch.accentOverride !== undefined
-                ? patch.accentOverride
-                : current.accentOverride) || '',
-            is_shared:
-              patch.isShared !== undefined ? Boolean(patch.isShared) : Boolean(current.isShared),
-            remote_id: current.id,
-          })
-        }
+        await updateStudioTheme(target.remoteId, { isShared })
+        etiquetas
       } catch {
-        /* fallback: fica só no localStorage */
+        /* silencioso — estado otimista já aplicado */
       }
-      vt
     },
-    [],
+    [customThemes, teamThemes],
   )
 
   /** Exclui um tema personalizado; se era o ativo, volta ao padrão. */
@@ -207,10 +187,10 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
       const target = customThemes.find((t) => t.id === id)
       setCustomThemes((prev) => {
         const next = prev.filter((t) => t.id !== id)
-        persistCustom(next)
+        persistCustomThemes(next)
         return next
       })
-      setThemeIdState((cur) => (cur === id ? 'violeta-dark' : cur))
+      setThemeIdState((cur) => (cur === id ? DEFAULT_THEME_ID : cur))
       if (target?.remoteId) {
         try {
           await deleteStudioTheme(target.remoteId)
@@ -229,37 +209,21 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     allThemes,
     customThemes,
     teamThemes,
+    networkId,
+    setNetworkId,
     addCustomTheme,
-    updateCustomTheme,
+    toggleShared,
     removeCustomTheme,
     isSaving,
   }
 }
 
-/** Atalho local para persistir a lista de temas personalizados. */
-function persistCustom(themes: StudioThemeOption[]) {
-  try {
-    const slim = themes.map((t) => ({
-      id: t.id,
-      name: t.name,
-      colors: t.colors,
-      network: t.network,
-      accentOverride: t.accentOverride,
-      isShared: t.isShared,
-    }))
-    localStorage.setItem('midiaviva_studio_custom_themes', JSON.stringify(slim))
-  } catch {
-    /* intentionally ignored */
-  }
-}
-
 /**
- * Aplica as CSS vars do tema no elemento raiz (:root), mudando o app inteiro.
- * Usa setProperty no documentElement — todas as superfícies que consomem as vars
- * (sidebar, header, cards, dialogs) mudam junto. Superfícies com cores fixas do
- * Tailwind (bg-zinc-900, etc.) não mudam — comportamento aceito pela especificação.
+ * Aplica as CSS vars do tema (+ accent da rede social) no elemento raiz,
+ * mudando o app inteiro: sidebar, header, cards, dialogs e telas fora do Studio.
+ * Superfícies com cores fixas do Tailwind (bg-zinc-900 etc.) não mudam.
  */
-export function applyThemeVars(theme: StudioThemeOption) {
+export function applyThemeVars(theme: StudioThemeOption, networkId: NetworkThemeId = 'none') {
   const root = document.documentElement
   const isDark = theme.mode === 'dark'
   const isCustom = theme.source === 'custom' && theme.colors
@@ -268,9 +232,18 @@ export function applyThemeVars(theme: StudioThemeOption) {
   const surfaceTokens = hexToHslTokens(theme.colors?.surface || '')
   const textTokens = hexToHslTokens(theme.colors?.text || '')
 
-  root.style.setProperty('--primary', theme.primary)
+  // Accent da rede social (quando escolhida): sobrepõe o accent/primary do tema
+  const networkTheme =
+    networkId && networkId !== 'none'
+      ? NETWORK_THEMES[networkId as keyof typeof NETWORK_THEMES]
+      : null
+  const primary = networkTheme ? networkTheme.primary : theme.primary
+  const accent = networkTheme ? networkTheme.accent : theme.accent
+  const ring = networkTheme ? networkTheme.primary : theme.ring
+
+  root.style.setProperty('--primary', primary)
   root.style.setProperty('--primary-foreground', '0 0% 100%')
-  root.style.setProperty('--accent', theme.accent)
+  root.style.setProperty('--accent', accent)
   root.style.setProperty(
     '--accent-foreground',
     isCustom
@@ -283,7 +256,7 @@ export function applyThemeVars(theme: StudioThemeOption) {
         ? '262 83% 80%'
         : '262 83% 58%',
   )
-  root.style.setProperty('--ring', theme.ring)
+  root.style.setProperty('--ring', ring)
   root.style.setProperty(
     '--background',
     bgTokens ? hslStr(bgTokens) : isDark ? '0 0% 4%' : '0 0% 100%',
@@ -338,16 +311,14 @@ export function applyThemeVars(theme: StudioThemeOption) {
     '--secondary-foreground',
     textTokens ? hslStr(textTokens) : isDark ? '210 40% 98%' : '222 47% 11%',
   )
-  // Atributo global: permite CSS específica de tema escuro no app (ex. sidebar)
+  // Atributo global: permite CSS específica de tema escuro/clara e de rede no app
   root.setAttribute('data-app-theme', theme.mode)
-  if (theme.network) {
-    root.setAttribute('data-app-theme-network', theme.network)
+  if (networkId && networkId !== 'none') {
+    root.setAttribute('data-app-theme-network', networkId)
   } else {
     root.removeAttribute('data-app-theme-network')
   }
 }
 
-// Reexporta helpers usados por applyThemeVars e pelo switcher
-export { hexToHslTokens, hslStr } from '@/hooks/use-studio-theme'
-import { hexToHslTokens, hslStr } from '@/hooks/use-studio-theme'
-import type { StudioThemeRecord } from '@/services/studio-themes'
+// Garante que o id de rede lido do storage é sempre válido (usado pelo hook)
+void normalizeNetworkThemeId

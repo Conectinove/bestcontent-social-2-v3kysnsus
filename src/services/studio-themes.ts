@@ -1,13 +1,14 @@
 import pb from '@/lib/pocketbase/client'
 import {
   buildCustomTheme,
+  hexToHslTokens,
   type StudioThemeOption,
   type StudioCustomColors,
 } from '@/hooks/use-studio-theme'
 
 const COLLECTION = 'studio_themes'
 
-/** Payload de uma linha da coleção studio_themes. */
+/** Payload de uma linha da coleção studio_themes (migration 0097). */
 export interface StudioThemeRecord {
   id: string
   user: string
@@ -21,7 +22,9 @@ export interface StudioThemeRecord {
   accent_override: string
   is_shared: boolean
   remote_id: string
-  expand?: { user?: { name?: string; company?: string } }
+  created?: string
+  updated?: string
+  expand?: { user?: { id?: string; name?: string; company?: string } }
 }
 
 /** Dados de criação/atualização de um tema (nome, cores, rede, compartilhamento). */
@@ -33,6 +36,27 @@ export interface StudioThemeInput {
   accentOverride?: string | null
 }
 
+const INVALID_NETWORK = new Set(['', 'none'])
+const VALID_NETWORKS = new Set([
+  'instagram',
+  'tiktok',
+  'linkedin',
+  'facebook',
+  'youtube',
+  'x',
+  'threads',
+  'pinterest',
+  'kwai',
+  'telegram',
+  'bluesky',
+  'snapchat',
+])
+
+function safeNetwork(value: string | null | undefined): string {
+  const v = (value || '').toLowerCase()
+  return !v || INVALID_NETWORK.has(v) || !VALID_NETWORKS.has(v) ? '' : v
+}
+
 /** Monta um StudioThemeOption a partir do record do banco. */
 export function recordToThemeOption(rec: StudioThemeRecord): StudioThemeOption {
   const colors: StudioCustomColors = {
@@ -41,15 +65,22 @@ export function recordToThemeOption(rec: StudioThemeRecord): StudioThemeOption {
     primary: rec.color_primary || '#7c3aed',
     text: rec.color_text || '#fafafa',
   }
-  const isMine = rec.user === pb.authStore.record?.id
+  const authId = pb.authStore.record?.id
+  const isMine = rec.user === authId
   const option = buildCustomTheme(rec.name || 'Tema da equipe', colors, `remote-${rec.id}`)
+  // accent_override do banco: tokens "h s% l%" → css `hsl(h s% l%)` para a prévia
+  const accentTokens = rec.accent_override
+    ? hexToHslTokens('#000000') && rec.accent_override.match(/^[\d.]+ [\d.]+% [\d.]+%$/)
+      ? rec.accent_override
+      : null
+    : null
   return {
     ...option,
-    // Remapeia a preview para dar destaque ao accent por rede, quando houver
-    preview: rec.accent_override
-      ? `linear-gradient(135deg, hsl(${rec.accent_override}), ${colors.background})`
+    preview: accentTokens
+      ? `linear-gradient(135deg, hsl(${accentTokens}), ${colors.primary})`
       : option.preview,
-    network: rec.network || null,
+    network: rec.network || undefined,
+    accentOverride: rec.accent_override || undefined,
     isShared: Boolean(rec.is_shared),
     origin: isMine ? 'mine' : 'team',
     remoteId: rec.id,
@@ -58,29 +89,36 @@ export function recordToThemeOption(rec: StudioThemeRecord): StudioThemeOption {
   }
 }
 
-/** Lista os temas do usuário + os compartilhados pela sua equipe (mesma company). */
+/**
+ * Lista os temas do usuário + os compartilhados pela sua equipe (mesma company).
+ * A regra de API da coleção já filtra (dono OU is_shared + mesma company);
+ * o filtro extra de equipe é best-effort — se falhar, usa só o filtro do dono.
+ */
 export async function fetchStudioThemes(): Promise<StudioThemeOption[]> {
   const authId = pb.authStore.record?.id
   if (!authId) return []
   const company = (pb.authStore.record as any)?.company || ''
 
-  const mineFilter = `user = "${authId}"`
-  const teamFilter =
-    company && company.trim() !== ''
-      ? `is_shared = true && user != "${authId}" && user.company = "${company}"`
-      : `is_shared = true && user != "${authId}" && user.company = "" && user != "${authId}"`
-
-  const [mine, team] = await Promise.all([
-    pb.collection(COLLECTION).getFullList({
-      filter: mineFilter,
+  const mine = await pb
+    .collection(COLLECTION)
+    .getFullList<StudioThemeRecord>({
+      filter: `user = "${authId}"`,
       sort: '-updated',
       expand: 'user',
-    }),
-    pb
+    })
+    .catch(() => [] as StudioThemeRecord[])
+
+  let team: StudioThemeRecord[] = []
+  if (company && company.trim() !== '') {
+    team = await pb
       .collection(COLLECTION)
-      .getFullList({ filter: teamFilter, sort: '-updated', expand: 'user' })
-      .catch(() => [] as StudioThemeRecord[]),
-  ])
+      .getFullList<StudioThemeRecord>({
+        filter: `is_shared = true && user != "${authId}" && user.company = "${company}"`,
+        sort: '-updated',
+        expand: 'user',
+      })
+      .catch(() => [] as StudioThemeRecord[])
+  }
 
   const seen = new Set<string>()
   return [...mine, ...team]
@@ -95,8 +133,12 @@ export async function createStudioTheme(input: StudioThemeInput): Promise<Studio
   const rec = await pb.collection(COLLECTION).create<StudioThemeRecord>({
     user: authId,
     name: input.name,
-    network: input.network || '',
-    mode: '',
+    network: safeNetwork(input.network),
+    mode: (input.colors.background || '#09090b').toLowerCase().startsWith('#')
+      ? hexToHslTokens(input.colors.background)!.l > 50
+        ? 'light'
+        : 'dark'
+      : 'dark',
     color_background: input.colors.background,
     color_surface: input.colors.surface,
     color_primary: input.colors.primary,
@@ -121,19 +163,19 @@ export async function updateStudioTheme(
     data.color_primary = input.colors.primary
     data.color_text = input.colors.text
   }
-  if (input.network !== undefined) data.network = input.network || ''
+  if (input.network !== undefined) data.network = safeNetwork(input.network)
   if (input.isShared !== undefined) data.is_shared = Boolean(input.isShared)
   if (input.accentOverride !== undefined) data.accent_override = input.accentOverride || ''
   const rec = await pb.collection(COLLECTION).update<StudioThemeRecord>(remoteId, data)
   return recordToThemeOption(rec)
 }
 
-/** Exclui o tema do banco (apenas o dono pode). */
+/** Exclui o tema do banco (apenas o dono pode, pela regra de API). */
 export async function deleteStudioTheme(remoteId: string): Promise<void> {
   await pb.collection(COLLECTION).delete(remoteId)
 }
 
-/** Troca apenas o flag de compartilhamento (usado no seletor, botão Equipe). */
+/** Troca apenas o flag de compartilhamento (toggle "Compartilhar com a equipe"). */
 export async function toggleStudioThemeShared(
   remoteId: string,
   isShared: boolean,

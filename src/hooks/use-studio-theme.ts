@@ -17,6 +17,16 @@ export interface StudioThemeOption {
   preview: string
   /** Cores em hex usadas na criação de temas personalizados (apenas custom). */
   colors?: StudioCustomColors
+  /** Rede social associada (variação de accent) — apenas temas do usuário/equipe. */
+  network?: string
+  /** Accent sobreposto pela rede social (tokens HSL "h s% l%"). */
+  accentOverride?: string
+  /** Compartilhado com a equipe (escopo organização, coleção studio_themes). */
+  isShared?: boolean
+  /** Origem do registro: criado por mim ("mine") ou compartilhado por outro usuário ("team"). */
+  origin?: 'mine' | 'team'
+  /** Id do registro remoto na coleção studio_themes (quando persistido no banco). */
+  remoteId?: string
 }
 
 export interface StudioCustomColors {
@@ -115,7 +125,7 @@ export function hexToHslTokens(hex: string): { h: number; s: number; l: number }
 }
 
 /** HSL tokens → string "h s% l%" usada nas variáveis CSS. */
-function hslStr(tokens: { h: number; s: number; l: number }): string {
+export function hslStr(tokens: { h: number; s: number; l: number }): string {
   return `${tokens.h} ${tokens.s}% ${tokens.l}%`
 }
 
@@ -164,7 +174,7 @@ export function loadCustomThemes(): StudioThemeOption[] {
 }
 
 /** Salva a lista completa de temas personalizados no localStorage. */
-function persistCustomThemes(themes: StudioThemeOption[]) {
+export function persistCustomThemes(themes: StudioThemeOption[]) {
   try {
     localStorage.setItem(
       CUSTOM_THEMES_KEY,
