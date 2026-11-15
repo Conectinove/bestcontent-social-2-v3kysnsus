@@ -54,6 +54,8 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ClientApprovalPage from './pages/ClientApprovalPage'
+import { AdminUsersPage } from './pages/admin/AdminUsersPage'
+import AdminRoute from './components/navigation/AdminRoute'
 
 const App = () => (
   <BrowserRouter>
@@ -138,6 +140,14 @@ const App = () => (
                 <Route path="/app/indicar" element={<ReferralPage />} />
                 <Route path="/app/subscription" element={<Subscription />} />
                 <Route path="/app/assinatura" element={<Subscription />} />
+                <Route
+                  path="/app/admin/users"
+                  element={
+                    <AdminRoute>
+                      <AdminUsersPage />
+                    </AdminRoute>
+                  }
+                />
               </Route>
 
               {/* Public Auth routes */}

@@ -67,6 +67,7 @@ import {
 import useRealtime from '@/hooks/use-realtime'
 import {
   getCommunityTopics,
+  getCommunityTopicsPaged,
   getCommunityCategories,
   createCommunityTopic,
   toggleTopicLike,
@@ -2038,6 +2039,30 @@ export default function Feed() {
                   </Card>
                 )
               })
+            )}
+
+            {/* Paginação do feed: carrega a próxima página do servidor (merge por id, sem duplicar) */}
+            {!loadingFeed && !feedExhausted && !searchQuery && displayedTopics.length > 0 && (
+              <div className="flex justify-center pt-2 pb-4">
+                <Button
+                  onClick={loadMoreFeed}
+                  disabled={loadingMoreFeed}
+                  variant="outline"
+                  className="rounded-xl text-xs font-semibold border-border/80 hover:border-primary/40 hover:text-primary gap-1.5 px-6"
+                >
+                  {loadingMoreFeed ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Carregando...
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      Carregar mais posts
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
 
