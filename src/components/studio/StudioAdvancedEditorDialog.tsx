@@ -27,7 +27,7 @@ import { EditPresetsPanel } from './EditPresetsPanel'
 import { EditHistoryPanel } from './EditHistoryPanel'
 import { ExportAiAdviceDialog } from './ExportAiAdviceDialog'
 import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
-import { saveEditVersion } from '@/services/studio-edit-versions'
+import { saveEditVersion, type TextLayer } from '@/services/studio-edit-versions'
 import { StudioEditCommentsPanel } from './StudioEditCommentsPanel'
 
 interface StudioAdvancedEditorDialogProps {
@@ -286,11 +286,17 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
 
       onSave(dataUrl || creation.preview_url)
 
-      // Histórico: cada salvamento vira uma versão restaurável (migration 0103)
+      // Histórico: cada salvamento vira uma versão restaurável (migration 0103).
+      // preview_url persistida no snapshot → comparador mostra a PRÉVIA real
+      // das versões antigas em vez de placeholder (fio solto da rodada passada).
       saveEditVersion({
         targetKey,
         title: creation.title || '',
         settings: customization,
+        textLayers: textLayers as unknown as TextLayer[],
+        aspectRatio,
+        previewUrl: creation.preview_url,
+        resultUrl: dataUrl ? undefined : creation.preview_url,
       })
         .then((v) => {
           if (v) {
@@ -517,6 +523,9 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
                 onRestore={(next) => setCustomization({ ...DEFAULT_CUSTOMIZATION, ...next })}
                 refreshKey={historyRefreshKey}
                 network={effectiveNetwork}
+                currentImageUrl={creation.preview_url}
+                currentTextLayers={textLayers as unknown as TextLayer[]}
+                currentAspectRatio={aspectRatio}
               />
             )}
 

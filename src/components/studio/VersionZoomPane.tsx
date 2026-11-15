@@ -122,14 +122,13 @@ export const VersionZoomPane: React.FC<VersionZoomPaneProps> = ({
     if (!el) return
     const onWheel = (ev: WheelEvent) => {
       ev.preventDefault()
-      onViewChange((prev) => ({
-        ...prev,
-        zoom: clampZoom(prev.zoom * Math.exp(-ev.deltaY * 0.002)),
-      }))
+      onViewChange(
+        clampZoomState({ ...view, zoom: clampZoom(view.zoom * Math.exp(-ev.deltaY * 0.002)) }),
+      )
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [onViewChange])
+  }, [onViewChange, view])
 
   const update = (fn: (prev: ZoomState) => ZoomState) => onViewChange(clampZoomState(fn(view)))
 

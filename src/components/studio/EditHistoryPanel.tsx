@@ -12,7 +12,11 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
-import { listEditVersions, type StudioEditVersionRecord } from '@/services/studio-edit-versions'
+import {
+  listEditVersions,
+  type StudioEditVersionRecord,
+  type TextLayer,
+} from '@/services/studio-edit-versions'
 import type { CompareVersionEntry } from './CompareVersionsDialog'
 import { askEditAssistant } from '@/services/edit-assistant'
 import { CompareVersionsDialog } from './CompareVersionsDialog'
@@ -26,6 +30,12 @@ interface EditHistoryPanelProps {
   network?: string
   /** Muda quando o dialog salva uma versão nova — força reload da lista. */
   refreshKey?: number
+  /** Imagem base do estado atual (rasteriza o lado "atual" do comparador). */
+  currentImageUrl?: string | null
+  /** Camadas de texto do estado atual (rasterização do lado "atual"). */
+  currentTextLayers?: TextLayer[] | null
+  /** Proporção atual do editor. */
+  currentAspectRatio?: string
 }
 
 /**
@@ -40,6 +50,9 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
   onRestore,
   network,
   refreshKey = 0,
+  currentImageUrl,
+  currentTextLayers,
+  currentAspectRatio,
 }) => {
   const { toast } = useToast()
   const [versions, setVersions] = useState<StudioEditVersionRecord[]>([])
@@ -72,6 +85,10 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
         version_label: v.title || `Versão de ${new Date(v.created).toLocaleString('pt-BR')}`,
         editor_name: v.user_name || undefined,
         settings: (v.settings ?? null) as unknown as Record<string, unknown> | null,
+        // Prévia rasterizada de cada versão (fio solto: sem isso só placeholder)
+        image_url: v.preview_url || v.result_url || null,
+        text_layers: v.text_layers,
+        aspect_ratio: v.aspect_ratio || undefined,
         created: v.created,
       })),
     [versions],
@@ -181,6 +198,9 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
         onOpenChange={setCompareOpen}
         versions={compareEntries}
         currentSettings={current as unknown as Record<string, unknown>}
+        currentImageUrl={currentImageUrl || null}
+        currentTextLayers={currentTextLayers || null}
+        currentAspectRatio={currentAspectRatio}
       />
     </div>
   )
