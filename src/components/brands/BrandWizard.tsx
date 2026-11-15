@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   X,
   Check,
   ArrowLeft,
   ArrowRight,
+  ChevronDown,
+  ChevronRight,
   Loader2,
   Target,
   Users,
@@ -472,11 +474,11 @@ function ExpandableCard({
   summary,
   children,
 }: {
-  icon: React.ReactNode
+  icon: ReactNode
   title: string
   filled: boolean
   summary: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   return (
