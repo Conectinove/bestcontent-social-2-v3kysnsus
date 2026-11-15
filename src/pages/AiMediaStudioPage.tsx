@@ -68,6 +68,9 @@ import { StudioVersionHistoryModal } from '@/components/studio/StudioVersionHist
 import { recordStudioPromptHistory } from '@/services/studio-prompt-history'
 import { StudioAdvancedEditorDialog } from '@/components/studio/StudioAdvancedEditorDialog'
 import { StudioSectionDialog, StudioSectionId } from '@/components/studio/StudioSectionDialog'
+import { StudioTopControls } from '@/components/studio/StudioTopControls'
+import { useStudioTheme } from '@/hooks/use-studio-theme'
+import { useStudioWindowMode } from '@/hooks/use-studio-window'
 
 // Componentes da Interface Estilo Genspark
 import { StudioSidebar } from '@/components/studio/StudioSidebar'
@@ -83,7 +86,13 @@ import { SecondBrainCanvas } from '@/components/studio/SecondBrainCanvas'
 export default function AiMediaStudioPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { activeBrand } = useSocial()
+  const { brands, activeBrand } = useSocial()
+
+  // Tema do Estúdio (claro/escuro/marcas/personalizados) aplicado na sub-árvore via data-studio-theme
+  const studioTheme = useStudioTheme(brands)
+
+  // Modo de janela do Estúdio: normal / maximizado / compacto (persistido)
+  const { windowMode, setMode: setWindowMode, isMaximized, isCompact } = useStudioWindowMode()
 
   // Seção da sidebar ativa (inicio, projetos, habilidades, estilos, ajuda)
   const [activeSection, setActiveSection] = useState('inicio')
@@ -366,9 +375,22 @@ export default function AiMediaStudioPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      {/* 1. SIDEBAR ESQUERDA FIXA (Desktop) */}
-      <div className="hidden lg:flex h-full">
+    <div
+      data-studio-theme
+      className="flex h-screen overflow-hidden bg-background text-foreground"
+      style={{
+        ...(isCompact
+          ? {
+              maxWidth: '1100px',
+              margin: '0 auto',
+              width: '100%',
+              boxShadow: '0 0 60px rgba(0,0,0,0.35)',
+            }
+          : {}),
+      }}
+    >
+      {/* 1. SIDEBAR ESQUERDA FIXA (Desktop) — oculta no modo maximizado */}
+      <div className={isMaximized ? 'hidden' : 'hidden lg:flex h-full'}>
         <StudioSidebar
           activeSection={activeSection}
           onSelectSection={openSection}
@@ -387,9 +409,9 @@ export default function AiMediaStudioPage() {
       </div>
 
       {/* 2. ÁREA DE CONTEÚDO PRINCIPAL (Scrollável) */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto min-w-0">
+      <main className="relative flex-1 flex flex-col h-full overflow-y-auto min-w-0">
         {/* Barra Superior Mobile com Gatilho de Drawer da Sidebar */}
-        <div className="lg:hidden p-3 border-b border-border flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-20">
+        <div className="lg:hidden p-3 pr-56 border-b border-border flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-20">
           <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2">
@@ -452,8 +474,25 @@ export default function AiMediaStudioPage() {
           </Button>
         </div>
 
+        {/* Controles de topo: seletor de temas + maximizar/diminuir janela */}
+        <div className="absolute right-4 top-4 z-30">
+          <StudioTopControls
+            themes={studioTheme.allThemes}
+            themeId={studioTheme.themeId}
+            onSelectTheme={studioTheme.setThemeId}
+            onCreateCustomTheme={studioTheme.addCustomTheme}
+            onDeleteCustomTheme={studioTheme.removeCustomTheme}
+            windowMode={windowMode}
+            onChangeWindowMode={setWindowMode}
+          />
+        </div>
+
         {/* Conteúdo Central Estilo Genspark High Impact */}
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full pb-24">
+        <div
+          className={`p-4 sm:p-6 lg:p-8 space-y-6 mx-auto w-full pb-24 ${
+            isCompact ? 'max-w-3xl' : 'max-w-7xl'
+          }`}
+        >
           {/* Seção 2: HERO CARROSSEL */}
           <StudioHeroCarousel
             activeHeroTab={activeHeroTab}

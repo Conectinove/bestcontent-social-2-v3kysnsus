@@ -235,15 +235,15 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
       {/* ==============================================================
           SIDEBAR DO SEGUNDO CÉREBRO (Conforme prints do Genspark)
           ============================================================== */}
-      <aside className="w-full lg:w-64 bg-slate-900/90 border-r border-slate-800/80 p-4 flex flex-col justify-between shrink-0 space-y-6">
-        <div className="space-y-4">
+      <aside className="w-full lg:w-64 min-w-0 bg-slate-900/90 border-r border-slate-800/80 p-4 flex flex-col justify-between shrink-0 space-y-6 overflow-hidden">
+        <div className="space-y-4 min-w-0">
           {/* Topo: Logo & Botão Criar */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center ring-1 ring-purple-500/20">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-800/60 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 shrink-0 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center ring-1 ring-purple-500/20">
                 <Brain className="w-4 h-4 text-purple-400" />
               </div>
-              <span className="font-black text-sm tracking-tight text-white uppercase font-heading">
+              <span className="font-black text-sm tracking-tight text-white uppercase font-heading truncate">
                 Segundo Cérebro
               </span>
             </div>
@@ -264,7 +264,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
           </Button>
 
           {/* Menu Principal */}
-          <nav className="space-y-1 text-xs">
+          <nav className="space-y-1 text-xs min-w-0">
             <button
               type="button"
               onClick={() => setActiveMenu('inicio')}
@@ -306,16 +306,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
           </nav>
 
           {/* Meu Drive & Notas Particulares */}
-          <div className="pt-2 border-t border-slate-800/60 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-300 px-1">
-              <FolderClosed className="w-3.5 h-3.5 text-purple-400" />
-              <span>Meu Drive</span>
+          <div className="pt-2 border-t border-slate-800/60 space-y-2 min-w-0">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-300 px-1 min-w-0">
+              <FolderClosed className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="truncate">Meu Drive</span>
             </div>
 
-            <div className="space-y-1 pl-2 text-[11px]">
-              <div className="text-slate-400 font-semibold py-1 px-2 flex items-center gap-1.5">
-                <FileCode className="w-3.5 h-3.5 text-purple-400/80" />
-                <span>Notas privadas (.md / docs)</span>
+            <div className="space-y-1 pl-2 text-[11px] min-w-0">
+              <div className="text-slate-400 font-semibold py-1 px-2 flex items-center gap-1.5 min-w-0">
+                <FileCode className="w-3.5 h-3.5 text-purple-400/80 shrink-0" />
+                <span className="truncate">Notas privadas (.md / docs)</span>
               </div>
 
               {docs.slice(0, 5).map((doc) => (
@@ -333,10 +333,10 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               <button
                 type="button"
                 onClick={() => setLessonGalleryOpen(true)}
-                className="w-full text-left px-2 py-1.5 rounded-lg text-purple-300 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/40 transition-all flex items-center gap-2 font-bold"
+                className="w-full min-w-0 text-left px-2 py-1.5 rounded-lg text-purple-300 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/40 transition-all flex items-center gap-2 font-bold"
               >
-                <GraduationCap className="w-3.5 h-3.5 text-purple-400" />
-                <span>Templates de Aulas (PT-BR)</span>
+                <GraduationCap className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                <span className="truncate">Templates de Aulas (PT-BR)</span>
               </button>
 
               <button
@@ -351,10 +351,10 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
           </div>
 
           {/* Conectores & Atalhos */}
-          <div className="pt-2 border-t border-slate-800/60 space-y-1.5 text-xs">
-            <div className="flex items-center gap-2 text-slate-300 font-bold px-1">
-              <History className="w-3.5 h-3.5 text-purple-400" />
-              <span>Histórico de Projetos</span>
+          <div className="pt-2 border-t border-slate-800/60 space-y-1.5 text-xs min-w-0">
+            <div className="flex items-center gap-2 text-slate-300 font-bold px-1 min-w-0">
+              <History className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="truncate">Histórico de Projetos</span>
             </div>
 
             <div
@@ -362,12 +362,12 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('gmail')
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
-                  <Mail className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Gmail</span>
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">
+                  <Mail className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <span className="truncate">Gmail</span>
                 </div>
                 {connectorStatuses.gmail ? (
                   <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
@@ -387,12 +387,12 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('googledrive')
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
-                  <FolderClosed className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Meu Google Drive</span>
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">
+                  <FolderClosed className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="truncate">Meu Google Drive</span>
                 </div>
                 {connectorStatuses.googledrive ? (
                   <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
@@ -413,12 +413,12 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('outlook' as any)
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
-                  <Inbox className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Outlook</span>
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">
+                  <Inbox className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span className="truncate">Outlook</span>
                 </div>
                 {connectorStatuses.outlook ? (
                   <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
@@ -437,12 +437,12 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('onedrive' as any)
                 setConnectorsModalOpen(true)
               }}
-              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group"
+              className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all text-[11px] space-y-1 group overflow-hidden"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold">
-                  <Cloud className="w-3.5 h-3.5 text-blue-400" />
-                  <span>OneDrive</span>
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-slate-300 group-hover:text-purple-300 font-semibold min-w-0">
+                  <Cloud className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span className="truncate">OneDrive</span>
                 </div>
                 {connectorStatuses.one_drive ? (
                   <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
@@ -463,9 +463,10 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 setConnectorsInitialTab('overview')
                 setConnectorsModalOpen(true)
               }}
-              className="w-full justify-start text-[11px] text-purple-400 hover:text-purple-300 h-8 px-2 gap-1.5"
+              className="w-full min-w-0 justify-start text-[11px] text-purple-400 hover:text-purple-300 h-8 px-2 gap-1.5"
             >
-              <PlusCircle className="w-3.5 h-3.5" />+ Conectar mais (SharePoint, Sheets...)
+              <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">+ Conectar mais (SharePoint, Sheets...)</span>
             </Button>
           </div>
         </div>
@@ -579,16 +580,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => setLessonGalleryOpen(true)}
-              className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/60 to-slate-900 border border-purple-500/40 hover:border-purple-400 hover:bg-purple-900/30 transition-all text-left space-y-3 group shadow-lg shadow-purple-950/20"
+              className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/60 to-slate-900 border border-purple-500/40 hover:border-purple-400 hover:bg-purple-900/30 transition-all text-left space-y-3 group shadow-lg shadow-purple-950/20 overflow-hidden min-w-0"
             >
-              <div className="w-10 h-10 rounded-xl bg-purple-600/30 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-purple-600/30 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
                 <GraduationCap className="w-5 h-5 text-purple-300" />
               </div>
-              <div>
-                <p className="text-xs text-purple-300 font-semibold flex items-center gap-1">
-                  1 Clique &rarr; Estrutura
+              <div className="min-w-0">
+                <p className="text-xs text-purple-300 font-semibold flex items-center gap-1 min-w-0">
+                  <span className="truncate">1 Clique &rarr; Estrutura</span>
                 </p>
-                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-200 transition-colors">
+                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-200 transition-colors truncate">
                   Templates de Aulas PT-BR
                 </h3>
                 <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
@@ -600,14 +601,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => handleCreateNew('documento', 'Nova Nota')}
-              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-900 transition-all text-left space-y-3 group"
+              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-900 transition-all text-left space-y-3 group overflow-hidden min-w-0"
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-purple-600/20 group-hover:text-purple-300 transition-colors">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-purple-600/20 group-hover:text-purple-300 transition-colors">
                 <FileText className="w-5 h-5" />
               </div>
-              <div>
-                <p className="text-xs text-slate-400 font-medium">Notion &rarr; Notas privadas</p>
-                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors">
+              <div className="min-w-0">
+                <p className="text-xs text-slate-400 font-medium truncate">
+                  Notion &rarr; Notas privadas
+                </p>
+                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors truncate">
                   Nova página de notas
                 </h3>
               </div>
@@ -616,14 +619,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => handleCreateNew('aula_lab', 'Laboratório Interativo MagicAuthor')}
-              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-900 transition-all text-left space-y-3 group"
+              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-900 transition-all text-left space-y-3 group overflow-hidden min-w-0"
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-purple-600/20 group-hover:text-purple-300 transition-colors">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-purple-600/20 group-hover:text-purple-300 transition-colors">
                 <Layout className="w-5 h-5 text-purple-400" />
               </div>
-              <div>
-                <p className="text-xs text-slate-400 font-medium">Google Docs &rarr; AI Docs</p>
-                <h3 className="text-sm font-black text-purple-400 mt-1">
+              <div className="min-w-0">
+                <p className="text-xs text-slate-400 font-medium truncate">
+                  Google Docs &rarr; AI Docs
+                </p>
+                <h3 className="text-sm font-black text-purple-400 mt-1 truncate">
                   Documentos de IA · Planilhas · Apresentações
                 </h3>
               </div>
@@ -632,14 +637,16 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => handleCreateNew('site_landing', 'Landing Page & Site Dinâmico')}
-              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-900 transition-all text-left space-y-3 group"
+              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-900 transition-all text-left space-y-3 group overflow-hidden min-w-0"
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-purple-600/20 group-hover:text-purple-300 transition-colors">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-purple-600/20 group-hover:text-purple-300 transition-colors">
                 <Upload className="w-5 h-5 text-amber-400" />
               </div>
-              <div>
-                <p className="text-xs text-slate-400 font-medium">Google Drive &rarr; Drive</p>
-                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors">
+              <div className="min-w-0">
+                <p className="text-xs text-slate-400 font-medium truncate">
+                  Google Drive &rarr; Drive
+                </p>
+                <h3 className="text-sm font-black text-white mt-1 group-hover:text-purple-300 transition-colors truncate">
                   Upload ou Criar Artefato
                 </h3>
               </div>
@@ -714,11 +721,11 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
 
           {/* Tabela de Documentos do Segundo Cérebro */}
           <div className="rounded-2xl border border-slate-800 overflow-hidden bg-slate-900/60">
-            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-slate-900 text-[11px] font-bold text-slate-400 border-b border-slate-800">
-              <div className="col-span-6 sm:col-span-5">Título</div>
-              <div className="col-span-3 sm:col-span-3">Localização</div>
-              <div className="hidden sm:block sm:col-span-2">Criado por</div>
-              <div className="col-span-3 sm:col-span-2 text-right">Modificado</div>
+            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-slate-900 text-[11px] font-bold text-slate-400 border-b border-slate-800 min-w-0">
+              <div className="col-span-6 sm:col-span-5 min-w-0 truncate">Título</div>
+              <div className="col-span-3 sm:col-span-3 min-w-0 truncate">Localização</div>
+              <div className="hidden sm:block sm:col-span-2 min-w-0 truncate">Criado por</div>
+              <div className="col-span-3 sm:col-span-2 text-right truncate">Modificado</div>
             </div>
 
             {loading ? (
@@ -735,9 +742,9 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                   <div
                     key={doc.id}
                     onClick={() => setSelectedDoc(doc)}
-                    className="grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-slate-800/40 cursor-pointer transition-colors text-xs group"
+                    className="grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-slate-800/40 cursor-pointer transition-colors text-xs group min-w-0 overflow-hidden"
                   >
-                    <div className="col-span-6 sm:col-span-5 flex items-center gap-2.5">
+                    <div className="col-span-6 sm:col-span-5 flex items-center gap-2.5 min-w-0">
                       <span className="w-6 h-6 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-[10px] shrink-0">
                         {doc.title.endsWith('.md')
                           ? 'MD'
@@ -758,19 +765,19 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                       </Badge>
                     </div>
 
-                    <div className="col-span-3 sm:col-span-3 text-slate-400 truncate text-[11px] flex items-center gap-1.5">
+                    <div className="col-span-3 sm:col-span-3 text-slate-400 truncate text-[11px] flex items-center gap-1.5 min-w-0">
                       <FolderClosed className="w-3 h-3 text-slate-500 shrink-0" />
                       <span className="truncate">{doc.location}</span>
                     </div>
 
-                    <div className="hidden sm:flex sm:col-span-2 items-center gap-1.5 text-slate-300 text-[11px] truncate">
+                    <div className="hidden sm:flex sm:col-span-2 items-center gap-1.5 text-slate-300 text-[11px] truncate min-w-0">
                       <div className="w-4 h-4 rounded-full bg-slate-700 text-[9px] flex items-center justify-center font-bold text-white shrink-0">
                         {doc.author_name.charAt(0)}
                       </div>
                       <span className="truncate">{doc.author_name}</span>
                     </div>
 
-                    <div className="col-span-3 sm:col-span-2 flex items-center justify-end gap-2 text-slate-400 text-[11px]">
+                    <div className="col-span-3 sm:col-span-2 flex items-center justify-end gap-2 text-slate-400 text-[11px] min-w-0">
                       <span>
                         {new Date(doc.updated).toLocaleDateString('pt-BR', {
                           day: '2-digit',
