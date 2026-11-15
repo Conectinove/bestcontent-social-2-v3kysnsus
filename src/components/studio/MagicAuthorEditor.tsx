@@ -384,20 +384,23 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
           </div>
         </div>
 
-        {/* Linha Inferior do Top Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-3">
+        {/* Linha Inferior do Top Header — título do documento SEM CORTE:
+            em telas estreitas o breadcrumb recolhe para "←" e o título
+            quebra em até 2 linhas (leading-snug) em vez de truncar. */}
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 pt-1">
+          <div className="flex items-start gap-2 sm:gap-3 min-w-0">
             <Button
               variant="ghost"
               size="sm"
               onClick={onBack}
-              className="text-slate-400 hover:text-white hover:bg-slate-800 h-8 px-2 gap-1 text-xs"
+              title="Voltar ao Segundo Cérebro"
+              className="text-slate-400 hover:text-white hover:bg-slate-800 h-8 px-1.5 sm:px-2 gap-1 text-xs shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Segundo Cérebro</span>
+              <span className="hidden md:inline">Segundo Cérebro</span>
             </Button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2 min-w-0 flex-1">
               {isEditingTitle ? (
                 <Input
                   autoFocus
@@ -405,22 +408,25 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
                   onChange={(e) => setCurrentDoc({ ...currentDoc, title: e.target.value })}
                   onBlur={() => setIsEditingTitle(false)}
                   onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
-                  className="h-8 font-bold text-base bg-slate-800 border-purple-500 text-white rounded-lg px-2 w-64"
+                  className="h-9 font-bold text-base bg-slate-800 border-purple-500 text-white rounded-lg px-2 w-full min-w-0"
                 />
               ) : (
                 <button
                   type="button"
                   onClick={() => setIsEditingTitle(true)}
-                  className="group flex items-center gap-2 text-base font-extrabold text-white hover:text-purple-300 transition-colors"
+                  title="Renomear documento"
+                  className="group flex items-start gap-2 text-base font-extrabold text-white hover:text-purple-300 transition-colors text-left min-w-0 leading-snug py-1"
                 >
-                  <span>{currentDoc.title || 'Nova Nota'}</span>
-                  <Edit2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-400 transition-colors" />
+                  <span className="min-w-0">{currentDoc.title || 'Nova Nota'}</span>
+                  <Edit2 className="w-3.5 h-3.5 mt-1 shrink-0 text-slate-500 group-hover:text-purple-400 transition-colors" />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Ações: rótulos encolhem para ícone+tooltip em telas estreitas,
+              para as colunas de baixo nunca ficarem espremidas */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -430,10 +436,11 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
                   description: 'Carregando os slides pedagógicos em tela cheia...',
                 })
               }}
-              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
+              title="Apresentar"
+              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5 px-2 sm:px-3"
             >
               <Play className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Apresentar</span>
+              <span className="hidden lg:inline">Apresentar</span>
             </Button>
 
             <Button
@@ -445,20 +452,22 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
                   description: 'Sincronizando com o gerador de landing pages e laboratórios.',
                 })
               }}
-              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
+              title="Construir"
+              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5 px-2 sm:px-3"
             >
               <Hammer className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Construir</span>
+              <span className="hidden lg:inline">Construir</span>
             </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={handleDownloadAula}
-              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5"
+              title="Download"
+              className="h-8 border-slate-700 bg-slate-800/60 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold gap-1.5 px-2 sm:px-3"
             >
               <Download className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Download</span>
+              <span className="hidden lg:inline">Download</span>
             </Button>
 
             <Button

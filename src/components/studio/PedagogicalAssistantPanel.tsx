@@ -142,11 +142,11 @@ export const PedagogicalAssistantPanel: React.FC<PedagogicalAssistantPanelProps>
   }
 
   return (
-    <div className="w-full lg:w-[410px] xl:w-[440px] shrink-0 border-r border-slate-800 bg-slate-950 flex flex-col h-full overflow-hidden select-none">
+    <div className="w-full lg:w-[360px] xl:w-[400px] 2xl:w-[430px] shrink-0 border-r border-slate-800 bg-slate-950 flex flex-col h-full overflow-hidden select-none">
       {/* Top Header do Painel */}
-      <div className="p-5 pb-3 border-b border-slate-800/80 flex items-center gap-2">
+      <div className="p-5 pb-3 border-b border-slate-800/80 flex items-center gap-2 min-w-0">
         <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-        <h2 className="text-sm font-bold tracking-tight text-white font-heading truncate">
+        <h2 className="text-sm font-bold tracking-tight text-white font-heading min-w-0 leading-snug">
           Assistente Pedagógico MagicAuthor
         </h2>
       </div>

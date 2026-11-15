@@ -352,18 +352,19 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
       <aside className="w-full lg:w-72 min-w-0 bg-slate-900/90 border-r border-slate-800/80 p-4 flex flex-col justify-between shrink-0 space-y-6 overflow-y-auto">
         <div className="space-y-4 min-w-0">
           {/* Topo: Logo & Botão Criar */}
-          <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-slate-800/60 min-w-0">
+          {/* Header SEM CORTE: título quebra em 2 linhas se preciso; badge v2.4 nunca empurra o nome fora da tela */}
+          <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-800/60 min-w-0">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="w-8 h-8 shrink-0 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center ring-1 ring-purple-500/20">
                 <Brain className="w-4 h-4 text-purple-400" />
               </div>
-              <span className="font-black text-sm tracking-tight text-white uppercase font-heading truncate min-w-0">
+              <span className="font-black text-sm tracking-tight text-white uppercase font-heading min-w-0 leading-tight">
                 Segundo Cérebro
               </span>
             </div>
             <Badge
               variant="outline"
-              className="shrink-0 text-[9px] font-mono text-purple-400 border-purple-500/30 hidden min-[340px]:inline-flex"
+              className="shrink-0 text-[9px] font-mono text-purple-400 border-purple-500/30 mt-0.5"
             >
               v2.4
             </Badge>

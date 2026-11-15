@@ -25,8 +25,8 @@ import {
   Brain,
   Maximize2,
   Minimize2,
+  Square,
   X,
-  Copy,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -1016,7 +1016,7 @@ export default function AiMediaStudioPage() {
                       : '',
                   )}
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Square className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   variant="ghost"
