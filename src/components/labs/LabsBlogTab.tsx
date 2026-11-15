@@ -8,7 +8,9 @@ import {
   Save,
   Globe,
   ImagePlus,
-  ExternalLink,
+  Share2,
+  ShieldCheck,
+  Info,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,7 +18,9 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from '@/hooks/use-toast'
+import { pb } from '@/lib/pocketbase/client'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
 import {
@@ -27,6 +31,7 @@ import {
   type LabsBlogPost,
   type LabsBlogStatus,
 } from '@/services/labs-blog'
+import { createPost } from '@/services/labs-posts'
 import { StudioAdvancedEditorDialog } from '@/components/studio/StudioAdvancedEditorDialog'
 import type { StudioCreationRecord } from '@/services/ai-studio'
 
@@ -46,17 +51,46 @@ const emptyDraft = (): Draft => ({
   status: 'draft',
 })
 
+// Redes-alvo para compartilhar o artigo (chips)
+const SHARE_NETWORKS = [
+  { id: 'Instagram', label: 'Instagram' },
+  { id: 'Facebook', label: 'Facebook' },
+  { id: 'LinkedIn', label: 'LinkedIn' },
+  { id: 'Twitter/X', label: 'Twitter/X' },
+  { id: 'TikTok', label: 'TikTok' },
+] as const
+
+/** Caption derivada do artigo: título + trecho curto do conteúdo. */
+const deriveCaption = (post: { title: string; content: string }): string => {
+  const excerpt = (post.content || '').replace(/\s+/g, ' ').trim().slice(0, 180)
+  return `${post.title}\n\n${excerpt}${(post.content || '').length > 180 ? '…' : ''}`
+}
+
+const isAdminUser = (u: any): boolean =>
+  Boolean(u && (u.role === 'admin' || u.isAdmin === true || u.profile?.role === 'admin'))
+
 /** Editor + lista de artigos do Blog do Labs (persistidos em labs_blog_posts). */
 export function LabsBlogTab() {
   const { user } = useAuth()
   const { brands } = useSocial()
+  const isAdmin = isAdminUser(user)
+
   const [posts, setPosts] = useState<LabsBlogPost[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [draft, setDraft] = useState<Draft>(emptyDraft())
+  const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [brandId, setBrandId] = useState('')
   const [coverDialogOpen, setCoverDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Compartilhar nas redes
+  const [sharePost, setSharePost] = useState<LabsBlogPost | null>(null)
+  const [shareNetworks, setShareNetworks] = useState<string[]>([])
+  const [sharing, setSharing] = useState(false)
+
+  // Painel de quem pode publicar (admins da org)
+  const [admins, setAdmins] = useState<string[]>([])
+  const [adminsLoading, setAdminsLoading] = useState(false)
 
   const load = async () => {
     if (!user?.id) return
@@ -71,8 +105,25 @@ export function LabsBlogTab() {
     }
   }
 
+  const loadAdmins = async () => {
+    setAdminsLoading(true)
+    try {
+      const records = await pb.collection('users').getList(1, 30, {
+        filter: `role = "admin"`,
+        sort: '-created',
+      })
+      setAdmins(records.items.map((r: any) => r.name || r.email || r.username || 'Admin sem nome'))
+    } catch {
+      // Sem permissão de listar users ou campo role indisponível — painel fica vazio
+      setAdmins([])
+    } finally {
+      setAdminsLoading(false)
+    }
+  }
+
   useEffect(() => {
     void load()
+    void loadAdmins()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
@@ -98,6 +149,14 @@ export function LabsBlogTab() {
 
   const persist = async (status: LabsBlogStatus) => {
     if (!user?.id) return
+    if (status === 'published' && !isAdmin) {
+      toast({
+        title: 'Publicação restrita',
+        description: 'Somente administradores publicam artigos. Salve como rascunho.',
+        variant: 'destructive',
+      })
+      return
+    }
     if (!draft.title.trim()) {
       toast({ title: 'Dê um título ao artigo', variant: 'destructive' })
       return
@@ -132,6 +191,14 @@ export function LabsBlogTab() {
   }
 
   const togglePublish = async (post: LabsBlogPost) => {
+    if (!isAdmin) {
+      toast({
+        title: 'Publicação restrita',
+        description: 'Somente administradores podem publicar artigos.',
+        variant: 'destructive',
+      })
+      return
+    }
     const next: LabsBlogStatus = post.status === 'published' ? 'draft' : 'published'
     try {
       await setLabsBlogPostStatus(post.id, next)
@@ -149,6 +216,52 @@ export function LabsBlogTab() {
       await load()
     } catch {
       toast({ title: 'Erro ao excluir artigo', variant: 'destructive' })
+    }
+  }
+
+  const toggleShareNetwork = (id: string) => {
+    setShareNetworks((prev) => {
+      if (prev.includes(id)) return prev.filter((n) => n !== id)
+      return [...prev, id]
+    })
+  }
+
+  const handleShare = async () => {
+    if (!user?.id || !sharePost) return
+    if (shareNetworks.length === 0) {
+      toast({
+        title: 'Escolha ao menos uma rede',
+        description: 'Selecione as redes nas quais quer compartilhar o artigo.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setSharing(true)
+    try {
+      const caption = deriveCaption(sharePost)
+      for (const net of shareNetworks) {
+        await createPost({
+          user: user.id,
+          brand: brandId || brands[0]?.id || user.id,
+          content: caption,
+          caption,
+          platform: net,
+          template_type: 'feed',
+        })
+      }
+      toast({
+        title: 'Compartilhado!',
+        description: `"${sharePost.title}" virou ${shareNetworks.length} ${
+          shareNetworks.length === 1 ? 'post' : 'posts'
+        } na(s) rede(s) escolhida(s), pronto(s) no calendário.`,
+      })
+      setSharePost(null)
+      setShareNetworks([])
+    } catch (err) {
+      console.error('Erro ao compartilhar artigo:', err)
+      toast({ title: 'Erro ao compartilhar', variant: 'destructive' })
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -181,6 +294,7 @@ export function LabsBlogTab() {
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Crie artigos com capa, salve rascunhos e publique — tudo persistido na sua conta.
+            {!isAdmin && ' A publicação é feita por um administrador.'}
           </p>
         </div>
         {editingId === null && (
@@ -314,15 +428,31 @@ export function LabsBlogTab() {
             >
               <Save className="w-3.5 h-3.5" /> {saving ? 'Salvando...' : 'Salvar rascunho'}
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={saving}
-              onClick={() => persist('published')}
-              className="rounded-xl text-xs font-black gap-1.5"
-            >
-              <Globe className="w-3.5 h-3.5" /> Publicar
-            </Button>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={isAdmin ? -1 : 0}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={saving || !isAdmin}
+                      onClick={() => persist('published')}
+                      className="rounded-xl text-xs font-black gap-1.5"
+                    >
+                      <Globe className="w-3.5 h-3.5" /> Publicar
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!isAdmin && (
+                  <TooltipContent>
+                    <p className="text-[11px] max-w-[220px]">
+                      Somente administradores publicam artigos. Salve como rascunho e peça a um
+                      admin da organização para publicar.
+                    </p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </Card>
       )}
@@ -381,17 +511,44 @@ export function LabsBlogTab() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => togglePublish(post)}
+                  onClick={() => {
+                    setSharePost(post)
+                    setShareNetworks([])
+                  }}
                   className="text-xs rounded-xl gap-1 flex-1"
-                  title={post.status === 'published' ? 'Voltar para rascunho' : 'Publicar'}
                 >
-                  {post.status === 'published' ? (
-                    <Pencil className="w-3 h-3" />
-                  ) : (
-                    <Globe className="w-3 h-3" />
-                  )}
-                  {post.status === 'published' ? 'Despublicar' : 'Publicar'}
+                  <Share2 className="w-3 h-3" /> Compartilhar
                 </Button>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={isAdmin && post.status !== 'published' ? -1 : 0}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={!isAdmin && post.status !== 'published'}
+                          onClick={() => togglePublish(post)}
+                          className="text-xs rounded-xl gap-1 flex-1"
+                        >
+                          {post.status === 'published' ? (
+                            <Pencil className="w-3 h-3" />
+                          ) : (
+                            <Globe className="w-3 h-3" />
+                          )}
+                          {post.status === 'published' ? 'Despublicar' : 'Publicar'}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!isAdmin && post.status !== 'published' && (
+                      <TooltipContent>
+                        <p className="text-[11px] max-w-[220px]">
+                          Somente administradores publicam artigos.
+                        </p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 <Button
                   type="button"
                   variant="ghost"
@@ -406,6 +563,111 @@ export function LabsBlogTab() {
           ))}
         </div>
       )}
+
+      {/* Dialog Compartilhar nas redes */}
+      {sharePost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <Card className="p-5 rounded-3xl bg-card w-full max-w-md space-y-4">
+            <div className="flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">Compartilhar nas redes</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O artigo <span className="font-semibold text-foreground">"{sharePost.title}"</span>{' '}
+              virá como legenda (título + trecho). Escolha as redes — um post por rede:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SHARE_NETWORKS.map((n) => {
+                const active = shareNetworks.includes(n.id)
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => toggleShareNetwork(n.id)}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
+                      active
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border/80 text-muted-foreground hover:text-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    {n.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="p-3 rounded-xl bg-muted/30 border border-border/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Legenda gerada
+              </p>
+              <p className="text-xs text-foreground whitespace-pre-wrap line-clamp-4">
+                {deriveCaption(sharePost)}
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSharePost(null)
+                  setShareNetworks([])
+                }}
+                className="text-xs font-bold"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={sharing}
+                onClick={handleShare}
+                className="rounded-xl text-xs font-black gap-1.5"
+              >
+                {sharing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Share2 className="w-3.5 h-3.5" />
+                )}
+                {sharing ? 'Compartilhando…' : `Compartilhar (${shareNetworks.length})`}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Painel: quem pode publicar (admins) */}
+      <Card className="p-5 rounded-3xl border border-border/80 bg-card space-y-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-primary" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Quem pode publicar
+          </h4>
+        </div>
+        <div className="flex items-start gap-2">
+          <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Somente administradores publicam artigos no Blog. Não-admins criam e editam rascunhos; a
+            publicação fica a cargo dos admins da organização listados abaixo.
+          </p>
+        </div>
+        {adminsLoading ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando admins...
+          </div>
+        ) : admins.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nenhum administrador listado (ou sem permissão de leitura da listagem).
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {admins.map((name, i) => (
+              <Badge key={`${name}-${i}`} variant="outline" className="text-[10px] font-bold">
+                <ShieldCheck className="w-3 h-3 mr-1" /> {name}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Edição Avançada da capa */}
       {coverDialogOpen && coverCreation.preview_url && (

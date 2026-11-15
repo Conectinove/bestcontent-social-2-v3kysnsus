@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T18:22:54.768Z",
+  "generatedAt": "2026-11-15T18:37:23.764Z",
   "collections": [
     {
       "name": "users",
@@ -6390,11 +6390,11 @@
       "name": "labs_blog_posts",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != \"\" && user = @request.auth.id",
-        "view": "@request.auth.id != \"\" && user = @request.auth.id",
-        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
-        "update": "@request.auth.id != \"\" && user = @request.auth.id",
-        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+        "list": "@request.auth.id != \"\"",
+        "view": "@request.auth.id != \"\"",
+        "create": "(@request.auth.role = \"admin\") || (@request.auth.id != \"\" && user = @request.auth.id && (status = \"\" || status = \"draft\"))",
+        "update": "(@request.auth.role = \"admin\") || (@request.auth.id != \"\" && user = @request.auth.id && status = \"draft\")",
+        "delete": "(@request.auth.role = \"admin\") || (@request.auth.id != \"\" && user = @request.auth.id)"
       },
       "fields": [
         {
