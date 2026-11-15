@@ -29,7 +29,7 @@ const renderInline = (escaped: string): string => {
   let out = escaped
   out = out.replace(/`([^`]+)`/g, (_m, code: string) => {
     codes.push(code)
-    return `\u0000${codes.length - 1}\u0000`
+    return `\uE000${codes.length - 1}\uE001`
   })
 
   out = out
@@ -48,7 +48,7 @@ const renderInline = (escaped: string): string => {
     .replace(/(^|[^_\w])_([^_\n]+)_(?!\w)/g, '$1<em class="italic">$2</em>')
 
   // Restaura o código inline escapado.
-  out = out.replace(/\u0000(\d+)\u0000/g, (_m, idx: string) => {
+  out = out.replace(/\uE000(\d+)\uE001/g, (_m, idx: string) => {
     const code = codes[Number(idx)]
     return code
       ? `<code class="rounded bg-slate-800 px-1 py-0.5 text-[0.85em] text-purple-200 font-mono">${code}</code>`

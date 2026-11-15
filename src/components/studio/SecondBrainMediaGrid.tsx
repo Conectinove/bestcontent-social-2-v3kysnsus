@@ -4,12 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -20,9 +15,9 @@ import {
 import { Label } from '@/components/ui/label'
 import {
   listSecondBrainFavorites,
-  addSecondBrainFavorite,
-  removeSecondBrainFavorite,
+  toggleSecondBrainFavorite,
   type SecondBrainFavorite,
+  type SecondBrainFavoriteSource,
 } from '@/services/second-brain-favorites'
 import {
   fetchAccountMediaSource,
@@ -32,21 +27,18 @@ import {
   listSecondBrainMediaTemplates,
   createSecondBrainMediaTemplate,
   deleteSecondBrainMediaTemplate,
-  applySecondBrainMediaTemplate,
-  listSecondBrainMediaVersions,
-  saveSecondBrainMediaVersion,
   type SecondBrainMediaItem,
   type StockSearchResult,
   type SecondBrainMediaSort,
   type SecondBrainOrientationFilter,
   type SecondBrainColorFilter,
   type SecondBrainMediaFilters,
-  DEFAULT_MEDIA_FILTERS,
   MEDIA_SORT_OPTIONS,
   ORIENTATION_OPTIONS,
   COLOR_OPTIONS,
   sortMediaItems,
 } from '@/services/second-brain-media'
+import type { SecondBrainDoc, SecondBrainModule, SecondBrainBlock } from '@/services/second-brain'
 import { cn } from '@/lib/utils'
 
 /* ================================ TIPOS ================================ */
@@ -94,7 +86,9 @@ const DATE_FILTERS: { key: DateFilter; label: string }[] = [
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onInsert: (item: SecondBrainMediaItem) => void
+  /** Documento ativo: "Incluir no doc" anexa o bloco a doc.modules e chama onDocUpdated. */
+  doc: SecondBrainDoc
+  onDocUpdated: (updated: { modules: SecondBrainModule[] }) => void | Promise<void>
 }
 
 /** Formato usado pelo grid inteiro — deriva de SecondBrainMediaItem. */
@@ -116,12 +110,14 @@ const toGridItem = (m: SecondBrainMediaItem, source: MediaTab): GridItem => ({
   name: m.name || 'Sem título',
   url: m.url,
   thumbUrl: m.thumbUrl || m.url,
-  type: (['imagem', 'video', 'anexo', 'link'].includes(m.type) ? m.type : 'anexo') as GridItem['type'],
+  type: (['imagem', 'video', 'anexo', 'link'].includes(m.type)
+    ? m.type
+    : 'anexo') as GridItem['type'],
   source,
-  createdAt: m.created || '',
-  author: m.author,
-  width: m.width,
-  height: m.height,
+  createdAt: m.createdAt || '',
+  author: m.meta?.author as string | undefined,
+  width: m.meta?.width as number | undefined,
+  height: m.meta?.height as number | undefined,
 })
 
 const stockToItem = (r: StockSearchResult, source: 'unsplash' | 'pexels'): GridItem => ({
@@ -164,7 +160,7 @@ const isWithinDate = (createdAt: string, f: DateFilter, from?: string, to?: stri
 
 /* ============================== COMPONENTE ============================= */
 
-export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
+export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: Props) {
   const [tab, setTab] = useState<MediaTab>('favoritos')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
@@ -175,16 +171,29 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
   // Busca avançada (Unsplash/Pexels): orientação, cor e ordenação
   const [orientation, setOrientation] = useState<SecondBrainOrientationFilter>('any')
   const [color, setColor] = useState<SecondBrainColorFilter>('any')
-  const [sortBy, setSortBy] = useState<SecondBrainMediaSort>('relevance')
-  const [stock, setStock] = useState<Record<string, { loading: boolean; configured: boolean | null; message: string | null; results: StockSearchResult[] }>>({})
+  const [sortBy, setSortBy] = useState<SecondBrainMediaSort>('recent')
+  const [stock, setStock] = useState<
+    Record<
+      string,
+      {
+        loading: boolean
+        configured: boolean | null
+        message: string | null
+        results: StockSearchResult[]
+      }
+    >
+  >({})
   const [stockStatus, setStockStatus] = useState({ unsplash: false, pexels: false })
 
   const [favorites, setFavorites] = useState<SecondBrainFavorite[]>([])
   const [favIds, setFavIds] = useState<Set<string>>(new Set())
-  const [favSource, setFavSource] = useState<Record<string, string>>({})
   const [documentItems, setDocumentItems] = useState<GridItem[]>([])
   const [acervoItems, setAcervoItems] = useState<GridItem[]>([])
   const [uploads, setUploads] = useState<GridItem[]>([])
+  const [templates, setTemplates] = useState<
+    Awaited<ReturnType<typeof listSecondBrainMediaTemplates>>
+  >([])
+  const [newTemplateName, setNewTemplateName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -196,21 +205,19 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
         const favs = await listSecondBrainFavorites()
         setFavorites(favs)
         const ids: Set<string> = new Set()
-        const src: Record<string, string> = {}
         for (const f of favs) {
           ids.add(`${f.source}:${f.media_id}`)
-          src[`${f.source}:${f.media_id}`] = f.source
-          if (f.meta?.thumb_url) {
+          if (f.meta?.thumb_url || f.meta?.url) {
             setDocumentItems((prev) => {
-              if (prev.some((i) => i.id === `${f.source}:${f.meta?.media_id ?? f.media_id}`)) return prev
+              if (prev.some((i) => i.id === `${f.source}:${f.media_id}`)) return prev
               return [
                 ...prev,
                 {
                   id: `${f.source}:${f.media_id}`,
-                  name: f.meta?.title || f.meta?.name || 'Favorito',
-                  url: f.meta?.url || '',
-                  thumbUrl: f.meta?.thumb_url || f.meta?.url || '',
-                  type: (f.meta?.type as GridItem['type']) || 'imagem',
+                  name: String(f.meta?.title || f.meta?.name || f.name || 'Favorito'),
+                  url: String(f.meta?.url || f.url || ''),
+                  thumbUrl: String(f.meta?.thumb_url || f.meta?.url || f.url || ''),
+                  type: String(f.meta?.type || 'imagem') as GridItem['type'],
                   source: (f.source as MediaTab) || 'acervo',
                   createdAt: f.created || '',
                 },
@@ -219,11 +226,12 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
           }
         }
         setFavIds(ids)
-        setFavSource(src)
         setError(null)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Falha ao carregar favoritos.')
-      } set setLoading(false)
+      } finally {
+        setLoading(false)
+      }
     } else if (t === 'acervo') {
       setLoading(true)
       try {
@@ -239,31 +247,43 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
       setLoading(true)
       setError(null)
       try {
-        const res = await import('@/services/studio-external-media').then((m) =>
-          m.fetchDriveMediaSource?.(),
-        )
-        if (res && 'items' in res) {
-          setDocumentItems((prev) => {
-            const next = res.items.map((i) => toGridItem(i as SecondBrainMediaItem, 'drive'))
-            return [...next, ...prev.filter((p) => p.source !== 'drive')]
-          })
+        const { listDriveMedia } = await import('@/services/second-brain-media')
+        const res = await listDriveMedia(search)
+        if (res.items.length > 0) {
+          setDocumentItems((prev) => [
+            ...res.items.map((i) => toGridItem(i, 'drive')),
+            ...prev.filter((p) => p.source !== 'drive'),
+          ])
+          setError(null)
         } else {
-          setError('Conecte sua conta do Google Drive para ver os arquivos.')
+          setError(
+            res.error || 'Conecte sua conta do Google Drive (aba Conectores) para ver os arquivos.',
+          )
         }
-        setError(null)
       } catch {
-        setError('Conecte sua conta do Google Drive para ver os arquivos.')
+        setError('Conecte sua conta do Google Drive (aba Conectores) para ver os arquivos.')
       } finally {
         setLoading(false)
       }
     } else if (t === 'unsplash' || t === 'pexels') {
-      if (stock[t] && !stockStatus[t]) return
-      setStock((prev) => ({ ...prev, [t]: { loading: true, configured: null, message: null, results: prev[t]?.results || [] } }))
+      setStock((prev) => ({
+        ...prev,
+        [t]: { loading: true, configured: null, message: null, results: prev[t]?.results || [] },
+      }))
       try {
         const state = await searchStockProvider(t, search, { orientation, color })
         setStock((prev) => ({ ...prev, [t]: state }))
+        if (state.message) setError(null)
       } catch (e) {
-        setStock((prev) => ({ ...prev, [t]: { loading: false, configured: true, message: e instanceof Error ? e.message : 'Falha na busca.', results: [] } }))
+        setStock((prev) => ({
+          ...prev,
+          [t]: {
+            loading: false,
+            configured: true,
+            message: e instanceof Error ? e.message : 'Falha na busca.',
+            results: [],
+          },
+        }))
       }
     }
   }
@@ -279,7 +299,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
   }, [tab, search, orientation, color, open, stockStatus.unsplash, stockStatus.pexels])
 
   useEffect(() => {
-    if (open && tab !== 'unsplash' && tab !== '} pexels') loadTab(tab)
+    if (open && tab !== 'unsplash' && tab !== 'pexels') loadTab(tab)
   }, [tab, open])
 
   useEffect(() => {
@@ -288,31 +308,53 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
     listSecondBrainMediaTemplates().then((ts) => setTemplates(ts))
   }, [open])
 
-  const [templates, setTemplates] = useState<Awaited<ReturnType<typeof listSecondBrainMediaTemplates>>>([])
-  const [newTemplateName, setNewTemplateName] = useState('')
-
   const handleToggleFavorite = async (item: GridItem) => {
     const bareId = item.id.split(':').slice(1).join(':')
     const favKey = `${item.source}:${bareId}`
     const isFav = favIds.has(favKey)
+    // Mapeia a aba do grid para o source do serviço de favoritos.
+    const favSource = (
+      item.source === 'documento'
+        ? 'document'
+        : item.source === 'acervo'
+          ? 'bank'
+          : item.source === 'biblioteca'
+            ? 'library'
+            : item.source
+    ) as SecondBrainFavoriteSource
     try {
-      if (isFav) {
-        await removeSecondBrainFavorite(bareId, item.source)
+      const res = await toggleSecondBrainFavorite({
+        source: favSource,
+        mediaId: bareId,
+        name: item.name,
+        url: item.url,
+        meta: { title: item.name, url: item.url, thumb_url: item.thumbUrl, type: item.type },
+      })
+      if (res.favorited) {
+        setFavIds((prev) => new Set(prev).add(favKey))
+        setFavorites((prev) => [
+          {
+            id: `${favSource}:${bareId}`,
+            source: favSource,
+            media_id: bareId,
+            name: item.name,
+            url: item.url,
+            meta: { title: item.name, url: item.url, thumb_url: item.thumbUrl, type: item.type },
+            created: new Date().toISOString(),
+          },
+          ...prev,
+        ])
+      } else {
         setFavIds((prev) => {
           const n = new Set(prev)
           n.delete(favKey)
           return n
         })
-        setFavorites((prev) => prev.filter((f) => !(f.media_id === bareId && f.source === item.source)))
-      } else {
-        const created = await addSecondBrainFavorite({
-          source: item.source,
-          media_id: bareId,
-          meta: { title: item.name, url: item.url, thumb_url: item.thumbUrl, type: item.type },
-        })
-        setFavIds((prev) => new Set(prev).add(favKey))
-        if (created) setFavorites((prev) => [created, ...prev])
+        setFavorites((prev) =>
+          prev.filter((f) => !(f.media_id === bareId && f.source === favSource)),
+        )
       }
+      setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao favoritar.')
     }
@@ -327,7 +369,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
         isShared: false,
       })
       setTemplates((prev) => [t, ...prev])
-      setNewTemplateName(''),
+      setNewTemplateName('')
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao salvar modelo.')
@@ -343,17 +385,49 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
     }
   }
 
+  /* "Incluir no doc": anexa um bloco ao módulo final e persiste via onDocUpdated. */
+  const handleInsert = async (item: GridItem) => {
+    const block: SecondBrainBlock = {
+      id: `blk-${Date.now()}`,
+      type: item.type === 'imagem' ? 'paragraph' : 'paragraph',
+      content:
+        item.type === 'imagem' || item.type === 'video'
+          ? `![${item.name}](${item.url})`
+          : item.type === 'link'
+            ? `[${item.name}](${item.url})`
+            : item.name,
+      caption:
+        item.source === 'unsplash' || item.source === 'pexels'
+          ? `Fonte: ${item.source}`
+          : undefined,
+      isActive: true,
+      metadata: { grid_source: item.source, media_url: item.url, media_thumb: item.thumbUrl },
+    }
+    const modules = (
+      doc.modules && doc.modules.length > 0
+        ? [...doc.modules]
+        : [{ id: `mod-${Date.now()}`, title: 'Mídias', blocks: [] as SecondBrainBlock[] }]
+    ) as SecondBrainModule[]
+    const last = modules[modules.length - 1]
+    modules[modules.length - 1] = {
+      ...last,
+      blocks: [...(last.blocks || []), block],
+    }
+    await onDocUpdated({ modules })
+    onOpenChange(false)
+  }
+
   /* ------------------------- DERIVAÇÃO DA LISTA ------------------------- */
 
   const rawItems: GridItem[] = useMemo(() => {
-    switch (tab)   {
+    switch (tab) {
       case 'favoritos':
         return favorites.map((f) => ({
           id: `${f.source}:${f.media_id}`,
-          name: f.meta?.title || f.meta?.name || 'Favorito',
-          url: f.meta?.url || '',
-          thumbUrl: f.meta?.thumb_url || f.meta?.url || '',
-          type: (f.meta?.type as GridItem['type']) || 'imagem',
+          name: String(f.meta?.title || f.meta?.name || f.name || 'Favorito'),
+          url: String(f.meta?.url || f.url || ''),
+          thumbUrl: String(f.meta?.thumb_url || f.meta?.url || f.url || ''),
+          type: String(f.meta?.type || 'imagem') as GridItem['type'],
           source: (f.source as MediaTab) || 'acervo',
           createdAt: f.created || '',
         }))
@@ -367,7 +441,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
         return fetchCuratedMediaSource(search).map((i) => toGridItem(i, 'biblioteca'))
       case 'drive':
         return documentItems.filter((i) => i.source === 'drive')
-case 'unsplash':
+      case 'unsplash':
       case 'pexels':
         return (stock[tab]?.results || []).map((r) => stockToItem(r, tab))
       default:
@@ -376,14 +450,12 @@ case 'unsplash':
   }, [tab, favorites, documentItems, acervoItems, uploads, search, stock])
 
   const items: GridItem[] = useMemo(() => {
-    let out = rawItems.filter(
-      (i) => typeFilter === 'all' || i.type === typeFilter,
-    )
+    let out = rawItems.filter((i) => typeFilter === 'all' || i.type === typeFilter)
     out = out.filter((i) => isWithinDate(i.createdAt, dateFilter, customFrom, customTo))
     if (search.trim() && tab !== 'unsplash' && tab !== 'pexels') {
       const q = search.trim().toLowerCase()
       out = out.filter((i) => i.name.toLowerCase().includes(q))
-      }
+    }
     if (tab === 'unsplash' || tab === 'pexels') {
       out = sortMediaItems(out, sortBy)
     }
@@ -462,7 +534,9 @@ case 'unsplash':
           {dateFilter === 'custom' && (
             <div className="flex flex-wrap items-center gap-2 w-full">
               <div className="flex items-center gap-1.5">
-                <Label htmlFor="sb-from" className="text-[11px] text-muted-foreground">De</Label>
+                <Label htmlFor="sb-from" className="text-[11px] text-muted-foreground">
+                  De
+                </Label>
                 <Input
                   id="sb-from"
                   type="date"
@@ -470,9 +544,11 @@ case 'unsplash':
                   onChange={(e) => setCustomFrom(e.target.value)}
                   className="h-8 w-36 text-xs"
                 />
-              </ de>
+              </div>
               <div className="flex items-center gap-1.5">
-                <Label htmlFor="sb-to" className="text-[11px] text-muted-foreground">Até</Label>
+                <Label htmlFor="sb-to" className="text-[11px] text-muted-foreground">
+                  Até
+                </Label>
                 <Input
                   id="sb-to"
                   type="date"
@@ -500,7 +576,12 @@ case 'unsplash':
               className="pl-9 h-9 text-xs"
             />
           </div>
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => loadTab(tab)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 text-xs"
+            onClick={() => loadTab(tab)}
+          >
             <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
             Atualizar
           </Button>
@@ -511,13 +592,18 @@ case 'unsplash':
           <div className="flex flex-wrap items-end gap-2 pb-2 shrink-0">
             <div className="space-y-1">
               <Label className="text-[10px] text-muted-foreground">Orientação</Label>
-              <Select value={orientation} onValueChange={(v) => setOrientation(v as SecondBrainOrientationFilter)}>
+              <Select
+                value={orientation}
+                onValueChange={(v) => setOrientation(v as SecondBrainOrientationFilter)}
+              >
                 <SelectTrigger className="h-8 w-32 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {ORIENTATION_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    <SelectItem key={o.key} value={o.key}>
+                      {o.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -530,7 +616,9 @@ case 'unsplash':
                 </SelectTrigger>
                 <SelectContent>
                   {COLOR_OPTIONS.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    <SelectItem key={c.key} value={c.key}>
+                      {c.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -543,7 +631,9 @@ case 'unsplash':
                 </SelectTrigger>
                 <SelectContent>
                   {MEDIA_SORT_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    <SelectItem key={s.key} value={s.key}>
+                      {s.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -551,7 +641,7 @@ case 'unsplash':
           </div>
         )}
 
-        {/* Aviso de chaves ausentes (Unsplash/Pexels) */}
+        {/* Aviso de chaves ausentes (Unsplash/Pexels) — sempre em pt-BR */}
         {showStockWarning && (
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 shrink-0">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -559,7 +649,8 @@ case 'unsplash':
               {tab === 'unsplash'
                 ? 'As buscas no Unsplash precisam da chave UNSPLASH_ACCESS_KEY, que ainda não está configurada neste projeto. '
                 : 'As buscas no Pexels precisam da chave PEXELS_API_KEY, que ainda não está configurada neste projeto. '}
-              Cadastre-a no painel Skip Cloud → Secrets para habilitar a busca de imagens. Enquanto isso, os demais recursos continuam funcionando.
+              Cadastre-a no painel Skip Cloud → Secrets para habilitar a busca de imagens. Enquanto
+              isso, os demais recursos continuam funcionando.
             </span>
           </div>
         )}
@@ -576,7 +667,7 @@ case 'unsplash':
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 py-2">
               {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-4/3 w-full rounded-xl" />
+                <Skeleton key={i} className="aspect-video w-full rounded-xl" />
               ))}
             </div>
           ) : items.length === 0 ? (
@@ -592,7 +683,7 @@ case 'unsplash':
                     key={item.id}
                     className="group relative rounded-xl overflow-hidden border border-border bg-muted/30 hover:border-primary/50 transition-all"
                   >
-                    <div className="aspect-4/3 bg-muted relative">
+                    <div className="aspect-video bg-muted relative">
                       {item.type === 'imagem' || item.type === 'video' ? (
                         item.thumbUrl ? (
                           <img
@@ -628,7 +719,9 @@ case 'unsplash':
                       </button>
                     </div>
                     <div className="p-2 space-y-1">
-                      <p className="text-[11px] font-semibold text-foreground line-clamp-1">{item.name}</p>
+                      <p className="text-[11px] font-semibold text-foreground line-clamp-1">
+                        {item.name}
+                      </p>
                       <div className="flex items-center justify-between gap-1">
                         <Badge variant="outline" className="text-[9px] px-1 py-0">
                           {item.type}
@@ -637,12 +730,11 @@ case 'unsplash':
                           size="sm"
                           variant="outline"
                           className="h-6 px-2 text-[10px] font-bold gap-1"
-                          onClick={() => onInsert(item)}
+                          onClick={() => handleInsert(item)}
                         >
                           <Check className="w-3 h-3" />
                           Incluir no doc
                         </Button>
- botão "</Button>
                       </div>
                     </div>
                   </div>
@@ -665,14 +757,26 @@ case 'unsplash':
                 placeholder="Nome do modelo..."
                 className="h-8 w-48 text-xs"
               />
-              <Button size="sm" variant="outline" className="h-8 text-[11px]" onClick={handleSaveTemplate}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-[11px]"
+                onClick={handleSaveTemplate}
+              >
                 Salvar modelo
               </Button>
               {templates.map((t) => (
-                <div key={t.id} className="flex items-center gap-1 rounded-md border border-border px-2 py-1">
-                  <span className="text-[11px] font-semibold">{t.name.replace('secondbrain:', '')}</span>
+                <div
+                  key={t.id}
+                  className="flex items-center gap-1 rounded-md border border-border px-2 py-1"
+                >
+                  <span className="text-[11px] font-semibold">
+                    {t.name.replace('secondbrain:', '')}
+                  </span>
                   {t.is_shared && (
-                    <Badge variant="outline" className="text-[9px] px-1 py-0">Equipe</Badge>
+                    <Badge variant="outline" className="text-[9px] px-1 py-0">
+                      Equipe
+                    </Badge>
                   )}
                   <button
                     type="button"
@@ -690,4 +794,5 @@ case 'unsplash':
     </Dialog>
   )
 }
+
 export default SecondBrainMediaGrid
