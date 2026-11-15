@@ -47,10 +47,12 @@ import {
 interface BrandPortalPanelProps {
   brandId: string
   userId: string
+  /** Nome da marca — usado como título do arquivo CSV exportado. */
+  brandName?: string
 }
 
 /** Painel "Gerar portal / Incorporar" (Settings): analytics + cor + páginas internas. */
-export function BrandPortalPanel({ brandId, userId }: BrandPortalPanelProps) {
+export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPanelProps) {
   const [portal, setPortal] = useState<BrandPortalRecord | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -450,8 +452,8 @@ export function BrandPortalPanel({ brandId, userId }: BrandPortalPanelProps) {
           <PortalVisitsMetrics
             metrics={metrics}
             loading={loadingMetrics}
-            portalId={portalId}
-            brandName={brand?.name}
+            portalId={portal.portalId}
+            brandName={brandName}
           />
         </CardContent>
       </Card>

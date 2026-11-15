@@ -602,7 +602,11 @@ export default function Settings() {
                     />
                   )}
                   {portalBrandId && (
-                    <BrandPortalPanel brandId={portalBrandId} userId={user?.id || ''} />
+                    <BrandPortalPanel
+                      brandId={portalBrandId}
+                      userId={user?.id || ''}
+                      brandName={brands.find((b) => b.id === portalBrandId)?.name || 'Marca'}
+                    />
                   )}
                   <OrganizationBrandManager onAddNewBrand={() => navigate('/app/brands')} />
                   <div>

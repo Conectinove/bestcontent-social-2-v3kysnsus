@@ -30,6 +30,8 @@ export interface PortalBlock {
   mediaId?: string
   /** Vídeo próprio: nome do arquivo enviado (só para exibição no editor). */
   mediaName?: string
+  /** Vídeo próprio: URL completa do arquivo no backend (montada pelo hook público GET). */
+  mediaUrl?: string
 }
 
 export interface PortalPageContent {
