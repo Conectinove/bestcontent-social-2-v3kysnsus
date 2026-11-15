@@ -1,8 +1,9 @@
 /// <reference path="../pb_data/types.d.ts" />
 // Cron: processa a fila social_publications e dispara publicações pendentes
 // usando a conta de CADA usuário (per-user, $connectors.executeAsUser) — nunca a do builder.
-// IMPORTANTE: a JSVM do PocketBase executa callbacks em pool separado — toda a lógica
-// precisa viver DENTRO do corpo do callback, sem funções de nível superior.
+// IMPORTANTE (JSVM do PocketBase): callbacks de cronAdd/hooks NÃO enxergam funções ou
+// constantes de nível superior — TODO o código abaixo vive inline dentro do callback,
+// sem closures auxiliares e sem referências externas.
 cronAdd('social_publications_queue', '*/5 * * * *', () => {
   const due = $app.findRecordsByFilter(
     'social_publications',
@@ -12,35 +13,34 @@ cronAdd('social_publications_queue', '*/5 * * * *', () => {
     0,
   )
 
-  for (const pub of due) {
+  for (let i = 0; i < due.length; i++) {
+    const pub = due[i]
     const userId = pub.get('user') + ''
     const network = pub.get('network') + ''
     const postId = pub.get('post') + ''
     let caption = ''
     let mediaUrls = []
 
-    // markFailed inline (com limite de 3 tentativas)
-    const markFailed = (message) => {
-      const attempts = pub.getInt('attempts') || 0
-      pub.set('attempts', attempts + 1)
-      if (attempts + 1 >= 3) {
-        pub.set('error_message', String(message).slice(0, 2000))
-        pub.set('status', 'failed')
-      }
-      $app.save(pub)
-    }
-
     try {
       const post = $app.findRecordById('posts', postId)
       caption = (post.get('caption') || post.get('content') || '') + ''
       const mediaField = post.get('media')
       if (Array.isArray(mediaField)) {
-        mediaUrls = mediaField.map((f) => f + '')
+        mediaUrls = mediaField.map(function (f) {
+          return f + ''
+        })
       } else if (mediaField) {
         mediaUrls = [mediaField + '']
       }
     } catch (e) {
-      markFailed('Post associado não encontrado: ' + e)
+      // markFailed inline: limite de 3 tentativas
+      const attemptsFail = pub.getInt('attempts') || 0
+      pub.set('attempts', attemptsFail + 1)
+      pub.set('error_message', ('Post associado não encontrado: ' + e).slice(0, 2000))
+      if (attemptsFail + 1 >= 3) {
+        pub.set('status', 'failed')
+      }
+      $app.save(pub)
       continue
     }
 
@@ -56,7 +56,15 @@ cronAdd('social_publications_queue', '*/5 * * * *', () => {
           message: caption,
         })
       } else {
-        markFailed('Rede não suportada para disparo automático: ' + network)
+        // markFailed inline: rede não suportada → falha definitiva
+        const attemptsNet = pub.getInt('attempts') || 0
+        pub.set('attempts', attemptsNet + 1)
+        pub.set(
+          'error_message',
+          ('Rede não suportada para disparo automático: ' + network).slice(0, 2000),
+        )
+        pub.set('status', 'failed')
+        $app.save(pub)
         continue
       }
 
@@ -69,11 +77,27 @@ cronAdd('social_publications_queue', '*/5 * * * *', () => {
         if (extId) pub.set('external_post_id', extId + '')
         $app.save(pub)
       } else {
-        const msg = (res && res.error) || 'Falha desconhecida no conector ' + network
-        markFailed(msg)
+        // markFailed inline: erro reportado pelo conector
+        const attemptsErr = pub.getInt('attempts') || 0
+        pub.set('attempts', attemptsErr + 1)
+        pub.set(
+          'error_message',
+          String((res && res.error) || 'Falha desconhecida no conector ' + network).slice(0, 2000),
+        )
+        if (attemptsErr + 1 >= 3) {
+          pub.set('status', 'failed')
+        }
+        $app.save(pub)
       }
     } catch (e) {
-      markFailed('Erro no disparo: ' + e)
+      // markFailed inline: exceção no disparo
+      const attemptsExc = pub.getInt('attempts') || 0
+      pub.set('attempts', attemptsExc + 1)
+      pub.set('error_message', ('Erro no disparo: ' + e).slice(0, 2000))
+      if (attemptsExc + 1 >= 3) {
+        pub.set('status', 'failed')
+      }
+      $app.save(pub)
     }
   }
 })
