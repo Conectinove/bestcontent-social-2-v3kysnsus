@@ -86,13 +86,13 @@ import { SecondBrainCanvas } from '@/components/studio/SecondBrainCanvas'
 export default function AiMediaStudioPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { activeBrand } = useSocial()
+  const { activeBrand, brands } = useSocial()
 
   // Tema do app (motor unificado: presets, marcas, personalizados, rede e equipe).
   // A prévia/mini mockup e o accent da rede funcionam igual ao Header — a troca
   // de tema reflete no app inteiro, e o seletor local do Estúdio reaproveita o
   // mesmo StudioThemeSwitcher com o mesmo motor useAppTheme.
-  const appTheme = useAppTheme()
+  const appTheme = useAppTheme(brands)
   const studioTheme = appTheme
   // Compartilhamento de temas com a equipe (toggle no seletor de tema do Estúdio)
   const handleToggleShared = appTheme.toggleShared
