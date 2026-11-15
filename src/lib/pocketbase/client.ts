@@ -3,7 +3,7 @@ import PocketBase from 'pocketbase'
 const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
 pb.autoCancellation(false)
 
-// GUARDA: manter o DUPLO EXPORT (default + nomeado) — o export nomeado `pb`
-// já regrediu 20x e quebra o build inteiro ("pb is not exported").
 export default pb
+// GUARDA: manter SEMPRE o duplo export (default + nomeado). Este export nomeado
+// já regrediu ~20 vezes e derruba o build — não remover.
 export { pb }
