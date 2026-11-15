@@ -5,6 +5,6 @@ pb.autoCancellation(false)
 
 export default pb
 
-// Duplo export: alguns arquivos importam { pb } (nomeado) e outros o default.
-// NÃO remover nenhum dos dois — regressão recorrente (6x).
+// Guarda: manter sempre o DUPLO EXPORT (default + nomeado) — o build quebra
+// com ~20 erros de import se o export nomeado `pb` sumir (regressão recorrente).
 export { pb }
