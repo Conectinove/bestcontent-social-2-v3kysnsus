@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react'
 import { useParams, Link } from 'react-router-dom'
 import { getPortalByToken } from '@/services/brand-portals'
@@ -8,7 +8,7 @@ import {
   type PortalBlock,
   type PortalPageContent,
 } from '@/services/portal-pages'
-import { recordPortalVideoPlay } from '@/services/portal-visits'
+import { recordPortalVideoPlay, recordPortalVideoProgress } from '@/services/portal-visits'
 
 interface PortalData {
   id: string
@@ -21,6 +21,7 @@ interface PortalData {
   textColor: string
   buttonColor: string
   gaMeasurementId: string
+  gtmContainerId: string
   website: string
   pages: Array<{ id: string; title: string; slug: string; content: PortalPageContent }>
 }
@@ -51,15 +52,68 @@ export function toVideoEmbedUrl(url: string): string {
   return raw
 }
 
+/** Player de vídeo próprio com tracking de engajamento (migration 0122):
+ * registra play + marcos 25/50/75/100% e segundos assistidos via POST público,
+ * sem duplicar um mesmo marco por sessão. */
+function PortalVideoPlayer({
+  block,
+  accent,
+  onVideoPlay,
+  onProgress,
+}: {
+  block: PortalBlock
+  accent: string
+  onVideoPlay?: () => void
+  /** Chamado em cada marco atingido: (progresso 0..100, segundos assistidos desde o último marco). */
+  onProgress?: (progress: number, watchedSeconds: number) => void
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const firedRef = useRef<Set<number>>(new Set())
+  const lastTimeRef = useRef(0)
+
+  const handleTimeUpdate = () => {
+    const el = videoRef.current
+    if (!el || !isFinite(el.duration) || el.duration <= 0) return
+    const pct = Math.floor((el.currentTime / el.duration) * 100)
+    for (const milestone of [25, 50, 75, 100]) {
+      if (pct >= milestone && !firedRef.current.has(milestone)) {
+        firedRef.current.add(milestone)
+        const now = el.currentTime
+        const delta = Math.max(0, now - lastTimeRef.current)
+        lastTimeRef.current = now
+        onProgress?.(milestone, delta)
+      }
+    }
+  }
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      preload="metadata"
+      className="aspect-video w-full overflow-hidden rounded-xl bg-black/90"
+      src={block.mediaUrl}
+      onPlay={() => {
+        lastTimeRef.current = videoRef.current?.currentTime || 0
+        onVideoPlay?.()
+      }}
+      onTimeUpdate={handleTimeUpdate}
+    />
+  )
+}
+
 export function PortalBlockView({
   block,
   accent,
   onVideoPlay,
+  onVideoProgress,
 }: {
   block: PortalBlock
   accent: string
   /** Chamado quando o visitante dá play num vídeo próprio (métricas de vídeo). */
   onVideoPlay?: () => void
+  /** Chamado nos marcos 25/50/75/100%: (progresso, segundos assistidos no trecho). */
+  onVideoProgress?: (progress: number, watchedSeconds: number) => void
 }) {
   if (block.type === 'title') {
     return (
@@ -124,12 +178,11 @@ export function PortalBlockView({
     if (block.mediaId) {
       if (!block.mediaUrl) return null
       return (
-        <video
-          controls
-          preload="metadata"
-          className="aspect-video w-full overflow-hidden rounded-xl bg-black/90"
-          src={block.mediaUrl}
-          onPlay={() => onVideoPlay?.()}
+        <PortalVideoPlayer
+          block={block}
+          accent={accent}
+          onVideoPlay={onVideoPlay}
+          onProgress={onVideoProgress}
         />
       )
     }
@@ -197,6 +250,7 @@ export default function BrandPortalPage() {
             textColor: res.textColor || '',
             buttonColor: res.buttonColor || '',
             gaMeasurementId: res.gaMeasurementId || '',
+            gtmContainerId: res.gtmContainerId || '',
             website: res.website,
             pages: (pages || []).map((p) => ({
               id: p.id,
@@ -233,6 +287,31 @@ export default function BrandPortalPage() {
     }
   }, [data?.gaMeasurementId])
 
+  // Google Tag Manager (pedido 2): injeta gtm.js só quando há ID do contêiner,
+  // com guarda contra duplicação (o id só existe se ainda não injetado).
+  useEffect(() => {
+    const gtmId = (data?.gtmContainerId || '').trim()
+    if (!gtmId) return
+    const w = window as unknown as { dataLayer?: unknown[] }
+    w.dataLayer = w.dataLayer || []
+    w.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' })
+    // Guarda de duplicação: marca o elemento com o id do contêiner.
+    if (!document.getElementById(`gtm-script-${gtmId}`)) {
+      const script = document.createElement('script')
+      script.id = `gtm-script-${gtmId}`
+      script.async = true
+      script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`
+      document.head.appendChild(script)
+    }
+    // noscript fallback logo após o body (padrão do GTM).
+    if (!document.getElementById(`gtm-noscript-${gtmId}`)) {
+      const noscript = document.createElement('noscript')
+      noscript.id = `gtm-noscript-${gtmId}`
+      noscript.innerHTML = `<iframe src="https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}" height="0" width="0" style="display:none;visibility:hidden"></iframe>`
+      document.body.prepend(noscript)
+    }
+  }, [data?.gtmContainerId])
+
   // Visita registrada por página interna também (analytics por slug).
   useEffect(() => {
     if (data) recordPortalVisit(token, activeSlug || 'home')
@@ -245,6 +324,19 @@ export default function BrandPortalPage() {
     if (!block.mediaId) return
     recordPortalVideoPlay(token, activeSlug || 'home', String(block.mediaId), current?.id || '')
   }
+
+  // Progresso do vídeo (migration 0122): marcos 25/50/75/100% via POST público.
+  const handleVideoProgress =
+    (block: PortalBlock) => (progress: number, watchedSeconds: number) => {
+      if (!block.mediaId) return
+      void recordPortalVideoProgress(
+        token,
+        String(block.mediaId),
+        progress,
+        watchedSeconds,
+        current?.id || '',
+      )
+    }
 
   if (error) {
     return (
@@ -422,6 +514,7 @@ export default function BrandPortalPage() {
                         block={b}
                         accent={accent}
                         onVideoPlay={() => handleVideoPlay(b)}
+                        onVideoProgress={handleVideoProgress(b)}
                       />
                     ))}
                   </div>

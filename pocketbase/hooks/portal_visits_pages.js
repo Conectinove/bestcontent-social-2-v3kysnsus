@@ -239,7 +239,9 @@ routerAdd('POST', '/backend/v1/portals/video-progress/{token}', (e) => {
     isFinite(watchedRaw) && watchedRaw > 0 ? Math.min(86400, Math.round(watchedRaw)) : 0
 
   // Record mais novo do play desta mídia (e página, quando informada) — é o
-  // que o próprio hook de play acabou de criar nesta sessão.
+  // que o próprio hook de play acabou de criar nesta sessão. findFirstRecordByFilter
+  // não ordena: usamos findRecordsByFilter com sort -created e pegamos o 1º,
+  // para atualizar o play DESTA sessão e não um antigo.
   let play = null
   try {
     let filter = 'portal = {:portal} && media = {:media}'
@@ -248,8 +250,12 @@ routerAdd('POST', '/backend/v1/portals/video-progress/{token}', (e) => {
       filter += ' && page_id = {:page}'
       params.page = pageId
     }
-    play = $app.findFirstRecordByFilter('portal_video_plays', filter, params)
+    const latest = $app.findRecordsByFilter('portal_video_plays', filter, '-created', 1, 0, params)
+    play = latest && latest.length > 0 ? latest[0] : null
   } catch (_) {
+    play = null
+  }
+  if (!play) {
     return e.json(200, { success: true, updated: false })
   }
 

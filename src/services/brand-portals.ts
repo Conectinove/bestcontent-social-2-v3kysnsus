@@ -25,6 +25,8 @@ export interface BrandPortalRecord {
   buttonColor?: string
   logoUrl?: string
   gaMeasurementId?: string
+  /** Google Tag Manager (migration 0122) — vazio = sem GTM. */
+  gtmContainerId?: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,6 +95,7 @@ function mapPortalRecord(rec: Record<string, unknown>): BrandPortalRecord {
     buttonColor: String(rec.button_color || snapshot.button_color || ''),
     logoUrl,
     gaMeasurementId: String(rec.ga_measurement_id || ''),
+    gtmContainerId: String(rec.gtm_container_id || ''),
     accentColor: String(snapshot.accent_color || ''),
   }
 }
@@ -122,6 +125,7 @@ export interface PublicPortalData {
   textColor: string
   buttonColor: string
   gaMeasurementId: string
+  gtmContainerId: string
   website: string
 }
 
@@ -142,6 +146,7 @@ export async function getPortalByToken(token: string): Promise<PublicPortalData>
     textColor: String(res?.text_color || ''),
     buttonColor: String(res?.button_color || ''),
     gaMeasurementId: String(res?.ga_measurement_id || ''),
+    gtmContainerId: String(res?.gtm_container_id || ''),
     website: String(res?.website || ''),
   }
 }
@@ -215,4 +220,16 @@ export function validateGaMeasurementId(gaId: string): string | null {
 /** Salva o Measurement ID do Google Analytics (vazio remove o script). */
 export async function savePortalGaId(portalId: string, gaId: string) {
   return client.collection('brand_portals').update(portalId, { ga_measurement_id: gaId.trim() })
+}
+
+/** Valida o ID do contêiner do GTM (GTM-XXXXXX); null = válido. */
+export function validateGtmContainerId(gtmId: string): string | null {
+  const raw = (gtmId || '').trim()
+  if (!raw) return null // vazio = remover (válido)
+  return /^GTM-[A-Z0-9]{5,10}$/i.test(raw) ? null : 'Formato esperado: GTM-XXXXXX.'
+}
+
+/** Salva (ou remove, com '') o ID do Google Tag Manager do portal. */
+export async function savePortalGtmId(portalId: string, gtmId: string) {
+  return client.collection('brand_portals').update(portalId, { gtm_container_id: gtmId.trim() })
 }

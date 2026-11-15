@@ -22,6 +22,16 @@ export interface PortalVideoRankItem {
   page_slug: string
   page_id: string
   last_play_at: string
+  /** Engajamento (migration 0122): % médio concluído e tempo assistido. */
+  avg_progress?: number
+  watched_seconds?: number
+}
+
+/** Engajamento agregado de vídeo (migration 0122). */
+export interface PortalVideoEngagement {
+  avg_progress: number
+  watched_seconds: number
+  completed: number
 }
 
 export interface PortalMetrics {
@@ -34,6 +44,8 @@ export interface PortalMetrics {
   /** Métricas de vídeo (pedido "adicionar metricas de video"). */
   video_total: number
   video_ranking: PortalVideoRankItem[]
+  /** Engajamento de vídeo (migration 0122) — pode faltar em resposta antiga. */
+  video_engagement?: PortalVideoEngagement
 }
 
 /** Página no filtro de analytics ('' = todas). */
@@ -64,6 +76,27 @@ export async function recordPortalVideoPlay(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ pageSlug, mediaId, pageId: pageId || '' }),
+  }).catch(() => undefined)
+}
+
+/** Registra progresso de vídeo próprio (marco 25/50/75/100%) — POST público. */
+export async function recordPortalVideoProgress(
+  token: string,
+  mediaId: string,
+  progress: number,
+  watchedSeconds: number,
+  pageId?: string,
+): Promise<void> {
+  if (!token || !mediaId) return
+  await fetch(`${BASE}/backend/v1/portals/video-progress/${encodeURIComponent(token)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mediaId,
+      progress: Math.min(100, Math.max(0, Math.round(progress))),
+      watchedSeconds: Math.max(0, Math.round(watchedSeconds)),
+      pageId: pageId || '',
+    }),
   }).catch(() => undefined)
 }
 
@@ -110,10 +143,30 @@ export function buildVisitsCsv(
   for (const d of metrics.daily_series || []) lines.push(`${d.date};${d.count}`)
   lines.push('')
   lines.push('Plays de video;' + (metrics.video_total || 0))
-  lines.push('Media ID;Plays;Pagina;Ultimo play')
+  const eng = metrics.video_engagement
+  if (eng) {
+    lines.push(
+      'Conclusao media de video;' +
+        (eng.avg_progress || 0).toFixed(1) +
+        '%;Tempo assistido;' +
+        Math.round(eng.watched_seconds || 0) +
+        's;Finalizados;' +
+        (eng.completed || 0),
+    )
+  }
+  lines.push('Media ID;Plays;Pagina;Conclusao media (%);Assistido (s);Ultimo play')
   for (const v of metrics.video_ranking || []) {
     lines.push(
-      [v.media_id, String(v.plays), v.page_slug, v.last_play_at || ''].map(csvEscape).join(';'),
+      [
+        v.media_id,
+        String(v.plays),
+        v.page_slug,
+        v.avg_progress != null ? v.avg_progress.toFixed(1) : '',
+        v.watched_seconds != null ? String(Math.round(v.watched_seconds)) : '',
+        v.last_play_at || '',
+      ]
+        .map(csvEscape)
+        .join(';'),
     )
   }
   lines.push('')
@@ -173,10 +226,18 @@ export function printVisitsReport(
     })
     .join('')
 
+  const eng = metrics.video_engagement
+  const engCard = eng
+    ? `<div class="card"><div class="n">${(eng.avg_progress || 0).toFixed(0)}%</div><div class="l">Conclusão média</div></div>
+       <div class="card"><div class="n">${Math.round(eng.watched_seconds || 0)}s</div><div class="l">Tempo assistido</div></div>
+       <div class="card"><div class="n">${eng.completed || 0}</div><div class="l">Finalizados (100%)</div></div>`
+    : ''
   const videoRows = (metrics.video_ranking || [])
     .map(
       (v, i) =>
-        `<tr><td>${i + 1}</td><td>${escHtml(v.media_id)}</td><td>${escHtml(v.page_slug)}</td><td>${v.plays}</td><td>${fmtDate(v.last_play_at)}</td></tr>`,
+        `<tr><td>${i + 1}</td><td>${escHtml(v.media_id)}</td><td>${escHtml(v.page_slug)}</td><td>${v.plays}</td><td>${
+          v.avg_progress != null ? `${v.avg_progress.toFixed(0)}%` : '—'
+        }</td><td>${v.watched_seconds != null ? `${Math.round(v.watched_seconds)}s` : '—'}</td><td>${fmtDate(v.last_play_at)}</td></tr>`,
     )
     .join('')
 
@@ -219,6 +280,7 @@ export function printVisitsReport(
     <div class="card"><div class="n">${metrics.last_7d}</div><div class="l">Últimos 7 dias</div></div>
     <div class="card"><div class="n">${metrics.last_30d}</div><div class="l">Últimos 30 dias</div></div>
     <div class="card"><div class="n">${metrics.video_total || 0}</div><div class="l">Plays de vídeo</div></div>
+    ${engCard}
   </div>
 
   <h2>Visitas por dia (30 dias)</h2>
@@ -227,7 +289,7 @@ export function printVisitsReport(
   <h2>Vídeos mais reproduzidos</h2>
   ${
     videoRows
-      ? `<table><thead><tr><th>#</th><th>Mídia</th><th>Página</th><th>Plays</th><th>Último play</th></tr></thead><tbody>${videoRows}</tbody></table>`
+      ? `<table><thead><tr><th>#</th><th>Mídia</th><th>Página</th><th>Plays</th><th>Conclusão média</th><th>Assistido</th><th>Último play</th></tr></thead><tbody>${videoRows}</tbody></table>`
       : '<p class="muted">Nenhum play de vídeo registrado no período/filtro.</p>'
   }
 

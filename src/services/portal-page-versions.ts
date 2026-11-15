@@ -30,6 +30,11 @@ export async function listPageVersions(pageId: string): Promise<PortalPageVersio
  * O hook onRecordUpdateRequest cria um novo snapshot da versão atual antes,
  * então a versão substituída nunca se perde.
  */
+/** Salva (ou atualiza) a nota/anotação de uma versão (migration 0122: note text). */
+export async function savePageVersionNote(versionId: string, note: string) {
+  return client.collection('portal_page_versions').update(versionId, { note })
+}
+
 export async function restorePageVersion(pageId: string, version: PortalPageVersion) {
   return client.collection('portal_pages').update(pageId, {
     content: version.content,

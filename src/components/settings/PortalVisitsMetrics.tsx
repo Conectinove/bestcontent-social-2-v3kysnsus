@@ -10,6 +10,8 @@ import {
   Filter,
   Play,
   Video,
+  Clock,
+  CircleCheckBig,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -50,6 +52,16 @@ interface PortalVisitsMetricsProps {
 
 function fmt(n: number) {
   return new Intl.NumberFormat('pt-BR').format(n)
+}
+
+function fmtSeconds(total: number) {
+  const s = Math.max(0, Math.round(total || 0))
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  if (m < 60) return r ? `${m}m ${r}s` : `${m}m`
+  const h = Math.floor(m / 60)
+  return `${h}h ${m % 60}m`
 }
 
 function fmtDate(iso: string) {
@@ -178,6 +190,7 @@ export function PortalVisitsMetrics({
 
   const series = metrics.daily_series || []
   const videoRanking = metrics.video_ranking || []
+  const videoEngagement = metrics.video_engagement
 
   return (
     <div className="space-y-3">
@@ -347,6 +360,16 @@ export function PortalVisitsMetrics({
                   · {v.media_id.slice(0, 8)}…
                 </span>
               </span>
+              <span className="flex items-center gap-2 text-[11px] text-muted-foreground shrink-0">
+                {v.avg_progress != null && (
+                  <span className="font-semibold text-cyan-700 dark:text-cyan-400">
+                    {v.avg_progress}% concl.
+                  </span>
+                )}
+                {v.watched_seconds != null && v.watched_seconds > 0 && (
+                  <span>{fmtSeconds(v.watched_seconds)}</span>
+                )}
+              </span>
               <span className="text-xs font-bold shrink-0">
                 {fmt(v.plays)} play{v.plays === 1 ? '' : 's'}
               </span>
@@ -354,6 +377,30 @@ export function PortalVisitsMetrics({
           ))
         )}
       </div>
+
+      {/* ===== Engajamento de vídeo (migration 0122): chips + ranking ===== */}
+      {videoEngagement && (
+        <div className="flex flex-wrap gap-3">
+          <MetricChip
+            icon={Video}
+            label="Conclusão média"
+            value={`${videoEngagement.avg_progress || 0}%`}
+            accent="text-cyan-600 dark:text-cyan-400"
+          />
+          <MetricChip
+            icon={Clock}
+            label="Tempo assistido"
+            value={fmtSeconds(videoEngagement.watched_seconds || 0)}
+            accent="text-indigo-600 dark:text-indigo-400"
+          />
+          <MetricChip
+            icon={CircleCheckBig}
+            label="Finalizados (≥75%)"
+            value={fmt(videoEngagement.completed || 0)}
+            accent="text-emerald-600 dark:text-emerald-400"
+          />
+        </div>
+      )}
 
       <div className="rounded-lg border border-border/70 divide-y divide-border/60">
         <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">

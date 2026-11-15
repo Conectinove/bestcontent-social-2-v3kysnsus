@@ -11,6 +11,7 @@ import {
   ImagePlus,
   Trash2,
   BarChart3,
+  Tag,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,7 +30,9 @@ import {
   uploadPortalLogo,
   removePortalLogo,
   savePortalGaId,
+  savePortalGtmId,
   validateGaMeasurementId,
+  validateGtmContainerId,
   type BrandPortalRecord,
   type PortalColors,
 } from '@/services/brand-portals'
@@ -71,6 +74,8 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
   const [logoBusy, setLogoBusy] = useState(false)
   const [gaInput, setGaInput] = useState('')
   const [savingGa, setSavingGa] = useState(false)
+  const [gtmInput, setGtmInput] = useState('')
+  const [savingGtm, setSavingGtm] = useState(false)
   const [pageFilter, setPageFilter] = useState('')
   const [pageOptions, setPageOptions] = useState<PortalPageOption[]>([])
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -116,6 +121,10 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
   useEffect(() => {
     setGaInput(portal?.gaMeasurementId || '')
   }, [portal?.gaMeasurementId])
+
+  useEffect(() => {
+    setGtmInput(portal?.gtmContainerId || '')
+  }, [portal?.gtmContainerId])
 
   // Opções do filtro de analytics (pedido "filtrar analytics por pagina"):
   // lista as páginas internas do portal pelo serviço de portal-pages.
@@ -226,6 +235,38 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
       })
     } finally {
       setSavingGa(false)
+    }
+  }
+
+  const handleSaveGtm = async () => {
+    if (!portal?.portalId) return
+    const raw = gtmInput.trim().toUpperCase()
+    if (raw && validateGtmContainerId(raw) !== null) {
+      toast({
+        title: 'ID do GTM inválido',
+        description: 'Use o formato GTM-XXXXXX (contêiner do Google Tag Manager).',
+        variant: 'destructive',
+      })
+      return
+    }
+    setSavingGtm(true)
+    try {
+      await savePortalGtmId(portal.portalId, raw)
+      toast({
+        title: raw ? 'Google Tag Manager salvo' : 'Google Tag Manager removido',
+        description: raw
+          ? 'A página pública já carrega o script do GTM.'
+          : 'O script do GTM deixou de ser injetado.',
+      })
+      void loadPortal()
+    } catch (err) {
+      toast({
+        title: 'Erro ao salvar o ID',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingGtm(false)
     }
   }
 
@@ -602,6 +643,51 @@ export function BrandPortalPanel({ brandId, userId, brandName }: BrandPortalPane
           {portal.gaMeasurementId && (
             <p className="text-[10px] text-muted-foreground">
               ID atual: <span className="font-mono font-bold">{portal.gaMeasurementId}</span>
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ===== Google Tag Manager (pedido 2, script na página pública) ===== */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary" />
+            <p className="text-sm font-bold">Google Tag Manager do portal</p>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Cole o ID do contêiner (GTM-XXXXXX). A página pública injeta o script gtm.js apenas
+            quando o ID está preenchido; vazio remove o tracking.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={gtmInput}
+              onChange={(e) => setGtmInput(e.target.value)}
+              placeholder="GTM-XXXXXX"
+              className="font-mono text-xs flex-1"
+            />
+            <Button
+              size="sm"
+              className="text-xs gap-1 shrink-0"
+              disabled={savingGtm}
+              onClick={handleSaveGtm}
+            >
+              {savingGtm ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
+              Salvar ID
+            </Button>
+          </div>
+          {gtmInput.trim() && validateGtmContainerId(gtmInput) !== null && (
+            <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+              Formato inválido — use GTM-XXXXXX (contêiner do Google Tag Manager).
+            </p>
+          )}
+          {portal.gtmContainerId && (
+            <p className="text-[10px] text-muted-foreground">
+              ID atual: <span className="font-mono font-bold">{portal.gtmContainerId}</span>
             </p>
           )}
         </CardContent>

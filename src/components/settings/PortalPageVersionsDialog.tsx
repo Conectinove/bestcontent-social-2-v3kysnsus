@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Loader2, RotateCcw, History, GitCompareArrows } from 'lucide-react'
+import {
+  Loader2,
+  RotateCcw,
+  History,
+  GitCompareArrows,
+  StickyNote,
+  Pencil,
+  Check,
+  X,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -20,6 +29,7 @@ import {
   listPageVersions,
   restorePageVersion,
   type PortalPageVersion,
+  savePageVersionNote,
 } from '@/services/portal-page-versions'
 import type { PortalPage, PortalPageContent } from '@/services/portal-pages'
 import { PortalBlockDiffView } from '@/components/settings/PortalBlockDiffView'
@@ -61,6 +71,10 @@ export function PortalPageVersionsDialog({
   const [compareOpen, setCompareOpen] = useState(false)
   const [compareRef, setCompareRef] = useState<string>('')
   const [compareWith, setCompareWith] = useState<string>('current')
+  // Nota por versão (migration 0122): edição inline da anotação.
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -116,6 +130,25 @@ export function PortalPageVersionsDialog({
   const theme = page.content?.theme as { accent?: string } | undefined
   const accent = theme?.accent || undefined
 
+  const handleSaveNote = async (v: PortalPageVersion) => {
+    setSavingNoteId(v.id)
+    try {
+      await savePageVersionNote(v.id, noteDraft.trim())
+      setVersions((prev) => prev.map((p) => (p.id === v.id ? { ...p, note: noteDraft.trim() } : p)))
+      setEditingNoteId(null)
+      toast({ title: 'Nota salva', description: 'A anotação da versão foi atualizada.' })
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Erro ao salvar a nota',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingNoteId(null)
+    }
+  }
+
   const handleCompare = () => {
     if (!resolvedRef) {
       toast({ title: 'Escolha a versão de referência', variant: 'destructive' })
@@ -154,7 +187,7 @@ export function PortalPageVersionsDialog({
             {versions.map((v) => (
               <div
                 key={v.id}
-                className="flex items-center gap-2 p-2.5 rounded-lg border border-border/70 bg-muted/30"
+                className="group flex items-center gap-2 p-2.5 rounded-lg border border-border/70 bg-muted/30"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold">
@@ -164,8 +197,61 @@ export function PortalPageVersionsDialog({
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     {countBlocks(v)} bloco{countBlocks(v) === 1 ? '' : 's'}
-                    {v.note ? ` · ${v.note}` : ''}
                   </p>
+                  {editingNoteId === v.id ? (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <input
+                        autoFocus
+                        value={noteDraft}
+                        onChange={(e) => setNoteDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') void handleSaveNote(v)
+                          if (e.key === 'Escape') setEditingNoteId(null)
+                        }}
+                        placeholder="Ex.: ajuste de copy do banner"
+                        className="h-7 w-full rounded-md border border-input bg-background px-2 text-[11px]"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0"
+                        disabled={savingNoteId === v.id}
+                        onClick={() => void handleSaveNote(v)}
+                      >
+                        {savingNoteId === v.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setEditingNoteId(null)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="mt-1 flex w-full items-center gap-1 text-left text-[10px] text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setEditingNoteId(v.id)
+                        setNoteDraft(v.note || '')
+                      }}
+                      title="Editar nota da versão"
+                    >
+                      <StickyNote className="w-3 h-3 shrink-0" />
+                      {v.note ? (
+                        <span className="truncate">{v.note}</span>
+                      ) : (
+                        <span className="italic opacity-70">Adicionar nota…</span>
+                      )}
+                      <Pencil className="w-2.5 h-2.5 shrink-0 opacity-0 group-hover:opacity-60" />
+                    </button>
+                  )}
                 </div>
                 <Button
                   size="sm"
@@ -256,11 +342,19 @@ export function PortalPageVersionsDialog({
                   ? (page.content as PortalPageContent) || null
                   : (resolvedWith?.content as PortalPageContent) || null
               }
-              labelA={versionLabel(resolvedRef) + ' · ' + fmtDate(resolvedRef.created)}
+              labelA={
+                versionLabel(resolvedRef) +
+                ' · ' +
+                fmtDate(resolvedRef.created) +
+                (resolvedRef.note ? ` · ${resolvedRef.note}` : '')
+              }
               labelB={
                 compareWith === 'current'
                   ? 'Atual (publicada)'
-                  : versionLabel(resolvedWith) + ' · ' + fmtDate(resolvedWith.created)
+                  : versionLabel(resolvedWith) +
+                    ' · ' +
+                    fmtDate(resolvedWith.created) +
+                    (resolvedWith.note ? ` · ${resolvedWith.note}` : '')
               }
               accent={accent || 'hsl(var(--primary))'}
             />
