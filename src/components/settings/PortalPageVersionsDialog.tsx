@@ -5,6 +5,7 @@ import {
   History,
   GitCompareArrows,
   StickyNote,
+  Download,
   Pencil,
   Check,
   X,
@@ -31,6 +32,7 @@ import {
   type PortalPageVersion,
   savePageVersionNote,
 } from '@/services/portal-page-versions'
+import { printVersionsHistory } from '@/services/portal-versions-export'
 import type { PortalPage, PortalPageContent } from '@/services/portal-pages'
 import { PortalBlockDiffView } from '@/components/settings/PortalBlockDiffView'
 
@@ -157,6 +159,23 @@ export function PortalPageVersionsDialog({
     setCompareOpen(true)
   }
 
+  // Export do histórico (pedido "exportar historico de versoes"): prévia de
+  // impressão com as anotações de cada versão; popup bloqueado = CSV.
+  const handleExportHistory = () => {
+    if (versions.length === 0) {
+      toast({
+        title: 'Nada para exportar',
+        description: 'Esta página ainda não tem versões salvas.',
+      })
+      return
+    }
+    printVersionsHistory(versions, page.title)
+    toast({
+      title: 'Janela de impressão aberta',
+      description: 'Escolha "Salvar como PDF" para guardar o histórico com as anotações.',
+    })
+  }
+
   return (
     <Dialog
       open
@@ -174,15 +193,30 @@ export function PortalPageVersionsDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] text-muted-foreground">
+            {versions.length === 0
+              ? 'Ainda não há versões salvas desta página.'
+              : `${versions.length} versão${versions.length === 1 ? '' : 'es'} · ${versions.filter((v) => v.note).length} com anotação`}
+          </p>
+          {versions.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1 shrink-0"
+              onClick={handleExportHistory}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Exportar histórico
+            </Button>
+          )}
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="w-5 h-5 animate-spin text-primary" />
           </div>
-        ) : versions.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">
-            Ainda não há versões salvas desta página.
-          </p>
-        ) : (
+        ) : versions.length === 0 ? null : (
           <div className="space-y-2">
             {versions.map((v) => (
               <div

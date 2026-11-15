@@ -202,6 +202,20 @@ export function buildVisitsCsv(
         .map(csvEscape)
         .join(';'),
     )
+    // Retenção por marco (pedido "gráfico de engajamento ao longo do vídeo"):
+    // colunas 25/50/75/100% espelham o gráfico do painel.
+    const ms = v.milestones
+    if (ms) {
+      lines.push(
+        ['25%', '50%', '75%', '100%']
+          .map((lbl) =>
+            csvEscape(
+              `Marco ${lbl}: ${ms[lbl === '25%' ? 'm25' : lbl === '50%' ? 'm50' : lbl === '75%' ? 'm75' : 'm100'] || 0} espectadores`,
+            ),
+          )
+          .join(';'),
+      )
+    }
   }
   lines.push('')
   lines.push('Data;Pagina;Referrer')
@@ -267,12 +281,15 @@ export function printVisitsReport(
        <div class="card"><div class="n">${eng.completed || 0}</div><div class="l">Finalizados (100%)</div></div>`
     : ''
   const videoRows = (metrics.video_ranking || [])
-    .map(
-      (v, i) =>
-        `<tr><td>${i + 1}</td><td>${escHtml(v.media_id)}</td><td>${escHtml(v.page_slug)}</td><td>${v.plays}</td><td>${
-          v.avg_progress != null ? `${v.avg_progress.toFixed(0)}%` : '—'
-        }</td><td>${v.watched_seconds != null ? `${Math.round(v.watched_seconds)}s` : '—'}</td><td>${fmtDate(v.last_play_at)}</td></tr>`,
-    )
+    .map((v, i) => {
+      const ms = v.milestones
+      const msCells = ms
+        ? `<td>${ms.m25 || 0}</td><td>${ms.m50 || 0}</td><td>${ms.m75 || 0}</td><td>${ms.m100 || 0}</td>`
+        : '<td>—</td><td>—</td><td>—</td><td>—</td>'
+      return `<tr><td>${i + 1}</td><td>${escHtml(v.media_id)}</td><td>${escHtml(v.page_slug)}</td><td>${v.plays}</td><td>${
+        v.avg_progress != null ? `${v.avg_progress.toFixed(0)}%` : '—'
+      }</td><td>${v.watched_seconds != null ? `${Math.round(v.watched_seconds)}s` : '—'}</td><td>${msCells}</td><td>${fmtDate(v.last_play_at)}</td></tr>`
+    })
     .join('')
 
   const visitRows = visits
@@ -323,7 +340,7 @@ export function printVisitsReport(
   <h2>Vídeos mais reproduzidos</h2>
   ${
     videoRows
-      ? `<table><thead><tr><th>#</th><th>Mídia</th><th>Página</th><th>Plays</th><th>Conclusão média</th><th>Assistido</th><th>Último play</th></tr></thead><tbody>${videoRows}</tbody></table>`
+      ? `<table><thead><tr><th>#</th><th>Mídia</th><th>Página</th><th>Plays</th><th>Conclusão média</th><th>Assistido</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Último play</th></tr></thead><tbody>${videoRows}</tbody></table>`
       : '<p class="muted">Nenhum play de vídeo registrado no período/filtro.</p>'
   }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   Eye,
   MousePointerClick,
@@ -31,6 +31,7 @@ import {
   printVisitsReport,
   type PortalMetrics,
 } from '@/services/portal-visits'
+import { PortalVideoEngagementChart } from '@/components/settings/PortalVideoEngagementChart'
 
 export interface PortalPageOption {
   id: string
@@ -116,6 +117,9 @@ export function PortalVisitsMetrics({
 }: PortalVisitsMetricsProps) {
   const [exporting, setExporting] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
+  // Vídeo selecionado no ranking (pedido "gráfico de engajamento ao longo do
+  // vídeo"): ao clicar numa linha, mostra a retenção por marco 25/50/75/100%.
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null)
 
   const activePageTitle = pageOptions.find((p) => p.id === pageFilter)?.title || 'Todas as páginas'
 
@@ -345,35 +349,59 @@ export function PortalVisitsMetrics({
           </p>
         ) : (
           videoRanking.slice(0, 5).map((v, i) => (
-            <div
-              key={v.media_id + i}
-              className="flex items-center justify-between px-3 py-2 text-xs gap-2"
-            >
-              <span className="flex items-center gap-1.5 min-w-0">
-                <Play className="w-3 h-3 shrink-0 text-rose-600 dark:text-rose-400" />
-                <span className="font-medium text-foreground truncate">
-                  {v.page_slug === '' || v.page_slug === 'principal'
-                    ? 'Página principal'
-                    : v.page_slug}
-                </span>
-                <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">
-                  · {v.media_id.slice(0, 8)}…
-                </span>
-              </span>
-              <span className="flex items-center gap-2 text-[11px] text-muted-foreground shrink-0">
-                {v.avg_progress != null && (
-                  <span className="font-semibold text-cyan-700 dark:text-cyan-400">
-                    {v.avg_progress}% concl.
+            <Fragment key={v.media_id + i}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  setSelectedVideoId((cur) => (cur === v.media_id ? null : v.media_id))
+                }
+                onKeyDown={(ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault()
+                    setSelectedVideoId((cur) => (cur === v.media_id ? null : v.media_id))
+                  }
+                }}
+                aria-expanded={selectedVideoId === v.media_id}
+                className={
+                  'flex items-center justify-between px-3 py-2 text-xs gap-2 cursor-pointer hover:bg-muted/40 transition-colors' +
+                  (selectedVideoId === v.media_id ? ' bg-muted/60' : '')
+                }
+                title="Clique para ver o engajamento ao longo do vídeo"
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Play className="w-3 h-3 shrink-0 text-rose-600 dark:text-rose-400" />
+                  <span className="font-medium text-foreground truncate">
+                    {v.page_slug === '' || v.page_slug === 'principal'
+                      ? 'Página principal'
+                      : v.page_slug}
                   </span>
-                )}
-                {v.watched_seconds != null && v.watched_seconds > 0 && (
-                  <span>{fmtSeconds(v.watched_seconds)}</span>
-                )}
-              </span>
-              <span className="text-xs font-bold shrink-0">
-                {fmt(v.plays)} play{v.plays === 1 ? '' : 's'}
-              </span>
-            </div>
+                  <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">
+                    · {v.media_id.slice(0, 8)}…
+                  </span>
+                </span>
+                <span className="flex items-center gap-2 text-[11px] text-muted-foreground shrink-0">
+                  {v.avg_progress != null && (
+                    <span className="font-semibold text-cyan-700 dark:text-cyan-400">
+                      {v.avg_progress}% concl.
+                    </span>
+                  )}
+                  {v.watched_seconds != null && v.watched_seconds > 0 && (
+                    <span>{fmtSeconds(v.watched_seconds)}</span>
+                  )}
+                </span>
+                <span className="text-xs font-bold shrink-0">
+                  {fmt(v.plays)} play{v.plays === 1 ? '' : 's'}
+                </span>
+              </div>
+              {selectedVideoId === v.media_id && (
+                <PortalVideoEngagementChart
+                  mediaId={v.media_id}
+                  plays={v.plays}
+                  milestones={v.milestones}
+                />
+              )}
+            </Fragment>
           ))
         )}
       </div>
