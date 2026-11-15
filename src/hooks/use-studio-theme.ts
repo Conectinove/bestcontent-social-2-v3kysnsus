@@ -38,6 +38,8 @@ export interface StudioThemeOption {
   ownerId?: string
   /** Nome do usuário dono do tema compartilhado (via expand, apenas equipe). */
   ownerName?: string
+  /** Tema marcado como padrão da organização (coleção studio_themes). */
+  isOrgDefault?: boolean
 }
 
 export interface StudioCustomColors {
@@ -230,6 +232,7 @@ export function loadCustomThemes(): StudioThemeOption[] {
         remoteId: t.remoteId || undefined,
         ownerId: t.ownerId || undefined,
         ownerName: t.ownerName || undefined,
+        isOrgDefault: Boolean(t.isOrgDefault),
       }))
   } catch {
     return []
@@ -258,6 +261,7 @@ export function persistCustomThemes(themes: StudioThemeOption[]) {
           remoteId: t.remoteId || null,
           ownerId: t.ownerId || null,
           ownerName: t.ownerName || null,
+          isOrgDefault: Boolean(t.isOrgDefault),
         })),
       ),
     )

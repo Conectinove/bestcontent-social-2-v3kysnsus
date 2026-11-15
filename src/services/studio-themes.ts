@@ -23,6 +23,7 @@ export interface StudioThemeRecord {
   is_shared: boolean
   remote_id: string
   scope: string
+  is_org_default?: boolean
   created?: string
   updated?: string
   expand?: { user?: { id?: string; name?: string; company?: string } }
@@ -90,7 +91,25 @@ export function recordToThemeOption(rec: StudioThemeRecord): StudioThemeOption {
     remoteId: rec.id,
     ownerId: rec.user,
     ownerName: rec.expand?.user?.name || '',
+    isOrgDefault: Boolean(rec.is_org_default),
   }
+}
+
+/**
+ * Usuário atual pode gerenciar temas de outros membros? admin/gestor (campo
+ * role da migration 0099) ou plan max/enterprise (fallback de admin).
+ */
+export function isTeamThemeManager(): boolean {
+  const rec = pb.authStore.record as any
+  if (!rec?.id) return false
+  return (
+    rec.role === 'admin' || rec.role === 'gestor' || rec.plan === 'max' || rec.plan === 'enterprise'
+  )
+}
+
+/** Id da company do usuário logado ('' quando não tem). */
+export function currentCompany(): string {
+  return String((pb.authStore.record as any)?.company || '')
 }
 
 /**
@@ -191,4 +210,40 @@ export async function toggleStudioThemeShared(
   isShared: boolean,
 ): Promise<StudioThemeOption> {
   return updateStudioTheme(remoteId, { isShared })
+}
+
+/**
+ * Define (ou remove) o tema padrão da organização: marca is_org_default no
+ * tema alvo e desmarca nos demais temas compartilhados da mesma company —
+ * uma só padrão por org. Best-effort: falhas nos "false" são ignoradas.
+ */
+export async function setStudioThemeOrgDefault(
+  remoteId: string,
+  company: string,
+  isDefault: boolean,
+): Promise<void> {
+  if (company) {
+    const others = await pb
+      .collection(COLLECTION)
+      .getFullList<StudioThemeRecord>({
+        filter: `is_org_default = true && user.company = "${company}"`,
+      })
+      .catch(() => [] as StudioThemeRecord[])
+    await Promise.all(
+      others
+        .filter((r) => r.id !== remoteId)
+        .map((r) =>
+          pb
+            .collection(COLLECTION)
+            .update(r.id, { is_org_default: false })
+            .catch(() => {}),
+        ),
+    )
+  }
+  await pb
+    .collection(COLLECTION)
+    .update(remoteId, { is_org_default: isDefault })
+    .catch(() => {
+      throw new Error(isDefault ? 'Falha ao definir o tema padrão da org.' : '')
+    })
 }
