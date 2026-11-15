@@ -1,139 +1,81 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  ArrowDownUp,
-  ChevronDown,
-  FileText,
-  History,
-  Image as ImageIcon,
-  KeyRound,
-  LayoutTemplate,
-  Loader2,
-  Palette,
-  Plus,
-  Search,
-  Sliders,
-  Star,
-  Trash2,
-} from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { useEffect, useMemo, useState } from 'react'
+import { Star, Search, Filter, RefreshCw, AlertCircle, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
-import { pb } from '@/lib/pocketbase/client'
-import { getFileUrl } from '@/lib/mappers'
 import {
-  DEFAULT_CUSTOMIZATION,
-  type AdvancedCustomizationState,
-} from '@/components/workspace/AdvancedCustomizationPanel'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import {
-  SecondBrainAdvancedImageEditor,
-  buildBrainImageFilter,
-} from './SecondBrainAdvancedImageEditor'
-import { ConnectorButton } from '@/components/skip/ConnectorButton'
+  listSecondBrainFavorites,
+  addSecondBrainFavorite,
+  removeSecondBrainFavorite,
+  type SecondBrainFavorite,
+} from '@/services/second-brain-favorites'
 import {
-  DEFAULT_MEDIA_FILTERS,
-  applyMediaFilters,
-  applySecondBrainMediaTemplate,
-  createSecondBrainMediaTemplate,
-  deleteSecondBrainMediaTemplate,
   fetchAccountMediaSource,
   fetchCuratedMediaSource,
-  listDriveMedia,
+  searchStockProvider,
+  fetchStockStatus,
   listSecondBrainMediaTemplates,
+  createSecondBrainMediaTemplate,
+  deleteSecondBrainMediaTemplate,
+  applySecondBrainMediaTemplate,
   listSecondBrainMediaVersions,
   saveSecondBrainMediaVersion,
-  searchStockProvider,
-  stockAttribution,
-  fetchStockStatus,
-  sortMediaItems,
+  type SecondBrainMediaItem,
+  type StockSearchResult,
+  type SecondBrainMediaSort,
+  type SecondBrainOrientationFilter,
+  type SecondBrainColorFilter,
+  type SecondBrainMediaFilters,
+  DEFAULT_MEDIA_FILTERS,
   MEDIA_SORT_OPTIONS,
   ORIENTATION_OPTIONS,
   COLOR_OPTIONS,
-  type SecondBrainDateFilter,
-  type SecondBrainMediaFilters,
-  type SecondBrainMediaItem,
-  type SecondBrainMediaType,
-  type SecondBrainMediaTemplate,
-  type SecondBrainMediaVersion,
-  type StockSearchResult,
+  sortMediaItems,
 } from '@/services/second-brain-media'
-import {
-  isSecondBrainFavorite,
-  listSecondBrainFavorites,
-  toggleSecondBrainFavorite,
-  type SecondBrainFavorite,
-} from '@/services/second-brain-favorites'
+import { cn } from '@/lib/utils'
 
-/** Item normalizado de mídia usado em toda a grade (todas as fontes). */
-interface MediaItem {
-  id: string
-  name: string
-  url: string
-  kind: 'image' | 'document' | 'video' | 'link'
-  source: string
-  origin: SecondBrainTab
-  createdAt?: string
-  tags?: string[]
-  driveFileId?: string
-  authorUrl?: string
-  /** Source original no registro de favorito (preenchido só na aba Favoritos). */
-  favSource?: string
-}
+/* ================================ TIPOS ================================ */
 
-type SecondBrainTab =
-  | 'favorites'
-  | 'document'
-  | 'bank'
+export type MediaTab =
+  | 'favoritos'
+  | 'documento'
+  | 'acervo'
   | 'uploads'
-  | 'library'
+  | 'biblioteca'
   | 'drive'
   | 'unsplash'
   | 'pexels'
 
-interface SecondBrainDocShape {
-  id: string
-  title: string
-  modules: Array<{
-    id: string
-    title: string
-    blocks: Array<{
-      id: string
-      type: string
-      content: string
-      caption?: string
-      metadata?: Record<string, any>
-    }>
-  }>
-}
-
-interface SecondBrainMediaGridProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  doc: SecondBrainDocShape
-  onDocUpdated: (doc: { modules: any[] }) => void
-}
-
-const TABS: Array<{ key: SecondBrainTab; label: string }> = [
-  { key: 'favorites', label: 'Favoritos' },
-  { key: 'document', label: 'Documento' },
-  { key: 'bank', label: 'Acervo' },
+const TABS: { key: MediaTab; label: string }[] = [
+  { key: 'favoritos', label: 'Favoritos' },
+  { key: 'documento', label: 'Documento' },
+  { key: 'acervo', label: 'Acervo' },
   { key: 'uploads', label: 'Uploads' },
-  { key: 'library', label: 'Biblioteca' },
+  { key: 'biblioteca', label: 'Biblioteca' },
   { key: 'drive', label: 'Drive' },
   { key: 'unsplash', label: 'Unsplash' },
   { key: 'pexels', label: 'Pexels' },
 ]
 
-const TYPE_CHIPS: Array<{ key: 'all' | SecondBrainMediaType; label: string }> = [
+type TypeFilter = 'all' | 'imagem' | 'video' | 'anexo' | 'link'
+type DateFilter = 'all' | 'today' | '7d' | '30d' | 'custom'
+
+const TYPE_FILTERS: { key: TypeFilter; label: string }[] = [
   { key: 'all', label: 'Todos' },
   { key: 'imagem', label: 'Imagens' },
   { key: 'video', label: 'Vídeos' },
@@ -141,1489 +83,611 @@ const TYPE_CHIPS: Array<{ key: 'all' | SecondBrainMediaType; label: string }> = 
   { key: 'link', label: 'Links' },
 ]
 
-const PERIODS: Array<{ key: SecondBrainDateFilter; label: string }> = [
+const DATE_FILTERS: { key: DateFilter; label: string }[] = [
+  { key: 'all', label: 'Tudo' },
   { key: 'today', label: 'Hoje' },
-  { key: '7d', label: 'Últimos 7 dias' },
-  { key: '30d', label: 'Últimos 30 dias' },
-  { key: 'all', label: 'Todo o período' },
-  { key: 'custom', label: 'Período custom…' },
+  { key: '7d', label: '7 dias' },
+  { key: '30d', label: '30 dias' },
+  { key: 'custom', label: 'Custom' },
 ]
 
-/** Converte um item da grade para o formato que a camada de serviço espera. */
-const toServiceItem = (i: MediaItem): SecondBrainMediaItem => ({
-  id: i.id,
-  source: i.origin === 'favorites' ? 'document' : i.origin,
-  name: i.name,
-  url: i.url,
-  type:
-    i.kind === 'video'
-      ? 'video'
-      : i.kind === 'document'
-        ? 'anexo'
-        : i.kind === 'link'
-          ? 'link'
-          : 'imagem',
-  createdAt: i.createdAt,
-  tags: i.tags,
+interface Props {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onInsert: (item: SecondBrainMediaItem) => void
+}
+
+/** Formato usado pelo grid inteiro — deriva de SecondBrainMediaItem. */
+interface GridItem {
+  id: string
+  name: string
+  url: string
+  thumbUrl: string
+  type: 'imagem' | 'video' | 'anexo' | 'link'
+  source: MediaTab
+  createdAt: string
+  author?: string
+  width?: number
+  height?: number
+}
+
+const toGridItem = (m: SecondBrainMediaItem, source: MediaTab): GridItem => ({
+  id: `${source}:${m.id}`,
+  name: m.name || 'Sem título',
+  url: m.url,
+  thumbUrl: m.thumbUrl || m.url,
+  type: (['imagem', 'video', 'anexo', 'link'].includes(m.type) ? m.type : 'anexo') as GridItem['type'],
+  source,
+  createdAt: m.created || '',
+  author: m.author,
+  width: m.width,
+  height: m.height,
 })
 
-/** Extrai o estado de edição persistido para uma URL de mídia, varrendo os blocos. */
-export function findEditStateFor(
-  url: string,
-  doc: SecondBrainDocShape,
-): Partial<AdvancedCustomizationState> | null {
-  for (const m of doc.modules) {
-    for (const b of m.blocks) {
-      const meta = b.metadata || {}
-      if (
-        meta.image_url === url ||
-        meta.thumbnail_url === url ||
-        meta.attachment_url === url ||
-        (typeof b.content === 'string' && b.content.includes(url))
-      ) {
-        return (meta.advanced_edit as Partial<AdvancedCustomizationState>) || null
-      }
+const stockToItem = (r: StockSearchResult, source: 'unsplash' | 'pexels'): GridItem => ({
+  id: `${source}:${r.id}`,
+  name: r.title || 'Sem título',
+  url: r.url,
+  thumbUrl: r.thumb_url || r.url,
+  type: 'imagem',
+  source,
+  createdAt: '',
+  author: r.author,
+  width: r.width,
+  height: r.height,
+})
+
+/* ========================= FILTROS DE PERÍODO ========================= */
+
+const isWithinDate = (createdAt: string, f: DateFilter, from?: string, to?: string): boolean => {
+  if (f === 'all') return true
+  if (!createdAt) return false
+  const d = new Date(createdAt)
+  if (Number.isNaN(d.getTime())) return false
+  if (f === 'custom') {
+    const t = d.getTime()
+    if (from) {
+      const f1 = new Date(`${from}T00:00:00`).getTime()
+      if (Number.isNaN(f1) || t < f1) return false
     }
-  }
-  return null
-}
-
-const editStyleFor = (item: MediaItem, doc: SecondBrainDocShape): React.CSSProperties => {
-  const saved = findEditStateFor(item.url, doc)
-  if (!saved) return {}
-  return {
-    filter: buildBrainImageFilter({
-      ...DEFAULT_CUSTOMIZATION,
-      ...saved,
-    } as AdvancedCustomizationState),
-    transform: [
-      saved.rotation ? `rotate(${saved.rotation}deg)` : '',
-      saved.flipHorizontal ? 'scaleX(-1)' : '',
-      saved.flipVertical ? 'scaleY(-1)' : '',
-    ]
-      .filter(Boolean)
-      .join(' '),
-  }
-}
-
-const isEdited = (item: MediaItem, doc: SecondBrainDocShape) => !!findEditStateFor(item.url, doc)
-
-function parseTags(raw: any): string[] {
-  if (Array.isArray(raw)) return raw.map(String)
-  if (typeof raw === 'string') {
-    try {
-      const p = JSON.parse(raw)
-      return Array.isArray(p) ? p.map(String) : [raw]
-    } catch {
-      return [raw]
+    if (to) {
+      const t1 = new Date(`${to}T23:59:59`).getTime()
+      if (Number.isNaN(t1) || t > t1) return false
     }
+    return true
   }
-  return []
+  const now = new Date()
+  if (f === 'today') return d.toDateString() === now.toDateString()
+  const days = f === '7d' ? 7 : 30
+  return now.getTime() - d.getTime() <= days * 86400000
 }
 
-/**
- * Grid de mídias do Segundo Cérebro: oito fontes (Favoritos, Documento,
- * Acervo, Uploads, Biblioteca, Drive, Unsplash, Pexels), busca + filtros de
- * tipo/período, favoritos (second_brain_favorites), inclusão no doc, histórico
- * de versões (studio_edit_versions, namespace secondbrain:) e modelos de
- * composição (studio_edit_presets, namespace "secondbrain:" com is_shared).
- */
+/* ============================== COMPONENTE ============================= */
 
-/** Período custom: intervalo [from, to] em ISO de dia (00:00 → 23:59). */
-const customRangeToWindow = (r: { from: string; to: string }) => {
-  if (!r.from) return null
-  const fromTs = new Date(`${r.from}T00:00:00`).getTime()
-  const toTs = r.to ? new Date(`${r.to}T23:59:59.999`).getTime() : fromTs + 24 * 60 * 60 * 1000 - 1
-  if (!Number.isFinite(fromTs)) return null
-  return { fromTs, toTs: Number.isFinite(toTs) ? toTs : fromTs + 86_399_999 }
-}
-export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
-  open,
-  onOpenChange,
-  doc,
-  onDocUpdated,
-}) => {
-  const { toast } = useToast()
-  const [filters, setFilters] = useState<SecondBrainMediaFilters>(DEFAULT_MEDIA_FILTERS)
-  const [tab, setTab] = useState<SecondBrainTab>('document')
-  const [bankItems, setBankItems] = useState<MediaItem[]>([])
-  const [bankLoading, setBankLoading] = useState(false)
-  const [uploadsItems, setUploadsItems] = useState<MediaItem[]>([])
-  const [uploadsLoading, setUploadsLoading] = useState(false)
-  const [driveItems, setDriveItems] = useState<MediaItem[]>([])
-  const [driveLoading, setDriveLoading] = useState(false)
-  const [driveError, setDriveError] = useState<string | null>(null)
-  const [driveConnected, setDriveConnected] = useState<boolean | null>(null)
-  const [stock, setStock] = useState<{
-    unsplash: { configured: boolean | null; message: string | null; results: StockSearchResult[] }
-    pexels: { configured: boolean | null; message: string | null; results: StockSearchResult[] }
-  }>({
-    unsplash: { configured: null, message: null, results: [] },
-    pexels: { configured: null, message: null, results: [] },
-  })
-  const [stockQuery, setStockQuery] = useState<{ unsplash: string; pexels: string }>({
-    unsplash: '',
-    pexels: '',
-  })
-  const [stockLoading, setStockLoading] = useState<{ unsplash: boolean; pexels: boolean }>({
-    unsplash: false,
-    pexels: false,
-  })
+export function SecondBrainMediaGrid({ open, onOpenChange, onInsert }: Props) {
+  const [tab, setTab] = useState<MediaTab>('favoritos')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [search, setSearch] = useState('')
+
+  // Busca avançada (Unsplash/Pexels): orientação, cor e ordenação
+  const [orientation, setOrientation] = useState<SecondBrainOrientationFilter>('any')
+  const [color, setColor] = useState<SecondBrainColorFilter>('any')
+  const [sortBy, setSortBy] = useState<SecondBrainMediaSort>('relevance')
+  const [stock, setStock] = useState<Record<string, { loading: boolean; configured: boolean | null; message: string | null; results: StockSearchResult[] }>>({})
+  const [stockStatus, setStockStatus] = useState({ unsplash: false, pexels: false })
+
   const [favorites, setFavorites] = useState<SecondBrainFavorite[]>([])
-  const [favBusyId, setFavBusyId] = useState<string | null>(null)
-  const [editingMedia, setEditingMedia] = useState<MediaItem | null>(null)
-  const [savingId, setSavingId] = useState<string | null>(null)
-  const [historyItem, setHistoryItem] = useState<MediaItem | null>(null)
-  const [versions, setVersions] = useState<SecondBrainMediaVersion[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [restoringId, setRestoringId] = useState<string | null>(null)
-  const [templatesOpen, setTemplatesOpen] = useState(false)
-  const [templates, setTemplates] = useState<SecondBrainMediaTemplate[]>([])
-  const [templatesLoading, setTemplatesLoading] = useState(false)
-  const [applyingTemplate, setApplyingTemplate] = useState<SecondBrainMediaTemplate | null>(null)
-  const [nameOpen, setNameOpen] = useState(false)
-  const [templateName, setTemplateName] = useState('')
-  const [templateShared, setTemplateShared] = useState(false)
-  const [pendingTemplate, setPendingTemplate] = useState<AdvancedCustomizationState | null>(null)
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+  const [favIds, setFavIds] = useState<Set<string>>(new Set())
+  const [favSource, setFavSource] = useState<Record<string, string>>({})
+  const [documentItems, setDocumentItems] = useState<GridItem[]>([])
+  const [acervoItems, setAcervoItems] = useState<GridItem[]>([])
+  const [uploads, setUploads] = useState<GridItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  /* ------------------------- Fontes do documento ------------------------ */
-  const mediaItems: MediaItem[] = useMemo(() => {
-    const items: MediaItem[] = []
-    const seen = new Set<string>()
-    doc.modules.forEach((m) => {
-      m.blocks.forEach((b) => {
-        const meta = b.metadata || {}
-        const candidates: Array<{ url?: string; name?: string; source?: string }> = []
-        if (meta.image_url)
-          candidates.push({
-            url: meta.image_url,
-            name: meta.image_name || m.title,
-            source: 'Anexo do item',
-          })
-        if (meta.thumbnail_url)
-          candidates.push({
-            url: meta.thumbnail_url,
-            name: meta.image_name || m.title,
-            source: 'Capa do anexo',
-          })
-        if (meta.attachment_url)
-          candidates.push({
-            url: meta.attachment_url,
-            name: meta.attachment_name || m.title,
-            source: 'Anexo do item',
-          })
-        if (
-          b.type === 'image' &&
-          typeof b.content === 'string' &&
-          /^https?:\/\//.test(b.content.trim())
-        )
-          candidates.push({
-            url: b.content.trim(),
-            name: b.caption || m.title,
-            source: 'Bloco de imagem',
-          })
-        if ((b.type === 'paragraph' || b.type === 'callout') && typeof b.content === 'string') {
-          const match = b.content.match(/https?:\/\/[^\s)"']+\.(?:png|jpe?g|gif|webp|avif)/i)
-          if (match) candidates.push({ url: match[0], name: m.title, source: 'Link em bloco' })
-        }
-        candidates.forEach((c) => {
-          if (c.url && !seen.has(c.url)) {
-            seen.add(c.url)
-            items.push({
-              id: `${b.id}:${c.url.slice(-24)}`,
-              name: c.name || m.title || 'Mídia',
-              url: c.url,
-              kind:
-                /\.(png|jpe?g|gif|webp|avif)$/i.test(c.url) || b.type === 'image'
-                  ? 'image'
-                  : 'document',
-              source: c.source || 'Anexo do item',
-              origin: 'document',
-              createdAt: (b.metadata as any)?.edited_at,
+  /* Carrega o conteúdo da aba ativa (best-effort, nunca bloqueia a UI). */
+  const loadTab = async (t: MediaTab) => {
+    if (t === 'favoritos') {
+      setLoading(true)
+      try {
+        const favs = await listSecondBrainFavorites()
+        setFavorites(favs)
+        const ids: Set<string> = new Set()
+        const src: Record<string, string> = {}
+        for (const f of favs) {
+          ids.add(`${f.source}:${f.media_id}`)
+          src[`${f.source}:${f.media_id}`] = f.source
+          if (f.meta?.thumb_url) {
+            setDocumentItems((prev) => {
+              if (prev.some((i) => i.id === `${f.source}:${f.meta?.media_id ?? f.media_id}`)) return prev
+              return [
+                ...prev,
+                {
+                  id: `${f.source}:${f.media_id}`,
+                  name: f.meta?.title || f.meta?.name || 'Favorito',
+                  url: f.meta?.url || '',
+                  thumbUrl: f.meta?.thumb_url || f.meta?.url || '',
+                  type: (f.meta?.type as GridItem['type']) || 'imagem',
+                  source: (f.source as MediaTab) || 'acervo',
+                  createdAt: f.created || '',
+                },
+              ]
             })
           }
-        })
-      })
-    })
-    return items
-  }, [doc])
-
-  const docUrls = useMemo(() => new Set(mediaItems.map((i) => i.url)), [mediaItems])
-
-  const docFiles = useMemo(() => {
-    const files: Array<{ id: string; name: string; source: string; url?: string }> = []
-    doc.modules.forEach((m) => {
-      m.blocks.forEach((b) => {
-        const meta = b.metadata || {}
-        if (meta.attachment_url && !/\.(png|jpe?g|gif|webp|avif)$/i.test(meta.attachment_url)) {
-          files.push({
-            id: `${b.id}:file`,
-            name: meta.attachment_name || m.title,
-            source: 'Anexo do item',
-            url: meta.source_url || meta.attachment_url,
-          })
         }
-      })
-    })
-    return files
-  }, [doc])
-
-  /* ----------------------------- Carregadores --------------------------- */
-  const refreshFavorites = useCallback(async () => {
-    try {
-      setFavorites(await listSecondBrainFavorites())
-    } catch {
-      setFavorites([])
-    }
-  }, [])
-
-  useEffect(() => {
-    if (open) refreshFavorites()
-  }, [open, refreshFavorites])
-
-  // Acervo da conta (image_bank_assets)
-  useEffect(() => {
-    if (!open || tab !== 'bank' || bankItems.length || bankLoading) return
-    let alive = true
-    setBankLoading(true)
-    fetchAccountMediaSource({ perPage: 60 })
-      .then((page) => {
-        if (!alive) return
-        setBankItems(
-          page.items.map((i) => ({
-            id: i.id,
-            name: i.name,
-            url: i.url,
-            kind: 'image' as const,
-            source: 'Acervo da conta',
-            origin: 'bank' as const,
-            createdAt: i.createdAt,
-            tags: i.tags,
-          })),
-        )
-      })
-      .catch(() => alive && setBankItems([]))
-      .finally(() => alive && setBankLoading(false))
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tab])
-
-  // Uploads anteriores (posts.media)
-  useEffect(() => {
-    if (!open || tab !== 'uploads' || uploadsItems.length || uploadsLoading) return
-    let alive = true
-    setUploadsLoading(true)
-    ;(async () => {
+        setFavIds(ids)
+        setFavSource(src)
+        setError(null)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Falha ao carregar favoritos.')
+      } set setLoading(false)
+    } else if (t === 'acervo') {
+      setLoading(true)
       try {
-        const userId = pb.authStore.record?.id as string | undefined
-        const recs = await pb.collection('posts').getList(1, 60, {
-          filter: userId ? `user = "${userId}"` : undefined,
-          sort: '-created',
-        })
-        const items = (recs.items || [])
-          .map((r: any): MediaItem | null => {
-            const url = getFileUrl(r, 'media') || r.image_url || ''
-            if (!url) return null
-            return {
-              id: `post:${r.id}`,
-              name: r.title || (r.caption || '').slice(0, 60) || 'Upload anterior',
-              url,
-              kind: 'image',
-              source: 'Upload em posts',
-              origin: 'uploads',
-              tags: parseTags(r.tags),
-              createdAt: r.created,
-            }
-          })
-          .filter((i): i is MediaItem => Boolean(i))
-        if (alive) setUploadsItems(items)
-      } catch {
-        if (alive) setUploadsItems([]) // indisponível: estado vazio honesto
+        const { items, error: err } = await fetchAccountMediaSource()
+        setAcervoItems(items.map((i) => toGridItem(i, 'acervo')))
+        setError(err)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Falha ao carregar o acervo.')
       } finally {
-        if (alive) setUploadsLoading(false)
+        setLoading(false)
       }
-    })()
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tab])
-
-  // Google Drive (conectores, conta de cada usuário)
-  useEffect(() => {
-    if (!open || tab !== 'drive') return
-    let alive = true
-    setDriveLoading(true)
-    listDriveMedia(filters.query)
-      .then((res) => {
-        if (!alive) return
-        setDriveItems(
-          res.items.map((i) => ({
-            id: i.id,
-            name: i.name,
-            url: i.url,
-            kind: i.type === 'video' ? ('video' as const) : ('image' as const),
-            source: 'Google Drive',
-            origin: 'drive' as const,
-            createdAt: i.createdAt,
-            driveFileId: (i.meta as any)?.driveFileId,
-          })),
+    } else if (t === 'drive') {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await import('@/services/studio-external-media').then((m) =>
+          m.fetchDriveMediaSource?.(),
         )
-        setDriveError(res.error)
-        setDriveConnected(!res.error || res.items.length > 0)
-      })
-      .catch(() => {
-        if (!alive) return
-        setDriveItems([])
-        setDriveError('Falha ao listar o Google Drive.')
-      })
-      .finally(() => alive && setDriveLoading(false))
-    return () => {
-      alive = false
+        if (res && 'items' in res) {
+          setDocumentItems((prev) => {
+            const next = res.items.map((i) => toGridItem(i as SecondBrainMediaItem, 'drive'))
+            return [...next, ...prev.filter((p) => p.source !== 'drive')]
+          })
+        } else {
+          setError('Conecte sua conta do Google Drive para ver os arquivos.')
+        }
+        setError(null)
+      } catch {
+        setError('Conecte sua conta do Google Drive para ver os arquivos.')
+      } finally {
+        setLoading(false)
+      }
+    } else if (t === 'unsplash' || t === 'pexels') {
+      if (stock[t] && !stockStatus[t]) return
+      setStock((prev) => ({ ...prev, [t]: { loading: true, configured: null, message: null, results: prev[t]?.results || [] } }))
+      try {
+        const state = await searchStockProvider(t, search, { orientation, color })
+        setStock((prev) => ({ ...prev, [t]: state }))
+      } catch (e) {
+        setStock((prev) => ({ ...prev, [t]: { loading: false, configured: true, message: e instanceof Error ? e.message : 'Falha na busca.', results: [] } }))
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tab])
+  }
 
-  // Status das chaves de stock (honesto: sem chave mostra orientação, não dados)
+  /* Busca na aba de estoque dispara recarga quando muda termo/filtros. */
+  useEffect(() => {
+    if (open && (tab === 'unsplash' || tab === 'pexels')) {
+      const id = setTimeout(() => {
+        loadTab(tab)
+      }, 350)
+      return () => clearTimeout(id)
+    }
+  }, [tab, search, orientation, color, open, stockStatus.unsplash, stockStatus.pexels])
+
+  useEffect(() => {
+    if (open && tab !== 'unsplash' && tab !== '} pexels') loadTab(tab)
+  }, [tab, open])
+
   useEffect(() => {
     if (!open) return
-    let alive = true
-    fetchStockStatus()
-      .then((s) => {
-        if (!alive) return
-        setStock((prev) => ({
-          unsplash: { ...prev.unsplash, configured: s.unsplash },
-          pexels: { ...prev.pexels, configured: s.pexels },
-        }))
-      })
-      .catch(() => {})
-    return () => {
-      alive = false
-    }
+    fetchStockStatus().then(setStockStatus)
+    listSecondBrainMediaTemplates().then((ts) => setTemplates(ts))
   }, [open])
 
-  const runStockSearch = useCallback(async (provider: 'unsplash' | 'pexels', q: string) => {
-    if (!q.trim()) {
-      setStock((prev) => ({
-        ...prev,
-        [provider]: { configured: true, message: null, results: [] },
-      }))
-      return
-    }
-    setStockLoading((prev) => ({ ...prev, [provider]: true }))
+  const [templates, setTemplates] = useState<Awaited<ReturnType<typeof listSecondBrainMediaTemplates>>>([])
+  const [newTemplateName, setNewTemplateName] = useState('')
+
+  const handleToggleFavorite = async (item: GridItem) => {
+    const bareId = item.id.split(':').slice(1).join(':')
+    const favKey = `${item.source}:${bareId}`
+    const isFav = favIds.has(favKey)
     try {
-      const state = await searchStockProvider(provider, q)
-      setStock((prev) => ({
-        ...prev,
-        [provider]: {
-          configured: state.configured,
-          message: state.message,
-          results: state.results,
-        },
-      }))
-    } finally {
-      setStockLoading((prev) => ({ ...prev, [provider]: false }))
+      if (isFav) {
+        await removeSecondBrainFavorite(bareId, item.source)
+        setFavIds((prev) => {
+          const n = new Set(prev)
+          n.delete(favKey)
+          return n
+        })
+        setFavorites((prev) => prev.filter((f) => !(f.media_id === bareId && f.source === item.source)))
+      } else {
+        const created = await addSecondBrainFavorite({
+          source: item.source,
+          media_id: bareId,
+          meta: { title: item.name, url: item.url, thumb_url: item.thumbUrl, type: item.type },
+        })
+        setFavIds((prev) => new Set(prev).add(favKey))
+        if (created) setFavorites((prev) => [created, ...prev])
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao favoritar.')
     }
-  }, [])
-
-  // Recarrega o stock quando a busca muda (debounce leve por tecla é evitado:
-  // busca dispara no submit/Enter ou ao apertar o botão, não a cada tecla).
-  const submitStockSearch = (provider: 'unsplash' | 'pexels') => {
-    void runStockSearch(provider, stockQuery[provider])
   }
 
-  /* ------------------------- Itens da fonte ativa ----------------------- */
-  const stockToItems = (provider: 'unsplash' | 'pexels'): MediaItem[] =>
-    stock[provider].results.map((r) => ({
-      id: `${provider}_${r.id}`,
-      name: r.title || `Foto ${r.id}`,
-      url: r.url,
-      kind: 'image' as const,
-      source: provider === 'unsplash' ? 'Unsplash' : 'Pexels',
-      origin: provider,
-      authorUrl: r.author_url,
-      tags: [provider],
-    }))
-
-  const favoritesItems: MediaItem[] = useMemo(
-    () =>
-      favorites.map((f) => ({
-        id: `fav_${f.id}`,
-        name: f.name || 'Mídia favorita',
-        url: f.url,
-        kind: /\.(png|jpe?g|gif|webp|avif)$/i.test(f.url) ? 'image' : 'document',
-        source: `Favorito · ${f.source}`,
-        origin: 'favorites' as const,
-        createdAt: f.created,
-        tags: ['favorito', f.source],
-        driveFileId: (f.meta as any)?.driveFileId,
-        // source original do registro — necessário para desfavoritar corretamente
-        favSource: f.source,
-      })),
-    [favorites],
-  )
-
-  const curatedItems = useMemo<MediaItem[]>(
-    () =>
-      tab === 'library'
-        ? fetchCuratedMediaSource(filters.query).map((i) => ({
-            id: i.id,
-            name: i.name,
-            url: i.url,
-            kind: 'image' as const,
-            source: 'Biblioteca',
-            origin: 'library' as const,
-            createdAt: i.createdAt,
-            tags: i.tags,
-          }))
-        : [],
-    [tab, filters.query],
-  )
-
-  const sourceItems: MediaItem[] =
-    tab === 'favorites'
-      ? favoritesItems
-      : tab === 'document'
-        ? mediaItems
-        : tab === 'bank'
-          ? bankItems
-          : tab === 'uploads'
-            ? uploadsItems
-            : tab === 'drive'
-              ? driveItems
-              : tab === 'unsplash'
-                ? stockToItems('unsplash')
-                : tab === 'pexels'
-                  ? stockToItems('pexels')
-                  : curatedItems
-
-  const sourceLoading =
-    tab === 'bank'
-      ? bankLoading
-      : tab === 'uploads'
-        ? uploadsLoading
-        : tab === 'drive'
-          ? driveLoading
-          : tab === 'unsplash'
-            ? stockLoading.unsplash
-            : tab === 'pexels'
-              ? stockLoading.pexels
-              : false
-
-  }, [sourceItems, filters, customRange])
-
-  const visibleItems = useMemo(
-    () => sortMediaItems(visibleItemsFiltered, filters.sort),
-    [visibleItemsFiltered, filters.sort],
-  )
-
-  const hasAnyContent =
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  }, [sourceItems, filters, customRange])
-
-  const visibleItems = useMemo(
-    () => sortMediaItems(visibleItemsFiltered, filters.sort),
-    [visibleItemsFiltered, filters.sort],
-  )
-
-  const hasAnyContent =
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-
-  /* ------------------------------- Ações -------------------------------- */
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  const visibleItems = useMemo(() => {
-    const range = filters.period === 'custom' ? customRangeToWindow(customRange) : null
-    const base = sourceItems.map(toServiceItem)
-    const filtered = applyMediaFilters(base, filters)
-    const withSource = filtered.map((i) => {
-      const original = sourceItems.find((s) => s.id === i.id)
-      return { ...(original as MediaItem), ...i }
-    })
-    // Período custom: janela [de, até] sobre o que passou nos filtros
-    if (filters.period === 'custom') {
-      return withSource.filter((i) => {
-        if (!i.createdAt) return false
-        const ts = new Date(i.createdAt).getTime()
-        return Number.isFinite(ts) && range ? ts >= range.fromTs && ts <= range.toTs : true
-      })
-    }
-    return sortMediaItems(withSource, filters.sort)
-  }, [sourceItems, filters, customRange])
-
-  const hasAnyContent =
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-
-  /* ------------------------------- Ações -------------------------------- */
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  }, [sourceItems, filters, customRange])
-
-  const visibleItems = useMemo(
-    () => sortMediaItems(visibleItemsFiltered, filters.sort),
-    [visibleItemsFiltered, filters.sort],
-  )
-
-  const hasAnyContent =
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-
-  /* ------------------------------- Ações -------------------------------- */
-=======
-  const visibleItems = useMemo(() => {
-    const range = filters.period === 'custom' ? customRangeToWindow(customRange) : null
-    const base = sourceItems.map(toServiceItem)
-    const filtered = applyMediaFilters(base, filters)
-    const withSource = filtered.map((i) => {
-      const original = sourceItems.find((s) => s.id === i.id)
-      return { ...(original as MediaItem), ...i }
-    })
-    // Período custom: janela [de, até] sobre o que passou nos filtros
-    if (filters.period === 'custom') {
-      return withSource.filter((i) => {
-        if (!i.createdAt) return false
-        const ts = new Date(i.createdAt).getTime()
-        return Number.isFinite(ts) && range ? ts >= range.fromTs && ts <= range.toTs : true
-      })
-    }
-    return sortMediaItems(withSource, filters.sort)
-  }, [sourceItems, filters, customRange])
-
-  const hasAnyContent =
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  }, [sourceItems, filters, customRange])
-
-  const visibleItems = useMemo(
-    () => sortMediaItems(visibleItemsFiltered, filters.sort),
-    [visibleItemsFiltered, filters.sort],
-  )
-
-  const hasAnyContent =
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  }, [sourceItems, filters, customRange])
-
-  const visibleItems = useMemo(
-    () => sortMediaItems(visibleItemsFiltered, filters.sort),
-    [visibleItemsFiltered, filters.sort],
-  )
-
-  const hasAnyContent =
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-=======
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
-    mediaItems.length > 0 ||
-    docFiles.length > 0 ||
-    bankItems.length > 0 ||
-    uploadsItems.length > 0 ||
-    favorites.length > 0
-
-  /* ------------------------------- Ações -------------------------------- */
-  /** Persiste um estado de edição avançada no bloco dono da URL. */
-  const applyEditToDoc = (item: MediaItem, edit: Partial<AdvancedCustomizationState>) => {
-    const updatedModules = doc.modules.map((m) => ({
-      ...m,
-      blocks: m.blocks.map((b) => {
-        const meta = b.metadata || {}
-        const hits =
-          meta.image_url === item.url ||
-          meta.thumbnail_url === item.url ||
-          meta.attachment_url === item.url ||
-          (typeof b.content === 'string' && b.content.includes(item.url))
-        if (!hits) return b
-        return {
-          ...b,
-          metadata: {
-            ...meta,
-            advanced_edit: {
-              ...(meta.advanced_edit || {}),
-              ...edit,
-              edited_at: new Date().toISOString(),
-            },
-          },
-        }
-      }),
-    }))
-    onDocUpdated({ modules: updatedModules })
-  }
-
-  const saveEditedImage = async (item: MediaItem, state: AdvancedCustomizationState) => {
-    setSavingId(item.id)
+  const handleSaveTemplate = async () => {
+    if (!newTemplateName.trim()) return
     try {
-      applyEditToDoc(item, state)
-      // Snapshot para o histórico de edições (best-effort, nunca bloqueia)
-      await saveSecondBrainMediaVersion({
-        mediaId: item.id,
-        title: item.name,
-        settings: state,
-        previewUrl: item.url,
+      const t = await createSecondBrainMediaTemplate({
+        name: newTemplateName.trim(),
+        settings: {} as Parameters<typeof createSecondBrainMediaTemplate>[0]['settings'],
+        isShared: false,
       })
-      setEditingMedia(null)
-      toast({
-        title: 'Edição salva!',
-        description: `"${item.name}" atualizado — o ajuste persiste ao recarregar.`,
-      })
-    } finally {
-      setSavingId(null)
+      setTemplates((prev) => [t, ...prev])
+      setNewTemplateName(''),
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao salvar modelo.')
     }
   }
 
-  const openHistory = async (item: MediaItem) => {
-    setHistoryItem(item)
-    setHistoryLoading(true)
+  const handleDeleteTemplate = async (id: string) => {
     try {
-      setVersions(await listSecondBrainMediaVersions(item.id))
-    } catch {
-      setVersions([])
-    } finally {
-      setHistoryLoading(false)
+      await deleteSecondBrainMediaTemplate(id)
+      setTemplates((prev) => prev.filter((t) => t.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao remover modelo.')
     }
   }
 
-  const restoreVersion = async (version: SecondBrainMediaVersion) => {
-    if (!historyItem || !version.settings) {
-      toast({
-        title: 'Versão sem ajustes salvos',
-        description: 'Este snapshot não traz um estado aplicável.',
-        variant: 'destructive',
-      })
-      return
-    }
-    setRestoringId(version.id)
-    try {
-      applyEditToDoc(historyItem, version.settings as Partial<AdvancedCustomizationState>)
-      toast({
-        title: 'Versão restaurada',
-        description: `Estado de ${new Date(version.created).toLocaleString('pt-BR')} aplicado a "${historyItem.name}".`,
-      })
-      setHistoryItem(null)
-    } finally {
-      setRestoringId(null)
-    }
-  }
+  /* ------------------------- DERIVAÇÃO DA LISTA ------------------------- */
 
-  /** Inclui uma mídia de outra fonte no documento (bloco de imagem persistido). */
-  const includeInDoc = (item: MediaItem) => {
-    if (docUrls.has(item.url)) return
-    const newBlock = {
-      id: `blk-${Date.now()}-media`,
-      type: 'image',
-      content: item.url,
-      caption: item.name,
-      isActive: true,
-      metadata: {
-        image_url: item.url,
-        image_name: item.name,
-        media_origin: item.origin,
-      },
+  const rawItems: GridItem[] = useMemo(() => {
+    switch (tab)   {
+      case 'favoritos':
+        return favorites.map((f) => ({
+          id: `${f.source}:${f.media_id}`,
+          name: f.meta?.title || f.meta?.name || 'Favorito',
+          url: f.meta?.url || '',
+          thumbUrl: f.meta?.thumb_url || f.meta?.url || '',
+          type: (f.meta?.type as GridItem['type']) || 'imagem',
+          source: (f.source as MediaTab) || 'acervo',
+          createdAt: f.created || '',
+        }))
+      case 'documento':
+        return documentItems
+      case 'acervo':
+        return acervoItems
+      case 'uploads':
+        return uploads
+      case 'biblioteca':
+        return fetchCuratedMediaSource(search).map((i) => toGridItem(i, 'biblioteca'))
+      case 'drive':
+        return documentItems.filter((i) => i.source === 'drive')
+case 'unsplash':
+      case 'pexels':
+        return (stock[tab]?.results || []).map((r) => stockToItem(r, tab))
+      default:
+        return []
     }
-    const modules = doc.modules.length
-      ? doc.modules.map((m, idx) => (idx === 0 ? { ...m, blocks: [...m.blocks, newBlock] } : m))
-      : [{ id: `mod-${Date.now()}`, title: 'Mídias', blocks: [newBlock] }]
-    onDocUpdated({ modules })
-    toast({ title: 'Mídia incluída no documento', description: item.name })
-  }
+  }, [tab, favorites, documentItems, acervoItems, uploads, search, stock])
 
-  const toggleFavorite = async (item: MediaItem) => {
-    setFavBusyId(item.id)
-    try {
-      // Na aba Favoritos o item já é um registro de second_brain_favorites:
-      // guardamos o source original no meta para alternar corretamente.
-      const favSource =
-        item.origin === 'favorites'
-          ? ((item as any).favSource as SecondBrainTab) || 'document'
-          : item.origin
-      const res = await toggleSecondBrainFavorite({
-        source: favSource as any,
-        mediaId: item.driveFileId || item.id,
-        name: item.name,
-        url: item.url,
-        meta: { origin: item.origin, driveFileId: item.driveFileId },
-      })
-      await refreshFavorites()
-      toast({
-        title: res.favorited ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
-        description: item.name,
-      })
-    } catch {
-      toast({ title: 'Não foi possível favoritar', variant: 'destructive' })
-    } finally {
-      setFavBusyId(null)
-    }
-  }
-
-  const isFav = (item: MediaItem) =>
-    isSecondBrainFavorite(
-      favorites,
-      ((item.origin === 'favorites' ? item.favSource : item.origin) || 'document') as any,
-      item.driveFileId || item.id,
+  const items: GridItem[] = useMemo(() => {
+    let out = rawItems.filter(
+      (i) => typeFilter === 'all' || i.type === typeFilter,
     )
-
-  const refreshTemplates = async () => {
-    setTemplatesLoading(true)
-    try {
-      setTemplates(await listSecondBrainMediaTemplates())
-    } catch {
-      setTemplates([])
-    } finally {
-      setTemplatesLoading(false)
+    out = out.filter((i) => isWithinDate(i.createdAt, dateFilter, customFrom, customTo))
+    if (search.trim() && tab !== 'unsplash' && tab !== 'pexels') {
+      const q = search.trim().toLowerCase()
+      out = out.filter((i) => i.name.toLowerCase().includes(q))
+      }
+    if (tab === 'unsplash' || tab === 'pexels') {
+      out = sortMediaItems(out, sortBy)
     }
-  }
+    return out
+  }, [rawItems, typeFilter, dateFilter, customFrom, customTo, search, tab, sortBy])
 
-  const openTemplates = () => {
-    setTemplatesOpen(true)
-    setApplyingTemplate(null)
-    refreshTemplates()
-  }
+  const showStockWarning =
+    (tab === 'unsplash' && stockStatus.unsplash === false) ||
+    (tab === 'pexels' && stockStatus.pexels === false)
 
-  const confirmSaveTemplate = async () => {
-    if (!pendingTemplate) return
-    try {
-      await createSecondBrainMediaTemplate({
-        name: templateName || 'Modelo de mídia',
-        settings: pendingTemplate,
-        isShared: templateShared,
-      })
-      toast({
-        title: 'Modelo salvo!',
-        description: templateShared
-          ? 'Compartilhado com a equipe — aplique-o em outra mídia pela galeria.'
-          : 'Aplique-o em outra mídia pela galeria de modelos.',
-      })
-    } catch {
-      toast({ title: 'Erro ao salvar modelo', variant: 'destructive' })
-    } finally {
-      setNameOpen(false)
-      setPendingTemplate(null)
-      setTemplateName('')
-      setTemplateShared(false)
-    }
-  }
-
-  const applyTemplateTo = (item: MediaItem) => {
-    if (!applyingTemplate) return
-    const settings = applySecondBrainMediaTemplate(applyingTemplate)
-    applyEditToDoc(item, { ...DEFAULT_CUSTOMIZATION, ...settings })
-    toast({
-      title: 'Modelo aplicado!',
-      description: `"${applyingTemplate.name}" aplicado a "${item.name}".`,
-    })
-    setTemplatesOpen(false)
-    setApplyingTemplate(null)
-  }
-
-  /* ------------------------------- Render ------------------------------- */
+  /* =============================== RENDER =============================== */
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="nb-accent-scope nb-theme-scope max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border-slate-800 text-slate-100 w-[calc(100vw-1rem)] sm:w-full rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg min-w-0">
-              <ImageIcon className="w-4 h-4 shrink-0 nb-accent-text" />
-              <span className="truncate">Mídias &amp; Anexos — {doc.title || 'Documento'}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Busque nas oito fontes, filtre por tipo e período, favorite para acesso rápido e
-              inclua mídias no documento. Toque em uma imagem para abrir a Edição Avançada.
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle>Biblioteca de Mídias — Segundo Cérebro</DialogTitle>
+        </DialogHeader>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-                <Input
-                  value={filters.query}
-                  onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
-                  placeholder="Buscar por nome, arquivo, tag ou tipo…"
-                  className="h-9 pl-8 bg-slate-900/60 border-slate-800 text-xs text-white placeholder:text-slate-500"
-                />
-              </div>
-              <Button
+        {/* 8 abas */}
+        <div className="flex flex-wrap items-center gap-1 border-b border-border pb-2 shrink-0">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={cn(
+                'px-3 py-1.5 rounded-md text-xs font-semibold transition-colors',
+                tab === t.key
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filtros por tipo e data */}
+        <div className="flex flex-wrap items-center gap-2 py-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-muted-foreground mr-1" />
+            {TYPE_FILTERS.map((f) => (
+              <button
+                key={f.key}
                 type="button"
-                size="sm"
-                variant="outline"
-                onClick={openTemplates}
-                className="h-9 shrink-0 text-[11px] font-bold gap-1.5 border-slate-700 text-slate-300 hover:text-white"
-              >
-                <LayoutTemplate className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Modelos</span>
-              </Button>
-            </div>
-
-            {/* Barra de filtros: tipo (chips) + período */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {TYPE_CHIPS.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  onClick={() => setFilters((f) => ({ ...f, type: c.key }))}
-                  className={cn(
-                    'px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors',
-                    filters.type === c.key
-                      ? 'nb-accent-grad text-white border-transparent'
-                      : 'border-slate-800 text-slate-400 hover:text-white hover:border-slate-600',
-                  )}
-                >
-                  {c.label}
-                </button>
-              ))}
-              <select
-                value={filters.period}
-                onChange={(e) =>
-                  setFilters((f) => ({ ...f, period: e.target.value as SecondBrainDateFilter }))
-                }
-                className="ml-auto h-6 rounded-full border border-slate-800 bg-slate-900/60 px-2 text-[10px] font-bold text-slate-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Filtrar por período"
-              >
-                {PERIODS.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Período custom: de/até (aparece só quando custom selecionado) */}
-            {filters.period === 'custom' && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  De
-                </span>
-                <input
-                  type="date"
-                  value={customRange.from}
-                  onChange={(e) => setCustomRange((r) => ({ ...r, from: e.target.value }))}
-                  className="h-6 rounded-md border border-slate-800 bg-slate-900/60 px-2 text-[10px] text-slate-200 [color-scheme:dark]"
-                  aria-label="Data inicial"
-                />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Até
-                </span>
-                <input
-                  type="date"
-                  value={customRange.to}
-                  onChange={(e) => setCustomRange((r) => ({ ...r, to: e.target.value }))}
-                  className="h-6 rounded-md border border-slate-800 bg-slate-900/60 px-2 text-[10px] text-slate-200 [color-scheme:dark]"
-                  aria-label="Data final"
-                />
-                {!customRange.from && (
-                  <span className="text-[10px] text-slate-500">escolha uma data inicial</span>
+                onClick={() => setTypeFilter(f.key)}
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors',
+                  typeFilter === f.key
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground',
                 )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-1 ml-auto">
+            {DATE_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setDateFilter(f.key)}
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors',
+                  dateFilter === f.key
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {dateFilter === 'custom' && (
+            <div className="flex flex-wrap items-center gap-2 w-full">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="sb-from" className="text-[11px] text-muted-foreground">De</Label>
+                <Input
+                  id="sb-from"
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="h-8 w-36 text-xs"
+                />
+              </ de>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="sb-to" className="text-[11px] text-muted-foreground">Até</Label>
+                <Input
+                  id="sb-to"
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="h-8 w-36 text-xs"
+                />
               </div>
-            )}
+            </div>
+          )}
+        </div>
 
-            {/* Abas de fonte */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {TABS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTab(t.key)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors',
-                    tab === t.key
-                      ? 'nb-accent-grad text-white border-transparent'
-                      : 'border-sse-800 text-slate-400 hover:text-white hover:border-slate-600',
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
+        {/* Busca */}
+        <div className="flex items-center gap-2 pb-2 shrink-0">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={
+                tab === 'unsplash' || tab === 'pexels'
+                  ? `Buscar no ${tab === 'unsplash' ? 'Unsplash' : 'Pexels'}...`
+                  : 'Buscar mídias...'
+              }
+              className="pl-9 h-9 text-xs"
+            />
+          </div>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => loadTab(tab)}>
+            <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
+            Atualizar
+          </Button>
+        </div>
+
+        {/* Busca avançada (apenas Unsplash/Pexels) */}
+        {(tab === 'unsplash' || tab === 'pexels') && (
+          <div className="flex flex-wrap items-end gap-2 pb-2 shrink-0">
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">Orientação</Label>
+              <Select value={orientation} onValueChange={(v) => setOrientation(v as SecondBrainOrientationFilter)}>
+                <SelectTrigger className="h-8 w-32 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORIENTATION_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">Cor</Label>
+              <Select value={color} onValueChange={(v) => setColor(v as SecondBrainColorFilter)}>
+                <SelectTrigger className="h-8 w-32 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLOR_OPTIONS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">Ordenação</Label>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SecondBrainMediaSort)}>
+                <SelectTrigger className="h-8 w-32 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEDIA_SORT_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+        )}
 
-          {/* Drive não conectado: botão de conexão (conta de cada usuário) */}
-          {tab === 'drive' && driveError && driveItems.length === 0 && (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 space-y-2">
-              <p className="text-xs text-slate-300 font-semibold">
-                Conecte sua conta do Google Drive
-              </p>
-              <p className="text-[11px] text-slate-500">
-                A conexão é feita na SUA conta — os arquivos listados aqui são do seu Drive, não da
-                equipe. Nada é compartilhado com outros usuários.
-              </p>
-              <ConnectorButton toolkit="googledrive" name="Google Drive" />
+        {/* Aviso de chaves ausentes (Unsplash/Pexels) */}
+        {showStockWarning && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 shrink-0">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              {tab === 'unsplash'
+                ? 'As buscas no Unsplash precisam da chave UNSPLASH_ACCESS_KEY, que ainda não está configurada neste projeto. '
+                : 'As buscas no Pexels precisam da chave PEXELS_API_KEY, que ainda não está configurada neste projeto. '}
+              Cadastre-a no painel Skip Cloud → Secrets para habilitar a busca de imagens. Enquanto isso, os demais recursos continuam funcionando.
+            </span>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive shrink-0">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Grade */}
+        <div className="flex-1 overflow-y-auto -mx-1 px-1">
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 py-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-4/3 w-full rounded-xl" />
+              ))}
             </div>
-          )}
-          {tab === 'drive' && !driveError && driveItems.length === 0 && !driveLoading && (
-            <p className="py-6 text-center text-xs text-slate-500">
-              Nenhum arquivo de mídia encontrado no Drive (listamos imagens e vídeos).
-            </p>
-          )}
-
-          {/* Unsplash / Pexels: busca própria + atribuição + estado honesto */}
-          {(tab === 'unsplash' || tab === 'pexels') && (
-            <div className="space-y-2">
-              {stock[tab].configured === false ? (
-                <div className="rounded-xl border border-amber-700/50 bg-amber-950/30 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-amber-300">
-                    Configure a chave da API no painel Skip Cloud
-                  </p>
-                  <p className="text-[11px] text-amber-200/70">
-                    {tab === 'unsplash'
-                      ? 'Adicione UNSPLASH_ACCESS_KEY'
-                      : 'Adicione PEXELS_API_KEY'}{' '}
-                    (env vars do backend) para habilitar a busca de fotos. Enquanto isso, esta aba
-                    fica vazia — não simulamos resultados.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <form
-                    className="flex items-center gap-1.5"
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      submitStockSearch(tab)
-                    }}
+          ) : items.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">
+              Nenhuma mídia encontrada com os filtros atuais.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 py-2">
+              {items.map((item) => {
+                const isFav = favIds.has(item.id)
+                return (
+                  <div
+                    key={item.id}
+                    className="group relative rounded-xl overflow-hidden border border-border bg-muted/30 hover:border-primary/50 transition-all"
                   >
-                    <Input
-                      value={stockQuery[tab]}
-                      onChange={(e) => setStockQuery((q) => ({ ...q, [tab]: e.target.value }))}
-                      placeholder={tab === 'unsplash' ? 'Buscar no Unsplash…' : 'Buscar no Pexels…'}
-                      className="h-8 bg-slate-900/60 border-slate-800 text-xs text-white placeholder:text-slate-500"
-                    />
-                    <Button
-                      type="submit"
-                      size="sm"
-                      className="h-8 nb-accent-grad text-xs font-bold"
-                    >
-                      Buscar
-                    </Button>
-                    {stock[tab].message && (
-                      <span className="text-[10px] text-amber-400 truncate max-w-[140px]">
-                        {stock[tab].message}
-                      </span>
-                    )}
-                  </form>
-                  {stock[tab].results.length > 0 && (
-                    <p className="text-[9px] text-slate-500">
-                      {tab === 'unsplash' ? 'Fotos do Unsplash' : 'Fotos do Pexels'} — créditos aos
-                      fotógrafos: veja a atribuição em cada foto.
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {sourceLoading ? (
-            <div className="py-10 text-center text-xs text-slate-400">
-              <Loader2 className="w-5 h-5 mx-auto mb-2 animate-spin opacity-60" />
-              Carregando mídias…
-            </div>
-          ) : visibleItems.length === 0 &&
-            tab !== 'drive' &&
-            tab !== 'unsplash' &&
-            tab !== 'pexels' ? (
-            <div className="py-10 text-center space-y-2">
-              <ImageIcon className="w-8 h-8 mx-auto text-slate-600" />
-              {filters.query.trim() ? (
-                <>
-                  <p className="text-sm text-slate-300 font-semibold">
-                    Nenhuma mídia encontrada para "{filters.query.trim()}"
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Tente outro termo (nome, arquivo, tag ou tipo) ou troque a fonte.
-                  </p>
-                </>
-              ) : tab === 'favorites' ? (
-                <>
-                  <p className="text-sm text-slate-400 font-semibold">Nenhum favorito ainda</p>
-                  <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                    Toque na estrela de qualquer mídia (Documento, Acervo, Drive, Unsplash…) para
-                    vê-la aqui com acesso rápido.
-                  </p>
-                </>
-              ) : tab === 'document' ? (
-                <>
-                  <p className="text-sm text-slate-400 font-semibold">
-                    {hasAnyContent ? 'Nenhuma mídia nesta fonte' : 'Nenhuma mídia neste documento'}
-                  </p>
-                  <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                    Importe contexto pelo Gmail ou Drive (botão Conectar), escolha o Acervo/Uploads
-                    ou cole um link de imagem em um bloco para editá-la aqui.
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-slate-400 font-semibold">
-                  Nenhuma mídia disponível nesta fonte
-                </p>
-              )}
-            </div>
-          ) : visibleItems.length > 0 ? (
-            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
-              {visibleItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="group text-left rounded-xl overflow-hidden border border-slate-800 bg-slate-900/70 hover:border-slate-600 transition-all min-w-0 flex flex-col"
-                >
-                  <button
-                    type="button"
-                    disabled={savingId === item.id}
-                    onClick={() => setEditingMedia(item)}
-                    className="relative aspect-video bg-slate-900 overflow-hidden w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <img
-                      src={item.url}
-                      alt={item.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      style={editStyleFor(item, doc)}
-                    />
-                    {item.origin === 'document' && isEdited(item, doc) && (
-                      <Badge className="absolute top-1.5 right-1.5 bg-slate-900/90 text-[9px] uppercase gap-1 border border-slate-700">
-                        <Sliders className="w-2.5 h-2.5" /> Editada
-                      </Badge>
-                    )}
-                    {item.origin !== 'document' && docUrls.has(item.url) && (
-                      <Badge className="absolute top-1.5 right-1.5 bg-slate-900/90 text-[9px] uppercase border border-slate-700">
-                        No documento
-                      </Badge>
-                    )}
-                    {/* Estrela de favorito */}
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void toggleFavorite(item)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.stopPropagation()
-                          void toggleFavorite(item)
-                        }
-                      }}
-                      className={cn(
-                        'absolute bottom-1.5 left-1.5 z-10 rounded-full p-1.5 transition-colors cursor-pointer',
-                        isFav(item)
-                          ? 'bg-amber-500/90 text-white'
-                          : 'bg-slate-950/70 text-slate-400 hover:text-amber-300',
-                      )}
-                      title={isFav(item) ? 'Remover dos favoritos' : 'Favoritar mídia'}
-                      aria-label={isFav(item) ? 'Remover dos favoritos' : 'Favoritar mídia'}
-                    >
-                      <Star className={cn('w-3 h-3', isFav(item) && 'fill-current')} />
-                    </span>
-                  </button>
-                  <div className="p-2 space-y-1.5 min-w-0 flex-1 flex flex-col">
-                    <p className="text-[11px] font-semibold truncate text-slate-100">{item.name}</p>
-                    <p className="text-[9px] text-slate-500 truncate">
-                      {item.source}
-                      {(item.origin === 'unsplash' || item.origin === 'pexels') &&
-                        (() => {
-                          const raw = stock[item.origin].results.find(
-                            (r) => `${item.origin}_${r.id}` === item.id,
-                          )
-                          return raw ? ` · ${stockAttribution(raw)}` : ''
-                        })()}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1 mt-auto pt-1">
-                      {item.origin === 'document' ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openHistory(item)}
-                          className="h-6 px-1.5 text-[10px] font-bold gap-1 text-slate-400 hover:text-white"
-                          title="Histórico de edições desta mídia"
-                        >
-                          <History className="w-3 h-3" /> Histórico
-                        </Button>
-                      ) : docUrls.has(item.url) ? (
-                        <span className="text-[9px] text-slate-500">Já está no documento</span>
+                    <div className="aspect-4/3 bg-muted relative">
+                      {item.type === 'imagem' || item.type === 'video' ? (
+                        item.thumbUrl ? (
+                          <img
+                            src={item.thumbUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                            Sem prévia
+                          </div>
+                        )
                       ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => includeInDoc(item)}
-                          className="h-6 px-1.5 text-[10px] font-bold gap-1 nb-accent-text hover:bg-white/5"
-                          title="Incluir esta mídia no documento"
-                        >
-                          <Plus className="w-3 h-3" /> Incluir no doc
-                        </Button>
+                        <div className="w-full h-full flex items-center justify-center p-3 text-center">
+                          <span className="text-[10px] text-muted-foreground line-clamp-3">
+                            {item.type === 'link' ? '🔗' : '📄'} {item.name}
+                          </span>
+                        </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleFavorite(item)}
+                        className={cn(
+                          'absolute top-1.5 right-1.5 p-1.5 rounded-full bg-background/80 backdrop-blur-sm border transition-all',
+                          isFav
+                            ? 'text-amber-400 border-amber-400/50'
+                            : 'text-muted-foreground border-border hover:text-amber-400',
+                        )}
+                        title={isFav ? 'Remover dos favoritos' : 'Favoritar'}
+                      >
+                        <Star className={cn('w-3.5 h-3.5', isFav && 'fill-current')} />
+                      </button>
+                    </div>
+                    <div className="p-2 space-y-1">
+                      <p className="text-[11px] font-semibold text-foreground line-clamp-1">{item.name}</p>
+                      <div className="flex items-center justify-between gap-1">
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">
+                          {item.type}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px] font-bold gap-1"
+                          onClick={() => onInsert(item)}
+                        >
+                          <Check className="w-3 h-3" />
+                          Incluir no doc
+                        </Button>
+ botão "</Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {tab === 'document' && docFiles.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Documentos anexos
-              </p>
-              {docFiles.map((f) => (
-                <a
-                  key={f.id}
-                  href={f.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 hover:border-slate-600 transition-colors min-w0"
-                >
-                  <FileText className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                  <span className="text-[11px] font-medium text-slate-200 truncate">{f.name}</span>
-                  <span className="ml-auto text-[9px] text-slate-500 shrink-0">{f.source}</span>
-                </a>
-              ))}
+                )
+              })}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
 
-      {/* Histórico de edições da mídia (namespace secondbrain:) */}
-      <Dialog open={!!historyItem} onOpenChange={(o) => !o && setHistoryItem(null)}>
-        <DialogContent className="nb-accent-scope nb-theme-scope max-w-md bg-slate-950 border-slate-800 text-slate-100 w-[calc(100vw-1rem)] sm:w-full rounded-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <History className="w-4 h-4 nb-accent-text" />
-              Histórico — {historyItem?.name}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Versões salvas a cada edição avançada. Restaure qualquer estado anterior.
-            </DialogDescription>
-          </DialogHeader>
-          {historyLoading ? (
-            <div className="py-8 text-center text-xs text-slate-400">
-              <Loader2 className="w-4 h-4 mx-auto mb-2 animate-spin opacity-60" />
-              Carregando versões…
-            </div>
-          ) : versions.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-500">
-              Nenhuma versão ainda. Cada salvamento da Edição Avançada desta mídia cria uma versão
-              restaurável aqui.
+        {/* Modelos salvos (studio_edit_presets com namespace secondbrain:) */}
+        {tab === 'acervo' && (
+          <div className="border-t border-border pt-2 space-y-2 shrink-0">
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Modelos de composição (aplicáveis ao acervo):
             </p>
-          ) : (
-            <div className="space-y-1.5">
-              {versions.map((v) => (
-                <div
-                  key={v.id}
-                  className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-2.5 py-2"
-                >
-                  {v.preview_url || v.result_url ? (
-                    <img
-                      src={v.preview_url || v.result_url}
-                      alt=""
-                      className="w-9 h-9 rounded-md object-cover border border-slate-800 shrink-0"
-                    />
-                  ) : null}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-slate-100 truncate">
-                      {v.user_name || 'Você'}
-                      <span className="ml-1 font-normal text-slate-500">
-                        {new Date(v.created).toLocaleString('pt-BR', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        })}
-                      </span>
-                    </p>
-                    {v.title && <p className="text-[10px] text-slate-500 truncate">{v.title}</p>}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => restoreVersion(v)}
-                    disabled={restoringId === v.id}
-                    className="h-7 px-2 text-[10px] font-bold gap-1 nb-accent-text hover:bg-white/5"
-                  >
-                    {restoringId === v.id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <History className="w-3 h-3" />
-                    )}
-                    Restaurar
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modelos de mídia: salvar/aplicar composições (studio_edit_presets) */}
-      <Dialog open={templatesOpen} onOpenChange={setTemplatesOpen}>
-        <DialogContent className="nb-accent-scope nb-theme-scope max-w-md bg-slate-950 border-slate-800 text-slate-100 w-[calc(100vw-1rem)] sm:w-full rounded-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <LayoutTemplate className="w-4 h-4 nb-accent-text" />
-              {applyingTemplate ? `Aplicar "${applyingTemplate.name}" em…` : 'Modelos de mídia'}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              {applyingTemplate
-                ? 'Escolha a mídia do documento que receberá esta composição.'
-                : 'Salve composições na Edição Avançada ("Salvar como modelo") e aplique-as em outra mídia. Modelos compartilhados mostram o badge Equipe.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          {applyingTemplate ? (
-            <div className="space-y-1.5">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setApplyingTemplate(null)}
-                className="h-7 text-[10px] text-slate-400 hover:text-white"
-              >
-                ← Voltar aos modelos
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
+                placeholder="Nome do modelo..."
+                className="h-8 w-48 text-xs"
+              />
+              <Button size="sm" variant="outline" className="h-8 text-[11px]" onClick={handleSaveTemplate}>
+                Salvar modelo
               </Button>
-              {mediaItems.length === 0 ? (
-                <p className="py-6 text-center text-xs text-slate-500">
-                  Nenhuma mídia no documento para receber o modelo.
-                </p>
-              ) : (
-                mediaItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => applyTemplateTo(item)}
-                    className="w-full flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-2.5 py-2 hover:border-slate-600 transition-colors text-left"
-                  >
-                    <img
-                      src={item.url}
-                      alt=""
-                      className="w-9 h-9 rounded-md object-cover border border-slate-800 shrink-0"
-                    />
-                    <span className="text-[11px] font-semibold text-slate-100 truncate">
-                      {item.name}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          ) : templatesLoading ? (
-            <div className="py-8 text-center text-xs text-slate-400">
-              <Loader2 className="w-4 h-4 mx-auto mb-2 animate-spin opacity-60" />
-              Carregando modelos…
-            </div>
-          ) : templates.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-500">
-              Nenhum modelo ainda. Abra a Edição Avançada de uma mídia e toque em "Salvar como
-              modelo" para guardar a composição atual.
-            </p>
-          ) : (
-            <div className="space-y-1.5">
               {templates.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-2.5 py-2"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-slate-100 truncate flex items-center gap-1.5">
-                      {t.name.replace(/^secondbrain:/, '')}
-                      {t.is_shared && (
-                        <Badge className="bg-sky-500/20 text-sky-300 border-sky-700/50 text-[8px] uppercase font-bold shrink-0">
-                          Equipe
-                        </Badge>
-                      )}
-                    </p>
-                    <p className="text-[10px] text-slate-500">
-                      {new Date(t.updated || t.created).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setApplyingTemplate(t)}
-                    className="h-7 px-2 text-[10px] font-bold gap-1 nb-accent-text hover:bg-white/5"
+                <div key={t.id} className="flex items-center gap-1 rounded-md border border-border px-2 py-1">
+                  <span className="text-[11px] font-semibold">{t.name.replace('secondbrain:', '')}</span>
+                  {t.is_shared && (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0">Equipe</Badge>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTemplate(t.id)}
+                    className="text-muted-foreground hover:text-destructive text-[11px] font-bold ml-1"
                   >
-                    <Plus className="w-3 h-3" /> Aplicar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        await deleteSecondBrainMediaTemplate(t.id)
-                        await refreshTemplates()
-                        toast({ title: 'Modelo excluído' })
-                      } catch {
-                        toast({ title: 'Erro ao excluir modelo', variant: 'destructive' })
-                      }
-                    }}
-                    className="h-7 px-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40"
-                    title="Excluir modelo"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                    ×
+                  </button>
                 </div>
               ))}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Nome do novo modelo (+ compartilhar com a equipe) */}
-      <Dialog open={nameOpen} onOpenChange={setNameOpen}>
-        <DialogContent className="nb-accent-scope nb-theme-scope max-w-sm bg-slate-950 border-slate-800 text-slate-100 w-[calc(100vw-1rem)] sm:w-full rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-sm sm:text-base">Salvar como modelo</DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Guarde a composição atual da Edição Avançada para aplicar em outra mídia.
-            </DialogDescription>
-          </DialogHeader>
-          <Input
-            value={templateName}
-            onChange={(e) => setTemplateName(e.target.value)}
-            placeholder="Nome do modelo (ex.: Capa com vinheta)"
-            className="h-9 bg-slate-900/60 border-slate-800 text-xs text-white placeholder:text-slate-500"
-          />
-          <label className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 cursor-pointer">
-            <Checkbox
-              checked={templateShared}
-              onCheckedChange={(v) => setTemplateShared(v === true)}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-slate-100">Compartilhar com a equipe</p>
-              <p className="text-[10px] text-slate-500">
-                Membros da mesma organização verão este modelo com o badge "Equipe".
-              </p>
-            </div>
-          </label>
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setNameOpen(false)}
-              className="h-8 text-xs text-slate-400 hover:text-white"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={confirmSaveTemplate}
-              disabled={!pendingTemplate}
-              className="h-8 nb-accent-grad text-white font-bold text-xs"
-            >
-              Salvar modelo
-            </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <SecondBrainAdvancedImageEditor
-        open={!!editingMedia}
-        onOpenChange={(o) => {
-          if (!o) setEditingMedia(null)
-        }}
-        title={editingMedia?.name || 'Imagem'}
-        imageUrl={editingMedia?.url || null}
-        initialCustomization={editingMedia ? findEditStateFor(editingMedia.url, doc) : null}
-        onSaveAsTemplate={(settings) => {
-          setPendingTemplate(settings)
-          setTemplateName('')
-          setTemplateShared(false)
-          setNameOpen(true)
-        }}
-        onSave={(result) => {
-          if (!editingMedia) return
-          saveEditedImage(editingMedia, result.customization)
-        }}
-      />
-    </>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
-
 export default SecondBrainMediaGrid

@@ -63,6 +63,7 @@ import { ConnectorsContextModal, type ConnectorsTab } from './ConnectorsContextM
 import { AdvancedArtifactEditorModal } from './AdvancedArtifactEditorModal'
 import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
 import { StudioEditCommentsPanel } from './StudioEditCommentsPanel'
+import { MarkdownParagraphBlock } from './MarkdownParagraphBlock'
 
 interface MagicAuthorEditorProps {
   doc: SecondBrainDoc
@@ -845,15 +846,25 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
                         className="font-bold text-sm bg-slate-800/40 border-slate-700/60 text-white rounded-xl focus:border-purple-500"
                       />
 
-                      {(block.type === 'title' || block.caption !== undefined) && (
-                        <Textarea
-                          rows={2}
-                          value={block.caption || ''}
-                          onChange={(e) => handleUpdateBlock(block.id, { caption: e.target.value })}
-                          placeholder="Subtítulo, explicação ou notas de apoio..."
-                          className="text-xs bg-slate-800/30 border-slate-700/40 text-slate-300 rounded-xl focus:border-purple-500"
+                      {block.type === 'paragraph' && (
+                        <MarkdownParagraphBlock
+                          content={block.content}
+                          onChange={(content) => handleUpdateBlock(block.id, { content })}
                         />
                       )}
+
+                      {block.type !== 'paragraph' &&
+                        (block.type === 'title' || block.caption !== undefined) && (
+                          <Textarea
+                            rows={2}
+                            value={block.caption || ''}
+                            onChange={(e) =>
+                              handleUpdateBlock(block.id, { caption: e.target.value })
+                            }
+                            placeholder="Subtítulo, explicação ou notas de apoio..."
+                            className="text-xs bg-slate-800/30 border-slate-700/40 text-slate-300 rounded-xl focus:border-purple-500"
+                          />
+                        )}
                     </div>
                   </div>
                 ))}

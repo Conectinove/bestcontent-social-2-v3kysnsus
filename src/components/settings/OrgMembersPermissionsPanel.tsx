@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Users,
@@ -10,7 +10,11 @@ import {
   Crown,
   Pencil,
   Eye,
+  Search,
+  Clock,
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { listOrgInvites, type OrgInvite } from '@/services/org-invites'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,9 +53,10 @@ const ROLE_META: Record<string, { label: string; icon: typeof Crown; cls: string
 interface MemberRowProps {
   member: OrgMember
   canManage: boolean
+  isPending?: boolean
 }
 
-function MemberRow({ member, canManage }: MemberRowProps) {
+function MemberRow({ member, canManage, isPending }: MemberRowProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState<OrgRole | null>(null)
   const qc = useQueryClient()
@@ -98,6 +103,15 @@ function MemberRow({ member, canManage }: MemberRowProps) {
           <CurrentIcon className="w-3 h-3" />
           {meta.label}
         </Badge>
+        {isPending && (
+          <Badge
+            variant="outline"
+            className="text-[10px] gap-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+          >
+            <Clock className="w-3 h-3" />
+            Pendente
+          </Badge>
+        )}
         {canManage && (
           <Button
             variant="ghost"
@@ -160,13 +174,46 @@ function MemberRow({ member, canManage }: MemberRowProps) {
   )
 }
 
-/** Painel de permissões por membro da organização (pedido 1). */
+/** Painel de controle de usuários da organização (listar, buscar, filtrar por
+ * cargo, ver status ativo/pendente e trocar permissões). */
 export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
   const qc = useQueryClient()
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | OrgRole>('all')
   const { data, isLoading, error } = useQuery({
     queryKey: ['org-members'],
     queryFn: listOrgMembers,
   })
+  // Convites pendentes → status "Pendente" na lista (coleção org_invites).
+  const invitesQuery = useQuery({
+    queryKey: ['org-invites'],
+    queryFn: listOrgInvites,
+  })
+  const pendingInvites = useMemo(
+    () => (invitesQuery.data || []).filter((i: OrgInvite) => i.status === 'pending'),
+    [invitesQuery.data],
+  )
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return (data || []).filter((m) => {
+      const matchQ =
+        !q || (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)
+      const role = (m.org_role || m.role || 'viewer') as OrgRole
+      const matchRole = roleFilter === 'all' || role === roleFilter
+      return matchQ && matchRole
+    })
+  }, [data, search, roleFilter])
+
+  const roleCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: (data || []).length }
+    for (const r of ORG_ROLES) {
+      counts[r.value] = (data || []).filter(
+        (m) => (m.org_role || m.role || 'viewer') === r.value,
+      ).length
+    }
+    return counts
+  }, [data])
 
   if (!isAdmin) {
     return (
@@ -209,14 +256,67 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
     )
   }
 
+  const pendingEmails = new Set(pendingInvites.map((i) => (i.email || '').toLowerCase()))
+
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        {data.length} membro(s) na organização — defina o nível de acesso de cada um.
-      </p>
-      {data.map((m) => (
-        <MemberRow key={m.id} member={m} canManage={isAdmin} />
-      ))}
+      {/* Busca + filtro por cargo */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome ou email..."
+            className="pl-9 h-9 text-xs"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setRoleFilter('all')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+              roleFilter === 'all'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Todos ({roleCounts.all ?? 0})
+          </button>
+          {ORG_ROLES.map((r) => (
+            <button
+              key={r.value}
+              type="button"
+              onClick={() => setRoleFilter(r.value)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+                roleFilter === r.value
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {r.label} ({roleCounts[r.value] ?? 0})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {pendingInvites.length > 0 && (
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+          <Clock className="w-3 h-3" />
+          {pendingInvites.length} convite(s) pendente(s) de aceitação.
+        </p>
+      )}
+
+      {filtered.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-4 text-center">
+          Nenhum membro encontrado com esse filtro.
+        </p>
+      ) : (
+        filtered.map((m) => {
+          const isPending = pendingEmails.has((m.email || '').toLowerCase())
+          return <MemberRow key={m.id} member={m} canManage={isAdmin} isPending={isPending} />
+        })
+      )}
     </div>
   )
 }
