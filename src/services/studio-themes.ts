@@ -22,6 +22,7 @@ export interface StudioThemeRecord {
   accent_override: string
   is_shared: boolean
   remote_id: string
+  scope: string
   created?: string
   updated?: string
   expand?: { user?: { id?: string; name?: string; company?: string } }

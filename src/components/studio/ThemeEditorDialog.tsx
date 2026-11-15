@@ -230,7 +230,7 @@ export function ThemeEditorDialog({
           {/* Pré-visualização viva do tema em construção */}
           <div className="space-y-1.5">
             <Label>Pré-visualização</Label>
-            <ThemePreviewCard theme={previewTheme} showVars />
+            <ThemePreviewCard theme={previewTheme} />
           </div>
 
           <div className="space-y-1.5">

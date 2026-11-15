@@ -161,7 +161,7 @@ export function parseThemeFile(raw: string): ParseThemeResult {
         text: (colors.text as string).trim(),
       },
       network: networkRaw && networkRaw !== '' ? (networkRaw as string).toLowerCase() : null,
-      accentOverride: accentRaw && accentRaw !== '' ? accentRaw.trim() : null,
+      accentOverride: accentRaw && accentRaw !== '' ? String(accentRaw).trim() : null,
     },
   }
 }

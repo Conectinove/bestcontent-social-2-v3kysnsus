@@ -6,16 +6,19 @@
 import { useRef, useState } from 'react'
 import { Check, Download, Palette, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { useSocial } from '@/context/SocialContext'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { useAppTheme, type StudioThemeOption } from '@/hooks/use-app-theme'
+import type { Brand } from '@/types'
+import type { NetworkThemeId } from '@/lib/network-themes'
 import { ThemePreviewCard } from '@/components/studio/ThemePreviewCard'
 import { ThemeEditorDialog } from '@/components/studio/ThemeEditorDialog'
 import { downloadThemeFile, pickThemeFile, parseThemeFile } from '@/lib/theme-file'
 
 export function StudioThemeManagerSection() {
+  const { brands } = useSocial() as { brands: Brand[] }
   const {
-    themes,
+    customThemes,
     themeId,
     setThemeId,
     addCustomTheme,
@@ -24,13 +27,14 @@ export function StudioThemeManagerSection() {
     removeCustomTheme,
     startPreview,
     cancelPreview,
-  } = useAppTheme()
+    isSaving,
+  } = useAppTheme(brands)
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<StudioThemeOption | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const customOnly = themes.filter((t) => t.source === 'custom')
+  const customOnly = customThemes.filter((t) => t.source === 'custom')
 
   const openCreate = () => {
     setEditing(null)
@@ -181,16 +185,29 @@ export function StudioThemeManagerSection() {
         open={editorOpen}
         onOpenChange={(open) => {
           setEditorOpen(open)
-          if (!open) cancelPreview()
+          if (!open) {
+            setEditing(null)
+            cancelPreview()
+          }
         }}
         editing={editing}
-        onSaveComplete={(created) => {
-          if (created) setThemeId(created.id)
+        isSaving={isSaving}
+        onSubmit={async (input) => {
+          if (editing) {
+            await updateCustomTheme(editing.id, input)
+            toast({ title: `Tema "${input.name}" atualizado` })
+          } else {
+            await addCustomTheme({
+              name: input.name,
+              colors: input.colors,
+              network: (input.network as NetworkThemeId) || 'none',
+              scope: input.scope,
+              isShared: input.scope === 'team',
+            })
+            toast({ title: `Tema "${input.name}" criado e aplicado` })
+          }
+          setEditing(null)
         }}
-        addCustomTheme={addCustomTheme}
-        updateCustomTheme={updateCustomTheme}
-        startPreview={startPreview}
-        cancelPreview={cancelPreview}
       />
     </div>
   )
