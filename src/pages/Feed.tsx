@@ -44,6 +44,7 @@ import {
   EyeOff,
   Trash2,
   Power,
+  Wand2,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -96,6 +97,9 @@ import { FeedTrendBadge } from '@/components/feed/FeedTrendBadge'
 import { computeFeedInsights, getTrendBadge } from '@/lib/feed-metrics'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { Checkbox } from '@/components/ui/checkbox'
+import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
+import { CommunityTopicImage } from '@/components/community/CommunityTopicImage'
+import { updateTopicImage } from '@/services/community'
 
 // Community creators carousel data
 interface CommunityCreator {
@@ -227,6 +231,20 @@ export default function Feed() {
   const { user } = useAuth()
   const { posts, brands } = useSocial()
 
+  // Persiste a imagem (possivelmente editada) de um post do feed no banco.
+  // Fire-and-forget com toast de erro — não bloqueia a UI.
+  const persistTopicImage = async (topicId: string, url: string) => {
+    try {
+      await updateTopicImage(topicId, url)
+    } catch (err: any) {
+      toast({
+        title: 'Imagem não pôde ser salva no post',
+        description: err?.message || 'Tente novamente em instantes.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   // Modals state
   const [rankingModalOpen, setRankingModalOpen] = useState(false)
   const [rankingExpanded, setRankingExpanded] = useState(true)
@@ -269,6 +287,7 @@ export default function Feed() {
   const [composerContent, setComposerContent] = useState('')
   const [composerCategory, setComposerCategory] = useState('')
   const [composerImage, setComposerImage] = useState('')
+  const [composerAdvOpen, setComposerAdvOpen] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
 
   // Quick Comment per post
@@ -1275,12 +1294,35 @@ export default function Feed() {
                       <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
                         URL de Imagem (opcional)
                       </label>
-                      <Input
-                        placeholder="https://... (link da imagem)"
-                        value={composerImage}
-                        onChange={(e) => setComposerImage(e.target.value)}
-                        className="h-9 text-xs rounded-xl bg-background border-border"
-                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="https://... (link da imagem)"
+                          value={composerImage}
+                          onChange={(e) => setComposerImage(e.target.value)}
+                          className="h-9 text-xs rounded-xl bg-background border-border"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          disabled={!composerImage.trim()}
+                          onClick={() => setComposerAdvOpen(true)}
+                          className="h-9 w-9 shrink-0 rounded-xl"
+                          title="Abrir na Edição Avançada"
+                        >
+                          <Wand2 className="w-3.5 h-3.5 text-primary" />
+                        </Button>
+                      </div>
+                      {composerImage.trim() && (
+                        <img
+                          src={composerImage}
+                          alt="Pré-visualização da imagem do post"
+                          className="mt-2 w-full max-h-52 object-cover rounded-xl border border-border/70 bg-muted"
+                          onError={(e) => {
+                            ;(e.target as HTMLElement).style.display = 'none'
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -1294,6 +1336,7 @@ export default function Feed() {
                         setComposerTitle('')
                         setComposerContent('')
                         setComposerImage('')
+                        setComposerAdvOpen(false)
                       }}
                       className="text-xs h-8 text-muted-foreground hover:text-foreground"
                     >
@@ -1838,18 +1881,20 @@ export default function Feed() {
                         </p>
                       </div>
 
-                      {/* Optional Post Image */}
+                      {/* Optional Post Image (com ponto de entrada da Edição Avançada) */}
                       {topic.image_url && (
-                        <div className="rounded-xl overflow-hidden border border-border/70 max-h-96 bg-muted">
-                          <img
-                            src={topic.image_url}
-                            alt={topic.title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              ;(e.target as HTMLElement).style.display = 'none'
-                            }}
-                          />
-                        </div>
+                        <CommunityTopicImage
+                          src={topic.image_url}
+                          alt={topic.title}
+                          editable
+                          onEditedSave={(url) => {
+                            setTopics((prev) =>
+                              prev.map((t) => (t.id === topic.id ? { ...t, image_url: url } : t)),
+                            )
+                            persistTopicImage(topic.id, url)
+                          }}
+                          className="w-full max-h-96"
+                        />
                       )}
 
                       {/* Engagement Bar: Curtir, Comentar, Compartilhar */}
@@ -2860,6 +2905,15 @@ export default function Feed() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edição Avançada da imagem do composer (mesmo motor do /app/editor) */}
+      <EditorAdvancedMediaDialog
+        open={composerAdvOpen}
+        onOpenChange={setComposerAdvOpen}
+        mediaUrl={composerImage}
+        title="Imagem do post"
+        onSave={(url) => setComposerImage(url)}
+      />
     </div>
   )
 }

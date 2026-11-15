@@ -15,6 +15,7 @@ import {
   Flame,
   Award,
   BookOpen,
+  PenLine,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,6 +39,8 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import useRealtime from '@/hooks/use-realtime'
+import { getTopicRoleBadges, getCategoryBadgeClasses } from '@/components/community/CommunityBadges'
+import { getImageUrlErrorMessage, uploadImageToCommunity } from '@/lib/image-upload'
 import {
   getCommunityCategories,
   getCommunityTopics,
@@ -153,6 +156,9 @@ export default function CommunityDashboard() {
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
   const [newCategory, setNewCategory] = useState('')
+  const [newImagePreview, setNewImagePreview] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [advOpen, setAdvOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const loadData = async () => {
@@ -215,6 +221,7 @@ export default function CommunityDashboard() {
       setNewTitle('')
       setNewContent('')
       setNewCategory('')
+      setNewImagePreview(null)
       loadData()
     } catch {
       toast({ title: 'Erro ao criar tópico', variant: 'destructive' })
@@ -253,45 +260,46 @@ export default function CommunityDashboard() {
     return topics.reduce((acc, curr) => acc + (curr.replies_count || 0), 623)
   }, [topics])
 
-  const getUserBadges = (authorName?: string, tags?: string[]) => {
-    const isAdenilson = authorName?.toLowerCase().includes('adenilson')
-    const isJose =
-      authorName?.toLowerCase().includes('josé') || authorName?.toLowerCase().includes('jose')
-
-    if (isAdenilson) {
-      return (
-        <>
-          <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] h-5 px-1.5 gap-1 font-semibold">
-            <Shield className="w-3 h-3 fill-current" /> ADMIN
-          </Badge>
-          <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] h-5 px-1.5 gap-1 font-semibold">
-            <Zap className="w-3 h-3 fill-current" /> PRO
-          </Badge>
-        </>
-      )
+  const handleImageSelected = async (file: File) => {
+    setIsUploadingImage(true)
+    try {
+      const url = await uploadCommunityImage(file)
+      setNewImagePreview(url)
+    } catch (err) {
+      toast({
+        title: 'Não foi possível anexar a imagem',
+        description: getImageUrlErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingImage(false)
     }
+  }
 
-    if (isJose) {
-      return (
-        <>
-          <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] h-5 px-1.5 gap-1 font-semibold">
-            <Shield className="w-3 h-3 fill-current" /> ADMIN
-          </Badge>
-          <Badge className="bg-gradient-to-r from-pink-500 to-rose-600 text-white text-[10px] h-5 px-1.5 gap-1 font-semibold">
-            <Crown className="w-3 h-3 fill-current" /> MAX
-          </Badge>
-        </>
-      )
+  const removeNewImage = () => {
+    setNewImagePreview(null)
+    setAdvOpen(false)
+  }
+
+  /** Resultado do motor de Edição Avançada (Studio) aplicado à imagem do novo tópico. */
+  const handleAdvSave = async (resultUrl: string) => {
+    if (newImagePreview && resultUrl !== newImagePreview && resultUrl.startsWith('data:')) {
+      try {
+        const blob = await (await fetch(resultUrl)).blob()
+        const editedUrl = await uploadCommunityImage(
+          new File([blob], 'topico-editado.png', { type: 'image/png' }),
+        )
+        setNewImagePreview(editedUrl)
+        return
+      } catch (err) {
+        toast({
+          title: 'Edição aplicada, mas não foi possível salvar a nova versão',
+          description: getImageUrlErrorMessage(err),
+          variant: 'destructive',
+        })
+      }
     }
-
-    return (
-      <Badge
-        variant="secondary"
-        className="bg-slate-100 text-slate-700 text-[10px] h-5 px-1.5 font-medium"
-      >
-        BASIC
-      </Badge>
-    )
+    setNewImagePreview(resultUrl)
   }
 
   return (

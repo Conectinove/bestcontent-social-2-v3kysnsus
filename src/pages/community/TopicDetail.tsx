@@ -6,19 +6,16 @@ import {
   Heart,
   Eye,
   MessageSquare,
-  Shield,
-  Zap,
-  Crown,
-  Sparkles,
   Pin,
   Send,
   BookOpen,
-  Award,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
 import useRealtime from '@/hooks/use-realtime'
 import {
   getCommunityTopic,
@@ -26,9 +23,18 @@ import {
   createReply,
   likeTopic,
   incrementTopicViews,
+  updateTopicImage,
 } from '@/services/community'
 import { CommunityTopic, CommunityReply } from '@/types/community'
 import { useAuth } from '@/context/AuthContext'
+import { CommunityStatusBadges, CommunityRoleBadge } from '@/components/community/CommunityBadges'
+import { CommunityTopicImage } from '@/components/community/CommunityTopicImage'
+import {
+  getTopicRoleBadge,
+  formatRelative,
+  FALLBACK_AVATAR_M,
+  FALLBACK_AVATAR_F,
+} from '@/lib/community-format'
 
 export default function TopicDetail() {
   const { id } = useParams<{ id: string }>()
@@ -41,6 +47,23 @@ export default function TopicDetail() {
   const [replyText, setReplyText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [liked, setLiked] = useState(false)
+  const [likeError, setLikeError] = useState<string | null>(null)
+  const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null)
+  const [replyAdvOpen, setReplyAdvOpen] = useState(false)
+  const [replyAdvInitial, setReplyAdvInitial] = useState<string | null>(null)
+
+  /** Salva no banco a imagem (rasterizada) editada no tópico. */
+  const persistTopicImage = async (topicId: string, url: string) => {
+    try {
+      await updateTopicImage(topicId, url)
+    } catch (err: any) {
+      toast({
+        title: 'Imagem não pôde ser salva no tópico',
+        description: err?.message || 'Tente novamente em instantes.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const loadTopicData = async () => {
     if (!id) return
@@ -153,8 +176,33 @@ export default function TopicDetail() {
   const handleLike = async () => {
     if (!topic || liked) return
     setLiked(true)
-    const newLikes = await likeTopic(topic.id, topic.likes_count)
-    setTopic({ ...topic, likes_count: newLikes })
+    setLikeError(null)
+    try {
+      const newLikes = await likeTopic(topic.id, topic.likes_count)
+      setTopic({ ...topic, likes_count: newLikes })
+    } catch {
+      setLiked(false)
+      setLikeError('Não foi possível registrar sua curtida. Tente novamente.')
+    }
+  }
+
+  /** Formata data relativa em pt-BR. */
+  const formatRelative = (dateStr?: string): string => {
+    if (!dateStr) return 'recente'
+    try {
+      const diff = Date.now() - new Date(dateStr).getTime()
+      const mins = Math.floor(diff / (1000 * 60))
+      if (mins < 1) return 'agora mesmo'
+      if (mins < 60) return `há ${mins} min`
+      const hours = Math.floor(mins / 60)
+      if (hours < 24) return `há ${hours} h`
+      const days = Math.floor(hours / 24)
+      if (days === 1) return 'ontem'
+      if (days < 30) return `há ${days} dias`
+      return new Date(dateStr).toLocaleDateString('pt-BR')
+    } catch {
+      return 'recente'
+    }
   }
 
   const handleAddReply = async (e: React.FormEvent) => {
@@ -241,8 +289,8 @@ export default function TopicDetail() {
   }
 
   const authorName = topic.expand?.user?.name || 'Adenilson Santos'
-  const authorAvatar =
-    topic.expand?.user?.avatar || 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=102'
+  const authorAvatar = topic.expand?.user?.avatar || FALLBACK_AVATAR_M
+  const authorRoleBadge = getTopicRoleBadge(authorName, topic.tags || [])[0]
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -272,32 +320,11 @@ export default function TopicDetail() {
           {/* Main Topic Card */}
           <div className="bg-card border border-border p-6 md:p-8 rounded-2xl space-y-6 shadow-sm">
             {/* Status Tags */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {topic.expand?.category && (
-                <Badge
-                  variant="outline"
-                  className="bg-blue-50 text-blue-700 border-blue-200 text-xs rounded-md font-medium"
-                >
-                  {topic.expand.category.name}
-                </Badge>
-              )}
-              {topic.tags?.includes('Destaque') && (
-                <Badge
-                  variant="outline"
-                  className="bg-cyan-50 text-cyan-700 border-cyan-200 text-xs rounded-md font-medium gap-1"
-                >
-                  <Sparkles className="w-3 h-3 text-cyan-600" /> Destaque
-                </Badge>
-              )}
-              {topic.is_pinned && (
-                <Badge
-                  variant="outline"
-                  className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs rounded-md font-medium gap-1"
-                >
-                  <Pin className="w-3 h-3 text-indigo-600" /> Fixado
-                </Badge>
-              )}
-            </div>
+            <CommunityStatusBadges
+              category={topic.expand?.category?.name}
+              tags={topic.tags}
+              isPinned={topic.is_pinned}
+            />
 
             {/* Title */}
             <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight leading-snug">
@@ -312,16 +339,13 @@ export default function TopicDetail() {
                 className="w-10 h-10 rounded-full object-cover border border-border"
               />
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-sm text-foreground">{authorName}</span>
-                  <Badge className="bg-blue-600 text-white text-[10px] h-5 px-1.5 gap-1 font-semibold">
-                    <Shield className="w-3 h-3 fill-current" /> ADMIN
-                  </Badge>
-                  <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] h-5 px-1.5 gap-1 font-semibold">
-                    <Zap className="w-3 h-3 fill-current" /> PRO
-                  </Badge>
+                  {authorRoleBadge && <CommunityRoleBadge roleBadge={authorRoleBadge} />}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">há cerca de 2 meses</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {formatRelative(topic.created)}
+                </p>
               </div>
             </div>
 
@@ -330,16 +354,37 @@ export default function TopicDetail() {
               {topic.content}
             </div>
 
+            {/* Topic image (real ou editada) com ponto de entrada da Edição Avançada */}
+            {(editedImageUrl || topic.image_url) && (
+              <CommunityTopicImage
+                src={editedImageUrl || topic.image_url || ''}
+                alt={topic.title}
+                editable
+                onEditedSave={(url) => {
+                  setEditedImageUrl(url)
+                  if (topic && !topic.id.startsWith('mock')) {
+                    persistTopicImage(topic.id, url)
+                  }
+                }}
+                className="w-full max-h-[420px]"
+              />
+            )}
+
             {/* Action Bar */}
             <div className="flex items-center gap-6 pt-4 border-t border-border text-xs text-muted-foreground font-medium">
               <button
                 type="button"
                 onClick={handleLike}
+                title={likeError || undefined}
                 className={`flex items-center gap-1.5 hover:text-rose-500 transition-colors ${
-                  liked ? 'text-rose-500 font-bold' : ''
+                  likeError ? 'text-destructive' : liked ? 'text-rose-500 font-bold' : ''
                 }`}
               >
-                <Heart className={`w-4 h-4 ${liked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <Heart
+                  className={`w-4 h-4 ${
+                    likeError ? 'text-destructive' : liked ? 'fill-rose-500 text-rose-500' : ''
+                  }`}
+                />
                 {topic.likes_count}
               </button>
 
@@ -361,9 +406,7 @@ export default function TopicDetail() {
 
             {replies.map((reply) => {
               const rAuthor = reply.expand?.user?.name || 'Aline Pazin'
-              const rAvatar =
-                reply.expand?.user?.avatar ||
-                'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=101'
+              const rAvatar = reply.expand?.user?.avatar || FALLBACK_AVATAR_F
 
               return (
                 <div
@@ -378,16 +421,15 @@ export default function TopicDetail() {
                         className="w-8 h-8 rounded-full object-cover border border-border"
                       />
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-xs text-foreground">{rAuthor}</span>
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-100 text-slate-700 text-[9px] h-4 px-1.5"
-                          >
-                            BASIC
-                          </Badge>
+                          {getTopicRoleBadge(rAuthor, reply.tags || []).map((b) => (
+                            <CommunityRoleBadge key={b} roleBadge={b} />
+                          ))}
                         </div>
-                        <p className="text-[10px] text-muted-foreground">há cerca de 2 meses</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatRelative(reply.created)}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -414,9 +456,7 @@ export default function TopicDetail() {
           >
             <div className="flex items-center gap-3">
               <img
-                src={
-                  user?.avatar || 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=102'
-                }
+                src={user?.avatar || FALLBACK_AVATAR_M}
                 alt={user?.name || 'User'}
                 className="w-8 h-8 rounded-full object-cover border border-border"
               />
@@ -434,6 +474,45 @@ export default function TopicDetail() {
               className="rounded-xl text-xs resize-none bg-background"
             />
 
+            {/* Mídia anexada à resposta, aberta na Edição Avançada */}
+            {replyAdvInitial && (
+              <div className="flex items-start gap-2 rounded-xl border border-border bg-secondary/40 p-2">
+                <img
+                  src={replyAdvInitial}
+                  alt="Mídia da resposta"
+                  className="h-16 w-16 rounded-lg object-cover border border-border"
+                />
+                <div className="min-w-0 flex-1 text-xs">
+                  <p className="font-semibold text-foreground truncate">Mídia anexada</p>
+                  <p className="text-muted-foreground truncate">
+                    Editada na Edição Avançada e pronta para envio
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setReplyAdvInitial(null)}
+                >
+                  Remover
+                </Button>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs gap-1.5"
+                onClick={() => setReplyAdvOpen(true)}
+              >
+                <Wand2 className="w-3.5 h-3.5 text-primary" />
+                Edição Avançada
+              </Button>
+            </div>
+
             <div className="flex justify-end">
               <Button
                 type="submit"
@@ -445,6 +524,18 @@ export default function TopicDetail() {
               </Button>
             </div>
           </form>
+
+          {/* Diálogo da Edição Avançada para mídia de resposta */}
+          <EditorAdvancedMediaDialog
+            open={replyAdvOpen}
+            onOpenChange={(open) => {
+              setReplyAdvOpen(open)
+              if (!open && !replyAdvInitial) setReplyAdvInitial(null)
+            }}
+            mediaUrl={replyAdvInitial || undefined}
+            title={`Responder em: ${topic.title}`}
+            onSave={(resultUrl) => setReplyAdvInitial(resultUrl)}
+          />
         </div>
 
         {/* Right Sidebar */}

@@ -184,6 +184,14 @@ export async function createCommunityTopic(data: {
   return await pb.collection('community_topics').create<CommunityTopic>(payload)
 }
 
+/**
+ * Atualiza a imagem de um tópico (inclusive a saída rasterizada
+ * da Edição Avançada — data URL grande demais para URL curta).
+ */
+export async function updateTopicImage(topicId: string, imageUrl: string): Promise<void> {
+  await pb.collection('community_topics').update(topicId, { image_url: imageUrl })
+}
+
 export async function setTopicActive(topicId: string, isActive: boolean): Promise<boolean> {
   await pb.collection('community_topics').update(topicId, {
     is_active: isActive,
