@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T00:08:52.714Z",
+  "generatedAt": "2026-11-15T00:46:42.357Z",
   "collections": [
     {
       "name": "users",
@@ -354,6 +354,73 @@
         {
           "name": "website_url",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "essence",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "voice_tone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "online_presence",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sector",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tags",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color_primary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color_secondary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color_accent",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "style_preferences",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["active", "archived"]
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
           "required": false,
           "system": false
         }
