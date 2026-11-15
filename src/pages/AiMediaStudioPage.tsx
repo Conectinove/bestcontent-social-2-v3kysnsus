@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   Star,
   Menu,
+  SlidersHorizontal,
+  Trash2,
+  Loader2,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -43,6 +46,8 @@ import {
   createStudioMedia,
   getStudioCreations,
   getUserStudioCredits,
+  updateStudioCreation,
+  deleteStudioCreation,
 } from '@/services/ai-studio'
 import {
   checkExternalMediaApiStatus,
@@ -61,6 +66,8 @@ import { VideoTemplatesBar } from '@/components/studio/VideoTemplatesBar'
 import { StudioCollaborationModal } from '@/components/studio/StudioCollaborationModal'
 import { StudioVersionHistoryModal } from '@/components/studio/StudioVersionHistoryModal'
 import { recordStudioPromptHistory } from '@/services/studio-prompt-history'
+import { StudioAdvancedEditorDialog } from '@/components/studio/StudioAdvancedEditorDialog'
+import { StudioSectionDialog, StudioSectionId } from '@/components/studio/StudioSectionDialog'
 
 // Componentes da Interface Estilo Genspark
 import { StudioSidebar } from '@/components/studio/StudioSidebar'
@@ -142,8 +149,92 @@ export default function AiMediaStudioPage() {
   const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false)
   const [isSecondBrainOpen, setIsSecondBrainOpen] = useState(false)
 
+  // Edição avançada da mídia gerada (mesmo mecanismo do editor de posts)
+  const [isAdvancedEditorOpen, setIsAdvancedEditorOpen] = useState(false)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  // Dialog de seções da sidebar (projetos / habilidades / estilos / ajuda)
+  const [sectionDialog, setSectionDialog] = useState<StudioSectionId | null>(null)
+
   // Modelo ativo na aba corrente
   const currentModel = selectedModels[activeTab] || STUDIO_MODELS.video[0]
+
+  // Abre o dialog de seção da sidebar com ação real
+  const openSection = (section: string) => {
+    if (section === 'inicio') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      setActiveSection('inicio')
+      return
+    }
+    setActiveSection(section)
+    setSectionDialog(section as StudioSectionId)
+  }
+
+  // Ação vinda do dialog de seção (habilidade → trocar aba, estilo/ajuda → prompt)
+  const handleSectionAction = (action: {
+    tab?: 'geral' | 'video' | 'image' | 'audio' | '3d'
+    prompt?: string
+  }) => {
+    if (action.tab) setActiveTab(action.tab)
+    if (action.prompt) {
+      setPrompt(action.prompt)
+      toast({
+        title: 'Aplicado no console!',
+        description: 'Prompt/estilo adicionado à barra de geração.',
+      })
+      window.scrollTo({ top: 320, behavior: 'smooth' })
+    }
+  }
+
+  // Salvar resultado da Edição Avançada sobre a mídia gerada
+  const handleSaveAdvancedEdit = async (editedPreviewUrl: string) => {
+    if (!selectedCreationModal) return
+    setIsSavingEdit(true)
+    try {
+      const updated = await updateStudioCreation(selectedCreationModal.id, {
+        preview_url: editedPreviewUrl,
+      })
+      setCreations((prev) => {
+        const next = prev.map((c) => (c.id === updated.id ? updated : c))
+        setStudioMetrics(calculateStudioMetrics(next))
+        return next
+      })
+      setSelectedCreationModal(updated)
+    } catch (err) {
+      console.error('Falha ao salvar edição avançada:', err)
+      toast({
+        title: 'Não foi possível salvar a edição',
+        description: 'A mídia original foi mantida. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  // Excluir criação do Studio (com confirmação via confirm nativo)
+  const handleDeleteCreation = async (creation: StudioCreationRecord) => {
+    if (!window.confirm(`Excluir "${creation.title}"? Essa ação não pode ser desfeita.`)) return
+    try {
+      await deleteStudioCreation(creation.id)
+      setCreations((prev) => {
+        const next = prev.filter((c) => c.id !== creation.id)
+        setStudioMetrics(calculateStudioMetrics(next))
+        return next
+      })
+      setSelectedCreationModal(null)
+      toast({
+        title: 'Criação excluída',
+        description: 'A mídia foi removida do seu Studio.',
+      })
+    } catch (err) {
+      console.error('Falha ao excluir criação:', err)
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Tente novamente em instantes.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const handleSelectModel = (model: StudioModelOption) => {
     setSelectedModels((prev) => ({
@@ -282,7 +373,7 @@ export default function AiMediaStudioPage() {
       <div className="hidden lg:flex h-full">
         <StudioSidebar
           activeSection={activeSection}
-          onSelectSection={setActiveSection}
+          onSelectSection={openSection}
           onNewCanvas={handleNewCanvas}
           recentCreations={creations}
           onSelectRecent={(item) => setSelectedCreationModal(item)}
@@ -312,7 +403,7 @@ export default function AiMediaStudioPage() {
               <StudioSidebar
                 activeSection={activeSection}
                 onSelectSection={(s) => {
-                  setActiveSection(s)
+                  openSection(s)
                   setIsMobileSidebarOpen(false)
                 }}
                 onNewCanvas={() => {
@@ -590,11 +681,20 @@ export default function AiMediaStudioPage() {
 
             <div className="space-y-4 pt-2">
               <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-border">
-                <img
-                  src={selectedCreationModal.preview_url}
-                  alt={selectedCreationModal.title}
-                  className="w-full h-full object-cover"
-                />
+                {selectedCreationModal.type === 'video' ? (
+                  <video
+                    src={selectedCreationModal.preview_url}
+                    className="w-full h-full object-cover"
+                    controls
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={selectedCreationModal.preview_url}
+                    alt={selectedCreationModal.title}
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
@@ -606,6 +706,22 @@ export default function AiMediaStudioPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isSavingEdit}
+                    onClick={() => setIsAdvancedEditorOpen(true)}
+                    className="rounded-full text-xs font-bold gap-1.5"
+                    title="Abrir Edição Avançada da Arte (filtros, textos, proporção)"
+                  >
+                    {isSavingEdit ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                    )}
+                    <span>Edição Avançada</span>
+                  </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -636,7 +752,17 @@ export default function AiMediaStudioPage() {
                     Ver na Biblioteca
                   </Button>
                   <Button
+                    variant="outline"
                     size="sm"
+                    onClick={() => handleDeleteCreation(selectedCreationModal)}
+                    className="rounded-full text-xs font-bold text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Excluir</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={isSavingEdit}
                     onClick={() => {
                       navigate('/app/criar', {
                         state: {
@@ -656,6 +782,43 @@ export default function AiMediaStudioPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Edição Avançada da Arte (mesmo mecanismo do editor de posts) */}
+      {selectedCreationModal && (
+        <StudioAdvancedEditorDialog
+          open={isAdvancedEditorOpen}
+          onOpenChange={(open) => {
+            setIsAdvancedEditorOpen(open)
+            if (!open) setIsSavingEdit(false)
+          }}
+          mediaUrl={selectedCreationModal.preview_url}
+          mediaType={selectedCreationModal.type}
+          title={selectedCreationModal.title}
+          isSaving={isSavingEdit}
+          onSave={async (dataUrl) => {
+            setIsAdvancedEditorOpen(false)
+            await handleSaveAdvancedEdit(dataUrl)
+          }}
+        />
+      )}
+
+      {/* Dialogs de seção da sidebar: Projetos, Habilidades, Estilos, Ajuda */}
+      <StudioSectionDialog
+        sectionId={sectionDialog}
+        onOpenChange={(open) => {
+          if (!open) setSectionDialog(null)
+        }}
+        creations={creations}
+        onSelectCreation={(item) => {
+          setSectionDialog(null)
+          setSelectedCreationModal(item)
+        }}
+        onNewCanvas={() => {
+          setSectionDialog(null)
+          handleNewCanvas()
+        }}
+        onApplyAction={handleSectionAction}
+      />
 
       {/* Modal de Assets Externos (Item 1 do pedido) */}
       <ExternalAssetModal

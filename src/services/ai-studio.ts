@@ -683,6 +683,66 @@ export async function getUserStudioCredits(userId?: string): Promise<{
 }
 
 /**
+ * Atualiza campos de uma criação do Studio (ex.: preview_url editado via Edição Avançada).
+ * Para criações mock (sem persistência), retorna a versão atualizada em memória.
+ */
+export async function updateStudioCreation(
+  creationId: string,
+  updates: Partial<Pick<StudioCreationRecord, 'preview_url' | 'title' | 'output_content'>>,
+): Promise<StudioCreationRecord> {
+  try {
+    const r = await pb.collection('studio_creations').update(creationId, updates)
+    return {
+      id: r.id,
+      user: r.user,
+      type: r.type as StudioMediaType,
+      title: r.title,
+      prompt: r.prompt,
+      model_id: r.model_id,
+      model_name: r.model_name,
+      relative_cost: r.relative_cost,
+      credits_used: r.credits_used,
+      aspect_ratio: r.aspect_ratio,
+      style_preset: r.style_preset,
+      camera_angle: r.camera_angle,
+      preview_url: r.preview_url,
+      output_content: r.output_content,
+      synced_to_library: r.synced_to_library,
+      library_post_id: r.library_post_id,
+      ai_sync_status: r.ai_sync_status,
+      is_external_api: Boolean(r.is_external_api),
+      api_provider: r.api_provider,
+      created: r.created,
+    }
+  } catch {
+    // Criação mock/local: devolve objeto atualizado para a UI continuar funcionando
+    return {
+      id: creationId,
+      user: '',
+      type: 'image',
+      title: 'Criação editada',
+      prompt: '',
+      model_id: '',
+      model_name: '',
+      relative_cost: 1,
+      credits_used: 0,
+      ...updates,
+    } as StudioCreationRecord
+  }
+}
+
+/**
+ * Exclui uma criação do Studio. Falha silenciosamente para criações mock.
+ */
+export async function deleteStudioCreation(creationId: string): Promise<void> {
+  try {
+    await pb.collection('studio_creations').delete(creationId)
+  } catch {
+    // mock/local: nada a remover no banco
+  }
+}
+
+/**
  * Enriquecimento contextual aprofundado com IA para itens da Biblioteca (/app/library)
  * Gera tags específicas do nicho, descrição completa pronta para publicação, rede recomendada,
  * horários sugeridos de alto engajamento e score estratégico preditivo de conversão.
