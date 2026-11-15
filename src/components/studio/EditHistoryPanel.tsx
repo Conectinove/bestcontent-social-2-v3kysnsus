@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Bot,
   GitCompareArrows,
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
 import { listEditVersions, type StudioEditVersionRecord } from '@/services/studio-edit-versions'
+import type { CompareVersionEntry } from './CompareVersionsDialog'
 import { askEditAssistant } from '@/services/edit-assistant'
 import { CompareVersionsDialog } from './CompareVersionsDialog'
 
@@ -62,6 +63,19 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
   useEffect(() => {
     refresh()
   }, [refresh, refreshKey])
+
+  /** Registros do histórico convertidos para o formato que o dialog espera. */
+  const compareEntries: CompareVersionEntry[] = useMemo(
+    () =>
+      versions.map((v) => ({
+        id: v.id,
+        version_label: v.title || `Versão de ${new Date(v.created).toLocaleString('pt-BR')}`,
+        editor_name: v.user_name || undefined,
+        settings: (v.settings ?? null) as unknown as Record<string, unknown> | null,
+        created: v.created,
+      })),
+    [versions],
+  )
 
   const handleRestore = async (version: StudioEditVersionRecord) => {
     if (!version.settings) {
@@ -165,7 +179,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
       <CompareVersionsDialog
         open={compareOpen}
         onOpenChange={setCompareOpen}
-        versions={versions}
+        versions={compareEntries}
         currentSettings={current as unknown as Record<string, unknown>}
       />
     </div>

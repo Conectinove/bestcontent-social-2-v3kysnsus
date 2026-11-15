@@ -72,6 +72,8 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [imgReady, setImgReady] = useState(false)
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
+  // Pedido 4: dialog de sugestão de IA (export-advisor) antes do download final
+  const [adviceOpen, setAdviceOpen] = useState(false)
 
   const isImage = creation?.type === 'image' || Boolean(creation?.preview_url)
 
