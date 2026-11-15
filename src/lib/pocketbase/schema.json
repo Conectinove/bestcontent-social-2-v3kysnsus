@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T15:19:55.602Z",
+  "generatedAt": "2026-11-15T15:44:55.561Z",
   "collections": [
     {
       "name": "users",
@@ -5960,6 +5960,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "page_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -6267,6 +6273,76 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "portal_video_plays",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": null,
+        "update": null,
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "portal",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "brand_portals"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "page_slug",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "page_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "media",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_portal_video_plays_portal ON portal_video_plays (portal, created DESC)",
+        "CREATE INDEX idx_portal_video_plays_user ON portal_video_plays (user)"
+      ]
     }
   ]
 }

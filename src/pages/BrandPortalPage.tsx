@@ -8,6 +8,7 @@ import {
   type PortalBlock,
   type PortalPageContent,
 } from '@/services/portal-pages'
+import { recordPortalVideoPlay } from '@/services/portal-visits'
 
 interface PortalData {
   id: string
@@ -50,7 +51,16 @@ export function toVideoEmbedUrl(url: string): string {
   return raw
 }
 
-export function PortalBlockView({ block, accent }: { block: PortalBlock; accent: string }) {
+export function PortalBlockView({
+  block,
+  accent,
+  onVideoPlay,
+}: {
+  block: PortalBlock
+  accent: string
+  /** Chamado quando o visitante dá play num vídeo próprio (métricas de vídeo). */
+  onVideoPlay?: () => void
+}) {
   if (block.type === 'title') {
     return (
       <h3 className="text-lg font-black" style={{ color: accent }}>
@@ -119,6 +129,7 @@ export function PortalBlockView({ block, accent }: { block: PortalBlock; accent:
           preload="metadata"
           className="aspect-video w-full overflow-hidden rounded-xl bg-black/90"
           src={block.mediaUrl}
+          onPlay={() => onVideoPlay?.()}
         />
       )
     }
@@ -227,6 +238,13 @@ export default function BrandPortalPage() {
     if (data) recordPortalVisit(token, activeSlug || 'home')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSlug])
+
+  // Métricas de vídeo (pedido "adicionar metricas de video"): play num vídeo
+  // próprio registra visualização pública com page + mediaId.
+  const handleVideoPlay = (block: PortalBlock) => {
+    if (!block.mediaId) return
+    recordPortalVideoPlay(token, activeSlug || 'home', String(block.mediaId), current?.id || '')
+  }
 
   if (error) {
     return (
@@ -399,7 +417,12 @@ export default function BrandPortalPage() {
                 {pageBlocks.length > 0 ? (
                   <div className="space-y-3">
                     {pageBlocks.map((b) => (
-                      <PortalBlockView key={b.id} block={b} accent={accent} />
+                      <PortalBlockView
+                        key={b.id}
+                        block={b}
+                        accent={accent}
+                        onVideoPlay={() => handleVideoPlay(b)}
+                      />
                     ))}
                   </div>
                 ) : (

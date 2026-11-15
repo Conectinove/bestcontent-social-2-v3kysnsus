@@ -5,6 +5,7 @@
 //  - POST /backend/v1/portals/visits/{token}      -> registra visita (público)
 //  - GET  /backend/v1/portals/metrics/{portalId}  -> analytics de visitas (dono)
 //  - GET  /backend/v1/portals/visits-export/{id}  -> exporta visitas (dono)
+//  - POST /backend/v1/portals/video-plays/{token} -> registra play de vídeo (público)
 //  - POST /backend/v1/portals/theme               -> salva as cores por marca (dono)
 // Regra da casa: TODA lógica INLINE dentro do callback (JSVM não enxerga
 // funções de nível superior — 'Hook scoping error').
@@ -114,6 +115,21 @@ routerAdd('POST', '/backend/v1/portals/visits/{token}', (e) => {
   const body = e.requestInfo().body || {}
   const pageSlug = String(body.pageSlug || '').slice(0, 120)
   const referrer = String(body.referrer || '').slice(0, 400)
+  // Analytics por página (pedido "filtrar analytics por pagina"): resolve o id
+  // da página interna a partir do slug (home = vazio).
+  let pageId = String(body.pageId || '').slice(0, 20)
+  if (!pageId && pageSlug && pageSlug !== 'home' && pageSlug !== 'principal') {
+    try {
+      const page = $app.findFirstRecordByFilter(
+        'portal_pages',
+        'brand = {:brand} && slug = {:slug}',
+        { brand: portal.getString('brand'), slug: pageSlug },
+      )
+      pageId = page.id
+    } catch (_) {
+      pageId = ''
+    }
+  }
 
   const visitsCollection = $app.findCollectionByNameOrId('portal_visits')
   const visit = new Record(visitsCollection)
@@ -121,8 +137,59 @@ routerAdd('POST', '/backend/v1/portals/visits/{token}', (e) => {
   visit.set('portal', portal.id)
   visit.set('brand', portal.getString('brand'))
   visit.set('page_slug', pageSlug)
+  visit.set('page_id', pageId)
   visit.set('referrer', referrer)
   $app.save(visit)
+
+  return e.json(200, { success: true })
+})
+
+// ---------- Vídeo: registra play de vídeo próprio (PÚBLICO) ----------
+// Pedido "adicionar metricas de video": um record em portal_video_plays por
+// play, com página e mídia. Igual às visitas — sem exigir login.
+routerAdd('POST', '/backend/v1/portals/video-plays/{token}', (e) => {
+  const token = (e.request.pathValue('token') || '').trim()
+  if (!token) return e.badRequest('Token ausente.')
+
+  let portal = null
+  try {
+    portal = $app.findFirstRecordByFilter(
+      'brand_portals',
+      'share_token = {:token} && published = true',
+      { token },
+    )
+  } catch (_) {
+    return e.notFound('Portal não encontrado.')
+  }
+
+  const body = e.requestInfo().body || {}
+  const pageSlug = String(body.pageSlug || '').slice(0, 120)
+  const mediaId = String(body.mediaId || '').slice(0, 20)
+  if (!mediaId) return e.badRequest('mediaId é obrigatório.')
+
+  let pageId = String(body.pageId || '').slice(0, 20)
+  if (!pageId && pageSlug && pageSlug !== 'home' && pageSlug !== 'principal') {
+    try {
+      const page = $app.findFirstRecordByFilter(
+        'portal_pages',
+        'brand = {:brand} && slug = {:slug}',
+        { brand: portal.getString('brand'), slug: pageSlug },
+      )
+      pageId = page.id
+    } catch (_) {
+      pageId = ''
+    }
+  }
+
+  const playsCollection = $app.findCollectionByNameOrId('portal_video_plays')
+  const play = new Record(playsCollection)
+  play.set('user', portal.getString('user'))
+  play.set('portal', portal.id)
+  play.set('brand', portal.getString('brand'))
+  play.set('page_slug', pageSlug)
+  play.set('page_id', pageId)
+  play.set('media', mediaId)
+  $app.save(play)
 
   return e.json(200, { success: true })
 })
@@ -132,6 +199,7 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
   const userId = e.auth?.id
   if (!userId) return e.unauthorizedError('Autenticação necessária.')
   const portalId = e.request.pathValue('portalId') || ''
+  const pageFilter = String(e.requestInfo().query.pageId || '').slice(0, 20)
 
   let portal = null
   try {
@@ -148,37 +216,62 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
   const d7 = new Date(now.getTime() - 7 * 86400000).toISOString().replace('T', ' ')
   const d30 = new Date(now.getTime() - 30 * 86400000).toISOString().replace('T', ' ')
 
+  // Filtro por página (pedido "filtrar analytics por pagina"): pageId na query
+  // restringe totais, série e lista àquela página ('' = todas).
+  const filterExtra = pageFilter ? ' && page_id = {:page}' : ''
+  const baseParams = pageFilter ? { id: portalId, page: pageFilter } : { id: portalId }
+
   let total = 0
   let last24h = 0
   let last7d = 0
   let last30d = 0
   try {
-    total = $app.countRecords('portal_visits', 'portal = {:id}', { id: portalId })
+    total = $app.countRecords('portal_visits', 'portal = {:id}' + filterExtra, baseParams)
   } catch (_) {
     total = 0
   }
   try {
-    last24h = $app.countRecords('portal_visits', 'portal = {:id} && created >= {:h24}', {
-      id: portalId,
-      h24,
-    })
-    last7d = $app.countRecords('portal_visits', 'portal = {:id} && created >= {:d7}', {
-      id: portalId,
-      d7,
-    })
-    last30d = $app.countRecords('portal_visits', 'portal = {:id} && created >= {:d30}', {
-      id: portalId,
-      d30,
-    })
+    last24h = $app.countRecords(
+      'portal_visits',
+      'portal = {:id}' + filterExtra + ' && created >= {:h24}',
+      {
+        id: baseParams.id,
+        page: baseParams.page,
+        h24,
+      },
+    )
+    last7d = $app.countRecords(
+      'portal_visits',
+      'portal = {:id}' + filterExtra + ' && created >= {:d7}',
+      {
+        id: baseParams.id,
+        page: baseParams.page,
+        d7,
+      },
+    )
+    last30d = $app.countRecords(
+      'portal_visits',
+      'portal = {:id}' + filterExtra + ' && created >= {:d30}',
+      {
+        id: baseParams.id,
+        page: baseParams.page,
+        d30,
+      },
+    )
   } catch (_) {
     last24h = last7d = last30d = 0
   }
 
   let recent = []
   try {
-    recent = $app.findRecordsByFilter('portal_visits', 'portal = {:id}', '-created', 10, 0, {
-      id: portalId,
-    })
+    recent = $app.findRecordsByFilter(
+      'portal_visits',
+      'portal = {:id}' + filterExtra,
+      '-created',
+      10,
+      0,
+      baseParams,
+    )
   } catch (_) {
     recent = []
   }
@@ -205,12 +298,13 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
   try {
     dayVisits = $app.findRecordsByFilter(
       'portal_visits',
-      'portal = {:id} && created >= {:d30}',
+      'portal = {:id} && created >= {:d30}' + filterExtra,
       '-created',
       10000,
       0,
       {
-        id: portalId,
+        id: baseParams.id,
+        page: baseParams.page,
         d30,
       },
     )
@@ -241,6 +335,48 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
     daily_series.push({ date: key, count: seriesMap[key] || 0 })
   }
 
+  // ---- Métricas de vídeo (pedido "adicionar metricas de video") ----
+  // Total de plays + ranking por vídeo (media + página onde está o bloco).
+  let videoTotal = 0
+  let videoRanking = []
+  try {
+    const plays = $app.findRecordsByFilter(
+      'portal_video_plays',
+      'portal = {:id}' + filterExtra,
+      '-created',
+      10000,
+      0,
+      baseParams,
+    )
+    videoTotal = plays.length
+    const perMedia = {}
+    const mediaMeta = {}
+    for (const p of plays) {
+      const mid = p.getString('media') || 'desconhecido'
+      perMedia[mid] = (perMedia[mid] || 0) + 1
+      if (!mediaMeta[mid]) {
+        mediaMeta[mid] = {
+          page_slug: p.getString('page_slug') || 'principal',
+          page_id: p.getString('page_id') || '',
+          last_play_at: p.get('created'),
+        }
+      }
+    }
+    videoRanking = Object.keys(perMedia)
+      .sort((a, b) => perMedia[b] - perMedia[a])
+      .slice(0, 20)
+      .map((mid) => ({
+        media_id: mid,
+        plays: perMedia[mid],
+        page_slug: mediaMeta[mid].page_slug,
+        page_id: mediaMeta[mid].page_id,
+        last_play_at: mediaMeta[mid].last_play_at,
+      }))
+  } catch (_) {
+    videoTotal = 0
+    videoRanking = []
+  }
+
   return e.json(200, {
     success: true,
     total,
@@ -249,16 +385,22 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
     last_30d: last30d,
     daily_series,
     recent: recentItems,
+    video_total: videoTotal,
+    video_ranking: videoRanking,
   })
 })
 
 // ---------- Analytics: exportação das visitas (SÓ O DONO) ----------
 // Pedido "exportar relatorio de analytics": devolve TODOS os registros de
-// visita (até 10 mil, mais recentes primeiro) para o frontend montar o CSV.
+// visita (até 10 mil, mais recentes primeiro) para o frontend montar o CSV/PDF.
+// pageId na query restringe ao filtro de página ativo no painel.
 routerAdd('GET', '/backend/v1/portals/visits-export/{portalId}', (e) => {
   const userId = e.auth?.id
   if (!userId) return e.unauthorizedError('Autenticação necessária.')
   const portalId = e.request.pathValue('portalId') || ''
+  const pageFilter = String(e.requestInfo().query.pageId || '').slice(0, 20)
+  const filterExtra = pageFilter ? ' && page_id = {:page}' : ''
+  const baseParams = pageFilter ? { id: portalId, page: pageFilter } : { id: portalId }
 
   let portal = null
   try {
@@ -272,9 +414,14 @@ routerAdd('GET', '/backend/v1/portals/visits-export/{portalId}', (e) => {
 
   let visits = []
   try {
-    visits = $app.findRecordsByFilter('portal_visits', 'portal = {:id}', '-created', 10000, 0, {
-      id: portalId,
-    })
+    visits = $app.findRecordsByFilter(
+      'portal_visits',
+      'portal = {:id}' + filterExtra,
+      '-created',
+      10000,
+      0,
+      baseParams,
+    )
   } catch (_) {
     visits = []
   }
@@ -284,6 +431,7 @@ routerAdd('GET', '/backend/v1/portals/visits-export/{portalId}', (e) => {
     items.push({
       at: v.get('created'),
       page_slug: v.getString('page_slug') || 'principal',
+      page_id: v.getString('page_id') || '',
       referrer: v.getString('referrer') || '',
     })
   }

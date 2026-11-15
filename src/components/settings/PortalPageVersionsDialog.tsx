@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Loader2, RotateCcw, X, History } from 'lucide-react'
+import { Loader2, RotateCcw, History, GitCompareArrows } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -8,13 +8,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import {
   listPageVersions,
   restorePageVersion,
   type PortalPageVersion,
 } from '@/services/portal-page-versions'
-import type { PortalPage } from '@/services/portal-pages'
+import type { PortalPage, PortalPageContent } from '@/services/portal-pages'
+import { PortalBlockDiffView } from '@/components/settings/PortalBlockDiffView'
 
 interface PortalPageVersionsDialogProps {
   page: PortalPage
@@ -48,6 +56,11 @@ export function PortalPageVersionsDialog({
   const [versions, setVersions] = useState<PortalPageVersion[]>([])
   const [loading, setLoading] = useState(true)
   const [restoring, setRestoring] = useState<string | null>(null)
+  // Comparação lado a lado (pedido 4): versão de referência + versão com que
+  // comparar. 'current' = conteúdo vivo da página (o que está publicado).
+  const [compareOpen, setCompareOpen] = useState(false)
+  const [compareRef, setCompareRef] = useState<string>('')
+  const [compareWith, setCompareWith] = useState<string>('current')
 
   useEffect(() => {
     let alive = true
@@ -91,9 +104,30 @@ export function PortalPageVersionsDialog({
     return Array.isArray(b) ? b.length : 0
   }
 
+  const versionLabel = (v: PortalPageVersion | null) => {
+    if (!v) return 'Atual'
+    return v.version <= 1 ? 'Criação' : `Versão ${v.version}`
+  }
+
+  const resolvedRef = versions.find((v) => v.id === compareRef) || null
+  const resolvedWith =
+    compareWith === 'current' ? null : versions.find((v) => v.id === compareWith) || null
+  const accent = page.content?.theme?.accent || undefined
+
+  const handleCompare = () => {
+    if (!resolvedRef) {
+      toast({ title: 'Escolha a versão de referência', variant: 'destructive' })
+      return
+    }
+    setCompareOpen(true)
+  }
+
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+    <Dialog
+      open
+      onOpenChange={(open) => (open ? undefined : compareOpen ? setCompareOpen(false) : onClose())}
+    >
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <History className="w-4 h-4" />
@@ -133,6 +167,18 @@ export function PortalPageVersionsDialog({
                 </div>
                 <Button
                   size="sm"
+                  variant="ghost"
+                  className="text-xs px-2 h-7"
+                  onClick={() => {
+                    setCompareRef(v.id)
+                    setCompareOpen(true)
+                  }}
+                  title="Comparar esta versão com outra"
+                >
+                  <GitCompareArrows className="w-3 h-3" />
+                </Button>
+                <Button
+                  size="sm"
                   variant="outline"
                   className="text-xs gap-1"
                   disabled={restoring === v.id}
@@ -147,6 +193,85 @@ export function PortalPageVersionsDialog({
                 </Button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ===== Comparação lado a lado (pedido 4) ===== */}
+        {versions.length > 0 && !compareOpen && (
+          <div className="mt-4 pt-3 border-t border-border/60 space-y-2">
+            <p className="text-[11px] font-bold flex items-center gap-1.5">
+              <GitCompareArrows className="w-3.5 h-3.5 text-primary" />
+              Comparar versões lado a lado
+            </p>
+            <div className="flex gap-2">
+              <Select value={compareRef} onValueChange={setCompareRef}>
+                <SelectTrigger className="h-8 text-xs flex-1">
+                  <SelectValue placeholder="Versão de referência" />
+                </SelectTrigger>
+                <SelectContent>
+                  {versions.map((v) => (
+                    <SelectItem key={v.id} value={v.id} className="text-xs">
+                      {versionLabel(v)} · {fmtDate(v.created)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={compareWith} onValueChange={setCompareWith}>
+                <SelectTrigger className="h-8 text-xs flex-1">
+                  <SelectValue placeholder="Comparar com" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current" className="text-xs">
+                    Atual (publicada)
+                  </SelectItem>
+                  {versions.map((v) => (
+                    <SelectItem key={v.id} value={v.id} className="text-xs">
+                      {versionLabel(v)} · {fmtDate(v.created)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1 w-full"
+              onClick={handleCompare}
+              disabled={!compareRef}
+            >
+              <GitCompareArrows className="w-3.5 h-3.5" />
+              Comparar
+            </Button>
+          </div>
+        )}
+
+        {compareOpen && (
+          <div className="mt-4 pt-3 border-t border-border/60 space-y-3">
+            <PortalBlockDiffView
+              contentA={(resolvedRef?.content as PortalPageContent) || null}
+              contentB={
+                compareWith === 'current'
+                  ? (page.content as PortalPageContent) || null
+                  : (resolvedWith?.content as PortalPageContent) || null
+              }
+              labelA={versionLabel(resolvedRef) + ' · ' + fmtDate(resolvedRef.created)}
+              labelB={
+                compareWith === 'current'
+                  ? 'Atual (publicada)'
+                  : versionLabel(resolvedWith) + ' · ' + fmtDate(resolvedWith.created)
+              }
+              accent={accent || 'hsl(var(--primary))'}
+            />
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs"
+                onClick={() => setCompareOpen(false)}
+              >
+                Fechar comparação
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
