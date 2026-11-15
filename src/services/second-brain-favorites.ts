@@ -1,8 +1,13 @@
 import pb from '@/lib/pocketbase/client'
 
-/** Coleção única de favoritos de mídia do Segundo Cérebro (migration 0127). */
+/**
+ * Favoritos de mídia do Segundo Cérebro — coleção second_brain_favorites
+ * (migration 0127, já aplicada): {user relation obrigatório, source, media_id,
+ * name, url, meta json} + índice único (user, media_id) que torna o toggle
+ * idempotente. Nomes de campo da coleção real: name / url.
+ */
 export type SecondBrainFavoriteSource =
-  | 'doc'
+  | 'document'
   | 'bank'
   | 'uploads'
   | 'library'
@@ -14,8 +19,8 @@ export interface SecondBrainFavorite {
   id: string
   source: SecondBrainFavoriteSource
   media_id: string
-  title: string
-  thumbnail_url: string
+  name: string
+  url: string
   meta: Record<string, unknown>
   created: string
 }
@@ -24,15 +29,15 @@ const COLLECTION = 'second_brain_favorites'
 
 const toFavorite = (rec: Record<string, unknown>): SecondBrainFavorite => ({
   id: String(rec.id),
-  source: (rec.source as SecondBrainFavoriteSource) || 'doc',
+  source: (rec.source as SecondBrainFavoriteSource) || 'document',
   media_id: String(rec.media_id || ''),
-  title: String(rec.title || ''),
-  thumbnail_url: String(rec.thumbnail_url || ''),
+  name: String(rec.name || ''),
+  url: String(rec.url || ''),
   meta: (rec.meta as Record<string, unknown>) || {},
   created: String(rec.created || ''),
 })
 
-/** Lista todos os favoritos do usuário logado. */
+/** Lista todos os favoritos do usuário logado (coleção já filtra por regra). */
 export async function listSecondBrainFavorites(): Promise<SecondBrainFavorite[]> {
   const userId = pb.authStore.record?.id
   if (!userId) return []
@@ -43,8 +48,8 @@ export async function listSecondBrainFavorites(): Promise<SecondBrainFavorite[]>
   return recs.map((r) => toFavorite(r as unknown as Record<string, unknown>))
 }
 
-/** Verifica se uma mídia já é favorita. */
-export function isFavorite(
+/** Verifica se uma mídia já é favorita (por source + media_id). */
+export function isSecondBrainFavorite(
   favorites: SecondBrainFavorite[],
   source: SecondBrainFavoriteSource,
   mediaId: string,
@@ -56,8 +61,8 @@ export function isFavorite(
 export async function toggleSecondBrainFavorite(params: {
   source: SecondBrainFavoriteSource
   mediaId: string
-  title: string
-  thumbnailUrl: string
+  name: string
+  url: string
   meta?: Record<string, unknown>
 }): Promise<{ favorited: boolean }> {
   const userId = pb.authStore.record?.id
@@ -73,8 +78,8 @@ export async function toggleSecondBrainFavorite(params: {
     user: userId,
     source: params.source,
     media_id: params.mediaId,
-    title: params.title,
-    thumbnail_url: params.thumbnailUrl,
+    name: params.name,
+    url: params.url,
     meta: params.meta || {},
   })
   return { favorited: true }

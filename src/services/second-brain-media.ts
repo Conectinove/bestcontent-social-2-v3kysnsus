@@ -4,6 +4,9 @@
  * compartilhados: busca de texto + tipo (imagem/vídeo/anexo/link) + período.
  */
 import pb from '@/lib/pocketbase/client'
+import { saveEditPreset, listEditPresets, deleteEditPreset } from '@/services/studio-edit-presets'
+import { saveEditVersion, listEditVersions } from '@/services/studio-edit-versions'
+import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
 
 export type SecondBrainMediaType = 'imagem' | 'video' | 'anexo' | 'link'
 export type SecondBrainDateFilter = 'all' | '7d' | '30d' | '90d'
@@ -305,3 +308,187 @@ export const stockAttribution = (r: StockSearchResult): string =>
   r.source === 'unsplash'
     ? `Foto: ${r.author || 'Autor desconhecido'} no Unsplash`
     : `Foto: ${r.author || 'Fotógrafo'} no Pexels`
+
+/* ----------------- Modelos de composição (studio_edit_presets) ------------------ */
+/* Padrão da casa (v0.0.x): presets vivem em studio_edit_presets com o nome
+ * prefixado por "secondbrain:" — sem coleção nova. Migration 0112 criou
+ * is_shared, que vira o toggle "Compartilhar com a equipe". */
+
+export interface SecondBrainMediaTemplate {
+  id: string
+  name: string
+  settings: AdvancedCustomizationState
+  is_shared: boolean
+  user: string
+  created: string
+  updated: string
+}
+
+const TEMPLATE_NS = 'secondbrain:'
+
+const mapPresetToTemplate = (p: {
+  id: string
+  name: string
+  settings: AdvancedCustomizationState
+  is_shared: boolean
+  user: string
+  created: string
+  updated: string
+}): SecondBrainMediaTemplate => ({
+  id: p.id,
+  name: p.name.startsWith(TEMPLATE_NS) ? p.name : `${TEMPLATE_NS}${p.name}`,
+  settings: p.settings || ({} as AdvancedCustomizationState),
+  is_shared: Boolean(p.is_shared),
+  user: p.user,
+  created: p.created,
+  updated: p.updated,
+})
+
+export async function listSecondBrainMediaTemplates(): Promise<SecondBrainMediaTemplate[]> {
+  try {
+    const presets = await listEditPresets()
+    return presets.filter((p) => p.name.startsWith(TEMPLATE_NS)).map(mapPresetToTemplate)
+  } catch {
+    return []
+  }
+}
+
+export async function createSecondBrainMediaTemplate(input: {
+  name: string
+  settings: AdvancedCustomizationState
+  isShared?: boolean
+}): Promise<SecondBrainMediaTemplate> {
+  const preset = await saveEditPreset(
+    input.name.startsWith(TEMPLATE_NS) ? input.name : `${TEMPLATE_NS}${input.name.trim()}`,
+    input.settings,
+    Boolean(input.isShared),
+  )
+  return mapPresetToTemplate(preset)
+}
+
+export async function deleteSecondBrainMediaTemplate(id: string): Promise<void> {
+  await deleteEditPreset(id)
+}
+
+/** Extrai o estado de ajustes aplicável de um modelo (sem mutar o original). */
+export function applySecondBrainMediaTemplate(
+  t: SecondBrainMediaTemplate,
+): AdvancedCustomizationState {
+  return { ...(t.settings || {}) } as AdvancedCustomizationState
+}
+
+/* -------------------- Versões de edição (studio_edit_versions) ------------------ */
+/* Mesmo padrão: asset_key "secondbrain:<mediaId>" na coleção studio_edit_versions
+ * (migration 0103). O grid usa para o histórico por mídia com restauração. */
+
+export interface SecondBrainMediaVersion {
+  id: string
+  media_id: string
+  title: string
+  settings: AdvancedCustomizationState | null
+  preview_url: string
+  result_url: string
+  user_name: string
+  created: string
+}
+
+const VERSION_NS = 'secondbrain:'
+
+const mapVersion = (v: {
+  id: string
+  target_key: string
+  title: string
+  settings: AdvancedCustomizationState | null
+  preview_url: string
+  result_url: string
+  user_name: string
+  created: string
+}): SecondBrainMediaVersion => ({
+  id: v.id,
+  media_id: v.target_key.startsWith(VERSION_NS)
+    ? v.target_key.slice(VERSION_NS.length)
+    : v.target_key,
+  title: v.title,
+  settings: v.settings,
+  preview_url: v.preview_url,
+  result_url: v.result_url,
+  user_name: v.user_name,
+  created: v.created,
+})
+
+export async function listSecondBrainMediaVersions(
+  mediaId: string,
+): Promise<SecondBrainMediaVersion[]> {
+  try {
+    const recs = await listEditVersions(`${VERSION_NS}${mediaId}`, 30)
+    return recs.map(mapVersion)
+  } catch {
+    return []
+  }
+}
+
+export async function saveSecondBrainMediaVersion(input: {
+  mediaId: string
+  title: string
+  settings: AdvancedCustomizationState
+  previewUrl?: string
+  resultUrl?: string
+}): Promise<void> {
+  try {
+    await saveEditVersion({
+      targetKey: `${VERSION_NS}${input.mediaId}`,
+      title: input.title,
+      settings: input.settings,
+      previewUrl: input.previewUrl,
+      resultUrl: input.resultUrl,
+    })
+  } catch {
+    // best-effort: o histórico nunca bloqueia o salvamento principal
+  }
+}
+
+/* ---------------- Fontes em formato de item (grade) — acervo / curados ----------- */
+
+/** Acervo da conta (image_bank_assets) em formato de item da grade. */
+export async function fetchAccountMediaSource(opts?: {
+  perPage?: number
+}): Promise<{ items: SecondBrainMediaItem[]; error: string | null }> {
+  try {
+    const userId = pb.authStore.record?.id || ''
+    if (!userId) return { items: [], error: 'Faça login para ver o acervo.' }
+    const recs = await pb.collection('image_bank_assets').getList(1, opts?.perPage || 60, {
+      filter: `user = "${userId}"`,
+      sort: '-created',
+    })
+    const items = recs.items.map((r) => fromBankAsset(r as unknown as Record<string, unknown>))
+    return { items, error: null }
+  } catch (e) {
+    return { items: [], error: e instanceof Error ? e.message : 'Falha ao carregar o acervo.' }
+  }
+}
+
+/** Curadoria leve (sem rede): deriva sugestões do doc da conta (sem fingir API). */
+export function fetchCuratedMediaSource(query = ''): SecondBrainMediaItem[] {
+  const q = query.trim().toLowerCase()
+  // Curadoria local: mesma imagem placeholder do projeto para contexto visual.
+  return [
+    {
+      id: 'curated-1',
+      source: 'library',
+      type: 'imagem',
+      name: 'Sugestão curada: Fundo abstrato',
+      url: 'https://img.usecurling.com/p/800/450?q=abstract%20gradient',
+      thumbUrl: 'https://img.usecurling.com/p/400/225?q=abstract%20gradient',
+      tags: ['curadoria', 'fundo'],
+    },
+    {
+      id: 'curated-2',
+      source: 'library',
+      type: 'imagem',
+      name: 'Sugestão curada: Mesa de trabalho',
+      url: 'https://img.usecurling.com/p/800/450?q=workspace',
+      thumbUrl: 'https://img.usecurling.com/p/400/225?q=workspace',
+      tags: ['curadoria', 'trabalho'],
+    },
+  ].filter((i) => !q || [i.name, ...(i.tags || [])].join(' ').toLowerCase().includes(q))
+}
