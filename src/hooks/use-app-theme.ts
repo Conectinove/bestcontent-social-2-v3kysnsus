@@ -319,6 +319,3 @@ export function applyThemeVars(theme: StudioThemeOption, networkId: NetworkTheme
     root.removeAttribute('data-app-theme-network')
   }
 }
-
-// Garante que o id de rede lido do storage é sempre válido (usado pelo hook)
-void normalizeNetworkThemeId

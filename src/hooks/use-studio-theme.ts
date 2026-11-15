@@ -329,13 +329,17 @@ export function useStudioTheme(brands: Brand[]) {
     )
   }, [theme, themeId])
 
-  /** Cria um tema personalizado (com rede + compartilhamento), salva, aplica na hora. */
-  const addCustomTheme = (opts: {
+  /**
+   * Cria um tema personalizado (com rede + compartilhamento), salva, aplica na hora.
+   * Assíncrono e sem retorno (Promise<void>) para casar com a prop onCreateCustom
+   * do StudioThemeSwitcher (mesma assinatura do motor global use-app-theme).
+   */
+  const addCustomTheme = async (opts: {
     name: string
     colors: StudioCustomColors
     network?: NetworkThemeId
     isShared?: boolean
-  }): StudioThemeOption => {
+  }): Promise<void> => {
     const newTheme = buildCustomTheme(opts.name, opts.colors)
     setCustomThemes((prev) => {
       const next = [...prev, newTheme]
@@ -343,7 +347,6 @@ export function useStudioTheme(brands: Brand[]) {
       return next
     })
     setThemeId(newTheme.id)
-    return newTheme
   }
 
   /** Exclui um tema personalizado; se era o ativo, volta ao tema padrão. */
