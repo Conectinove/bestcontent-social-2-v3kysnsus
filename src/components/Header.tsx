@@ -303,6 +303,10 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
           networkId={themeNetwork}
           onSelectNetwork={appTheme.setNetworkId}
           onToggleShared={appTheme.toggleShared}
+          onStartPreview={appTheme.startPreview}
+          onCancelPreview={appTheme.cancelPreview}
+          onImportTheme={appTheme.importTheme}
+          onUpdateTheme={appTheme.updateCustomTheme}
           isSaving={appTheme.isSaving}
         />
 

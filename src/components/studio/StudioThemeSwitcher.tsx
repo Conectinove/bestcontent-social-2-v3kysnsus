@@ -1,14 +1,36 @@
-import { useEffect, useState } from 'react'
-import { Palette, Plus, Trash2, Check, Users, Share2, Loader2 } from 'lucide-react'
+/**
+ * Seletor de tema (Header global e Studio): lista temas com PRÉ-VISUALIZAÇÃO
+ * ao passar o mouse (aplica na raiz sem confirmar — confirmar só no clique),
+ * exportar/importar tema (arquivo JSON), abrir o editor completo de temas e
+ * alternar o escopo do tema personalizado: "Só para mim" ou "Equipe".
+ */
+import { useState } from 'react'
+import {
+  Palette,
+  Plus,
+  Trash2,
+  Check,
+  Users,
+  Share2,
+  Loader2,
+  Download,
+  Upload,
+  Pencil,
+  WandSparkles,
+} from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import type { StudioThemeOption, StudioCustomColors } from '@/hooks/use-studio-theme'
-import { NETWORK_THEME_LIST, type NetworkThemeId } from '@/lib/network-themes'
+import type { StudioThemeOption } from '@/hooks/use-studio-theme'
+import type { NetworkThemeId } from '@/lib/network-themes'
+import {
+  downloadThemeFile,
+  parseThemeFile,
+  pickThemeFile,
+  type ParsedThemeInput,
+} from '@/lib/theme-file'
+import { ThemeEditorDialog, type ThemeEditorSubmit } from '@/components/studio/ThemeEditorDialog'
 
 interface StudioThemeSwitcherProps {
   themes: StudioThemeOption[]
@@ -16,9 +38,10 @@ interface StudioThemeSwitcherProps {
   onSelect: (id: string) => void
   onCreateCustom: (opts: {
     name: string
-    colors: StudioCustomColors
+    colors: StudioCustomColorsInput
     network?: NetworkThemeId
     isShared?: boolean
+    scope?: 'team' | 'personal'
   }) => Promise<void> | void
   onDeleteCustom: (id: string) => Promise<void> | void
   /** Rede social escolhida (variação de accent) — 'none' = sem rede. */
@@ -26,25 +49,22 @@ interface StudioThemeSwitcherProps {
   onSelectNetwork?: (id: NetworkThemeId) => void
   /** Marca/desmarca um tema salvo no banco como compartilhado com a equipe. */
   onToggleShared?: (id: string, isShared: boolean) => Promise<void> | void
+  /** Pré-visualização: aplica o tema temporariamente (hover), sem confirmar. */
+  onStartPreview?: (id: string) => void
+  /** Encerra a pré-visualização e volta ao tema confirmado. */
+  onCancelPreview?: () => void
+  /** Importa um tema validado de arquivo JSON (cria + aplica). */
+  onImportTheme?: (input: ParsedThemeInput) => void
+  /** Edita um tema personalizado existente (editor completo). */
+  onUpdateTheme?: (id: string, input: ThemeEditorSubmit) => Promise<void> | void
   isSaving?: boolean
 }
 
-const COLOR_FIELDS: Array<{
-  key: keyof StudioCustomColors
-  label: string
-  defaultValue: string
-}> = [
-  { key: 'background', label: 'Fundo', defaultValue: '#09090b' },
-  { key: 'surface', label: 'Superfície (cards)', defaultValue: '#18181b' },
-  { key: 'primary', label: 'Cor primária', defaultValue: '#7c3aed' },
-  { key: 'text', label: 'Texto', defaultValue: '#fafafa' },
-]
-
-const emptyColors: StudioCustomColors = {
-  background: '#09090b',
-  surface: '#18181b',
-  primary: '#7c3aed',
-  text: '#fafafa',
+type StudioCustomColorsInput = {
+  background: string
+  surface: string
+  primary: string
+  text: string
 }
 
 export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
@@ -56,187 +76,162 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
   networkId = 'none',
   onSelectNetwork,
   onToggleShared,
+  onStartPreview,
+  onCancelPreview,
+  onImportTheme,
+  onUpdateTheme,
   isSaving = false,
 }) => {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [name, setName] = useState('Meu tema')
-  const [colors, setColors] = useState<StudioCustomColors>(emptyColors)
-  const [newNetwork, setNewNetwork] = useState<NetworkThemeId>('none')
-  const [isShared, setIsShared] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editingTheme, setEditingTheme] = useState<StudioThemeOption | null>(null)
+  const [importing, setImporting] = useState(false)
 
-  // Reabre o formulário sempre que o popover reabre, pronto para criar outro tema
-  useEffect(() => {
-    if (!open) setCreating(false)
-  }, [open])
-
-  const handleCreate = async () => {
-    if (!name.trim()) {
-      toast({ title: 'Dê um nome ao tema', variant: 'destructive' })
-      return
+  const handleSelect = (t: StudioThemeOption) => {
+    // Clique confirma: encerra a pré-visualização e grava a escolha
+    onCancelPreview?.()
+    onSelect(t.id)
+    if (t.network && t.network !== 'none' && onSelectNetwork) {
+      onSelectNetwork(t.network as NetworkThemeId)
     }
-    await onCreateCustom({
-      name,
-      colors,
-      network: newNetwork,
-      isShared,
-    })
-    toast({
-      title: `Tema "${name.trim()}" criado e aplicado`,
-      description: isShared ? 'Compartilhado com a equipe (salvo no banco).' : undefined,
-    })
-    setCreating(false)
-    setName('Meu tema')
-    setColors(emptyColors)
-    setNewNetwork('none')
-    setIsShared(false)
-    setOpen(false)
+  }
+
+  const handleExport = (t: StudioThemeOption) => {
+    const ok = downloadThemeFile(t)
+    if (ok) {
+      toast({ title: `Tema "${t.name}" exportado`, description: 'Arquivo JSON baixado.' })
+    } else {
+      toast({
+        title: 'Este tema não pode ser exportado',
+        description: 'Temas embutidos e de marca não têm cores hex editáveis.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleImport = async () => {
+    setImporting(true)
+    try {
+      const raw = await pickThemeFile()
+      if (!raw) return
+      const parsed = parseThemeFile(raw)
+      if (!parsed.ok || !parsed.input) {
+        toast({
+          title: 'Arquivo de tema inválido',
+          description: parsed.error,
+          variant: 'destructive',
+        })
+        return
+      }
+      if (onImportTheme) {
+        onImportTheme(parsed.input)
+      } else {
+        // Motor do Studio (sem banco): cria localmente
+        await onCreateCustom({
+          name: parsed.input.name,
+          colors: parsed.input.colors,
+          network: (parsed.input.network as NetworkThemeId) || 'none',
+          scope: 'personal',
+        })
+      }
+      toast({ title: `Tema "${parsed.input.name}" importado e aplicado` })
+      setOpen(false)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleEditorSubmit = async (input: ThemeEditorSubmit) => {
+    if (editingTheme && onUpdateTheme) {
+      await onUpdateTheme(editingTheme.id, input)
+      toast({ title: `Tema "${input.name}" atualizado` })
+    } else {
+      await onCreateCustom({
+        name: input.name,
+        colors: input.colors,
+        network: (input.network as NetworkThemeId) || 'none',
+        scope: input.scope,
+        isShared: input.scope === 'team',
+      })
+      toast({
+        title: `Tema "${input.name}" criado e aplicado`,
+        description: input.scope === 'team' ? 'Compartilhado com a equipe.' : 'Só para você.',
+      })
+    }
+    setEditingTheme(null)
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-2 border-border/60 bg-card/60 text-foreground/80 hover:bg-accent hover:text-accent-foreground"
-        >
-          <Palette className="h-4 w-4" />
-          <span className="hidden sm:inline">Tema</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <p className="text-sm font-semibold">Tema do app</p>
-          {!creating && (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1 text-xs"
-              onClick={() => setCreating(true)}
-            >
-              <Plus className="h-3.5 w-3.5" /> Novo
-            </Button>
-          )}
-        </div>
-
-        {creating ? (
-          <div className="p-4 space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="studio-theme-name" className="text-xs">
-                Nome do tema
-              </Label>
-              <Input
-                id="studio-theme-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Meu tema roxo"
-                maxLength={24}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {COLOR_FIELDS.map((f) => (
-                <div key={f.key} className="space-y-1">
-                  <Label
-                    htmlFor={`studio-color-${f.key}`}
-                    className="text-[11px] text-muted-foreground"
-                  >
-                    {f.label}
-                  </Label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      id={`studio-color-${f.key}`}
-                      type="color"
-                      value={colors[f.key]}
-                      onChange={(e) => setColors((p) => ({ ...p, [f.key]: e.target.value }))}
-                      className="h-8 w-9 shrink-0 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
-                      aria-label={f.label}
-                    />
-                    <Input
-                      value={colors[f.key]}
-                      onChange={(e) => setColors((p) => ({ ...p, [f.key]: e.target.value }))}
-                      className="h-8 font-mono text-[11px] px-2"
-                      maxLength={7}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Rede social: variação de accent do tema (opcional) */}
-            {onSelectNetwork && (
-              <div className="space-y-1.5">
-                <Label htmlFor="studio-theme-network" className="text-xs">
-                  Rede social (variação de cor)
-                </Label>
-                <select
-                  id="studio-theme-network"
-                  value={newNetwork}
-                  onChange={(e) => setNewNetwork(e.target.value as NetworkThemeId)}
-                  className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground"
-                >
-                  <option value="none">Sem rede (tema neutro)</option>
-                  {NETWORK_THEME_LIST.map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {n.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Compartilhar com a equipe (persistido no banco) */}
-            {onToggleShared && (
-              <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold flex items-center gap-1.5">
-                    <Share2 className="h-3.5 w-3.5 shrink-0" /> Compartilhar com a equipe
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    Salvo no banco; colegas da mesma organização veem na lista.
-                  </p>
-                </div>
-                <Switch
-                  checked={isShared}
-                  onCheckedChange={setIsShared}
-                  aria-label="Compartilhar com a equipe"
-                />
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-1">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setCreating(false)}>
-                Voltar
-              </Button>
-              <Button type="button" size="sm" onClick={handleCreate} disabled={isSaving}>
-                {isSaving ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2 border-border/60 bg-card/60 text-foreground/80 hover:bg-accent hover:text-accent-foreground"
+          >
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">Tema</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-80 p-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <p className="text-sm font-semibold">Tema do app</p>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 text-xs"
+                onClick={() => handleImport()}
+                disabled={importing}
+                title="Importar tema de arquivo JSON"
+              >
+                {importing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Check className="mr-1 h-3.5 w-3.5" />
+                  <Upload className="h-3.5 w-3.5" />
                 )}
-                {isSaving ? 'Salvando...' : 'Criar e aplicar'}
+                Importar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 text-xs"
+                onClick={() => {
+                  setEditingTheme(null)
+                  setEditorOpen(true)
+                }}
+                title="Criar tema do zero (editor completo)"
+              >
+                <Plus className="h-3.5 w-3.5" /> Novo
               </Button>
             </div>
           </div>
-        ) : (
+
           <div className="max-h-72 overflow-y-auto p-2">
             {themes.map((t) => {
               const active = t.id === themeId
               const isTeam = t.origin === 'team'
+              const canExport = t.source === 'custom' && Boolean(t.colors)
               return (
                 <div
                   key={t.id}
                   className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${
                     active ? 'bg-accent' : 'hover:bg-muted/60'
                   }`}
+                  // Pré-visualização ao passar o mouse: aplica sem confirmar
+                  onMouseEnter={() => !active && onStartPreview?.(t.id)}
+                  onMouseLeave={() => onCancelPreview?.()}
                 >
                   <button
                     type="button"
-                    onClick={() => onSelect(t.id)}
+                    onClick={() => handleSelect(t)}
                     className="flex flex-1 min-w-0 items-center gap-2 text-left"
+                    title="Aplicar tema (clique para confirmar)"
                   >
                     <span
                       className="h-6 w-6 shrink-0 rounded-md border border-border shadow-sm"
@@ -252,6 +247,11 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
                             aria-label="Tema da equipe"
                           />
                         )}
+                        {t.scope === 'personal' && t.source === 'custom' && (
+                          <span className="shrink-0 rounded bg-muted px-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Só p/ mim
+                          </span>
+                        )}
                       </span>
                       <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
                         {t.source === 'builtin'
@@ -260,11 +260,15 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
                             ? 'Marca'
                             : isTeam
                               ? `Equipe${t.ownerName ? ` · ${t.ownerName}` : ''}`
-                              : 'Personalizado'}
+                              : t.scope === 'personal'
+                                ? 'Pessoal'
+                                : 'Personalizado'}
                       </span>
                     </span>
                     {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
                   </button>
+
+                  {/* Escopo: compartilhar com a equipe ↔ só para mim */}
                   {t.source === 'custom' && onToggleShared && !isTeam && (
                     <button
                       type="button"
@@ -272,7 +276,7 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
                         await onToggleShared(t.id, !t.isShared)
                         toast({
                           title: t.isShared
-                            ? `Tema "${t.name}" agora é privado`
+                            ? `Tema "${t.name}" agora é só para você`
                             : `Tema "${t.name}" compartilhado com a equipe`,
                         })
                       }}
@@ -283,23 +287,57 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
                       }`}
                       aria-label={
                         t.isShared
-                          ? `Descompartilhar tema ${t.name}`
+                          ? `Tornar tema ${t.name} privado (só para mim)`
                           : `Compartilhar tema ${t.name} com a equipe`
                       }
                       title={
                         t.isShared
-                          ? 'Privado (clique para compartilhar)'
-                          : 'Compartilhar com a equipe'
+                          ? 'Visível para a equipe (clique: só para mim)'
+                          : 'Só para mim (clique: equipe)'
                       }
                     >
-                      <Share2 className="h-3.5 w-3.5" />
+                      {t.isShared ? (
+                        <Share2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <Users className="h-3.5 w-3.5" />
+                      )}
                     </button>
                   )}
+
+                  {/* Exportar tema (JSON) */}
+                  {canExport && (
+                    <button
+                      type="button"
+                      onClick={() => handleExport(t)}
+                      className="p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-70 hover:!opacity-100"
+                      aria-label={`Exportar tema ${t.name}`}
+                      title="Exportar tema (arquivo JSON)"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+
+                  {/* Editar (editor completo) */}
+                  {t.source === 'custom' && !isTeam && onUpdateTheme && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingTheme(t)
+                        setEditorOpen(true)
+                      }}
+                      className="p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-70 hover:!opacity-100"
+                      aria-label={`Editar tema ${t.name}`}
+                      title="Editar tema"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+
                   {t.source === 'custom' && !isTeam && (
                     <button
                       type="button"
                       onClick={() => onDeleteCustom(t.id)}
-                      className="opacity-60 hover:opacity-100 text-muted-foreground hover:text-destructive p-1"
+                      className="p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-70 hover:!opacity-100"
                       aria-label={`Excluir tema ${t.name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -309,13 +347,26 @@ export const StudioThemeSwitcher: React.FC<StudioThemeSwitcherProps> = ({
               )
             })}
             <Separator className="my-2" />
-            <p className="px-2 pb-1 text-[11px] text-muted-foreground">
-              Dica: crie um tema com as cores da sua marca em “Novo”.
+            <p className="px-2 pb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <WandSparkles className="h-3 w-3 shrink-0" />
+              Passe o mouse para pré-visualizar; clique para aplicar.
             </p>
           </div>
-        )}
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+
+      {/* Editor completo de temas (criar do zero ou editar existente) */}
+      <ThemeEditorDialog
+        open={editorOpen}
+        onOpenChange={(v) => {
+          setEditorOpen(v)
+          if (!v) setEditingTheme(null)
+        }}
+        editing={editingTheme}
+        onSubmit={handleEditorSubmit}
+        isSaving={isSaving}
+      />
+    </>
   )
 }
 

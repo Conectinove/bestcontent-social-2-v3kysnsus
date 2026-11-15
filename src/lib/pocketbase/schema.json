@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T03:23:24.110Z",
+  "generatedAt": "2026-11-15T03:40:31.672Z",
   "collections": [
     {
       "name": "users",
@@ -5539,13 +5539,21 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "scope",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["team", "personal"]
         }
       ],
       "indexes": [
         "CREATE INDEX idx_studio_themes_user ON studio_themes (user)",
         "CREATE INDEX idx_studio_themes_network ON studio_themes (network)",
         "CREATE INDEX idx_studio_themes_shared ON studio_themes (is_shared)",
-        "CREATE INDEX idx_studio_themes_remote_id ON studio_themes (remote_id)"
+        "CREATE INDEX idx_studio_themes_remote_id ON studio_themes (remote_id)",
+        "CREATE INDEX IF NOT EXISTS idx_studio_themes_scope ON studio_themes (scope)"
       ]
     }
   ]

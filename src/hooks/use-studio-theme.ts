@@ -26,6 +26,12 @@ export interface StudioThemeOption {
   isShared?: boolean
   /** Origem do registro: criado por mim ("mine") ou compartilhado por outro usuário ("team"). */
   origin?: 'mine' | 'team'
+  /**
+   * Escopo do tema persistido: "team" (equipe/organização — o comportamento
+   * atual, compartilhado via is_shared) ou "personal" (só para mim — aplica
+   * apenas na sessão/conta deste usuário, sem afetar o tema da equipe).
+   */
+  scope?: 'team' | 'personal'
   /** Id do registro remoto na coleção studio_themes (quando persistido no banco). */
   remoteId?: string
   /** Id do usuário dono do tema compartilhado (apenas temas da equipe). */
@@ -341,12 +347,40 @@ export function useStudioTheme(brands: Brand[]) {
     isShared?: boolean
   }): Promise<void> => {
     const newTheme = buildCustomTheme(opts.name, opts.colors)
+    if (opts.isShared) newTheme.isShared = true
+    if (opts.network && opts.network !== 'none') newTheme.network = opts.network
+    if (opts.isShared) newTheme.scope = 'team'
+    else newTheme.scope = 'personal'
     setCustomThemes((prev) => {
       const next = [...prev, newTheme]
       persistCustomThemes(next)
       return next
     })
     setThemeId(newTheme.id)
+  }
+
+  /**
+   * Importa um tema de arquivo JSON já validado (parseThemeFile) — cria a
+   * entrada personalizada e a aplica. Sem acesso ao banco aqui (o hook do
+   * Studio é local); o motor global persiste via addImportedTheme.
+   */
+  const addImportedTheme = (input: {
+    name: string
+    colors: StudioCustomColors
+    network?: string | null
+    accentOverride?: string | null
+  }) => {
+    const newTheme = buildCustomTheme(input.name, input.colors)
+    if (input.network && input.network !== 'none') newTheme.network = input.network
+    if (input.accentOverride) newTheme.accentOverride = input.accentOverride
+    newTheme.scope = 'personal'
+    newTheme.origin = 'mine'
+    setCustomThemes((prev) => {
+      const next = [...prev, newTheme]
+      persistCustomThemes(next)
+      return next
+    })
+    return newTheme
   }
 
   /** Exclui um tema personalizado; se era o ativo, volta ao tema padrão. */
@@ -359,5 +393,13 @@ export function useStudioTheme(brands: Brand[]) {
     })
   }
 
-  return { theme, themeId, setThemeId, allThemes, addCustomTheme, removeCustomTheme }
+  return {
+    theme,
+    themeId,
+    setThemeId,
+    allThemes,
+    addCustomTheme,
+    addImportedTheme,
+    removeCustomTheme,
+  }
 }

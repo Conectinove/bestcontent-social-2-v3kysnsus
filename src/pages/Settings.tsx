@@ -56,6 +56,7 @@ import {
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { EditProfileModal } from '@/components/EditProfileModal'
+import { StudioThemeManagerSection } from '@/components/studio/StudioThemeManagerSection'
 import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
 import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
@@ -725,6 +726,7 @@ export default function Settings() {
 
               {activeTab === 'appearance' && (
                 <div className="space-y-5">
+                  <StudioThemeManagerSection />
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold">Tema da Interface</h3>
                     <div className="grid grid-cols-2 gap-3">

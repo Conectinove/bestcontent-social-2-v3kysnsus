@@ -17,7 +17,9 @@ import {
   updateStudioTheme,
   deleteStudioTheme,
   fetchStudioThemes,
+  type StudioThemeInput,
 } from '@/services/studio-themes'
+import type { ParsedThemeInput } from '@/lib/theme-file'
 import {
   loadNetworkThemeId,
   saveNetworkThemeId,
@@ -34,7 +36,12 @@ export interface CreateThemeOptions {
   colors: StudioCustomColors
   network?: NetworkThemeId
   isShared?: boolean
+  /** Escopo do tema salvo: "personal" (só para mim, default) ou "team" (equipe). */
+  scope?: 'team' | 'personal'
 }
+
+/** Escolha de tema do usuário: qual tema aplicar e em qual escopo. */
+export type ThemeApplyScope = 'personal' | 'team'
 
 const DEFAULT_THEME_ID: StudioThemeId = 'violeta-dark'
 
@@ -63,6 +70,11 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
   const [teamThemes, setTeamThemes] = useState<StudioThemeOption[]>([])
   const [networkId, setNetworkIdState] = useState<NetworkThemeId>(() => loadNetworkThemeId())
   const [isSaving, setIsSaving] = useState(false)
+  /**
+   * Pré-visualização (hover no seletor / live preview no editor): tema que a
+   * raiz mostra AGORA. Ao confirmar, confirmPreview() grava em themeId.
+   */
+  const [previewTheme, setPreviewTheme] = useState<StudioThemeOption | null>(null)
 
   const brandThemes = useMemo(() => buildBrandThemes(brands), [brands])
 
@@ -75,6 +87,9 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     () => allThemes.find((t) => t.id === themeId) || BUILTIN_STUDIO_THEMES[0],
     [allThemes, themeId],
   )
+
+  /** Tema efetivamente renderizado: o de preview (hover) ou o confirmado. */
+  const renderedTheme = previewTheme ?? theme
 
   // Carrega temas do usuário + compartilhados pela equipe (uma vez por login)
   useEffect(() => {
@@ -118,16 +133,36 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     saveNetworkThemeId(networkId)
   }, [networkId])
 
-  // Aplica as variáveis CSS do tema no nível global (:root)
+  // Aplica as variáveis CSS do tema no nível global (:root).
+  // Durante a pré-visualização (hover), mostra o tema temporário; ao sair,
+  // volta ao confirmado sem gravar nada em localStorage ou banco.
   useEffect(() => {
-    applyThemeVars(theme, networkId)
-  }, [theme, networkId])
+    applyThemeVars(renderedTheme, networkId)
+  }, [renderedTheme, networkId])
 
   const setThemeId = useCallback((id: StudioThemeId) => setThemeIdState(id), [])
   const setNetworkId = useCallback((id: NetworkThemeId) => setNetworkIdState(id), [])
 
-  /** Cria um tema personalizado (com rede + compartilhamento) e aplica. */
+  /** Pré-visualização: aplica o tema na raiz SEM confirmar (hover no seletor). */
+  const startPreview = useCallback(
+    (id: StudioThemeId) => {
+      const found = allThemes.find((t) => t.id === id)
+      if (found) setPreviewTheme(found)
+    },
+    [allThemes],
+  )
+  /** Encerra a pré-visualização e volta ao tema confirmado. */
+  const cancelPreview = useCallback(() => setPreviewTheme(null), [])
+  /** Confirma o tema em pré-visualização (persiste a escolha). */
+  const confirmPreview = useCallback(() => {
+    if (previewTheme) setThemeIdState(previewTheme.id)
+    setPreviewTheme(null)
+  }, [previewTheme])
+
+  /** Cria um tema personalizado (com rede + escopo team/personal) e aplica. */
   const addCustomTheme = useCallback(async (opts: CreateThemeOptions): Promise<void> => {
+    const scope = opts.scope === 'team' ? 'team' : 'personal'
+    const isShared = scope === 'team'
     const newTheme = buildCustomTheme(opts.name, opts.colors)
     const enriched: StudioThemeOption = {
       ...newTheme,
@@ -135,7 +170,8 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
       accentOverride:
         opts.network && opts.network !== 'none' ? NETWORK_THEMES[opts.network].primary : undefined,
       origin: 'mine',
-      isShared: Boolean(opts.isShared),
+      isShared,
+      scope,
     }
     setIsSaving(true)
     try {
@@ -143,8 +179,9 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
         name: enriched.name,
         colors: opts.colors,
         network: enriched.network || null,
-        isShared: enriched.isShared,
+        isShared,
         accentOverride: enriched.accentOverride || null,
+        scope,
       })
       enriched.remoteId = saved.remoteId
     } catch {
@@ -159,6 +196,95 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     setThemeIdState(enriched.id)
     setIsSaving(false)
   }, [])
+
+  /** Importa um tema de arquivo JSON validado (parseThemeFile) e o aplica. */
+  const importTheme = useCallback((input: ParsedThemeInput): StudioThemeOption => {
+    const imported = buildCustomTheme(input.name, input.colors)
+    const enriched: StudioThemeOption = {
+      ...imported,
+      network: input.network && input.network !== 'none' ? input.network : undefined,
+      accentOverride: input.accentOverride || undefined,
+      origin: 'mine',
+      scope: 'personal',
+      isShared: false,
+    }
+    // Persiste no banco (best-effort) — tema importado começa "só para mim"
+    createStudioTheme({
+      name: enriched.name,
+      colors: input.colors,
+      network: enriched.network || null,
+      isShared: false,
+      accentOverride: input.accentOverride || null,
+      scope: 'personal',
+    })
+      .then((saved) => {
+        enriched.remoteId = saved.remoteId
+        setCustomThemes((prev) => {
+          const next = prev.map((t) =>
+            t.id === enriched.id ? { ...t, remoteId: saved.remoteId } : t,
+          )
+          persistCustomThemes(next)
+          return next
+        })
+      })
+      .catch(() => {
+        /* fallback: fica só no localStorage */
+      })
+    setCustomThemes((prev) => {
+      const next = [...prev, enriched]
+      persistCustomThemes(next)
+      return next
+    })
+    setThemeIdState(enriched.id)
+    return enriched
+  }, [])
+
+  /** Edita um tema personalizado existente (nome, cores, rede) e persiste. */
+  const updateCustomTheme = useCallback(
+    async (id: StudioThemeId, input: StudioThemeInput): Promise<void> => {
+      const target = customThemes.find((t) => t.id === id)
+      if (!target) return
+      const network = input.network && input.network !== 'none' ? input.network : undefined
+      const accentOverride =
+        network && NETWORK_THEMES[network as keyof typeof NETWORK_THEMES]
+          ? NETWORK_THEMES[network as keyof typeof NETWORK_THEMES].primary
+          : target.accentOverride
+      const updated: StudioThemeOption = {
+        ...target,
+        name: input.name || target.name,
+        colors: input.colors,
+        mode:
+          (input.colors.background || '').toLowerCase().startsWith('#') &&
+          hexToHslTokens(input.colors.background)!.l > 50
+            ? 'light'
+            : 'dark',
+        network,
+        accentOverride,
+        preview: `linear-gradient(135deg, ${input.colors.primary}, ${input.colors.surface})`,
+      }
+      setIsSaving(true)
+      setCustomThemes((prev) => {
+        const next = prev.map((t) => (t.id === id ? updated : t))
+        persistCustomThemes(next)
+        return next
+      })
+      if (target.remoteId) {
+        try {
+          await updateStudioTheme(target.remoteId, {
+            name: updated.name,
+            colors: input.colors,
+            network: updated.network || null,
+            accentOverride: updated.accentOverride || null,
+          })
+        } catch {
+          /* silencioso — estado local já aplicado */
+        }
+      }
+      if (themeId === id) applyThemeVars(updated, networkId)
+      setIsSaving(false)
+    },
+    [customThemes, themeId, networkId],
+  )
 
   /** Marca/desmarca compartilhamento com a equipe (persistido no banco). */
   const toggleShared = useCallback(
@@ -212,9 +338,16 @@ export function useAppTheme(brands: Brand[], remoteKey: string = '') {
     networkId,
     setNetworkId,
     addCustomTheme,
+    importTheme,
+    updateCustomTheme,
     toggleShared,
     removeCustomTheme,
     isSaving,
+    previewTheme,
+    startPreview,
+    cancelPreview,
+    confirmPreview,
+    isPreviewing: previewTheme !== null,
   }
 }
 

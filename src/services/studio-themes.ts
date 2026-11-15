@@ -34,6 +34,8 @@ export interface StudioThemeInput {
   network?: string | null
   isShared?: boolean
   accentOverride?: string | null
+  /** "team" (equipe) ou "personal" (só para mim) — default "team". */
+  scope?: 'team' | 'personal'
 }
 
 const INVALID_NETWORK = new Set(['', 'none'])
@@ -82,6 +84,7 @@ export function recordToThemeOption(rec: StudioThemeRecord): StudioThemeOption {
     network: rec.network || undefined,
     accentOverride: rec.accent_override || undefined,
     isShared: Boolean(rec.is_shared),
+    scope: rec.scope === 'personal' ? 'personal' : 'team',
     origin: isMine ? 'mine' : 'team',
     remoteId: rec.id,
     ownerId: rec.user,
@@ -110,7 +113,7 @@ export async function fetchStudioThemes(): Promise<StudioThemeOption[]> {
 
   let team: StudioThemeRecord[] = []
   if (company && company.trim() !== '') {
-    team = await pb
+    const teamRaw = await pb
       .collection(COLLECTION)
       .getFullList<StudioThemeRecord>({
         filter: `is_shared = true && user != "${authId}" && user.company = "${company}"`,
@@ -118,6 +121,8 @@ export async function fetchStudioThemes(): Promise<StudioThemeOption[]> {
         expand: 'user',
       })
       .catch(() => [] as StudioThemeRecord[])
+    // scope = "personal": aplica só na conta do dono — nunca entra na lista da equipe
+    team = teamRaw.filter((r) => r.scope !== 'personal')
   }
 
   const seen = new Set<string>()
@@ -146,6 +151,8 @@ export async function createStudioTheme(input: StudioThemeInput): Promise<Studio
     accent_override: input.accentOverride || '',
     is_shared: Boolean(input.isShared),
     remote_id: '',
+    // Novo tema criado pelo usuário: scope = personal quando não marcado como equipe
+    scope: input.scope === 'team' ? 'team' : 'personal',
   })
   return recordToThemeOption(rec)
 }
@@ -166,6 +173,7 @@ export async function updateStudioTheme(
   if (input.network !== undefined) data.network = safeNetwork(input.network)
   if (input.isShared !== undefined) data.is_shared = Boolean(input.isShared)
   if (input.accentOverride !== undefined) data.accent_override = input.accentOverride || ''
+  if (input.scope !== undefined) data.scope = input.scope === 'team' ? 'team' : 'personal'
   const rec = await pb.collection(COLLECTION).update<StudioThemeRecord>(remoteId, data)
   return recordToThemeOption(rec)
 }
