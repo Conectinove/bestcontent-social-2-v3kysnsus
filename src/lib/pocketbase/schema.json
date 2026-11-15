@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T01:27:22.789Z",
+  "generatedAt": "2026-11-15T01:44:10.712Z",
   "collections": [
     {
       "name": "users",
@@ -5357,6 +5357,95 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "social_publications",
+      "type": "base",
+      "apiRules": {
+        "list": "user = @request.auth.id",
+        "view": "user = @request.auth.id",
+        "create": "user = @request.auth.id",
+        "update": "user = @request.auth.id",
+        "delete": "user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "post",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "posts"
+        },
+        {
+          "name": "scheduled_post",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "scheduled_posts"
+        },
+        {
+          "name": "network",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["instagram", "facebook"]
+        },
+        {
+          "name": "target_account_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "published", "failed"]
+        },
+        {
+          "name": "scheduled_at",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "published_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "error_message",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "attempts",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "external_post_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_socialpub_schedpost_network ON social_publications (scheduled_post, network)",
+        "CREATE INDEX idx_socialpub_user_status ON social_publications (user, status)",
+        "CREATE INDEX idx_socialpub_due ON social_publications (scheduled_at)"
+      ]
     }
   ]
 }

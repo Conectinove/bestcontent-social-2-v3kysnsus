@@ -45,10 +45,10 @@ import {
   type SecondBrainBlock,
 } from '@/services/second-brain'
 import MagicAuthorEditor from './MagicAuthorEditor'
-import { ConnectorsContextModal } from './ConnectorsContextModal'
+import { ConnectorsContextModal, type ConnectorsTab } from './ConnectorsContextModal'
 import { LessonTemplateGalleryModal } from './LessonTemplateGalleryModal'
 import type { LessonTemplate } from '@/services/lesson-templates'
-import { getConnectedStatus, type SupportedToolkit } from '@/services/google-connectors'
+import { getConnectedStatus } from '@/services/google-connectors'
 import { useToast } from '@/hooks/use-toast'
 
 interface SecondBrainCanvasProps {
@@ -72,9 +72,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
 
   // Conectores Modal & Status
   const [connectorsModalOpen, setConnectorsModalOpen] = useState(false)
-  const [connectorsInitialTab, setConnectorsInitialTab] = useState<SupportedToolkit | 'overview'>(
-    'overview',
-  )
+  const [connectorsInitialTab, setConnectorsInitialTab] = useState<ConnectorsTab>('overview')
   const [connectorStatuses, setConnectorStatuses] = useState({
     gmail: false,
     googledrive: false,

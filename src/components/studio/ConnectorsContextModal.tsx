@@ -65,22 +65,24 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
+export type ConnectorsTab =
+  | 'overview'
+  | 'googledrive'
+  | 'gmail'
+  | 'googledocs'
+  | 'googlesheets'
+  | 'outlook'
+  | 'pipedrive'
+  | 'hubspot'
+  | 'instagram'
+  | 'facebook'
+  | 'googlecalendar'
+
 interface ConnectorsContextModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onImportContext: (item: ImportedContextItem) => void
-  initialTab?:
-    | 'overview'
-    | 'googledrive'
-    | 'gmail'
-    | 'googledocs'
-    | 'googlesheets'
-    | 'outlook'
-    | 'pipedrive'
-    | 'hubspot'
-    | 'instagram'
-    | 'facebook'
-    | 'googlecalendar'
+  initialTab?: ConnectorsTab
 }
 
 export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({

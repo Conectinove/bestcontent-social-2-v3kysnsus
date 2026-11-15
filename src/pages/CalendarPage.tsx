@@ -22,6 +22,9 @@ import { SmartWeeklyPlanModal } from '@/components/analytics/SmartWeeklyPlanModa
 import { SchedulePostModal } from '@/components/calendar/SchedulePostModal'
 import { ScheduledPostsList } from '@/components/calendar/ScheduledPostsList'
 import { CalendarScheduleView } from '@/components/calendar/CalendarScheduleView'
+import { PublicationsQueuePanel } from '@/components/calendar/PublicationsQueuePanel'
+import { syncCalendarEvents } from '@/services/google-connectors'
+import { CalendarSync } from 'lucide-react'
 import {
   NETWORK_BEST_TIMES_MAP,
   getPostsQueueForAutoScheduling,
@@ -74,6 +77,35 @@ export default function CalendarPage() {
   const [isDistributing, setIsDistributing] = useState(false)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
   const [editingScheduleItem, setEditingScheduleItem] = useState<any | null>(null)
+  const [syncingCalendar, setSyncingCalendar] = useState(false)
+
+  // Sincroniza o calendário editorial com a Google Agenda do usuário (per-user)
+  const handleSyncGoogleCalendar = async () => {
+    if (!user?.id) return
+    setSyncingCalendar(true)
+    try {
+      const result = await syncCalendarEvents(user.id, scheduled as any[])
+      toast({
+        title:
+          result.created > 0
+            ? `${result.created} evento(s) criado(s) na Google Agenda!`
+            : 'Nada para sincronizar',
+        description:
+          result.created > 0
+            ? 'Os agendamentos apareceram na sua Google Agenda.'
+            : 'Todos os agendamentos já estão na sua agenda.',
+        variant: result.created > 0 ? 'default' : 'destructive',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao sincronizar com Google Agenda',
+        description: err?.message || 'Verifique a conexão em Segundo Cérebro › Conectores.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSyncingCalendar(false)
+    }
+  }
 
   const load = useCallback(async () => {
     if (!user?.id) return
@@ -431,6 +463,17 @@ export default function CalendarPage() {
           )}
 
           <Button
+            onClick={handleSyncGoogleCalendar}
+            disabled={syncingCalendar}
+            className="border-sky-500/40 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 bg-transparent text-xs font-bold rounded-2xl h-10 px-3 sm:px-4 gap-1.5 sm:gap-2 shadow-xs flex-1 sm:flex-initial justify-center"
+          >
+            <CalendarSync className={`w-4 h-4 shrink-0 ${syncingCalendar ? 'animate-spin' : ''}`} />
+            <span className="truncate">
+              {syncingCalendar ? 'Sincronizando...' : 'Sincronizar com Google Agenda'}
+            </span>
+          </Button>
+
+          <Button
             onClick={() => setScheduleModalOpen(true)}
             className="bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-2xl h-10 px-3 sm:px-4 gap-1.5 shadow-xs flex-1 sm:flex-initial justify-center"
           >
@@ -623,19 +666,24 @@ export default function CalendarPage() {
 
       {/* Visão: Fila Completa de Posts Agendados */}
       {viewMode === 'queue' && (
-        <ScheduledPostsList
-          scheduledPosts={filtered}
-          onEdit={(s) => {
-            setEditingScheduleItem(s)
-            setScheduleModalOpen(true)
-          }}
-          onDelete={(id) => handleDeleteScheduled(id)}
-          onPublishNow={(s) => handlePublishNow(s)}
-          onNewSchedule={() => {
-            setEditingScheduleItem(null)
-            setScheduleModalOpen(true)
-          }}
-        />
+        <>
+          <ScheduledPostsList
+            scheduledPosts={filtered}
+            onEdit={(s) => {
+              setEditingScheduleItem(s)
+              setScheduleModalOpen(true)
+            }}
+            onDelete={(id) => handleDeleteScheduled(id)}
+            onPublishNow={(s) => handlePublishNow(s)}
+            onNewSchedule={() => {
+              setEditingScheduleItem(null)
+              setScheduleModalOpen(true)
+            }}
+          />
+          <Card className="p-4">
+            <PublicationsQueuePanel />
+          </Card>
+        </>
       )}
 
       {/* Visão: Calendário Interativo Mês / Semana com Arrastar e Soltar */}

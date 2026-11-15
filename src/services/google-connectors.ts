@@ -68,6 +68,131 @@ export interface ImportedContextItem {
   metadata?: Record<string, any>
   createdAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Google Agenda (googlecalendar) — criação de eventos a partir de posts agendados
+// ---------------------------------------------------------------------------
+
+export interface GoogleCalendarEventInput {
+  /** Título do evento (ex.: "Post Instagram: Dica de segunda") */
+  summary: string
+  /** Descrição opcional (ex.: caption do post) */
+  description?: string
+  /** Local opcional */
+  location?: string
+  /** ISO datetime de início (com timezone no offset, ex.: 2025-01-01T10:00:00-03:00) */
+  start: string
+  /** ISO datetime de fim; quando ausente, o evento dura 30 minutos */
+  end?: string
+  /** IANA timezone (padrão: America/Sao_Paulo) */
+  timezone?: string
+}
+
+export interface GoogleCalendarSyncResult {
+  created: number
+  failed: number
+  eventIds: string[]
+  errors: string[]
+}
+
+/**
+ * Cria eventos na Google Agenda do usuário logado (tool GOOGLECALENDAR_CREATE_EVENT,
+ * modo per-user) para cada post agendado recebido. Nunca usa a conta do builder.
+ */
+export async function createGoogleCalendarEventsForPosts(
+  events: GoogleCalendarEventInput[],
+  calendarId = 'primary',
+): Promise<GoogleCalendarSyncResult> {
+  const result: GoogleCalendarSyncResult = {
+    created: 0,
+    failed: 0,
+    eventIds: [],
+    errors: [],
+  }
+
+  for (const evt of events) {
+    try {
+      const startIso = new Date(evt.start).toISOString()
+      const endIso = evt.end
+        ? new Date(evt.end).toISOString()
+        : new Date(new Date(evt.start).getTime() + 30 * 60 * 1000).toISOString()
+
+      const res = await execute('GOOGLECALENDAR_CREATE_EVENT', {
+        calendar_id: calendarId,
+        summary: evt.summary || 'Post agendado',
+        description: evt.description || '',
+        location: evt.location || '',
+        start_datetime: startIso,
+        end_datetime: endIso,
+        timezone: evt.timezone || 'America/Sao_Paulo',
+      })
+
+      if (res.successful && res.data) {
+        const d = res.data as any
+        const eventId = d.id || d.event_id || d.eventId || d.response_data?.id || d.data?.id || ''
+        result.created++
+        if (eventId) result.eventIds.push(String(eventId))
+      } else {
+        result.failed++
+        if (res.error) result.errors.push(res.error)
+      }
+    } catch (err: any) {
+      result.failed++
+      result.errors.push(err?.message || String(err))
+    }
+  }
+
+  return result
+}
+
+/**
+ * Sincroniza posts agendados do usuário com a Google Agenda dele (per-user).
+ * Recebe a lista de agendamentos (scheduled_posts expandidos) e cria um evento
+ * para cada um que ainda não tem marcador de sincronia local.
+ */
+export async function syncCalendarEvents(
+  userId: string,
+  scheduledPosts: any[],
+): Promise<GoogleCalendarSyncResult> {
+  const marker = `skip_gcal_synced_${userId}`
+  let syncedIds: string[] = []
+  try {
+    syncedIds = JSON.parse(localStorage.getItem(marker) || '[]')
+  } catch {
+    syncedIds = []
+  }
+  const alreadySynced = new Set(syncedIds)
+
+  const pending = scheduledPosts.filter((s) => {
+    const postStatus = s?.expand?.post?.status || s?.status
+    return postStatus !== 'published' && !alreadySynced.has(s.id) && s?.scheduled_at
+  })
+
+  const events: GoogleCalendarEventInput[] = pending.map((s) => {
+    const post = s.expand?.post
+    const start = new Date(s.scheduled_at)
+    return {
+      summary: post?.title ? `Post: ${post.title}` : 'Post agendado (MidiaViva)',
+      description: (post?.caption || post?.content || '').slice(0, 900),
+      start: start.toISOString(),
+      end: new Date(start.getTime() + 30 * 60 * 1000).toISOString(),
+    }
+  })
+
+  const result = await createGoogleCalendarEventsForPosts(events)
+
+  // Marca como sincronizados apenas os que deram certo, para não duplicar
+  const okIds = pending.slice(0, result.created).map((s) => s.id)
+  const merged = Array.from(new Set([...syncedIds, ...okIds])).slice(-500)
+  try {
+    localStorage.setItem(marker, JSON.stringify(merged))
+  } catch {
+    /* storage cheio: ignora */
+  }
+
+  return result
+}
+
 export function getConnectedStatus(toolkit: SupportedToolkit): boolean {
   try {
     const raw = localStorage.getItem(`skip_connector_${toolkit}_status`)

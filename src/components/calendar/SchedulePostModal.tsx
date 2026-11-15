@@ -7,6 +7,7 @@ import {
   calculateNextRecurringDate,
 } from '@/services/scheduled_posts'
 import { getPosts, updatePost, createPost } from '@/services/posts'
+import { createSocialPublication } from '@/services/social-publications'
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
+  Zap,
 } from 'lucide-react'
 
 interface SchedulePostModalProps {
@@ -90,6 +92,7 @@ export function SchedulePostModal({
     'daily' | 'weekly' | 'weekdays' | 'monthly' | 'custom'
   >('weekly')
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([1, 3, 5]) // Seg, Qua, Sex
+  const [autoPublish, setAutoPublish] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -247,6 +250,33 @@ export function SchedulePostModal({
             isRecurring ? ' com recorrência ativa.' : '.'
           }`,
         })
+      }
+
+      // Publicação automática: enfileira na social_publications (Instagram/Facebook, per-user)
+      const autoNetwork =
+        (mode === 'new' ? newPlatform : undefined) || defaultNetwork?.toLowerCase()
+      if (
+        autoPublish &&
+        (autoNetwork === 'instagram' || autoNetwork === 'facebook') &&
+        !isRecurring
+      ) {
+        try {
+          await createSocialPublication({
+            post: targetPostId,
+            network: autoNetwork as 'instagram' | 'facebook',
+            scheduled_at: scheduledIso,
+          })
+          toast({
+            title: 'Publicação automática ativada!',
+            description: `O post será publicado na ${autoNetwork === 'instagram' ? 'conta de Instagram' : 'Página do Facebook'} conectada em ${scheduledDateTime.toLocaleString('pt-BR')}.`,
+          })
+        } catch (pubErr: any) {
+          toast({
+            title: 'Publicação automática não ativada',
+            description: pubErr?.message || 'Verifique a conexão da conta nos conectores.',
+            variant: 'destructive',
+          })
+        }
       }
 
       if (onScheduled) {
@@ -414,6 +444,29 @@ export function SchedulePostModal({
               />
             </div>
           </div>
+
+          {/* Publicação Automática (Instagram / Facebook) */}
+          {!editingScheduled && (
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">Publicar automaticamente</h4>
+                  <p className="text-[11px] text-muted-foreground">
+                    Instagram/Facebook: publica sozinho na conta conectada, no dia e hora marcados
+                  </p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                id="auto-publish-toggle"
+                checked={autoPublish}
+                onChange={(e) => setAutoPublish(e.target.checked)}
+                disabled={isRecurring}
+                className="w-4 h-4 rounded accent-primary"
+              />
+            </div>
+          )}
 
           {/* Seção de Recorrência */}
           <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 space-y-3">

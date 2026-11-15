@@ -54,6 +54,18 @@ export function FeedControlPanel({
 }: FeedControlPanelProps) {
   const navigate = useNavigate()
   const [isExpanded, setIsExpanded] = useState(true)
+  const [periodFilter, setPeriodFilter] = useState<'7d' | '30d' | '90d' | 'all'>('7d')
+
+  // Filtro de período (7/30/90 dias ou tudo) sobre os itens do feed
+  const filteredTopics = useMemo(() => {
+    if (periodFilter === 'all') return topics
+    const days = periodFilter === '7d' ? 7 : periodFilter === '30d' ? 30 : 90
+    const minTs = Date.now() - days * 24 * 60 * 60 * 1000
+    return topics.filter((t) => {
+      const ts = t.created ? new Date(t.created).getTime() : 0
+      return ts === 0 || ts >= minTs
+    })
+  }, [topics, periodFilter])
 
   // Identifica quais itens do feed já estão importados na biblioteca
   const { importedCount, pendingCount, recentImports, networkDistribution } = useMemo(() => {
@@ -80,7 +92,7 @@ export function FeedControlPanel({
       Outros: 0,
     }
 
-    topics.forEach((t) => {
+    filteredTopics.forEach((t) => {
       const isAlreadyImported =
         existingFeedItemIds.has(t.id) ||
         existingTitles.has((t.title || '').trim().toLowerCase().slice(0, 40))
@@ -115,12 +127,12 @@ export function FeedControlPanel({
       recentImports: recents,
       networkDistribution: netCounts,
     }
-  }, [topics, libraryPosts])
+  }, [filteredTopics, libraryPosts])
 
   // Consolida engajamento, média do período e top itens da semana (dados já carregados no Feed)
   const feedInsights = useMemo(
-    () => computeFeedInsights(topics as unknown as CommunityTopic[]),
-    [topics],
+    () => computeFeedInsights(filteredTopics as unknown as CommunityTopic[]),
+    [filteredTopics],
   )
 
   const totalNetworkItems = useMemo(
@@ -138,9 +150,18 @@ export function FeedControlPanel({
 
   const weeklyTopItems = useMemo(() => {
     return feedInsights.weeklyTopIds
-      .map((id) => topics.find((t) => t.id === id))
+      .map((id) => filteredTopics.find((t) => t.id === id))
       .filter((t): t is FeedTopicSummary => Boolean(t))
-  }, [feedInsights.weeklyTopIds, topics])
+  }, [feedInsights.weeklyTopIds, filteredTopics])
+
+  const periodLabel =
+    periodFilter === '7d'
+      ? 'últimos 7 dias'
+      : periodFilter === '30d'
+        ? 'últimos 30 dias'
+        : periodFilter === '90d'
+          ? 'últimos 90 dias'
+          : 'todo o histórico'
 
   return (
     <Card className="hi-card border-border/80 bg-gradient-to-br from-card via-card to-purple-500/5 overflow-hidden">
@@ -168,6 +189,32 @@ export function FeedControlPanel({
               Monitore itens disponíveis, posts já incorporados à sua biblioteca e importe em 1
               clique.
             </p>
+          </div>
+
+          {/* Filtro de período das métricas do painel */}
+          <div className="flex items-center gap-2 text-xs shrink-0">
+            <span className="text-muted-foreground font-semibold hidden sm:inline">Período:</span>
+            <div className="inline-flex rounded-xl p-0.5 bg-muted/60 border border-border/60">
+              {(['7d', '30d', '90d', 'all'] as const).map((per) => (
+                <button
+                  key={per}
+                  onClick={() => setPeriodFilter(per)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    periodFilter === per
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {per === '7d'
+                    ? '7 dias'
+                    : per === '30d'
+                      ? '30 dias'
+                      : per === '90d'
+                        ? '90 dias'
+                        : 'Tudo'}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -203,9 +250,11 @@ export function FeedControlPanel({
                   <Compass className="w-3.5 h-3.5 text-primary" />
                 </div>
                 <div className="text-xl md:text-2xl font-black text-foreground">
-                  {topics.length}
+                  {filteredTopics.length}
                 </div>
-                <p className="text-[10px] text-muted-foreground">Descoberta ativa</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Descoberta ativa ({periodLabel})
+                </p>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border/70 space-y-1">
@@ -300,7 +349,7 @@ export function FeedControlPanel({
                     Distribuição & Canais no Feed
                   </h4>
                   <span className="text-[10px] text-muted-foreground">
-                    {topics.length} pautas totais
+                    {filteredTopics.length} pautas ({periodLabel})
                   </span>
                 </div>
 
@@ -319,7 +368,7 @@ export function FeedControlPanel({
                         <div
                           className="h-2 w-full rounded-full bg-muted overflow-hidden"
                           role="img"
-                          aria-label={`${net}: ${count} de ${topics.length} itens (${pct}%)`}
+                          aria-label={`${net}: ${count} de ${filteredTopics.length} itens (${pct}%)`}
                         >
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${

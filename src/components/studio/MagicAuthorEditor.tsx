@@ -58,9 +58,8 @@ import {
 } from '@/services/second-brain'
 import { PedagogicalAssistantPanel, type ActiveContextItem } from './PedagogicalAssistantPanel'
 import { AulaHtmlWorkspace } from './AulaHtmlWorkspace'
-import { ConnectorsContextModal } from './ConnectorsContextModal'
+import { ConnectorsContextModal, type ConnectorsTab } from './ConnectorsContextModal'
 import { AdvancedArtifactEditorModal } from './AdvancedArtifactEditorModal'
-import type { SupportedToolkit } from '@/services/google-connectors'
 
 interface MagicAuthorEditorProps {
   doc: SecondBrainDoc
@@ -82,9 +81,7 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [showPedagogicalSidebar, setShowPedagogicalSidebar] = useState(true)
   const [connectorsModalOpen, setConnectorsModalOpen] = useState(false)
-  const [connectorsInitialTab, setConnectorsInitialTab] = useState<SupportedToolkit | 'overview'>(
-    'overview',
-  )
+  const [connectorsInitialTab, setConnectorsInitialTab] = useState<ConnectorsTab>('overview')
   const [activeContexts, setActiveContexts] = useState<ActiveContextItem[]>([
     {
       id: 'default-ctx',
