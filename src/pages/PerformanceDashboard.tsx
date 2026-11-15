@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   BarChart3,
   TrendingUp,
@@ -77,6 +77,16 @@ export default function PerformanceDashboard() {
   >('engagementRate')
   const [tableSortDirection, setTableSortDirection] = useState<'asc' | 'desc'>('desc')
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+
+  // Deep-link de navegação (?action=new-report / ?action=ai-insights)
+  // vindos da Command Palette (Ctrl+K) — abre o destino direto, sem clique extra.
+  const location = useLocation()
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const action = params.get('action')
+    if (action === 'new-report') setIsCreateModalOpen(true)
+    if (action === 'ai-insights') setAiPanelOpen(true)
+  }, [location.search])
 
   useEffect(() => {
     async function loadData() {

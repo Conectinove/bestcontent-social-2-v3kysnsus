@@ -178,10 +178,19 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
       {
         id: 'new-report',
         title: 'Novo Relatório Avançado',
-        subtitle: 'Resumo executivo por IA e insights cruzados de canais',
+        subtitle: 'Relatório consolidado de performance multi-rede',
         icon: FileBarChart,
         iconColor: 'text-emerald-500 bg-emerald-500/10',
         path: '/app/performance?action=new-report',
+      },
+      {
+        id: 'ai-insights',
+        title: 'Analisar com IA',
+        subtitle: 'Resumo executivo e insights cruzados de canais',
+        icon: Bot,
+        iconColor: 'text-violet-500 bg-violet-500/10',
+        badge: 'IA',
+        path: '/app/performance?action=ai-insights',
       },
       {
         id: 'calendar',
@@ -741,7 +750,7 @@ export function QuickSearchPalette({ open, onOpenChange }: QuickSearchPalettePro
                       key={tpl.id}
                       onClick={() => {
                         onOpenChange(false)
-                        navigate(tpl.path)
+                        navigate(tpl.path, { state: { template: tpl.title } })
                       }}
                       className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-2 ${
                         isSelected

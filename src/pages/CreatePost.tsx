@@ -174,7 +174,9 @@ export default function CreatePost() {
     new Date(Date.now() + 86400000).toISOString().slice(0, 16),
   )
   const [media, setMedia] = useState<File | null>(null)
-  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null)
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(
+    (location.state?.mediaUrl as string) || null,
+  )
   const [aiLoading, setAiLoading] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [aiModalOpen, setAiModalOpen] = useState(false)

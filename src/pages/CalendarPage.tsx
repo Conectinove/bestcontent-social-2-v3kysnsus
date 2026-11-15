@@ -1069,7 +1069,7 @@ export default function CalendarPage() {
                           size="sm"
                           className="h-8 px-2.5 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold gap-1 shadow-2xs"
                         >
-                          <Link to={`/app/editor?id=${post.id}`}>
+                          <Link to={`/app/editor/${post.id}`}>
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Editar Post</span>
                           </Link>

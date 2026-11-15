@@ -274,7 +274,7 @@ export function Header({ onOpenMobileMenu, onOpenEditProfile }: HeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/app/overview?pendencias=1')}
+            onClick={() => navigate('/app/visao-geral?pendencias=1')}
             className="h-10 w-10 min-h-[44px] min-w-[44px] relative text-amber-600 hover:text-amber-700 shrink-0 rounded-xl"
             title={`${pendingReviewCount} ${pendingReviewCount === 1 ? 'post aguardando revisão' : 'posts aguardando revisão'}`}
             aria-label="Pendências de revisão"
