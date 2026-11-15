@@ -25,8 +25,10 @@ import {
 import type { StudioCreationRecord } from '@/services/ai-studio'
 import { EditPresetsPanel } from './EditPresetsPanel'
 import { EditHistoryPanel } from './EditHistoryPanel'
+import { ExportAiAdviceDialog } from './ExportAiAdviceDialog'
 import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
 import { saveEditVersion } from '@/services/studio-edit-versions'
+import { StudioEditCommentsPanel } from './StudioEditCommentsPanel'
 
 interface StudioAdvancedEditorDialogProps {
   open: boolean
@@ -144,6 +146,9 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
 
   const ratioClass =
     ASPECT_FORMATS.find((f) => f.key === aspectRatio)?.ratioClass || 'aspect-[16/9]'
+
+  // Pedido 4: passo opcional de IA ANTES da rasterização/download final.
+  const requestExportAdvice = () => setAdviceOpen(true)
 
   /** Exporta o resultado (imagem + filtros + overlay + textos) para um PNG via canvas. */
   const handleSave = async () => {
@@ -354,6 +359,13 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
           {/* Preview ao vivo */}
           <div className="space-y-3">
+            {/* Comentários da colaboração em tempo real (migration 0108) */}
+            {targetKey && (
+              <StudioEditCommentsPanel
+                targetKey={targetKey}
+                materialLabel={creation.title || 'Mídia'}
+              />
+            )}
             <div
               className={`relative w-full ${ratioClass} rounded-2xl overflow-hidden bg-muted border border-border`}
             >
@@ -594,7 +606,7 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
             </div>
 
             <Button
-              onClick={handleSave}
+              onClick={requestExportAdvice}
               disabled={isSaving}
               className="w-full rounded-full font-bold gap-2 bg-purple-600 hover:bg-purple-700 text-white"
             >
@@ -607,6 +619,17 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
             </Button>
           </div>
         </div>
+
+        {/* Pedido 4: IA (export-advisor) antes do download final */}
+        <ExportAiAdviceDialog
+          open={adviceOpen}
+          onOpenChange={setAdviceOpen}
+          network="studio"
+          contentType={creation.title || 'mídia editada'}
+          settings={customization}
+          confirmLabel="Confirmar e salvar mídia"
+          onConfirm={handleSave}
+        />
       </DialogContent>
     </Dialog>
   )

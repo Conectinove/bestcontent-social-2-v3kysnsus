@@ -69,6 +69,7 @@ import type { PremiumElement } from '@/services/premium-elements'
 import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
 import type { PostTemplate } from '@/services/post-templates'
 import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
+import { StudioEditCommentsPanel } from '@/components/studio/StudioEditCommentsPanel'
 
 interface PlacedElement {
   uid: string
@@ -908,6 +909,14 @@ export default function PostEditor() {
       }
     >
       <div className="space-y-3 pb-4">
+        {/* Comentários da colaboração em tempo real (migration 0108):
+            mensagens trocadas ao vivo entre quem edita o mesmo post. */}
+        {postId && (
+          <div className="flex justify-end">
+            <StudioEditCommentsPanel targetKey={`post:${postId}`} materialLabel="Post" />
+          </div>
+        )}
+
         {/* Colaboração em tempo real: outro editor salvou o MESMO post */}
         {remotePostEdit && (
           <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 flex flex-col sm:flex-row sm:items-center gap-2">

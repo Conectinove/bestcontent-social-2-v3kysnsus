@@ -37,6 +37,139 @@ export interface ParsePresetResult {
   input?: ParsedPresetInput
 }
 
+/**
+ * Novo formato múltiplo (pedido 3): um único arquivo "midiaviva-presets"
+ * com VÁRIOS presets. A importação continua aceitando também o formato
+ * antigo de 1 preset ("midiaviva-preset") — compatibilidade garantida.
+ */
+const MULTI_FORMAT = 'midiaviva-presets'
+
+export interface EditPresetsBundleFile {
+  format: typeof MULTI_FORMAT
+  version: number
+  presets: { name: string; settings: AdvancedCustomizationState }[]
+}
+
+export interface ParsePresetsBundleResult {
+  ok: boolean
+  error?: string
+  /** Presets validados prontos para criar; rejeitados não entram. */
+  inputs: ParsedPresetInput[]
+  /** Quantos presets vieram no arquivo no total. */
+  total: number
+  /** Quantos foram rejeitados pela validação (com motivo agregado). */
+  rejected: number
+  rejectReason?: string
+}
+
+/** Monta o conteúdo do arquivo múltiplo a partir dos presets selecionados. */
+export function presetsBundleToFile(
+  presets: { name: string; settings: AdvancedCustomizationState }[],
+): EditPresetsBundleFile {
+  return {
+    format: MULTI_FORMAT,
+    version: FORMAT_VERSION,
+    presets: presets.map((p) => ({ name: p.name, settings: { ...p.settings } })),
+  }
+}
+
+/** Baixa VÁRIOS presets num único arquivo JSON "midiaviva-presets". */
+export function downloadPresetsBundleFile(
+  presets: { name: string; settings: AdvancedCustomizationState }[],
+): void {
+  const data = presetsBundleToFile(presets)
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `presets-midiaviva-${presets.length}.json`
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+
+/**
+ * Valida um arquivo importado — aceita TANTO o formato múltiplo novo
+ * ("midiaviva-presets") quanto o de 1 preset ("midiaviva-preset").
+ * Valida cada entrada: válidos entram em inputs; inválidos são contados
+ * em rejected (nunca interrompe os outros).
+ */
+export function parsePresetsBundleFile(raw: string): ParsePresetsBundleResult {
+  const empty = { ok: false, inputs: [], total: 0, rejected: 0 } as ParsePresetsBundleResult
+  let data: unknown
+  try {
+    data = JSON.parse(raw)
+  } catch {
+    return { ...empty, error: 'Arquivo inválido: não é um JSON válido.' }
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return { ...empty, error: 'Arquivo inválido: conteúdo inesperado.' }
+  }
+  const obj = data as Record<string, unknown>
+
+  // Formato antigo (1 preset): revalida pelo parser de 1 e empacota.
+  if (obj.format === FORMAT) {
+    const one = parsePresetFile(raw)
+    if (!one.ok || !one.input) {
+      return { ...empty, error: one.error }
+    }
+    return { ok: true, inputs: [one.input], total: 1, rejected: 0 }
+  }
+
+  if (obj.format !== MULTI_FORMAT) {
+    return {
+      ...empty,
+      error: 'Arquivo não é um preset do MidiaViva (campo "format" não reconhecido).',
+    }
+  }
+  if (typeof obj.version !== 'number' || obj.version > FORMAT_VERSION) {
+    return { ...empty, error: 'Versão do arquivo de presets não suportada.' }
+  }
+  if (!Array.isArray(obj.presets)) {
+    return { ...empty, error: 'O arquivo não traz a lista de presets ("presets").' }
+  }
+
+  const inputs: ParsedPresetInput[] = []
+  let rejected = 0
+  let rejectReason: string | undefined
+  const total = obj.presets.length
+
+  for (const entry of obj.presets) {
+    // Revalida cada entrada pelo validador de 1 preset, embrulhando-a.
+    const wrapped = JSON.stringify({
+      format: FORMAT,
+      version: FORMAT_VERSION,
+      ...(entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {}),
+    })
+    const one = parsePresetFile(wrapped)
+    if (one.ok && one.input) {
+      // Evita duplicar nome já importado no mesmo arquivo.
+      const base = one.input.name
+      let finalName = base
+      let n = 2
+      while (inputs.some((i) => i.name === finalName)) {
+        finalName = `${base} (${n++})`
+      }
+      inputs.push({ ...one.input, name: finalName })
+    } else {
+      rejected++
+      rejectReason = one.error
+    }
+  }
+
+  if (total > 0 && inputs.length === 0) {
+    return {
+      ...empty,
+      error: rejectReason || 'Nenhum preset do arquivo passou na validação.',
+      total,
+      rejected,
+    }
+  }
+
+  return { ok: true, inputs, total, rejected, rejectReason }
+}
+
 const NUMERIC_FIELDS = [
   'fontSize',
   'letterSpacing',

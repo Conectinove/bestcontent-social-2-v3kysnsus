@@ -1,11 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Bot, History, Loader2, RefreshCw, RotateCcw, WandSparkles } from 'lucide-react'
+import {
+  Bot,
+  GitCompareArrows,
+  History,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  WandSparkles,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
 import { listEditVersions, type StudioEditVersionRecord } from '@/services/studio-edit-versions'
 import { askEditAssistant } from '@/services/edit-assistant'
+import { CompareVersionsDialog } from './CompareVersionsDialog'
 
 interface EditHistoryPanelProps {
   targetKey: string
@@ -35,6 +44,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
   const [versions, setVersions] = useState<StudioEditVersionRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [restoringId, setRestoringId] = useState<string | null>(null)
+  const [compareOpen, setCompareOpen] = useState(false)
 
   const refresh = useCallback(async () => {
     if (!targetKey) return
@@ -83,6 +93,17 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
         </span>
         <div className="flex items-center gap-1">
           {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+          {versions.length >= 1 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setCompareOpen(true)}
+              className="h-7 px-1.5 text-muted-foreground hover:text-purple-600"
+              title="Comparar versões lado a lado"
+            >
+              <GitCompareArrows className="w-3 h-3" />
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"
@@ -140,6 +161,13 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({
       ))}
 
       <EditAssistantBlock current={current} title={title} network={network} onApply={onRestore} />
+
+      <CompareVersionsDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        versions={versions}
+        currentSettings={current as unknown as Record<string, unknown>}
+      />
     </div>
   )
 }

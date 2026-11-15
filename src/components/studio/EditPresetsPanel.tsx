@@ -2,8 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
   Bookmark,
   BookmarkPlus,
+  CheckSquare,
   Download,
   Loader2,
+  Package,
+  Square,
   Trash2,
   Upload,
   WandSparkles,
@@ -18,7 +21,13 @@ import {
   deleteEditPreset,
   type StudioEditPreset,
 } from '@/services/studio-edit-presets'
-import { downloadPresetFile, parsePresetFile, pickPresetFile } from '@/lib/preset-file'
+import {
+  downloadPresetFile,
+  downloadPresetsBundleFile,
+  parsePresetFile,
+  parsePresetsBundleFile,
+  pickPresetFile,
+} from '@/lib/preset-file'
 import { askExportAdvisor, type ExportAdvisorResult } from '@/services/export-advisor'
 
 interface EditPresetsPanelProps {
@@ -44,6 +53,9 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
   const [adviceFor, setAdviceFor] = useState<string | null>(null)
   const [adviceLoading, setAdviceLoading] = useState(false)
   const [advice, setAdvice] = useState<ExportAdvisorResult | null>(null)
+  // Seleção múltipla (pedido 3): checkbox por preset + exportar em lote.
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [savingBundle, setSavingBundle] = useState(false)
 
   const refresh = async () => {
     setLoading(true)
@@ -112,10 +124,77 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
     try {
       await deleteEditPreset(id)
       setPresets((prev) => prev.filter((p) => p.id !== id))
+      setSelectedIds((prev) => prev.filter((sid) => sid !== id))
     } catch {
       toast({ title: 'Não foi possível excluir o preset', variant: 'destructive' })
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  // Seleção múltipla (pedido 3)
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]))
+  }
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.length === presets.length ? [] : presets.map((p) => p.id)))
+  }
+
+  // Exportar selecionados: UM único arquivo "midiaviva-presets" com todos
+  const handleExportSelected = () => {
+    const chosen = presets.filter((p) => selectedIds.includes(p.id))
+    const valid = chosen.filter((p) => p.settings && p.settings.primaryColor)
+    if (!valid.length) {
+      toast({
+        title: 'Nada para exportar',
+        description: 'Selecione ao menos um preset válido com o checkbox.',
+        variant: 'destructive',
+      })
+      return
+    }
+    downloadPresetsBundleFile(valid.map((p) => ({ name: p.name, settings: p.settings })))
+    toast({
+      title: `${valid.length} preset${valid.length > 1 ? 's' : ''} exportado${valid.length > 1 ? 's' : ''}!`,
+      description: 'Arquivo único baixado — importe em outra conta/equipe.',
+    })
+  }
+
+  // Importar (aceita 1 preset antigo OU o novo pacote com vários)
+  const handleImport = async () => {
+    const raw = await pickPresetFile()
+    if (!raw) return
+    const parsed = parsePresetsBundleFile(raw)
+    if (!parsed.ok || !parsed.inputs.length) {
+      toast({
+        title: 'Arquivo de preset inválido',
+        description: parsed.error,
+        variant: 'destructive',
+      })
+      return
+    }
+    setSavingBundle(true)
+    try {
+      const created: StudioEditPreset[] = []
+      for (const input of parsed.inputs) {
+        try {
+          created.push(await saveEditPreset(input.name, input.settings))
+        } catch {
+          // Falha isolada: continua com os demais.
+        }
+      }
+      if (created.length) {
+        setPresets((prev) => [...created, ...prev])
+        setSelectedIds([])
+      }
+      const rejectedNote = parsed.rejected
+        ? ` · ${parsed.rejected} entrada${parsed.rejected > 1 ? 's' : ''} rejeitada${parsed.rejected > 1 ? 's' : ''} na validação`
+        : ''
+      toast({
+        title: `${created.length} de ${parsed.total} preset${parsed.total > 1 ? 's' : ''} importado${created.length > 1 ? 's' : ''}!`,
+        description: `Clique em Aplicar para usar na arte aberta${rejectedNote}.`,
+      })
+    } finally {
+      setSavingBundle(false)
     }
   }
 
@@ -166,38 +245,6 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
     })
   }
 
-  // Importar: lê o arquivo JSON, valida e recria o preset na lista
-  const handleImport = async () => {
-    const raw = await pickPresetFile()
-    if (!raw) return
-    const parsed = parsePresetFile(raw)
-    if (!parsed.ok || !parsed.input) {
-      toast({
-        title: 'Arquivo de preset inválido',
-        description: parsed.error,
-        variant: 'destructive',
-      })
-      return
-    }
-    setImporting(true)
-    try {
-      const created = await saveEditPreset(parsed.input.name, parsed.input.settings)
-      setPresets((prev) => [created, ...prev])
-      toast({
-        title: `Preset “${created.name}” importado!`,
-        description: 'Clique em Aplicar para usar na arte aberta.',
-      })
-    } catch {
-      toast({
-        title: 'Não foi possível importar o preset',
-        description: 'Verifique sua conexão e tente novamente.',
-        variant: 'destructive',
-      })
-    } finally {
-      setImporting(false)
-    }
-  }
-
   return (
     <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2">
       <div className="flex items-center justify-between">
@@ -211,11 +258,11 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
             size="sm"
             variant="ghost"
             onClick={handleImport}
-            disabled={importing}
+            disabled={savingBundle}
             className="h-7 px-2 text-[11px] font-bold gap-1 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
-            title="Importar preset de arquivo .json"
+            title="Importar preset(s) de arquivo .json (aceita pacote com vários)"
           >
-            {importing ? (
+            {savingBundle ? (
               <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
               <Upload className="w-3 h-3" />
@@ -224,6 +271,35 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
           </Button>
         </div>
       </div>
+
+      {/* Barra de seleção múltipla: aparece quando há presets */}
+      {presets.length > 0 && (
+        <div className="flex items-center justify-between rounded-xl bg-muted/40 px-2 py-1.5">
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
+          >
+            {selectedIds.length === presets.length ? (
+              <CheckSquare className="w-3.5 h-3.5 text-purple-600" />
+            ) : (
+              <Square className="w-3.5 h-3.5" />
+            )}
+            Selecionar todos
+          </button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportSelected}
+            disabled={!selectedIds.length}
+            className="h-7 px-2 text-[11px] font-bold gap-1 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+            title="Baixa um único arquivo com todos os presets selecionados"
+          >
+            <Package className="w-3 h-3" />
+            Exportar selecionados ({selectedIds.length})
+          </Button>
+        </div>
+      )}
 
       {/* Salvar preset atual */}
       <div className="flex gap-1.5">
@@ -263,8 +339,25 @@ export const EditPresetsPanel: React.FC<EditPresetsPanelProps> = ({ current, onA
       {presets.map((preset) => (
         <div
           key={preset.id}
-          className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-muted/20 px-2 py-1.5"
+          className={
+            'flex items-center gap-1.5 rounded-xl border px-2 py-1.5 ' +
+            (selectedIds.includes(preset.id)
+              ? 'border-purple-500/50 bg-purple-500/5'
+              : 'border-border/60 bg-muted/20')
+          }
         >
+          <button
+            type="button"
+            onClick={() => toggleSelected(preset.id)}
+            className="shrink-0 text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400"
+            title="Selecionar para exportar em lote"
+          >
+            {selectedIds.includes(preset.id) ? (
+              <CheckSquare className="w-4 h-4 text-purple-600" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+          </button>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-foreground truncate">{preset.name}</p>
             <p className="text-[10px] text-muted-foreground">

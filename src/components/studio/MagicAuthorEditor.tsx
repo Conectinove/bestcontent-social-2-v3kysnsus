@@ -62,6 +62,7 @@ import { AulaHtmlWorkspace } from './AulaHtmlWorkspace'
 import { ConnectorsContextModal, type ConnectorsTab } from './ConnectorsContextModal'
 import { AdvancedArtifactEditorModal } from './AdvancedArtifactEditorModal'
 import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
+import { StudioEditCommentsPanel } from './StudioEditCommentsPanel'
 
 interface MagicAuthorEditorProps {
   doc: SecondBrainDoc
@@ -539,6 +540,17 @@ export const MagicAuthorEditor: React.FC<MagicAuthorEditorProps> = ({
           >
             Manter meu trabalho
           </Button>
+        </div>
+      )}
+
+      {/* Comentários da colaboração em tempo real (migration 0108):
+          troca de mensagens ao vivo entre quem edita o mesmo doc. */}
+      {isOpenDoc && (
+        <div className="flex justify-end px-4 sm:px-6 py-2 border-b border-slate-800 shrink-0">
+          <StudioEditCommentsPanel
+            targetKey={`doc:${doc.id}`}
+            materialLabel={doc.title || 'Documento'}
+          />
         </div>
       )}
 
