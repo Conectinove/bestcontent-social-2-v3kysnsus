@@ -18,6 +18,7 @@ import {
   Shirt,
   BookOpen,
   Presentation,
+  Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +28,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSocial } from '@/context/SocialContext'
 import { toast } from '@/hooks/use-toast'
 import { MudarCursoLogoKit } from '@/components/brandkit/MudarCursoLogoKit'
+import { EditorAdvancedMediaDialog } from '@/components/editor/EditorAdvancedMediaDialog'
+import { dataUrlToFile } from '@/lib/advanced-media'
+import { getImageUrlErrorMessage } from '@/lib/image-upload'
+import { uploadImageBankAsset } from '@/services/image-bank'
 
 export interface BrandAsset {
   id: string
@@ -66,6 +71,9 @@ export function BrandKitPage() {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<BrandAsset | null>(null)
+  // Asset aberto no motor de Edição Avançada (Studio) e estado de gravação da edição
+  const [advancedAsset, setAdvancedAsset] = useState<BrandAsset | null>(null)
+  const [savingEdit, setSavingEdit] = useState(false)
 
   // Assets da identidade visual inspirados na referência visual MudarCurso
   // Fotografia com iluminação violeta elétrica, proporções 9:16, 1:1, 16:9
@@ -392,6 +400,40 @@ export function BrandKitPage() {
     }
   }
 
+  /** Grava a mídia editada (data:→PNG) no acervo de imagens, vinculada à marca ativa. */
+  const handleAdvancedSave = async (asset: BrandAsset, resultUrl: string) => {
+    setAdvancedAsset(null)
+    setSavingEdit(true)
+    try {
+      let file: File | null = null
+      if (resultUrl.startsWith('data:')) {
+        file = dataUrlToFile(resultUrl, `${asset.id}-editada.png`)
+      } else {
+        const blob = await fetch(resultUrl).then((r) => r.blob())
+        file = new File([blob], `${asset.id}-editada.png`, { type: blob.type || 'image/png' })
+      }
+      if (!file) throw new Error('Não foi possível ler a mídia editada.')
+      await uploadImageBankAsset(file, {
+        name: `${asset.title} (editada)`,
+        category: 'geral',
+        tags: ['brand_kit', 'edicao_avancada'],
+        brand: currentBrand?.id,
+      })
+      toast({
+        title: 'Edição salva!',
+        description: 'A versão editada foi gravada no acervo da marca.',
+      })
+    } catch (err) {
+      toast({
+        title: 'Erro ao salvar a edição',
+        description: getImageUrlErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   return (
     <div className="space-y-12 pb-20">
       {/* SEÇÃO PRINCIPAL NO TOPO: LOGO KIT COMPLETO DA MUDARCURSO */}
@@ -409,62 +451,62 @@ export function BrandKitPage() {
               MudarCurso em cada superfície.
             </p>
           </div>
-          <Badge
-            variant="outline"
-            className="text-xs font-mono border-purple-500/40 text-purple-600"
-          >
+          <Badge variant="outline" className="text-xs font-mono border-primary/40 text-primary">
             {baseAssets.length} Assets Curados
           </Badge>
         </div>
 
         {/* HEADER HERO ESTILO MUDARCURSO */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F0B1F] via-[#1B0A4D] to-[#2B0A8A] text-white p-6 sm:p-10 border border-purple-500/30 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-card to-primary/5 text-foreground p-6 sm:p-10 border border-primary/30 shadow-2xl">
           {/* Glow de fundo */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-[#C44BFF]/20 blur-3xl pointer-events-none rounded-full" />
-          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#5B1FE0]/30 blur-3xl pointer-events-none rounded-full" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-3xl pointer-events-none rounded-full" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-primary/30 blur-3xl pointer-events-none rounded-full" />
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <div className="flex items-center gap-2">
-                <Badge className="bg-gradient-to-r from-[#5B1FE0] to-[#C44BFF] text-white font-extrabold tracking-wide uppercase px-3 py-1 border-0">
+                <Badge className="bg-primary text-primary-foreground font-extrabold tracking-wide uppercase px-3 py-1 border-0">
                   Visual Identity System
                 </Badge>
-                <Badge variant="outline" className="border-purple-400/40 text-purple-200 text-xs">
+                <Badge
+                  variant="outline"
+                  className="border-primary/40 text-muted-foreground text-xs max-w-[16rem] truncate"
+                >
                   {activeBrandName}
                 </Badge>
               </div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-                Visual Identity <span className="italic text-[#C44BFF]">System</span>
+                Visual Identity <span className="italic text-primary">System</span>
               </h1>
 
-              <p className="text-purple-200/90 text-sm sm:text-base leading-relaxed">
+              <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
                 Curadoria técnica da identidade{' '}
-                <strong className="text-white">{activeBrandName}</strong> em diferentes superfícies
-                — o violeta elétrico mantém a consistência em cada ponto de contato.
+                <strong className="text-foreground">{activeBrandName}</strong> em diferentes
+                superfícies — a cor primária do tema mantém a consistência em cada ponto de contato.
               </p>
 
-              <div className="flex items-center gap-4 pt-2 text-xs text-purple-200/70">
+              <div className="flex items-center gap-4 pt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-[#C44BFF]" />
+                  <Palette className="w-3.5 h-3.5 text-primary" />
                   Paleta Ativa: {activeBrandColor}
                 </span>
                 <span>•</span>
                 <span>{baseAssets.length} Assets Curados</span>
                 <span>•</span>
-                <span className="text-emerald-400 font-semibold">● Sincronizado</span>
+                <span className="text-primary font-semibold">● Sincronizado</span>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
               <Button
                 onClick={handleDownloadFullKit}
-                className="h-12 px-6 rounded-2xl bg-gradient-to-r from-[#5B1FE0] via-[#7C3AED] to-[#C44BFF] hover:brightness-110 text-white font-bold text-sm shadow-lg shadow-purple-950/40 gap-2 uppercase tracking-wider"
+                className="h-12 px-6 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm shadow-lg gap-2 uppercase tracking-wider"
               >
                 <Download className="w-4 h-4" />
                 <span>Baixar Kit Completo ↓</span>
               </Button>
-              <div className="flex items-center gap-2 text-[11px] text-purple-200/80 justify-center">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground justify-center">
                 <span>Proporções: 9:16 · 1:1 · 16:9 · 4:5</span>
               </div>
             </div>
@@ -493,7 +535,7 @@ export function BrandKitPage() {
             </div>
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Filter className="w-3.5 h-3.5 text-purple-600" />
+              <Filter className="w-3.5 h-3.5 text-primary" />
               <span>
                 Exibindo <strong>{filteredAssets.length}</strong> de {baseAssets.length} assets
               </span>
@@ -511,7 +553,7 @@ export function BrandKitPage() {
                   onClick={() => setActiveCategory(cat.id)}
                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
                     isSelected
-                      ? 'bg-gradient-to-r from-[#5B1FE0] to-[#7C3AED] text-white shadow-md shadow-purple-900/30'
+                      ? 'bg-primary text-primary-foreground shadow-md'
                       : 'bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60'
                   }`}
                 >
@@ -520,7 +562,7 @@ export function BrandKitPage() {
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                       isSelected
-                        ? 'bg-white/20 text-white'
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
                         : 'bg-background/80 text-muted-foreground'
                     }`}
                   >
@@ -535,7 +577,7 @@ export function BrandKitPage() {
                   setActiveCategory('all')
                   setSearchQuery('')
                 }}
-                className="text-xs text-purple-600 hover:underline px-2 shrink-0 font-semibold"
+                className="text-xs text-primary hover:underline px-2 shrink-0 font-semibold"
               >
                 Limpar Filtros
               </button>
@@ -575,11 +617,11 @@ export function BrandKitPage() {
                 <div
                   key={asset.id}
                   onClick={() => setSelectedAsset(asset)}
-                  className="group relative rounded-3xl overflow-hidden bg-card border border-border/70 hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-900/20 transition-all cursor-pointer flex flex-col justify-between"
+                  className="group relative rounded-3xl overflow-hidden bg-card border border-border/70 hover:border-primary/50 hover:shadow-2xl transition-all cursor-pointer flex flex-col justify-between"
                 >
                   {/* Visual Preview com Overlay Violeta e Badge de Proporção */}
                   <div
-                    className={`relative w-full overflow-hidden bg-[#0F0B1F] ${
+                    className={`relative w-full overflow-hidden bg-muted ${
                       isReels ? 'aspect-[9/16]' : isBanner ? 'aspect-[16/9]' : 'aspect-square'
                     }`}
                   >
@@ -591,7 +633,7 @@ export function BrandKitPage() {
                     />
 
                     {/* Gradient Overlay Roxo no Rodapé */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0F0B1F] via-[#0F0B1F]/30 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
 
                     {/* Botão de Favorito no Canto Superior Direito */}
                     <button
@@ -607,8 +649,8 @@ export function BrandKitPage() {
                     </button>
 
                     {/* Marca da Marca no Canto Inferior Esquerdo */}
-                    <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-purple-500/30">
-                      <div className="w-2 h-2 rounded-full bg-[#C44BFF] animate-pulse" />
+                    <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10">
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                       <span className="text-[10px] font-black tracking-wider uppercase text-white">
                         {activeBrandName}
                       </span>
@@ -628,7 +670,7 @@ export function BrandKitPage() {
                       <div className="flex items-center justify-between gap-2">
                         <Badge
                           variant="outline"
-                          className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-300 border-purple-500/30"
+                          className="text-[10px] uppercase font-bold text-primary border-primary/30"
                         >
                           {asset.categoryLabel}
                         </Badge>
@@ -637,7 +679,7 @@ export function BrandKitPage() {
                         </span>
                       </div>
 
-                      <h3 className="font-bold text-foreground text-sm line-clamp-1 group-hover:text-purple-600 transition-colors">
+                      <h3 className="font-bold text-foreground text-sm line-clamp-2 break-words group-hover:text-primary transition-colors">
                         {asset.title}
                       </h3>
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -654,7 +696,7 @@ export function BrandKitPage() {
                             e.stopPropagation()
                             handleDownload(asset, 'original')
                           }}
-                          className="flex-1 h-9 rounded-xl bg-gradient-to-r from-[#5B1FE0] to-[#7C3AED] hover:brightness-110 text-white font-bold text-xs gap-1.5 shadow-sm"
+                          className="flex-1 h-9 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs gap-1.5 shadow-sm"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Baixar Original</span>
@@ -671,7 +713,7 @@ export function BrandKitPage() {
                           title="Copiar Link"
                         >
                           {isCopied ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <Check className="w-3.5 h-3.5 text-primary" />
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
@@ -691,6 +733,21 @@ export function BrandKitPage() {
                         </Button>
                       </div>
 
+                      {/* Edição Avançada: abre o motor do Studio sobre esta imagem */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAdvancedAsset(asset)
+                        }}
+                        disabled={savingEdit}
+                        className="w-full h-9 rounded-xl border-primary/40 text-primary hover:bg-primary/10 text-xs font-semibold gap-1.5"
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>Edição Avançada</span>
+                      </Button>
+
                       {/* Variações de Tamanho */}
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
                         <span>Variações:</span>
@@ -700,7 +757,7 @@ export function BrandKitPage() {
                               e.stopPropagation()
                               handleDownload(asset, 'thumb')
                             }}
-                            className="hover:text-purple-600 underline font-medium"
+                            className="hover:text-primary underline font-medium"
                           >
                             Thumb
                           </button>
@@ -710,7 +767,7 @@ export function BrandKitPage() {
                               e.stopPropagation()
                               handleDownload(asset, 'social')
                             }}
-                            className="hover:text-purple-600 underline font-medium"
+                            className="hover:text-primary underline font-medium"
                           >
                             Social
                           </button>
@@ -720,7 +777,7 @@ export function BrandKitPage() {
                               e.stopPropagation()
                               handleDownload(asset, 'banner')
                             }}
-                            className="hover:text-purple-600 underline font-medium"
+                            className="hover:text-primary underline font-medium"
                           >
                             Banner
                           </button>
@@ -737,6 +794,19 @@ export function BrandKitPage() {
         {/* Fechamento da seção secundária */}
       </div>
 
+      {/* EDIÇÃO AVANÇADA: motor do Studio (mesmo usado no editor de posts e na marca) */}
+      {advancedAsset && (
+        <EditorAdvancedMediaDialog
+          open
+          onOpenChange={(o) => {
+            if (!o) setAdvancedAsset(null)
+          }}
+          mediaUrl={advancedAsset.imageUrl}
+          title={advancedAsset.title}
+          onSave={(url) => handleAdvancedSave(advancedAsset, url)}
+        />
+      )}
+
       {/* MODAL DETALHE DO ASSET (INSPIRADO NA REFERÊNCIA DO LOVABLE) */}
       {selectedAsset && (
         <div
@@ -744,15 +814,15 @@ export function BrandKitPage() {
           onClick={() => setSelectedAsset(null)}
         >
           <div
-            className="relative w-full max-w-2xl bg-card border border-purple-500/40 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-2xl bg-card border border-primary/40 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <Badge className="bg-[#5B1FE0] text-white text-xs font-bold uppercase mb-2">
+                <Badge className="bg-primary text-primary-foreground text-xs font-bold uppercase mb-2">
                   {selectedAsset.categoryLabel} · {selectedAsset.aspectRatio}
                 </Badge>
-                <h2 className="text-xl sm:text-2xl font-black text-foreground">
+                <h2 className="text-xl sm:text-2xl font-black text-foreground break-words">
                   {selectedAsset.title}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">{selectedAsset.headline}</p>
@@ -777,7 +847,7 @@ export function BrandKitPage() {
 
             {/* Opções de download rápido no estilo Lovable */}
             <div className="space-y-3 pt-2">
-              <p className="text-xs font-bold text-foreground text-center uppercase tracking-wider text-purple-600">
+              <p className="text-xs font-bold text-primary text-center uppercase tracking-wider">
                 Baixar Asset
               </p>
 
@@ -810,9 +880,22 @@ export function BrandKitPage() {
 
               <Button
                 onClick={() => handleDownload(selectedAsset, 'original')}
-                className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#5B1FE0] via-[#7C3AED] to-[#C44BFF] hover:brightness-110 text-white font-extrabold text-sm uppercase tracking-wider shadow-lg"
+                className="w-full h-12 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 font-extrabold text-sm uppercase tracking-wider shadow-lg"
               >
                 Original em Alta Resolução
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const asset = selectedAsset
+                  setSelectedAsset(null)
+                  setAdvancedAsset(asset)
+                }}
+                className="w-full rounded-2xl border-primary/40 text-primary hover:bg-primary/10 font-semibold text-sm gap-2"
+              >
+                <Wand2 className="w-4 h-4" />
+                <span>Edição Avançada</span>
               </Button>
 
               <div className="flex items-center justify-center gap-6 pt-3 text-xs text-muted-foreground">
