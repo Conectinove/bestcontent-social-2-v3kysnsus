@@ -36,6 +36,7 @@ function mapUser(record: any): UserProfile {
     website: record.website || '',
     menu_layout: record.menu_layout || 'sidebar',
     app_color: record.app_color || 'purple',
+    role: (record.role as 'member' | 'admin') || 'member',
     share_community: record.share_community ?? true,
     notif_app: record.notif_app ?? true,
     notif_email: record.notif_email ?? true,

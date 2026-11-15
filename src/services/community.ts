@@ -127,12 +127,24 @@ export async function createCommunityTopic(data: {
     views_count: 1,
     likes_count: 0,
     is_pinned: !!data.is_pinned,
+    is_active: true,
   }
   if (data.image_url) {
     payload.image_url = data.image_url
   }
 
   return await pb.collection('community_topics').create<CommunityTopic>(payload)
+}
+
+export async function setTopicActive(topicId: string, isActive: boolean): Promise<boolean> {
+  await pb.collection('community_topics').update(topicId, {
+    is_active: isActive,
+  })
+  return isActive
+}
+
+export async function deleteCommunityTopic(topicId: string): Promise<void> {
+  await pb.collection('community_topics').delete(topicId)
 }
 
 export async function incrementTopicViews(id: string, currentViews: number): Promise<void> {

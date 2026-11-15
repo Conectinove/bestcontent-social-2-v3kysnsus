@@ -24,6 +24,7 @@ export interface CommunityTopic {
   views_count: number
   likes_count: number
   is_pinned: boolean
+  is_active?: boolean
   image_url?: string
   created: string
   updated: string

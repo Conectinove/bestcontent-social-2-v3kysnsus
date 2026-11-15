@@ -39,6 +39,12 @@ import {
   FolderInput,
   Folder,
   DownloadCloud,
+  Upload,
+  Paperclip,
+  EyeOff,
+  Trash2,
+  Ban,
+  CirclePlay,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -68,7 +74,20 @@ import {
   getUserLikedTopicIds,
   getTopicReplies,
   createReply,
+  deleteCommunityTopic,
+  setTopicActive,
 } from '@/services/community'
+import { isSupportedImportFile, parseImportFile } from '@/lib/doc-import'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { CommunityTopic, CommunityCategory, CommunityReply } from '@/types/community'
 import { FeedMetricsMultiWidget } from '@/components/feed/FeedMetricsMultiWidget'
 import { FeedControlPanel } from '@/components/feed/FeedControlPanel'
@@ -92,7 +111,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c1',
     name: 'Manasci',
     initials: 'MA',
-    avatarColor: 'bg-violet-600',
+    avatarColor: 'bg-primary',
     image: 'https://img.usecurling.com/p/240/240?q=man%20portrait%20dark&color=purple',
     postTitle: 'Ladrão é o Banqueiro',
   },
@@ -100,7 +119,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c2',
     name: 'Lucio flavio Barbosa Nantes coelho',
     initials: 'L',
-    avatarColor: 'bg-purple-700',
+    avatarColor: 'bg-primary/80',
     image: 'https://img.usecurling.com/p/240/240?q=businessman%20speaking&color=indigo',
     postTitle: 'Trauma Superado',
   },
@@ -108,7 +127,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c3',
     name: 'Alex Machado',
     initials: 'AL',
-    avatarColor: 'bg-purple-600',
+    avatarColor: 'bg-primary/70',
     image: 'https://img.usecurling.com/p/240/240?q=bicycle%20city&color=violet',
     postTitle: 'Mobilidade Urbana',
   },
@@ -116,7 +135,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c4',
     name: 'Manasci',
     initials: 'MA',
-    avatarColor: 'bg-indigo-600',
+    avatarColor: 'bg-primary/60',
     image: 'https://img.usecurling.com/p/240/240?q=fashion%20sale%20poster&color=blue',
     postTitle: 'Fim da Taxa das Blusinhas?',
   },
@@ -124,7 +143,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c5',
     name: 'Lucio flavio Barbosa Nantes coelho',
     initials: 'L',
-    avatarColor: 'bg-purple-800',
+    avatarColor: 'bg-primary/50',
     image: 'https://img.usecurling.com/p/240/240?q=coffee%20cup%20desk&color=amber',
     postTitle: 'Apenas Cansaço?',
   },
@@ -132,7 +151,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c6',
     name: 'TRICIA PEREIRA NUNES JUNQUEIRA',
     initials: 'TP',
-    avatarColor: 'bg-fuchsia-600',
+    avatarColor: 'bg-primary/40',
     image: 'https://img.usecurling.com/p/240/240?q=skincare%20beauty%20woman&color=pink',
     postTitle: 'Share the Freshness',
   },
@@ -140,7 +159,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c7',
     name: 'Manasci',
     initials: 'MA',
-    avatarColor: 'bg-violet-600',
+    avatarColor: 'bg-primary/70',
     image: 'https://img.usecurling.com/p/240/240?q=space%20nebula%20fire&color=purple',
     postTitle: 'A História Continua',
   },
@@ -148,7 +167,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c8',
     name: 'Manasci',
     initials: 'MA',
-    avatarColor: 'bg-purple-600',
+    avatarColor: 'bg-primary/60',
     image: 'https://img.usecurling.com/p/240/240?q=soccer%20trophy%20stadium&color=violet',
     postTitle: 'Trabalhar de Graça na Copa?',
   },
@@ -156,7 +175,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c9',
     name: 'Manasci',
     initials: 'MA',
-    avatarColor: 'bg-indigo-600',
+    avatarColor: 'bg-primary/50',
     image: 'https://img.usecurling.com/p/240/240?q=podium%20speaker%20stage&color=purple',
     postTitle: 'Estratégia ou Conveniência?',
   },
@@ -196,7 +215,7 @@ const COMMUNITY_CREATORS: CommunityCreator[] = [
     id: 'c14',
     name: 'Mateus Marques',
     initials: 'MM',
-    avatarColor: 'bg-violet-700',
+    avatarColor: 'bg-primary/90',
     image: 'https://img.usecurling.com/p/240/240?q=startup%20founder%20smiling&color=violet',
     postTitle: 'Crescimento Acelerado',
   },
@@ -252,11 +271,27 @@ export default function Feed() {
   const [replyInput, setReplyInput] = useState('')
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
 
+  // Admin (moderação real via users.role, com fallback no e-mail herdado do MVP)
+  const isAdmin = user?.role === 'admin' || user?.email === 'midiaviva@bestcontent.ai'
+
+  // Dialog de Importação de Post (.md/.txt ou texto colado)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importFileName, setImportFileName] = useState<string | null>(null)
+  const [importCategory, setImportCategory] = useState('')
+  const [isImporting, setIsImporting] = useState(false)
+
+  // Confirmação de exclusão (AlertDialog admin)
+  const [deleteTarget, setDeleteTarget] = useState<CommunityTopic | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const fileImportRef = useRef<HTMLInputElement>(null)
+
   // Load feed data from PocketBase
   const loadFeedData = async () => {
     try {
       const [topicsData, categoriesData, userLikes] = await Promise.all([
-        getCommunityTopics(),
+        // Membros comuns só veem posts ativos; admin (curadoria) vê tudo
+        getCommunityTopics(isAdmin ? undefined : 'is_active = true'),
         getCommunityCategories(),
         getUserLikedTopicIds(),
       ])
@@ -451,6 +486,151 @@ export default function Feed() {
       })
     } finally {
       setIsPublishing(false)
+    }
+  }
+
+  // Admin: ativar/desativar post (toggle is_active)
+  const handleToggleActive = async (topic: CommunityTopic) => {
+    const next = !(topic.is_active ?? true)
+    // Optimistic UI
+    setTopics((prev) => prev.map((t) => (t.id === topic.id ? { ...t, is_active: next } : t)))
+    try {
+      await setTopicActive(topic.id, next)
+      toast({
+        title: next ? 'Post reativado ✅' : 'Post desativado 🚫',
+        description: next
+          ? 'O post voltou a aparecer no feed para todos os membros.'
+          : 'O post saiu do feed dos membros (visível apenas para admins).',
+      })
+    } catch (err: any) {
+      // Revert
+      setTopics((prev) => prev.map((t) => (t.id === topic.id ? { ...t, is_active: !next } : t)))
+      toast({
+        title: 'Não foi possível alterar o status',
+        description: err?.message || 'Tente novamente em instantes.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Admin: excluir post definitivamente (após confirmação no AlertDialog)
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || isDeleting) return
+    setIsDeleting(true)
+    try {
+      await deleteCommunityTopic(deleteTarget.id)
+      setTopics((prev) => prev.filter((t) => t.id !== deleteTarget.id))
+      setSelectedTopicIds((prev) => prev.filter((id) => id !== deleteTarget.id))
+      toast({
+        title: 'Post excluído 🗑️',
+        description: `"${deleteTarget.title || 'Sem título'}" foi removido do feed.`,
+      })
+      setDeleteTarget(null)
+    } catch (err: any) {
+      toast({
+        title: 'Não foi possível excluir',
+        description: err?.message || 'Verifique suas permissões de moderação.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Importar post: arquivo .md/.txt (via doc-import) ou texto colado
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return
+    if (!isSupportedImportFile(file)) {
+      toast({
+        title: 'Formato não suportado',
+        description: 'Envie um arquivo .md, .markdown ou .txt para importar.',
+        variant: 'destructive',
+      })
+      return
+    }
+    try {
+      const parsed = await parseImportFile(file)
+      setImportFileName(file.name)
+      setImportText((prev) =>
+        prev.trim() ? `${prev.trim()}\n\n${parsed.content}` : parsed.content,
+      )
+      toast({
+        title: 'Arquivo carregado 📄',
+        description: `"${file.name}" foi lido. Ajuste o título abaixo se quiser e publique.`,
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao ler o arquivo',
+        description: err?.message || 'Não foi possível extrair o texto do arquivo.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Importar post: publica o texto colado/carregado como novo post do feed
+  const handleImportPublish = async () => {
+    const content = importText.trim()
+    if (!content) {
+      toast({
+        title: 'Nada para publicar',
+        description: 'Cole um texto ou carregue um arquivo .md/.txt antes de publicar.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setIsImporting(true)
+    try {
+      // Deriva o título da primeira linha (sem markdown #, sem blank), limitado a 80 chars
+      const firstLine = content
+        .split('\n')
+        .map((l) => l.replace(/^#+\s*/, '').trim())
+        .find((l) => l.length > 0)
+      const title = (firstLine || 'Post importado').slice(0, 80)
+
+      const catId = importCategory || categories[0]?.id || ''
+      const body = firstLine ? content.replace(/^[^\n]*\n/, '').trim() || content : content
+
+      const created = await createCommunityTopic({
+        title,
+        content: body,
+        category: catId,
+        tags: ['Feed', 'Importado'],
+      })
+
+      toast({
+        title: 'Post importado com sucesso! 📥',
+        description: `"${title}" já está visível no feed da comunidade.`,
+      })
+
+      // Prepend otimista (o realtime também recarrega)
+      setTopics((prev) => [
+        {
+          ...created,
+          expand: {
+            user: {
+              id: user?.id || 'me',
+              name: user?.name || 'Você',
+              avatar: user?.avatar,
+            },
+            category: categories.find((c) => c.id === catId),
+          },
+          replies_count: 0,
+        },
+        ...prev,
+      ])
+
+      setImportDialogOpen(false)
+      setImportText('')
+      setImportFileName(null)
+      setImportCategory('')
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao importar',
+        description: err?.message || 'Tente novamente em instantes.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsImporting(false)
     }
   }
 
@@ -828,7 +1008,7 @@ export default function Feed() {
                 <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
                   <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-violet-900 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
                   4
                 </div>
               </div>
@@ -844,7 +1024,7 @@ export default function Feed() {
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-primary to-purple-500 h-full rounded-full transition-all duration-500"
+                    className="bg-primary h-full rounded-full transition-all duration-500"
                     style={{ width: `${Math.round((345 / 600) * 100)}%` }}
                   />
                 </div>
@@ -1096,23 +1276,23 @@ export default function Feed() {
                       onClick={() => setComposerOpen(true)}
                       className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1 text-xs"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      <span>Nova Ideia</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setComposerOpen(true)}
-                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1 text-xs"
-                    >
-                      <ImageIcon className="w-3.5 h-3.5 text-purple-500" />
+                      <ImageIcon className="w-3.5 h-3.5 text-primary" />
                       <span>Mídia</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setWhatToPostModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 font-bold text-xs py-1 px-2.5 rounded-lg bg-gradient-to-r from-purple-500/15 via-pink-500/15 to-amber-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 hover:border-purple-500/60 hover:scale-[1.02] transition-all"
+                      onClick={() => setImportDialogOpen(true)}
+                      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors font-medium py-1 text-xs"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-purple-500 animate-pulse" />
+                      <Upload className="w-3.5 h-3.5 text-primary" />
+                      <span>Importar post</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWhatToPostModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 font-bold text-xs py-1 px-2.5 rounded-lg bg-primary/10 text-primary border border-primary/30 hover:border-primary/60 hover:scale-[1.02] transition-all"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-primary animate-pulse" />
                       <span>O que postar hoje? (IA)</span>
                     </button>
                   </div>

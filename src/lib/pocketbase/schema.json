@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T10:59:20.336Z",
+  "generatedAt": "2026-11-15T11:16:36.679Z",
   "collections": [
     {
       "name": "users",
@@ -1248,6 +1248,12 @@
         {
           "name": "image_url",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
           "required": false,
           "system": false
         }

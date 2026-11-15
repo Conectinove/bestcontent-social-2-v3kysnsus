@@ -132,6 +132,7 @@ export interface UserProfile {
   website?: string
   menu_layout?: 'sidebar' | 'topbar'
   app_color?: string
+  role?: 'member' | 'admin'
   share_community?: boolean
   notif_app?: boolean
   notif_email?: boolean
