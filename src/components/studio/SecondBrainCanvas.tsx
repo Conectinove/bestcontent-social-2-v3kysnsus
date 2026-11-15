@@ -345,7 +345,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
   }
 
   return (
-    <div className="nb-accent-scope flex flex-col lg:flex-row min-h-[850px] bg-slate-950 text-slate-100 rounded-3xl border border-slate-800/80 overflow-hidden shadow-2xl">
+    <div className="nb-accent-scope nb-theme-scope flex flex-col lg:flex-row h-full min-h-[560px] bg-slate-950 text-slate-100 overflow-hidden">
       {/* ==============================================================
           SIDEBAR DO SEGUNDO CÉREBRO (Conforme prints do Genspark)
           ============================================================== */}
@@ -474,9 +474,9 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => setActiveMenu('inicio')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all text-left ${
+              className={`nb-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all text-left border border-transparent ${
                 activeMenu === 'inicio'
-                  ? 'bg-purple-600/15 text-purple-300 border border-purple-500/30'
+                  ? 'nb-active bg-purple-600/15 text-purple-300 border-purple-500/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
               }`}
             >
@@ -487,9 +487,9 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => setActiveMenu('sobre_mim')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all text-left ${
+              className={`nb-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all text-left border border-transparent ${
                 activeMenu === 'sobre_mim'
-                  ? 'bg-purple-600/15 text-purple-300 border border-purple-500/30'
+                  ? 'nb-active bg-purple-600/15 text-purple-300 border-purple-500/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
               }`}
             >
@@ -500,9 +500,9 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => setActiveMenu('mapa_memoria')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all text-left ${
+              className={`nb-nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold transition-all text-left border border-transparent ${
                 activeMenu === 'mapa_memoria'
-                  ? 'bg-purple-600/15 text-purple-300 border border-purple-500/30'
+                  ? 'nb-active bg-purple-600/15 text-purple-300 border-purple-500/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
               }`}
             >
@@ -568,7 +568,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               <button
                 type="button"
                 onClick={() => setLessonGalleryOpen(true)}
-                className="w-full min-w-0 text-left px-2 py-1.5 rounded-lg text-purple-300 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/40 transition-all flex items-center gap-2 font-bold"
+                className="nb-accent-soft-bg nb-accent-text nb-accent-border w-full min-w-0 text-left px-2 py-1.5 rounded-lg text-purple-300 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/40 transition-all flex items-center gap-2 font-bold"
               >
                 <GraduationCap className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                 <span className="truncate">Templates de Aulas (PT-BR)</span>
@@ -726,13 +726,13 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
       <main className="flex-1 p-5 sm:p-8 space-y-8 overflow-y-auto">
         {/* Cabeçalho de Boas-Vindas */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-purple-400">
+          <div className="nb-accent-text flex items-center gap-2 text-xs font-semibold text-purple-400">
             <span>Segundo Cérebro</span>
             <ChevronRight className="w-3 h-3" />
             <span>MagicAuthor Studio</span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-black font-heading text-white tracking-tight leading-tight max-w-2xl">
+          <h1 className="text-2xl sm:text-4xl font-black font-heading text-white tracking-tight leading-tight sm:leading-snug max-w-3xl text-balance">
             O Segundo Cérebro lembra de tudo. E pensa com você.
           </h1>
 
@@ -754,15 +754,15 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 type="submit"
                 size="sm"
                 disabled={asking}
-                className="h-9 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs gap-1.5 shrink-0"
+                className="nb-accent-grad h-9 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs gap-1.5 shrink-0"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 {asking ? 'Pensando...' : 'Consultar'}
               </Button>
             </div>
 
-            <div className="px-3 py-1.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-[11px] text-slate-400">
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className="px-3 py-1.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-[11px] text-slate-400 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap min-w-0">
                 <span className="hover:text-slate-200 cursor-pointer whitespace-nowrap">
                   📎 Padrão
                 </span>
@@ -770,7 +770,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                   📁 Contexto de Trabalho
                 </span>
               </div>
-              <span className="text-[10px] text-purple-400/80 whitespace-nowrap sm:text-right">
+              <span className="nb-accent-text text-[10px] text-purple-400/80 whitespace-nowrap sm:text-right opacity-90">
                 Pressione Enter para consultar a memória
               </span>
             </div>
@@ -808,7 +808,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
               type="button"
               size="sm"
               onClick={() => setLessonGalleryOpen(true)}
-              className="h-8 text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl gap-1.5 shadow-md shadow-purple-900/30 shrink-0"
+              className="nb-accent-grad h-8 text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl gap-1.5 shadow-md shadow-purple-900/30 shrink-0"
             >
               <GraduationCap className="w-3.5 h-3.5" />
               Galeria de Templates
@@ -819,7 +819,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
             <button
               type="button"
               onClick={() => setLessonGalleryOpen(true)}
-              className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/60 to-slate-900 border border-purple-500/40 hover:border-purple-400 hover:bg-purple-900/30 transition-all text-left space-y-3 group shadow-lg shadow-purple-950/20 overflow-hidden min-w-0"
+              className="nb-accent-border nb-accent-glow p-5 rounded-2xl bg-gradient-to-br from-purple-950/60 to-slate-900 border border-purple-500/40 hover:border-purple-400 hover:bg-purple-900/30 transition-all text-left space-y-3 group shadow-lg shadow-purple-950/20 overflow-hidden min-w-0"
             >
               <div className="w-10 h-10 shrink-0 rounded-xl bg-purple-600/30 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
                 <GraduationCap className="w-5 h-5 text-purple-300" />
@@ -908,7 +908,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 onClick={() => setFilterType(filterType === 'drive' ? 'todos' : 'drive')}
                 className={`h-7 text-xs rounded-xl font-bold ${
                   filterType === 'drive'
-                    ? 'bg-purple-600 text-white'
+                    ? 'nb-accent-bg bg-purple-600 text-white'
                     : 'border-slate-800 text-slate-400'
                 }`}
               >
@@ -922,7 +922,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 onClick={() => setFilterType(filterType === 'notas' ? 'todos' : 'notas')}
                 className={`h-7 text-xs rounded-xl font-bold ${
                   filterType === 'notas'
-                    ? 'bg-purple-600 text-white'
+                    ? 'nb-accent-bg bg-purple-600 text-white'
                     : 'border-slate-800 text-slate-400'
                 }`}
               >
@@ -936,7 +936,7 @@ export const SecondBrainCanvas: React.FC<SecondBrainCanvasProps> = ({ onClose })
                 onClick={() => setFilterType(filterType === 'projetos' ? 'todos' : 'projetos')}
                 className={`h-7 text-xs rounded-xl font-bold ${
                   filterType === 'projetos'
-                    ? 'bg-purple-600 text-white'
+                    ? 'nb-accent-bg bg-purple-600 text-white'
                     : 'border-slate-800 text-slate-400'
                 }`}
               >

@@ -364,3 +364,53 @@
 .nb-accent-scope .nb-conn-card:hover {
   border-color: hsl(var(--connector-accent) / 0.65);
 }
+
+/* ===== Segundo Cérebro: ponte com o tema global do app (use-app-theme) =====
+   O motor global aplica --accent-color/--accent-soft/--accent-glow e o accent
+   da rede (--nb-accent). O painel do Segundo Cérebro consome essas variáveis
+   nos seus elementos de destaque (chips, títulos e botões primários). */
+.nb-theme-scope {
+  --nb-accent-live: var(--connector-accent, 262 83% 58%);
+}
+.nb-theme-scope .nb-accent-text {
+  color: hsl(var(--nb-accent-live));
+}
+.nb-theme-scope .nb-accent-bg {
+  background-color: hsl(var(--nb-accent-live));
+  color: hsl(var(--nb-accent-contrast, 0 0% 100%));
+}
+.nb-theme-scope .nb-accent-soft-bg {
+  background-color: hsl(var(--nb-accent-live) / 0.14);
+}
+.nb-theme-scope .nb-accent-border {
+  border-color: hsl(var(--nb-accent-live) / 0.4);
+}
+.nb-theme-scope .nb-accent-border:hover {
+  border-color: hsl(var(--nb-accent-live) / 0.7);
+  box-shadow: 0 8px 24px -12px hsl(var(--nb-accent-live) / 0.45);
+}
+.nb-theme-scope .nb-accent-glow {
+  box-shadow: 0 10px 30px -12px hsl(var(--nb-accent-live) / 0.5);
+}
+.nb-theme-scope .nb-accent-grad {
+  background-image: linear-gradient(
+    135deg,
+    hsl(var(--nb-accent-live)) 0%,
+    hsl(var(--nb-accent-live) / 0.75) 100%
+  );
+  color: hsl(var(--nb-accent-contrast, 0 0% 100%));
+}
+.nb-theme-scope .nb-accent-grad:hover {
+  filter: brightness(1.08);
+}
+/* Navegação lateral: item ativo obedece ao tema/accent da rede */
+.nb-theme-scope .nb-nav-item.nb-active {
+  background-color: hsl(var(--nb-accent-live) / 0.16);
+  color: hsl(var(--nb-accent-live));
+  border-color: hsl(var(--nb-accent-live) / 0.35);
+}
+/* Área de leitura do documento: superfícies e bordas acompanham o tema */
+.nb-theme-scope .nb-surface {
+  background-color: hsl(var(--surface-color, 222 47% 8%));
+  border-color: hsl(var(--nb-accent-live) / 0.18);
+}

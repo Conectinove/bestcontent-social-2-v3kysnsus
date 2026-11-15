@@ -22,6 +22,11 @@ import {
   SlidersHorizontal,
   Trash2,
   Loader2,
+  Brain,
+  Maximize2,
+  Minimize2,
+  X,
+  Copy,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -70,6 +75,8 @@ import { StudioSectionDialog, StudioSectionId } from '@/components/studio/Studio
 import { StudioTopControls } from '@/components/studio/StudioTopControls'
 import { useAppTheme } from '@/hooks/use-app-theme'
 import { useStudioWindowMode } from '@/hooks/use-studio-window'
+import { useSecondBrainWindowMode } from '@/hooks/use-second-brain-window'
+import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 
 // Componentes da Interface Estilo Genspark
@@ -164,6 +171,8 @@ export default function AiMediaStudioPage() {
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] = useState(false)
   const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false)
   const [isSecondBrainOpen, setIsSecondBrainOpen] = useState(false)
+  // Modo de janela do Segundo Cérebro (normal/maximizado/compacto, persistido)
+  const secondBrainWindow = useSecondBrainWindowMode()
 
   // Edição avançada da mídia gerada (mesmo mecanismo do editor de posts)
   const [isAdvancedEditorOpen, setIsAdvancedEditorOpen] = useState(false)
@@ -948,10 +957,94 @@ export default function AiMediaStudioPage() {
         }}
       />
 
-      {/* Modal / Dialog do Segundo Cérebro (Full Canvas) */}
+      {/* Modal / Dialog do Segundo Cérebro (Full Canvas) — com modo de janela
+          normal / maximizado / compacto persistido em localStorage */}
       <Dialog open={isSecondBrainOpen} onOpenChange={setIsSecondBrainOpen}>
-        <DialogContent className="max-w-(--breakpoint-2xl) w-[96vw] h-[92vh] p-0 bg-slate-950 border-slate-800 text-slate-100 overflow-hidden rounded-3xl">
-          <SecondBrainCanvas onClose={() => setIsSecondBrainOpen(false)} />
+        <DialogContent
+          className={cn(
+            'p-0 bg-slate-950 border-slate-800 text-slate-100 overflow-hidden transition-[width,height] duration-200',
+            secondBrainWindow.isMaximized
+              ? 'max-w-none w-[100vw] h-[100vh] rounded-none border-0'
+              : secondBrainWindow.isCompact
+                ? 'max-w-4xl w-[92vw] h-[80vh] rounded-3xl'
+                : 'max-w-(--breakpoint-2xl) w-[96vw] h-[92vh] rounded-3xl',
+          )}
+        >
+          <div className="flex flex-col h-full">
+            {/* Barra de título com controles de janela (maximizar/restaurar/compactar) */}
+            <div
+              data-nb-drag-handle
+              className="h-11 px-4 flex items-center justify-between gap-3 border-b border-slate-800/80 bg-slate-900/90 shrink-0 select-none"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Brain className="w-4 h-4 text-purple-400 shrink-0" />
+                <span className="text-xs font-black uppercase tracking-wider font-heading text-white truncate">
+                  Segundo Cérebro
+                </span>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-[9px] font-mono text-purple-400 border-purple-500/30"
+                >
+                  v2.4
+                </Badge>
+                <span className="hidden sm:inline text-[10px] text-slate-500 truncate">
+                  MagicAuthor
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => secondBrainWindow.setMode('compact')}
+                  title="Janela compacta"
+                  className={cn(
+                    'w-7 h-7 text-slate-400 hover:text-white',
+                    secondBrainWindow.isCompact && 'text-purple-300 bg-purple-950/50',
+                  )}
+                >
+                  <Minimize2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => secondBrainWindow.setMode('normal')}
+                  title="Janela padrão"
+                  className={cn(
+                    'w-7 h-7 text-slate-400 hover:text-white',
+                    !secondBrainWindow.isMaximized && !secondBrainWindow.isCompact
+                      ? 'text-purple-300 bg-purple-950/50'
+                      : '',
+                  )}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => secondBrainWindow.setMode('maximized')}
+                  title="Maximizar (tela cheia)"
+                  className={cn(
+                    'w-7 h-7 text-slate-400 hover:text-white',
+                    secondBrainWindow.isMaximized && 'text-purple-300 bg-purple-950/50',
+                  )}
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSecondBrainOpen(false)}
+                  title="Fechar"
+                  className="w-7 h-7 text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 min-h-0">
+              <SecondBrainCanvas onClose={() => setIsSecondBrainOpen(false)} />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
