@@ -615,9 +615,14 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
               ? stockLoading.pexels
               : false
 
-  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const isStockTab = tab === 'unsplash' || tab === 'pexels'
+  }, [sourceItems, filters, customRange])
+
+  const visibleItems = useMemo(
+    () => sortMediaItems(visibleItemsFiltered, filters.sort),
+    [visibleItemsFiltered, filters.sort],
+  )
+
+  const hasAnyContent =
     mediaItems.length > 0 ||
     docFiles.length > 0 ||
     bankItems.length > 0 ||
