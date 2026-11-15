@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T02:24:04.408Z",
+  "generatedAt": "2026-11-15T03:00:04.577Z",
   "collections": [
     {
       "name": "users",
@@ -5445,6 +5445,107 @@
         "CREATE UNIQUE INDEX idx_socialpub_schedpost_network ON social_publications (scheduled_post, network)",
         "CREATE INDEX idx_socialpub_user_status ON social_publications (user, status)",
         "CREATE INDEX idx_socialpub_due ON social_publications (scheduled_at)"
+      ]
+    },
+    {
+      "name": "studio_themes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && (user = @request.auth.id || (is_shared = true && user.company = @request.auth.record.company))",
+        "view": "@request.auth.id != \"\" && (user = @request.auth.id || (is_shared = true && user.company = @request.auth.record.company))",
+        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "network",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "instagram",
+            "tiktok",
+            "linkedin",
+            "facebook",
+            "youtube",
+            "x",
+            "threads",
+            "pinterest",
+            "kwai",
+            "telegram",
+            "bluesky",
+            "snapchat"
+          ]
+        },
+        {
+          "name": "mode",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["light", "dark"]
+        },
+        {
+          "name": "color_background",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color_surface",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color_primary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color_text",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "accent_override",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_shared",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "remote_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_studio_themes_user ON studio_themes (user)",
+        "CREATE INDEX idx_studio_themes_network ON studio_themes (network)",
+        "CREATE INDEX idx_studio_themes_shared ON studio_themes (is_shared)",
+        "CREATE INDEX idx_studio_themes_remote_id ON studio_themes (remote_id)"
       ]
     }
   ]
