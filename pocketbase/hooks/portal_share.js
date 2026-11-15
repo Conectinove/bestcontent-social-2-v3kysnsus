@@ -133,15 +133,34 @@ routerAdd('GET', '/backend/v1/portals/share/{token}', (e) => {
     }
   }
 
+  // Cores extras do portal (migration 0118) — vazio cai pro fallback do frontend.
+  const bgColor = portal.getString('bg_color')
+  const textColor = portal.getString('text_color')
+  const buttonColor = portal.getString('button_color')
+  const gaId = portal.getString('ga_measurement_id')
+
+  // Logo do portal: arquivo próprio (migration 0118) ou o logo da marca.
+  let logoUrl = brand.getString('logo')
+  const logoFile = portal.getString('logo_file')
+  if (logoFile) {
+    logoUrl = '/api/files/brand_portals/' + portal.id + '/' + logoFile
+  }
+
   return e.json(200, {
     format: 'midiaviva-portal',
-    version: 1,
+    version: 2,
+    brand_id: brandId,
     name: brand.getString('name'),
     description: brand.getString('description'),
-    logo: brand.getString('logo'),
+    logo: logoUrl,
+    logo_file: logoFile,
     website: brand.getString('website'),
     color_theme: brand.getString('color_theme'),
     accent_color: accentColor,
+    bg_color: bgColor,
+    text_color: textColor,
+    button_color: buttonColor,
+    ga_measurement_id: gaId,
     theme,
     portal_id: portal.id,
   })

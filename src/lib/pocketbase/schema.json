@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T14:45:23.734Z",
+  "generatedAt": "2026-11-15T14:57:32.847Z",
   "collections": [
     {
       "name": "users",
@@ -5863,6 +5863,36 @@
         },
         {
           "name": "custom_domain",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bg_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "text_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "button_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logo_file",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ga_measurement_id",
           "type": "text",
           "required": false,
           "system": false

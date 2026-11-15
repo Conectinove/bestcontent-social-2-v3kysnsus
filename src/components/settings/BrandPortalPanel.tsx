@@ -1,9 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Globe, Link2, Copy, ExternalLink, Loader2, RefreshCw, XCircle, Server } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  Globe,
+  Link2,
+  Copy,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  XCircle,
+  Server,
+  ImagePlus,
+  Trash2,
+  BarChart3,
+} from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import {
@@ -12,7 +26,12 @@ import {
   buildPortalUrl,
   buildPortalEmbedCode,
   getBrandPortal,
+  uploadPortalLogo,
+  removePortalLogo,
+  savePortalGaId,
+  validateGaMeasurementId,
   type BrandPortalRecord,
+  type PortalColors,
 } from '@/services/brand-portals'
 import { getPortalMetrics, type PortalMetrics } from '@/services/portal-visits'
 import { PortalVisitsMetrics } from '@/components/settings/PortalVisitsMetrics'
@@ -43,6 +62,10 @@ export function BrandPortalPanel({ brandId, userId }: BrandPortalPanelProps) {
   })
   const [domainInput, setDomainInput] = useState('')
   const [savingDomain, setSavingDomain] = useState(false)
+  const [logoBusy, setLogoBusy] = useState(false)
+  const [gaInput, setGaInput] = useState('')
+  const [savingGa, setSavingGa] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   const loadPortal = useCallback(async () => {
     setLoadingPortal(true)
@@ -82,6 +105,19 @@ export function BrandPortalPanel({ brandId, userId }: BrandPortalPanelProps) {
     }
   }, [portal?.portalId])
 
+  useEffect(() => {
+    setGaInput(portal?.gaMeasurementId || '')
+  }, [portal?.gaMeasurementId])
+
+  const initialColors: Partial<PortalColors> | undefined = portal
+    ? {
+        accentColor: portal.accentColor || '',
+        bgColor: portal.bgColor || '',
+        textColor: portal.textColor || '',
+        buttonColor: portal.buttonColor || '',
+      }
+    : undefined
+
   const handleSaveDomain = async () => {
     if (!portal?.portalId) return
     setSavingDomain(true)
@@ -98,6 +134,74 @@ export function BrandPortalPanel({ brandId, userId }: BrandPortalPanelProps) {
       })
     } finally {
       setSavingDomain(false)
+    }
+  }
+
+  const handleLogoUpload = async (file: File) => {
+    if (!portal?.portalId) return
+    setLogoBusy(true)
+    try {
+      await uploadPortalLogo(portal.portalId, file)
+      toast({ title: 'Logo enviado', description: 'A página pública já mostra o novo logo.' })
+      void loadPortal()
+    } catch (err) {
+      toast({
+        title: 'Erro ao enviar logo',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLogoBusy(false)
+    }
+  }
+
+  const handleLogoRemove = async () => {
+    if (!portal?.portalId) return
+    setLogoBusy(true)
+    try {
+      await removePortalLogo(portal.portalId)
+      toast({ title: 'Logo removido' })
+      void loadPortal()
+    } catch (err) {
+      toast({
+        title: 'Erro ao remover logo',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLogoBusy(false)
+    }
+  }
+
+  const handleSaveGa = async () => {
+    if (!portal?.portalId) return
+    const raw = gaInput.trim()
+    if (raw && validateGaMeasurementId(raw) === null) {
+      toast({
+        title: 'Measurement ID inválido',
+        description: 'Use G-XXXXXXXXXX (GA4) ou UA-XXXXXXX-X (Universal Analytics).',
+        variant: 'destructive',
+      })
+      return
+    }
+    setSavingGa(true)
+    try {
+      await savePortalGaId(portal.portalId, raw)
+      toast({
+        title: raw ? 'Google Analytics salvo' : 'Google Analytics removido',
+        description: raw
+          ? 'A página pública já carrega o script de tracking.'
+          : 'O script de tracking deixou de ser injetado.',
+      })
+      void loadPortal()
+    } catch (err) {
+      toast({
+        title: 'Erro ao salvar o ID',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingGa(false)
     }
   }
 
@@ -349,13 +453,125 @@ export function BrandPortalPanel({ brandId, userId }: BrandPortalPanelProps) {
 
       <Card>
         <CardContent className="p-5 space-y-3">
-          <p className="text-sm font-bold">Cor do tema por marca</p>
+          <p className="text-sm font-bold">Cores do portal por marca</p>
           <BrandThemeColorPicker
             brandId={brandId}
+            initialColors={initialColors}
             onSaved={() => {
               void loadPortal()
             }}
           />
+        </CardContent>
+      </Card>
+
+      {/* ===== Logo da marca (pedido 2, upload por marca) ===== */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ImagePlus className="w-4 h-4 text-primary" />
+            <p className="text-sm font-bold">Logo da marca no portal</p>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Envia um arquivo de imagem (PNG, JPG ou SVG) exibido no topo da página pública. Sem logo
+            enviado, o portal usa o logo da marca ou a letra inicial.
+          </p>
+          <div className="flex items-center gap-3">
+            {portal.logoUrl ? (
+              <img
+                src={portal.logoUrl}
+                alt="Logo do portal"
+                className="h-14 w-14 rounded-lg border border-border object-contain bg-background p-1"
+              />
+            ) : (
+              <div className="h-14 w-14 rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground">
+                <ImagePlus className="w-5 h-5" />
+              </div>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleLogoUpload(file)
+                  e.target.value = ''
+                }}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs gap-1"
+                disabled={logoBusy}
+                onClick={() => logoInputRef.current?.click()}
+              >
+                {logoBusy ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ImagePlus className="w-3.5 h-3.5" />
+                )}
+                Enviar logo
+              </Button>
+              {portal.logoUrl && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs gap-1 text-destructive"
+                  disabled={logoBusy}
+                  onClick={handleLogoRemove}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Remover
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ===== Google Analytics (pedido 3, script na página pública) ===== */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            <p className="text-sm font-bold">Google Analytics do portal</p>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Cole o Measurement ID (G-XXXXXXXXXX ou UA-XXXXXXX-X). A página pública injeta o script
+            gtag.js apenas quando o ID está preenchido; vazio desativa o tracking.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={gaInput}
+              onChange={(e) => setGaInput(e.target.value)}
+              placeholder="G-XXXXXXXXXX"
+              className="font-mono text-xs flex-1"
+            />
+            <Button
+              size="sm"
+              className="text-xs gap-1 shrink-0"
+              disabled={savingGa}
+              onClick={handleSaveGa}
+            >
+              {savingGa ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
+              Salvar ID
+            </Button>
+          </div>
+          {gaInput.trim() && validateGaMeasurementId(gaInput) === null && (
+            <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+              Formato inválido — use G-XXXXXXXXXX (GA4) ou UA-XXXXXXX-X (Universal Analytics).
+            </p>
+          )}
+          {portal.gaMeasurementId && (
+            <p className="text-[10px] text-muted-foreground">
+              ID atual: <span className="font-mono font-bold">{portal.gaMeasurementId}</span>
+            </p>
+          )}
         </CardContent>
       </Card>
 

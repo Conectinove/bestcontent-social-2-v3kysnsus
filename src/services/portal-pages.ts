@@ -1,10 +1,27 @@
 import pb from '@/lib/pocketbase/client'
 
+export type PortalBlockType =
+  | 'title'
+  | 'text'
+  | 'image'
+  | 'cta'
+  | 'spacer'
+  | 'gallery'
+  | 'video'
+  | 'divider'
+  | 'quote'
+
+/** Um bloco arrastável de página de portal — campos extras por tipo. */
 export interface PortalBlock {
   id: string
-  type: 'title' | 'text' | 'image' | 'cta' | 'spacer'
+  type: PortalBlockType
   text?: string
+  /** URL da imagem (image), do vídeo (video) ou do link (cta). */
   url?: string
+  /** Galeria: lista de URLs de imagens. */
+  urls?: string[]
+  /** Citação: autor. */
+  author?: string
   height?: number
 }
 

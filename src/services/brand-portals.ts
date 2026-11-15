@@ -1,128 +1,218 @@
-/**
- * Portal público de marca (pedidos "gerar portais" + "incorporar"):
- * o token vive na coleção brand_portals (migration 0114) e as rotas ficam
- * no hook portal_share.js — espelho do fluxo de preset_share. Regenerar
- * invalida o link anterior; revogar despublica.
- */
-import pb from '@/lib/pocketbase/client'
+import pb, { pb as pbNamed } from '@/lib/pocketbase/client'
+// GUARDA: manter o duplo export (default + nomeado pb) — regressão já ocorreu 15+ vezes.
+void pbNamed
 
-export interface BrandPortalData {
-  format: 'midiaviva-portal'
-  version: number
-  name: string
-  description?: string
-  logo?: string
-  website?: string
-  color_theme?: string
-  accent_color?: string
-  theme?: Record<string, unknown>
-  portal_id?: string
+const client = pbNamed || pb
+
+const BASE = import.meta.env.VITE_POCKETBASE_URL || ''
+
+export interface PortalColors {
+  accentColor: string
+  bgColor: string
+  textColor: string
+  buttonColor: string
 }
 
-/** Gera (ou renova — invalida o link anterior) o portal da marca. */
-export async function createBrandPortal(brandId: string): Promise<{
-  token: string
-  url: string
-  regenerated: boolean
-}> {
-  const res = await pb.send<{ success?: boolean; token?: string; regenerated?: boolean }>(
-    '/backend/v1/portals/share',
-    { method: 'POST', body: { brandId } },
-  )
-  if (!res?.token) throw new Error('O backend não devolveu o token do portal.')
-  return {
-    token: res.token,
-    url: buildPortalUrl(res.token),
-    regenerated: Boolean(res.regenerated),
-  }
-}
-
-/** Revoga (despublica) o portal — o link antigo para de funcionar. */
-export async function revokeBrandPortal(portalId: string): Promise<void> {
-  await pb.send(`/backend/v1/portals/share/${encodeURIComponent(portalId)}`, { method: 'DELETE' })
-}
-
-/** Monta a URL pública do portal a partir do token. */
-export function buildPortalUrl(token: string): string {
-  const base =
-    typeof window !== 'undefined'
-      ? window.location.origin
-      : (import.meta.env.VITE_POCKETBASE_URL as string) || ''
-  return `${base}/portal/${encodeURIComponent(token)}`
-}
-
-/** Portal já existente de uma marca (para o painel mostrar o link atual). */
+/** Registro do portal como o painel usa (id do portal + token público). */
 export interface BrandPortalRecord {
   portalId: string
   token: string
   published: boolean
+  brandName?: string
+  accentColor?: string
+  bgColor?: string
+  textColor?: string
+  buttonColor?: string
+  logoUrl?: string
+  gaMeasurementId?: string
 }
 
+/* ------------------------------------------------------------------ */
+/* Link público / embed                                                */
+/* ------------------------------------------------------------------ */
+
+export function buildPortalUrl(token: string): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : BASE || ''
+  return `${origin}/portal/${token}`
+}
+
+export function buildPortalEmbedCode(token: string): string {
+  const url = buildPortalUrl(token)
+  return `<iframe src="${url}" width="100%" height="800" frameborder="0" style="border:0;border-radius:12px"></iframe>`
+}
+
+/* ------------------------------------------------------------------ */
+/* CRUD do portal (rota POST/DELETE /backend/v1/portals/share)         */
+/* ------------------------------------------------------------------ */
+
+/** Gera (ou renova) o portal público da marca — rota autenticada do hook. */
+export async function createBrandPortal(
+  brandId: string,
+): Promise<{ token: string; portalId: string; regenerated: boolean }> {
+  const res = await client.send<{ token?: string; portalId?: string; regenerated?: boolean }>(
+    '/backend/v1/portals/share',
+    { method: 'POST', body: { brandId } },
+  )
+  return {
+    token: res?.token || '',
+    portalId: res?.portalId || '',
+    regenerated: Boolean(res?.regenerated),
+  }
+}
+
+/** Revoga o link público do portal (share_token volta a vazio). */
+export async function revokeBrandPortal(portalId: string): Promise<void> {
+  await client.send(`/backend/v1/portals/share/${encodeURIComponent(portalId)}`, {
+    method: 'DELETE',
+  })
+}
+
+/** Busca o portal da marca pelo id (uso no painel, autenticado direto na coleção). */
 export async function getBrandPortal(brandId: string): Promise<BrandPortalRecord | null> {
   try {
-    const rec = await pb.collection('brand_portals').getFirstListItem(`brand = "${brandId}"`)
-    if (!rec?.id) return null
-    return { portalId: rec.id, token: rec.share_token || '', published: Boolean(rec.published) }
+    const rec = (await client
+      .collection('brand_portals')
+      .getFirstListItem(`brand="${brandId}" && published=true`)) as Record<string, unknown>
+    return mapPortalRecord(rec)
   } catch {
     return null
   }
 }
 
-/** Busca a marca pública pelo token (rota pública do hook). */
-export async function fetchPublicPortal(token: string): Promise<BrandPortalData> {
-  const data = await pb.send<BrandPortalData>(
-    `/backend/v1/portals/share/${encodeURIComponent(token)}`,
-    { method: 'GET' },
-  )
-  if (!data || data.format !== 'midiaviva-portal') {
-    throw new Error('Este link não aponta para um portal válido do MidiaViva.')
+function mapPortalRecord(rec: Record<string, unknown>): BrandPortalRecord {
+  const id = String(rec.id || '')
+  const logoFile = String(rec.logo_file || '')
+  const logoUrl = logoFile ? `${BASE}/api/files/brand_portals/${id}/${logoFile}` : ''
+  const snapshot = safeSnapshot(rec.theme_snapshot)
+  return {
+    portalId: id,
+    token: String(rec.share_token || ''),
+    published: Boolean(rec.published),
+    bgColor: String(rec.bg_color || snapshot.bg_color || ''),
+    textColor: String(rec.text_color || snapshot.text_color || ''),
+    buttonColor: String(rec.button_color || snapshot.button_color || ''),
+    logoUrl,
+    gaMeasurementId: String(rec.ga_measurement_id || ''),
+    accentColor: String(snapshot.accent_color || ''),
   }
-  return data
 }
 
-/** Lê o portal público pelo token (GET já registra a visita no backend). */
-export async function getPortalByToken(token: string): Promise<{
+function safeSnapshot(raw: unknown): Record<string, string> {
+  if (!raw) return {}
+  if (typeof raw === 'object') return raw as Record<string, string>
+  try {
+    return JSON.parse(String(raw)) as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Leitura pública (rota GET /backend/v1/portals/share/{token})        */
+/* ------------------------------------------------------------------ */
+
+export interface PublicPortalData {
   id: string
   brandId: string
   brandName: string
-  accentColor: string | null
-}> {
-  const data = await fetchPublicPortal(token)
+  description: string
+  logoUrl: string
+  accentColor: string
+  bgColor: string
+  textColor: string
+  buttonColor: string
+  gaMeasurementId: string
+  website: string
+}
+
+/** GET público pelo token — devolve marca + cores + logo + GA do portal. */
+export async function getPortalByToken(token: string): Promise<PublicPortalData> {
+  const res = await client.send<Record<string, unknown>>(
+    `/backend/v1/portals/share/${encodeURIComponent(token)}`,
+    { method: 'GET' },
+  )
   return {
-    id: data.portal_id || '',
-    brandId: '',
-    brandName: data.name,
-    accentColor: data.accent_color || null,
+    id: String(res?.portal_id || ''),
+    brandId: String(res?.brand_id || ''),
+    brandName: String(res?.name || 'Portal'),
+    description: String(res?.description || ''),
+    logoUrl: String(res?.logo || ''),
+    accentColor: String(res?.accent_color || ''),
+    bgColor: String(res?.bg_color || ''),
+    textColor: String(res?.text_color || ''),
+    buttonColor: String(res?.button_color || ''),
+    gaMeasurementId: String(res?.ga_measurement_id || ''),
+    website: String(res?.website || ''),
   }
 }
 
-/** Código de embed <iframe> para colar em HTML externo. */
-export function buildPortalEmbedCode(token: string): string {
-  return `<iframe src="${buildPortalUrl(token)}" width="100%" height="600" frameborder="0" style="border:0;border-radius:12px;overflow:hidden" title="Portal da marca"></iframe>`
-}
+/* ------------------------------------------------------------------ */
+/* Cores por marca (rota POST /backend/v1/portals/theme)               */
+/* ------------------------------------------------------------------ */
 
-/**
- * Salva a cor de tema da marca (pedido "personalizar cor do tema por marca").
- * Vai para brands.accent_color (migration 0115) via hook POST /portals/theme,
- * que também sincroniza o theme_snapshot do portal publicado.
- */
-export async function setBrandThemeColor(brandId: string, accentColor: string): Promise<string> {
-  const res = await pb.send<{ success?: boolean; accent_color?: string }>(
+/** Salva as cores do portal da marca — accent grava na marca, extras no portal. */
+export async function setBrandThemeColor(
+  brandId: string,
+  accentColor: string,
+  extras?: Partial<Omit<PortalColors, 'accentColor'>>,
+): Promise<string> {
+  const res = await client.send<{ accent_color?: string } & Record<string, string>>(
     '/backend/v1/portals/theme',
     {
       method: 'POST',
-      body: { brandId, accentColor },
+      body: {
+        brandId,
+        accentColor,
+        bgColor: extras?.bgColor || '',
+        textColor: extras?.textColor || '',
+        buttonColor: extras?.buttonColor || '',
+      },
     },
   )
   return res?.accent_color || accentColor
 }
 
-/** Lê a cor de tema atual da marca. */
-export async function getBrandThemeColor(brandId: string): Promise<string | null> {
+/** Lê a cor de destaque atual da marca (fallback pro preset do painel). */
+export async function getBrandThemeColor(brandId: string): Promise<string> {
   try {
-    const brand = await pb.collection('brands').getOne(brandId, { fields: 'id,accent_color' })
-    return (brand as { accent_color?: string })?.accent_color || null
+    const rec = (await client.collection('brands').getOne(brandId, {
+      fields: 'accent_color',
+    })) as { accent_color?: string }
+    return rec?.accent_color || ''
   } catch {
-    return null
+    return ''
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Logo por marca (upload direto no PocketBase, file field logo_file)  */
+/* ------------------------------------------------------------------ */
+
+/** Envia o logo do portal (file field `logo_file` em brand_portals). */
+export async function uploadPortalLogo(portalId: string, file: File) {
+  const form = new FormData()
+  form.append('logo_file', file)
+  return client.collection('brand_portals').update(portalId, form)
+}
+
+/** Remove o logo do portal (campo volta a vazio; a URL antiga deixa de existir). */
+export async function removePortalLogo(portalId: string) {
+  return client.collection('brand_portals').update(portalId, { logo_file: null })
+}
+
+/* ------------------------------------------------------------------ */
+/* Google Analytics do portal público                                  */
+/* ------------------------------------------------------------------ */
+
+/** Valida formato G-XXXXXXXXXX ou UA-XXXXXXXX-X — retorna null se inválido. */
+export function validateGaMeasurementId(gaId: string): string | null {
+  const raw = gaId.trim()
+  if (!raw) return '' // vazio = remover o script
+  if (/^G-[A-Z0-9]{6,12}$/i.test(raw) || /^UA-\d{4,10}-\d{1,4}$/i.test(raw)) return raw
+  return null
+}
+
+/** Salva o Measurement ID do Google Analytics (vazio remove o script). */
+export async function savePortalGaId(portalId: string, gaId: string) {
+  return client.collection('brand_portals').update(portalId, { ga_measurement_id: gaId.trim() })
 }

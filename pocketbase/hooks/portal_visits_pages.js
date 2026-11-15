@@ -216,7 +216,10 @@ routerAdd('GET', '/backend/v1/portals/metrics/{portalId}', (e) => {
   })
 })
 
-// ---------- Cor do tema por marca (SÓ O DONO) ----------
+// ---------- Cores do tema por marca (SÓ O DONO) ----------
+// Pedidos "personalizar cores do portal por marca": além do accent (que vive em
+// brands.accent_color), aceita e sincroniza no snapshot as cores extras —
+// fundo (bgColor), texto (textColor) e botões (buttonColor). Toda lógica INLINE.
 routerAdd('POST', '/backend/v1/portals/theme', (e) => {
   const userId = e.auth?.id
   if (!userId) return e.unauthorizedError('Autenticação necessária.')
@@ -231,17 +234,32 @@ routerAdd('POST', '/backend/v1/portals/theme', (e) => {
     return e.notFound('Marca não encontrada.')
   }
   if (brand.getString('user') !== userId) {
-    return e.forbidden('Só o dono da marca pode mudar a cor do tema.')
+    return e.forbidden('Só o dono da marca pode mudar as cores do portal.')
   }
 
-  // Aceita '#RRGGBB' ou 'RRGGBB' — sanitiza antes de persistir.
-  const raw = String(body.accentColor || '')
-    .trim()
-    .replace('#', '')
-  if (!/^[0-9a-fA-F]{6}$/.test(raw)) {
+  // Aceita '#RRGGBB' ou 'RRGGBB' — sanitiza antes de persistir; vazio = tema padrão.
+  const hex6 = /^[0-9a-fA-F]{6}$/
+  const sanitize = (v) => {
+    const raw = String(v || '')
+      .trim()
+      .replace('#', '')
+    if (!raw) return ''
+    if (!hex6.test(raw)) return null
+    return '#' + raw.toUpperCase()
+  }
+
+  const accent = sanitize(body.accentColor)
+  if (accent === null) {
     return e.badRequest('accentColor deve ser um hex de 6 dígitos (ex: #7C3AED).')
   }
-  brand.set('accent_color', '#' + raw.toUpperCase())
+  const bg = sanitize(body.bgColor)
+  if (bg === null) return e.badRequest('bgColor deve ser um hex de 6 dígitos ou vazio.')
+  const txt = sanitize(body.textColor)
+  if (txt === null) return e.badRequest('textColor deve ser um hex de 6 dígitos ou vazio.')
+  const btn = sanitize(body.buttonColor)
+  if (btn === null) return e.badRequest('buttonColor deve ser um hex de 6 dígitos ou vazio.')
+
+  if (accent) brand.set('accent_color', accent)
 
   // Se a marca já tem portal publicado, sincroniza o snapshot do tema.
   let portal = null
@@ -251,17 +269,29 @@ routerAdd('POST', '/backend/v1/portals/theme', (e) => {
     portal = null
   }
   if (portal) {
+    if (bg) portal.set('bg_color', bg)
+    if (txt) portal.set('text_color', txt)
+    if (btn) portal.set('button_color', btn)
     let theme = {}
     try {
       theme = JSON.parse(portal.getString('theme_snapshot') || '{}')
     } catch (_) {
       theme = {}
     }
-    theme.accent_color = '#' + raw.toUpperCase()
+    if (accent) theme.accent_color = accent
+    if (bg) theme.bg_color = bg
+    if (txt) theme.text_color = txt
+    if (btn) theme.button_color = btn
     portal.set('theme_snapshot', JSON.stringify(theme))
     $app.save(portal)
   }
   $app.save(brand)
 
-  return e.json(200, { success: true, accent_color: '#' + raw.toUpperCase() })
+  return e.json(200, {
+    success: true,
+    accent_color: accent,
+    bg_color: bg,
+    text_color: txt,
+    button_color: btn,
+  })
 })
