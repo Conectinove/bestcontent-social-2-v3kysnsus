@@ -74,6 +74,9 @@ export function BrandKitPage() {
   // Asset aberto no motor de Edição Avançada (Studio) e estado de gravação da edição
   const [advancedAsset, setAdvancedAsset] = useState<BrandAsset | null>(null)
   const [savingEdit, setSavingEdit] = useState(false)
+  // URL da mídia EDITADA por asset (rasterizada no editor) — alimenta download e preview
+  const [editedUrls, setEditedUrls] = useState<Record<string, string>>({})
+  const [downloadingEditedId, setDownloadingEditedId] = useState<string | null>(null)
 
   // Assets da identidade visual inspirados na referência visual MudarCurso
   // Fotografia com iluminação violeta elétrica, proporções 9:16, 1:1, 16:9
@@ -400,10 +403,46 @@ export function BrandKitPage() {
     }
   }
 
+  /** Baixa a imagem já editada (com filtros/ajustes aplicados); fallback: original. */
+  const handleDownloadEdited = async (asset: BrandAsset) => {
+    const editedUrl = editedUrls[asset.id]
+    if (!editedUrl) {
+      handleDownload(asset, 'original')
+      return
+    }
+    setDownloadingEditedId(asset.id)
+    try {
+      if (editedUrl.startsWith('data:')) {
+        const a = document.createElement('a')
+        a.href = editedUrl
+        a.download = `${asset.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-editada.png`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      } else {
+        await downloadAssetMedia(editedUrl, {
+          filename: `${asset.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-editada.png`,
+          mediaType: 'image',
+        })
+      }
+      toast({
+        title: 'Download da versão editada iniciado',
+        description: `Asset "${asset.title}" baixado com os ajustes da Edição Avançada aplicados.`,
+      })
+    } catch {
+      // Fallback resiliente: se algo falhar, baixa o original
+      handleDownload(asset, 'original')
+    } finally {
+      setDownloadingEditedId(null)
+    }
+  }
+
   /** Grava a mídia editada (data:→PNG) no acervo de imagens, vinculada à marca ativa. */
   const handleAdvancedSave = async (asset: BrandAsset, resultUrl: string) => {
     setAdvancedAsset(null)
     setSavingEdit(true)
+    // Guarda o resultado editado para download/preview imediato (mesmo se o upload falhar)
+    setEditedUrls((prev) => ({ ...prev, [asset.id]: resultUrl }))
     try {
       let file: File | null = null
       if (resultUrl.startsWith('data:')) {
@@ -802,6 +841,8 @@ export function BrandKitPage() {
             if (!o) setAdvancedAsset(null)
           }}
           mediaUrl={advancedAsset.imageUrl}
+          mediaId={`brandkit:${advancedAsset.id}`}
+          aspectRatio={advancedAsset.aspectRatio}
           title={advancedAsset.title}
           onSave={(url) => handleAdvancedSave(advancedAsset, url)}
         />
