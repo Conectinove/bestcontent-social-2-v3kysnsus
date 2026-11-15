@@ -5,9 +5,12 @@ import {
   Sliders,
   Sparkles,
   RotateCcw,
+  RotateCw,
   Layers,
   CheckCircle2,
   AlertCircle,
+  FlipHorizontal,
+  FlipVertical,
   Eye,
   Clock,
   Hash,
@@ -36,6 +39,13 @@ export interface AdvancedCustomizationState {
   vignette: number
   overlayOpacity: number
   overlayColor: string
+  rotation: number
+  flipHorizontal: boolean
+  flipVertical: boolean
+  borderWidth: number
+  borderColor: string
+  shadow: number
+  layerOpacity: number
 }
 
 export const DEFAULT_CUSTOMIZATION: AdvancedCustomizationState = {
@@ -55,6 +65,13 @@ export const DEFAULT_CUSTOMIZATION: AdvancedCustomizationState = {
   vignette: 0,
   overlayOpacity: 25,
   overlayColor: '#000000',
+  rotation: 0,
+  flipHorizontal: false,
+  flipVertical: false,
+  borderWidth: 0,
+  borderColor: '#000000',
+  shadow: 0,
+  layerOpacity: 100,
 }
 
 export const STYLE_PRESETS: {
@@ -606,6 +623,119 @@ export function AdvancedCustomizationPanel({
                     value={customization.overlayOpacity}
                     onChange={(e) =>
                       onChange({ ...customization, overlayOpacity: Number(e.target.value) })
+                    }
+                    className="w-full accent-purple-600"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>Rotação</span>
+                    <span className="font-mono">{customization.rotation}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-45"
+                    max="45"
+                    value={customization.rotation}
+                    onChange={(e) =>
+                      onChange({ ...customization, rotation: Number(e.target.value) })
+                    }
+                    className="w-full accent-purple-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-1">Espelhar</label>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChange({
+                          ...customization,
+                          flipHorizontal: !customization.flipHorizontal,
+                        })
+                      }
+                      className={`p-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
+                        customization.flipHorizontal
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      <FlipHorizontal className="w-3 h-3" /> Horizontal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChange({ ...customization, flipVertical: !customization.flipVertical })
+                      }
+                      className={`p-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
+                        customization.flipVertical
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      <FlipVertical className="w-3 h-3" /> Vertical
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>Borda da Arte</span>
+                    <span className="font-mono">{customization.borderWidth}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="40"
+                    value={customization.borderWidth}
+                    onChange={(e) =>
+                      onChange({ ...customization, borderWidth: Number(e.target.value) })
+                    }
+                    className="w-full accent-purple-600"
+                  />
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <input
+                      type="color"
+                      value={customization.borderColor}
+                      onChange={(e) => onChange({ ...customization, borderColor: e.target.value })}
+                      className="w-7 h-7 rounded border border-border cursor-pointer bg-transparent"
+                      title="Cor da borda"
+                    />
+                    <span className="text-[10px] text-muted-foreground font-mono uppercase">
+                      {customization.borderColor}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>Sombra Externa</span>
+                    <span className="font-mono">{customization.shadow}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={customization.shadow}
+                    onChange={(e) => onChange({ ...customization, shadow: Number(e.target.value) })}
+                    className="w-full accent-purple-600"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>Opacidade da Camada de Mídia</span>
+                    <span className="font-mono">{customization.layerOpacity}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={customization.layerOpacity}
+                    onChange={(e) =>
+                      onChange({ ...customization, layerOpacity: Number(e.target.value) })
                     }
                     className="w-full accent-purple-600"
                   />

@@ -992,15 +992,16 @@ routerAdd(
       '}'
 
     try {
-      const reply = $ai.chat({
-        model: 'fast',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
+      // Agente nativo (migration 0102, padrão social_studio.js) — mesma rota e
+      // mesmo formato de resposta; fallback determinístico preservado abaixo.
+      if (!e.auth?.id) return e.unauthorizedError('Autenticação necessária.')
+      const result = $ai.agent('template-suggester-agent').chat({
+        user_id: e.auth.id,
+        conversation_id: null,
+        message: userPrompt,
       })
 
-      const raw = (reply.choices[0].message.content || '').trim()
+      const raw = (result.content || '').trim()
       let parsed = null
       try {
         const match = raw.match(/\{[\s\S]*\}/)
@@ -1050,8 +1051,15 @@ routerAdd(
       return e.json(200, {
         suggestions: generateFallback(),
       })
-    } catch (_) {
-      // Fallback em caso de erro na IA
+    } catch (err) {
+      // Fallback em caso de erro na IA (inclui SkipAiConfigError/SkipAiAgentsError/SkipAiError)
+      if (err instanceof SkipAiConfigError)
+        console.log('[suggest-templates] IA não configurada:', err.message)
+      else if (err instanceof SkipAiAgentsError)
+        console.log('[suggest-templates] erro do agente:', err.message)
+      else if (err instanceof SkipAiError)
+        console.log('[suggest-templates] erro do gateway de IA:', err.message)
+      else console.log('[suggest-templates] erro inesperado:', err)
       return e.json(200, {
         suggestions: generateFallback(),
       })

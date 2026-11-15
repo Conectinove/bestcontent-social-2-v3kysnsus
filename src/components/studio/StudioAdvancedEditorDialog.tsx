@@ -23,6 +23,7 @@ import {
   ASPECT_FORMATS,
 } from '@/components/workspace/ProfessionalArtStudio'
 import type { StudioCreationRecord } from '@/services/ai-studio'
+import { EditPresetsPanel } from './EditPresetsPanel'
 
 interface StudioAdvancedEditorDialogProps {
   open: boolean
@@ -164,7 +165,20 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
         const scale = Math.max(w / img.width, h / img.height)
         const dw = img.width * scale
         const dh = img.height * scale
-        ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh)
+
+        // Transform: rotação + flip + opacidade + sombra (aplicados à mídia antes do overlay)
+        ctx.save()
+        ctx.globalAlpha = customization.layerOpacity / 100
+        if (customization.shadow > 0) {
+          ctx.shadowColor = `rgba(0,0,0,${customization.shadow / 100})`
+          ctx.shadowBlur = 40
+          ctx.shadowOffsetY = 10
+        }
+        ctx.translate(w / 2, h / 2)
+        ctx.rotate((customization.rotation * Math.PI) / 180)
+        ctx.scale(customization.flipHorizontal ? -1 : 1, customization.flipVertical ? -1 : 1)
+        ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh)
+        ctx.restore()
         ctx.filter = 'none'
 
         // Overlay
@@ -182,6 +196,13 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
           grad.addColorStop(1, `rgba(0,0,0,${customization.vignette / 100})`)
           ctx.fillStyle = grad
           ctx.fillRect(0, 0, w, h)
+        }
+
+        // Borda da arte (interna, por cima da imagem e overlays)
+        if (customization.borderWidth > 0) {
+          ctx.strokeStyle = customization.borderColor
+          ctx.lineWidth = customization.borderWidth * 2 // metade para dentro, metade para fora
+          ctx.strokeRect(0, 0, w, h)
         }
 
         // Gradiente da marca
@@ -396,6 +417,12 @@ export const StudioAdvancedEditorDialog: React.FC<StudioAdvancedEditorDialogProp
               platform="studio"
               caption={creation.prompt || ''}
               hasMedia={isImage}
+            />
+
+            {/* Presets de edição salvos por usuário (migration 0101) */}
+            <EditPresetsPanel
+              current={customization}
+              onApply={(next) => setCustomization({ ...DEFAULT_CUSTOMIZATION, ...next })}
             />
 
             {/* Camadas de texto */}

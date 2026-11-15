@@ -135,13 +135,52 @@ const BASE_RECOMMENDATIONS: RecommendedTemplate[] = [
 ]
 
 /**
- * Recomenda templates usando a IA do Skip Cloud ou lógica calibrada multi-vetorial
+ * Recomenda templates usando o agente nativo de IA (Skip Cloud) ou lógica calibrada
+ * multi-vetorial como fallback local.
  */
 export async function getAiRecommendedTemplates(
   options: RecommendOptions,
 ): Promise<{ recommendations: RecommendedTemplate[]; isOfficial: boolean }> {
   const { prompt = '', mediaType = 'geral', brandContext = '' } = options
   const cleanPrompt = prompt.trim().toLowerCase()
+
+  // 0. Agente nativo de IA (endpoint /backend/v1/ai/suggest-templates, migration 0102).
+  //    Falha de forma graciosa: qualquer erro cai no scoring local abaixo.
+  try {
+    const aiRes = await pb.send('/backend/v1/ai/suggest-templates', {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt: prompt.trim(),
+        objective: cleanPrompt.includes('vend')
+          ? 'vender'
+          : cleanPrompt.includes('lead')
+            ? 'leads'
+            : 'engajar',
+        network: 'instagram',
+        format: mediaType === 'geral' ? '' : mediaType,
+        brandVoice: brandContext,
+      }),
+    })
+    const suggestions = Array.isArray(aiRes?.suggestions) ? aiRes.suggestions : []
+    if (suggestions.length > 0) {
+      const mapped: RecommendedTemplate[] = suggestions.slice(0, 6).map((s: any) => ({
+        id: `ai-${s.id}`,
+        title: s.name || 'Template recomendado',
+        description: s.ai_reason || 'Sugerido pelo agente de IA com base no seu histórico',
+        category: (s.type === 'story' ? 'image' : 'post') as RecommendedTemplate['category'],
+        templateText: `${s.name || 'Template'}${
+          s.ai_reason ? ` — ${s.ai_reason}` : ''
+        } (formato ${s.type || 'feed'}, rede ${s.network || 'all'}).`,
+        matchReason: s.ai_reason || `Score preditivo ${s.performance_score || 90}/100`,
+        confidenceScore: Number(s.performance_score) || 90,
+        isOfficial: true,
+        tag: s.best_time ? `IA • ${s.best_time}` : 'IA',
+      }))
+      return { recommendations: mapped, isOfficial: true }
+    }
+  } catch (err) {
+    console.warn('Agente de IA indisponível, usando fallback local de recomendações:', err)
+  }
 
   let isOfficial = false
   const results: RecommendedTemplate[] = []

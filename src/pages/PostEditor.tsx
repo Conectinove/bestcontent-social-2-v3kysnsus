@@ -916,6 +916,16 @@ export default function PostEditor() {
                   className="w-full h-full object-cover transition-all"
                   style={{
                     filter: `brightness(${customization.brightness}%) contrast(${customization.contrast}%) saturate(${customization.saturation}%) blur(${customization.blur}px)`,
+                    transform: `rotate(${customization.rotation}deg) scale(${customization.flipHorizontal ? -1 : 1}, ${customization.flipVertical ? -1 : 1})`,
+                    opacity: customization.layerOpacity / 100,
+                    boxShadow:
+                      customization.shadow > 0
+                        ? `0 8px 40px rgba(0,0,0,${customization.shadow / 100})`
+                        : undefined,
+                    border:
+                      customization.borderWidth > 0
+                        ? `${customization.borderWidth}px solid ${customization.borderColor}`
+                        : undefined,
                   }}
                 />
                 {/* Camada de sobreposição configurável */}
