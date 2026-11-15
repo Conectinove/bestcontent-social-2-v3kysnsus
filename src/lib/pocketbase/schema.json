@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T14:03:32.378Z",
+  "generatedAt": "2026-11-15T14:18:38.428Z",
   "collections": [
     {
       "name": "users",
@@ -5789,6 +5789,69 @@
       ],
       "indexes": [
         "CREATE INDEX idx_studio_edit_comments_target ON studio_edit_comments (target_key)"
+      ]
+    },
+    {
+      "name": "brand_portals",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "brands"
+        },
+        {
+          "name": "share_token",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "theme_snapshot",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "published",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_brand_portals_token ON brand_portals (share_token)",
+        "CREATE INDEX idx_brand_portals_brand ON brand_portals (brand)"
       ]
     }
   ]

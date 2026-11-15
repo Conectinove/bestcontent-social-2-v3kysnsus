@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Radio,
+  Wand2,
 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
@@ -57,6 +58,11 @@ import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { EditProfileModal } from '@/components/EditProfileModal'
 import { StudioThemeManagerSection } from '@/components/studio/StudioThemeManagerSection'
+import { BrandAdvancedMediaDialog, dataUrlToFile } from '@/lib/advanced-media'
+import { pb } from '@/lib/pocketbase/client'
+import { PortalSharePanel } from '@/components/brandkit/PortalSharePanel'
+import { getBrands } from '@/services/brands'
+import { getBrandPortal, type BrandPortalRecord } from '@/services/brand-portals'
 import { getUserIntegrations, toggleIntegrationStatus } from '@/services/user_integrations'
 import type { IntegrationNetwork, UserIntegrationRecord } from '@/types'
 
@@ -188,6 +194,17 @@ export default function Settings() {
     name: string
   } | null>(null)
 
+  // Edição Avançada do avatar (pedido 1): abre o BrandAdvancedMediaDialog sobre a foto atual.
+  const [avatarEditorOpen, setAvatarEditorOpen] = useState(false)
+  const [avatarSaving, setAvatarSaving] = useState(false)
+  const avatarUrl = user?.avatar || ''
+
+  // Portais de marca (pedidos 2 e 3): marcas reais + portal por marca.
+  const [brands, setBrands] = useState<Array<{ id: string; name: string }>>([])
+  const [portals, setPortals] = useState<Record<string, BrandPortalRecord | null>>({})
+  const [portalBrandId, setPortalBrandId] = useState<string>('')
+  const [loadingBrands, setLoadingBrands] = useState(false)
+
   // Organization settings state (Webhooks customizados + IDs de plataformas de anúncios)
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings>({
     custom_webhook_url: '',
@@ -213,6 +230,55 @@ export default function Settings() {
       setEditProfileOpen(true)
     }
   }, [searchParams])
+
+  // Carrega as marcas do usuário + o portal existente de cada uma (tab Organização).
+  useEffect(() => {
+    if (!user?.id) return
+    let isMounted = true
+    setLoadingBrands(true)
+    getBrands(user.id)
+      .then(async (records) => {
+        if (!isMounted) return
+        const list = records.map((b) => ({ id: b.id, name: b.name || 'Marca' }))
+        setBrands(list)
+        const entries: Record<string, BrandPortalRecord | null> = {}
+        for (const b of list) {
+          entries[b.id] = await getBrandPortal(b.id)
+        }
+        if (isMounted) setPortals(entries)
+      })
+      .catch((err) => console.warn('[Settings] Erro ao carregar marcas/portais:', err))
+      .finally(() => {
+        if (isMounted) setLoadingBrands(false)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id])
+
+  /** Persiste o avatar editado (data URL → File → upload no PocketBase). */
+  const handleSaveAdvancedAvatar = async (resultUrl: string) => {
+    if (!user?.id) return
+    setAvatarSaving(true)
+    try {
+      const file = dataUrlToFile(resultUrl, `avatar-${Date.now()}.png`)
+      if (!file) throw new Error('Não foi possível converter a imagem editada.')
+      await pb.collection('users').update(user.id, { avatar: file })
+      window.location.reload()
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao salvar avatar',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+      })
+      setAvatarSaving(false)
+    }
+  }
+
+  /** Atualiza o estado local do portal quando o painel gera/revoga. */
+  const handlePortalChange = (brandId: string, portal: BrandPortalRecord | null) => {
+    setPortals((prev) => ({ ...prev, [brandId]: portal }))
+  }
 
   // Load organization settings (webhook & ads)
   useEffect(() => {
@@ -508,7 +574,23 @@ export default function Settings() {
               )}
 
               {activeTab === 'organization' && (
-                <OrganizationBrandManager onAddNewBrand={() => navigate('/app/brands')} />
+                <div className="space-y-6">
+                  {loadingBrands ? (
+                    <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      Carregando marcas…
+                    </div>
+                  ) : (
+                    <PortalSharePanel
+                      brands={brands}
+                      portals={portals}
+                      selectedBrandId={portalBrandId}
+                      onSelectBrand={setPortalBrandId}
+                      onPortalChange={handlePortalChange}
+                    />
+                  )}
+                  <OrganizationBrandManager onAddNewBrand={() => navigate('/app/brands')} />
+                </div>
               )}
 
               {activeTab === 'subscription' && (
@@ -586,6 +668,21 @@ export default function Settings() {
                     </div>
 
                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={avatarSaving}
+                        onClick={() => setAvatarEditorOpen(true)}
+                        className="border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold text-xs rounded-xl gap-1.5 flex-1 sm:flex-initial"
+                      >
+                        {avatarSaving ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Wand2 className="w-3.5 h-3.5" />
+                        )}
+                        Edição Avançada
+                      </Button>
                       <Button
                         type="button"
                         onClick={handleOpenEditProfile}
@@ -1601,6 +1698,17 @@ export default function Settings() {
 
       {/* Edit Profile Full Modal */}
       <EditProfileModal open={editProfileOpen} onOpenChange={handleCloseEditProfile} />
+
+      {/* Edição Avançada do avatar (pedido 1) — reaproveita o motor da marca */}
+      <BrandAdvancedMediaDialog
+        open={avatarEditorOpen}
+        onOpenChange={setAvatarEditorOpen}
+        field="logo"
+        brandName={user?.name || 'Meu perfil'}
+        mediaUrl={avatarUrl}
+        brandContext={{ brandName: user?.name || 'Meu perfil', field: 'logo' }}
+        onSave={handleSaveAdvancedAvatar}
+      />
     </div>
   )
 }
