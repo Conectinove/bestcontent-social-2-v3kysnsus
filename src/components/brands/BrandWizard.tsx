@@ -447,7 +447,7 @@ function StepYourBrand({ data, update }: StepProps) {
         </ExpandableCard>
 
         <ExpandableCard
-          icon={<Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+          icon={<Users className="w-5 h-5 text-primary" />}
           title="Público"
           filled={data.target_audience.trim() !== ''}
           summary={
@@ -460,12 +460,12 @@ function StepYourBrand({ data, update }: StepProps) {
             onChange={(e) => update('target_audience', e.target.value)}
             rows={4}
             placeholder="Ex.: Gestores de tráfego, agências de marketing e equipes de social media que precisam escalar a produção de campanhas e publicações."
-            className="w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            className="w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </ExpandableCard>
 
         <ExpandableCard
-          icon={<MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+          icon={<MessageSquare className="w-5 h-5 text-primary" />}
           title="Tom de voz"
           filled={data.voice_tone.trim() !== ''}
           summary={data.voice_tone || 'Ex.: Profissional · Direto · Inspirador'}
@@ -699,6 +699,7 @@ function StepBrandKit({
   logoFile,
   setLogoFile,
   editedMedia,
+  existingLogoUrl,
   onOpenAdvanced,
 }: StepProps & {
   logoFile: File | null
