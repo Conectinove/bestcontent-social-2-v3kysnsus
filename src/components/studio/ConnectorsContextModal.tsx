@@ -24,7 +24,7 @@ import {
   type ImportedContextItem,
 } from '@/services/google-connectors'
 import { searchUserOutlookMessages, type OutlookMessageItem } from '@/services/microsoft-connectors'
-import { fetchPipedriveData, fetchHubspotData, type CrmRecordItem } from '@/services/crm-connectors'
+import { fetchCanvaAssets, type CanvaAssetItem } from '@/services/canva-connectors'
 import {
   createGoogleCalendarEventsForPosts,
   type GoogleCalendarEventInput,
@@ -51,17 +51,15 @@ import {
   ArrowUpDown,
   Calendar,
   User,
-  Inbox,
-  Briefcase,
-  Users as UsersIcon,
-  Palette,
-  DollarSign,
-  Tag,
-  ImageIcon,
-  Instagram as InstagramIcon,
-  Facebook as FacebookIcon,
-  CalendarPlus,
-  CalendarCheck,
+ Inbox,
+ Users as UsersIcon,
+ Palette,
+ ImageIcon,
+ MessageCircle,
+ Instagram as InstagramIcon,
+ Facebook as FacebookIcon,
+ CalendarPlus,
+ CalendarCheck,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -72,11 +70,11 @@ export type ConnectorsTab =
   | 'googledocs'
   | 'googlesheets'
   | 'outlook'
-  | 'pipedrive'
-  | 'hubspot'
   | 'instagram'
   | 'facebook'
   | 'googlecalendar'
+  | 'canva'
+  | 'whatsapp'
 
 interface ConnectorsContextModalProps {
   open: boolean
@@ -142,24 +140,15 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
   const [sheetRangeInput, setSheetRangeInput] = useState('A1:Z50')
   const [importingSheet, setImportingSheet] = useState(false)
 
-  // Pipedrive state
-  const [pipedriveDeals, setPipedriveDeals] = useState<CrmRecordItem[]>([])
-  const [pipedriveContacts, setPipedriveContacts] = useState<CrmRecordItem[]>([])
-  const [pipedriveActivities, setPipedriveActivities] = useState<CrmRecordItem[]>([])
-  const [pipedriveFilter, setPipedriveFilter] = useState<'all' | 'deal' | 'contact' | 'activity'>(
-    'all',
-  )
-  const [pipedriveSearch, setPipedriveSearch] = useState('')
-  const [loadingPipedrive, setLoadingPipedrive] = useState(false)
-  const [importingPipedriveId, setImportingPipedriveId] = useState<string | null>(null)
+  // Canva state
+  const [canvaDesigns, setCanvaDesigns] = useState<CanvaAssetItem[]>([])
+  const [loadingCanva, setLoadingCanva] = useState(false)
+  const [importingCanvaId, setImportingCanvaId] = useState<string | null>(null)
 
-  // HubSpot state
-  const [hubspotDeals, setHubspotDeals] = useState<CrmRecordItem[]>([])
-  const [hubspotContacts, setHubspotContacts] = useState<CrmRecordItem[]>([])
-  const [hubspotFilter, setHubspotFilter] = useState<'all' | 'deal' | 'contact'>('all')
-  const [hubspotSearch, setHubspotSearch] = useState('')
-  const [loadingHubspot, setLoadingHubspot] = useState(false)
-  const [importingHubspotId, setImportingHubspotId] = useState<string | null>(null)
+  // WhatsApp state
+  const [whatsappChats, setWhatsappChats] = useState<WhatsAppChatItem[]>([])
+  const [loadingWhatsapp, setLoadingWhatsapp] = useState(false)
+  const [importingWhatsappId, setImportingWhatsappId] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -253,30 +242,26 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
     }
   }
 
-  // Carregar dados Pipedrive
-  const handleLoadPipedrive = async () => {
-    if (getStatus('pipedrive') !== 'connected') return
-    setLoadingPipedrive(true)
+  // Carregar designs do Canva
+  const handleLoadCanvaAssets = async () => {
+    if (getStatus('canva') !== 'connected') return
+    setLoadingCanva(true)
     try {
-      const res = await fetchPipedriveData(pipedriveSearch)
-      setPipedriveDeals(res.deals || [])
-      setPipedriveContacts(res.contacts || [])
-      setPipedriveActivities(res.activities || [])
+      const res = await fetchCanvaAssets()
+      setCanvaDesigns(res.designs)
     } finally {
-      setLoadingPipedrive(false)
+      setLoadingCanva(false)
     }
   }
 
-  // Carregar dados HubSpot
-  const handleLoadHubspot = async () => {
-    if (getStatus('hubspot') !== 'connected') return
-    setLoadingHubspot(true)
+  // Carregar conversas do WhatsApp
+  const handleLoadWhatsappChats = async () => {
+    if (getStatus('whatsapp') !== 'connected') return
+    setLoadingWhatsapp(true)
     try {
-      const res = await fetchHubspotData(hubspotSearch)
-      setHubspotDeals(res.deals || [])
-      setHubspotContacts(res.contacts || [])
+      setWhatsappChats(buildWhatsappChats())
     } finally {
-      setLoadingHubspot(false)
+      setLoadingWhatsapp(false)
     }
   }
 
@@ -291,10 +276,10 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
       handleLoadInstagramAccounts()
     } else if (activeTab === 'facebook' && getStatus('facebook') === 'connected') {
       handleLoadFacebookPages()
-    } else if (activeTab === 'pipedrive' && getStatus('pipedrive') === 'connected') {
-      handleLoadPipedrive()
-    } else if (activeTab === 'hubspot' && getStatus('hubspot') === 'connected') {
-      handleLoadHubspot()
+    } else if (activeTab === 'canva' && getStatus('canva') === 'connected') {
+      handleLoadCanvaAssets()
+    } else if (activeTab === 'whatsapp' && getStatus('whatsapp') === 'connected') {
+      handleLoadWhatsappChats()
     }
   }, [activeTab, connectors])
 
@@ -480,94 +465,76 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
     }
   }
 
-  // Importação de Pipedrive
-  const handleImportPipedriveItem = (item: CrmRecordItem) => {
-    setImportingPipedriveId(item.id)
+  // Importação de design do Canva
+  const handleImportCanvaAsset = (design: CanvaAssetItem) => {
+    setImportingCanvaId(design.id)
     try {
-      const typeLabel =
-        item.type === 'deal' ? 'Negócio' : item.type === 'contact' ? 'Contato/Pessoa' : 'Atividade'
       const lines = [
-        `Fonte: Pipedrive CRM (${typeLabel})`,
-        `Título: ${item.title}`,
-        item.subtitle ? `Subtítulo / Organização: ${item.subtitle}` : null,
-        item.status ? `Status: ${item.status}` : null,
-        item.value ? `Valor: ${item.value}` : null,
-        item.owner ? `Responsável: ${item.owner}` : null,
-        item.updatedAt ? `Última atualização: ${item.updatedAt}` : null,
+        `Fonte: Canva (design)`,
+        `Título: ${design.title}`,
+        design.updatedAt ? `Atualizado: ${design.updatedAt}` : null,
+        design.editUrl ? `Link: ${design.editUrl}` : null,
+        '',
+        `[Design de referência do Canva: ${design.title}]`,
       ]
         .filter(Boolean)
         .join('\n')
 
       const ctx: ImportedContextItem = {
-        id: `ctx-pipedrive-${item.id}`,
-        source: 'pipedrive',
-        title: item.title,
-        subtitle: `Pipedrive · ${typeLabel}${item.value ? ` · ${item.value}` : ''}`,
+        id: `ctx-canva-${design.id}`,
+        source: 'canva',
+        title: design.title,
+        subtitle: 'Canva · Design',
         content: lines,
-        type: 'pipedrive',
-        metadata: {
-          crmId: item.id,
-          crmType: item.type,
-          status: item.status,
-          value: item.value,
-          owner: item.owner,
-        },
+        type: 'canva',
+        metadata: { designId: design.id, editUrl: design.editUrl },
         createdAt: new Date().toISOString(),
       }
       onImportContext(ctx)
       toast({
-        title: 'Item do Pipedrive importado!',
-        description: `"${item.title}" adicionado como contexto ativo do CRM.`,
+        title: 'Design do Canva importado!',
+        description: `"${design.title}" adicionado ao contexto do Segundo Cérebro.`,
       })
       onOpenChange(false)
     } finally {
-      setImportingPipedriveId(null)
+      setImportingCanvaId(null)
     }
   }
 
-  // Importação de HubSpot
-  const handleImportHubspotItem = (item: CrmRecordItem) => {
-    setImportingHubspotId(item.id)
+  // Importação de conversa do WhatsApp
+  const handleImportWhatsappChat = (chat: WhatsAppChatItem) => {
+    setImportingWhatsappId(chat.id)
     try {
-      const typeLabel = item.type === 'deal' ? 'Negócio' : 'Contato'
       const lines = [
-        `Fonte: HubSpot CRM (${typeLabel})`,
-        `Nome / Título: ${item.title}`,
-        item.subtitle ? `Detalhes / Pipeline: ${item.subtitle}` : null,
-        item.status ? `Fase do Ciclo de Vida: ${item.status}` : null,
-        item.value ? `Valor: ${item.value}` : null,
-        item.updatedAt ? `Atualizado: ${item.updatedAt}` : null,
+        `Fonte: WhatsApp (conversa)`,
+        `Contato: ${chat.contact}`,
+        chat.lastDate ? `Última mensagem: ${chat.lastDate}` : null,
+        '',
+        chat.lastMessage,
       ]
         .filter(Boolean)
         .join('\n')
 
       const ctx: ImportedContextItem = {
-        id: `ctx-hubspot-${item.id}`,
-        source: 'hubspot',
-        title: item.title,
-        subtitle: `HubSpot · ${typeLabel}${item.value ? ` · ${item.value}` : ''}`,
+        id: `ctx-whatsapp-${chat.id}`,
+        source: 'whatsapp',
+        title: `Conversa com ${chat.contact}`,
+        subtitle: `WhatsApp · ${chat.lastDate || 'Recente'}`,
         content: lines,
-        type: 'hubspot',
-        metadata: {
-          crmId: item.id,
-          crmType: item.type,
-          status: item.status,
-          value: item.value,
-        },
+        type: 'whatsapp',
+        metadata: { chatId: chat.id, contact: chat.contact },
         createdAt: new Date().toISOString(),
       }
       onImportContext(ctx)
       toast({
-        title: 'Item do HubSpot importado!',
-        description: `"${item.title}" adicionado como contexto ativo do CRM.`,
+        title: 'Conversa importada!',
+        description: `"${chat.contact}" agora é contexto ativo no Segundo Cérebro.`,
       })
       onOpenChange(false)
     } finally {
-      setImportingHubspotId(null)
+      setImportingWhatsappId(null)
     }
   }
-
-  // Removido: Canva saiu do conjunto de conectores do app
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -588,8 +555,8 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400">
                   Conecte suas contas pessoais do Google, Microsoft (Outlook), redes sociais
-                  (Instagram, Facebook), CRMs (Pipedrive, HubSpot) e Google Agenda para importar
-                  contexto ativo e publicar automaticamente.
+                  (Instagram, Facebook), Canva e WhatsApp para importar contexto ativo e publicar
+                  automaticamente.
                 </DialogDescription>
               </div>
             </div>
@@ -698,22 +665,22 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
                 )}
               </TabsTrigger>
               <TabsTrigger
-                value="pipedrive"
+                value="canva"
                 className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
               >
-                <Briefcase className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Pipedrive</span>
-                {getStatus('pipedrive') === 'connected' && (
+                <Palette className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Canva</span>
+                {getStatus('canva') === 'connected' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
               </TabsTrigger>
               <TabsTrigger
-                value="hubspot"
+                value="whatsapp"
                 className="text-xs data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-xl py-1.5 px-3 flex items-center gap-1.5"
               >
-                <UsersIcon className="w-3.5 h-3.5 text-orange-400" />
-                <span>HubSpot</span>
-                {getStatus('hubspot') === 'connected' && (
+                <MessageCircle className="w-3.5 h-3.5 text-green-400" />
+                <span>WhatsApp</span>
+                {getStatus('whatsapp') === 'connected' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
               </TabsTrigger>
@@ -1881,9 +1848,241 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
               </div>
             </TabsContent>
 
-            {/* ABA: PIPEDRIVE CRM */}
-            <TabsContent value="pipedrive" className="space-y-4 m-0">
-              {getStatus('pipedrive') !== 'connected' ? (
+            {/* ABA: CANVA */}
+            <TabsContent value="canva" className="space-y-4 m-0">
+              {getStatus('canva') !== 'connected' ? (
+                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
+                  <Palette className="w-12 h-12 text-cyan-400 mx-auto opacity-70" />
+                  <div className="max-w-md mx-auto space-y-1">
+                    <div className="text-base font-bold text-white">Canva não conectado</div>
+                    <div className="text-xs text-slate-400">
+                      Conecte sua conta do Canva para importar designs e templates como referência
+                      visual no Segundo Cérebro.
+                    </div>
+                  </div>
+                  <ConnectorButton
+                    toolkit="canva"
+                    name="Canva"
+                    className="flex justify-center [&>button]:bg-cyan-600 [&>button]:hover:bg-cyan-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30 text-[10px] font-bold">
+                      {canvaDesigns.length} designs encontrados
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLoadCanvaAssets}
+                        disabled={loadingCanva}
+                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 mr-1.5 ${loadingCanva ? 'animate-spin' : ''}`}
+                        />
+                        Atualizar
+                      </Button>
+                      <ConnectorButton
+                        toolkit="canva"
+                        name="Canva"
+                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                    {loadingCanva && (
+                      <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+                        Carregando designs do Canva...
+                      </div>
+                    )}
+
+                    {!loadingCanva && canvaDesigns.length === 0 && (
+                      <div className="p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
+                        <Palette className="w-8 h-8 text-slate-500 mx-auto" />
+                        <div className="text-xs text-slate-400">
+                          Nenhum design do Canva encontrado.
+                        </div>
+                      </div>
+                    )}
+
+                    {!loadingCanva &&
+                      canvaDesigns.map((design) => (
+                        <div
+                          key={design.id}
+                          className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-3 group transition-all"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                              {design.thumbnailUrl ? (
+                                <img
+                                  src={design.thumbnailUrl}
+                                  alt={design.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Palette className="w-5 h-5 text-cyan-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-white truncate">
+                                {design.title}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">
+                                Canva · Design{design.updatedAt ? ` · ${design.updatedAt}` : ''}
+                              </div>
+                            </div>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            onClick={() => handleImportCanvaAsset(design)}
+                            disabled={importingCanvaId === design.id}
+                            className="shrink-0 bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
+                          >
+                            {importingCanvaId === design.id ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                Usar no Contexto
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ABA: WHATSAPP */}
+            <TabsContent value="whatsapp" className="space-y-4 m-0">
+              {getStatus('whatsapp') !== 'connected' ? (
+                <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
+                  <MessageCircle className="w-12 h-12 text-green-400 mx-auto opacity-70" />
+                  <div className="max-w-md mx-auto space-y-1">
+                    <div className="text-base font-bold text-white">WhatsApp não conectado</div>
+                    <div className="text-xs text-slate-400">
+                      Conecte sua conta do WhatsApp para importar conversas com clientes como
+                      contexto ativo no Segundo Cérebro.
+                    </div>
+                  </div>
+                  <ConnectorButton
+                    toolkit="whatsapp"
+                    name="WhatsApp"
+                    className="flex justify-center [&>button]:bg-green-600 [&>button]:hover:bg-green-500 [&>button]:text-white [&>button]:text-xs [&>button]:font-bold [&>button]:rounded-xl [&>button]:border-none [&>button]:px-5 [&>button]:py-2.5"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge className="bg-green-500/20 text-green-300 border-green-500/30 text-[10px] font-bold">
+                      {whatsappChats.length} conversas encontradas
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLoadWhatsappChats}
+                        disabled={loadingWhatsapp}
+                        className="border-slate-800 text-xs text-slate-300 hover:text-white rounded-xl h-8"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 mr-1.5 ${loadingWhatsapp ? 'animate-spin' : ''}`}
+                        />
+                        Atualizar
+                      </Button>
+                      <ConnectorButton
+                        toolkit="whatsapp"
+                        name="WhatsApp"
+                        className="[&>button]:bg-slate-800 [&>button]:hover:bg-slate-700 [&>button]:text-slate-300 [&>button]:text-xs [&>button]:rounded-xl [&>button]:border-slate-700 [&>button]:h-8"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                    {loadingWhatsapp && (
+                      <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-green-400" />
+                        Carregando conversas do WhatsApp...
+                      </div>
+                    )}
+
+                    {!loadingWhatsapp && whatsappChats.length === 0 && (
+                      <div className="p-8 rounded-2xl bg-slate-900/30 border border-slate-800/80 text-center space-y-2">
+                        <MessageCircle className="w-8 h-8 text-slate-500 mx-auto" />
+                        <div className="text-xs text-slate-400">
+                          Nenhuma conversa do WhatsApp encontrada.
+                        </div>
+                      </div>
+                    )}
+
+                    {!loadingWhatsapp &&
+                      whatsappChats.map((chat) => (
+                        <div
+                          key={chat.id}
+                          className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-3 group transition-all"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-green-500/10 text-green-400 border border-green-500/20">
+                              <MessageCircle className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-white truncate">
+                                {chat.contact}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">
+                                {chat.lastMessage}
+                              </div>
+                            </div>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            onClick={() => handleImportWhatsappChat(chat)}
+                            disabled={importingWhatsappId === chat.id}
+                            className="shrink-0 bg-green-600 hover:bg-green-500 text-white text-xs h-7 px-3 rounded-lg font-medium"
+                          >
+                            {importingWhatsappId === chat.id ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                Usar no Contexto
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Rodapé Informativo */}
+        <div className="px-6 py-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">
+          <span>Conectores Pessoais · Integração Direta de Nuvem</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="text-xs text-slate-400 hover:text-white h-7"
+          >
+            Fechar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+/* end-of-file sentinel */
                 <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4">
                   <Briefcase className="w-12 h-12 text-emerald-400 mx-auto opacity-70" />
                   <div className="max-w-md mx-auto space-y-1">
@@ -2290,6 +2489,7 @@ export const ConnectorsContextModal: React.FC<ConnectorsContextModalProps> = ({
             </TabsContent>
           </Tabs>
         </div>
+      */
 
         {/* Rodapé Informativo */}
         <div className="px-6 py-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">
