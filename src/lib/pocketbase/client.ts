@@ -5,5 +5,5 @@ pb.autoCancellation(false)
 
 export default pb
 
-// GUARDA: manter sempre o export nomeado também — já quebrou o build 12x
+// GUARDA: manter sempre o export nomeado também — regressão silenciosa já 12x
 export { pb }

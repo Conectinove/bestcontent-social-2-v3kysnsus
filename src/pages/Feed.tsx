@@ -43,8 +43,7 @@ import {
   Paperclip,
   EyeOff,
   Trash2,
-  Ban,
-  CirclePlay,
+  Power,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSocial } from '@/context/SocialContext'
@@ -62,6 +61,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import useRealtime from '@/hooks/use-realtime'
@@ -1116,7 +1116,7 @@ export default function Feed() {
               className="flex flex-col items-center gap-1.5 shrink-0 w-20 sm:w-22 cursor-pointer group text-center"
             >
               <div className="relative">
-                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2px] bg-gradient-to-tr from-primary via-purple-500 to-pink-500 group-hover:scale-105 transition-transform duration-300">
+                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2px] bg-gradient-to-tr from-primary via-primary/60 to-primary/30 group-hover:scale-105 transition-transform duration-300">
                   <div className="w-full h-full rounded-full overflow-hidden bg-muted border-2 border-background">
                     <img
                       src={creator.image}
@@ -1435,7 +1435,7 @@ export default function Feed() {
                   onClick={() => setSelectedCategory('todas')}
                   className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all shrink-0 ${
                     selectedCategory === 'todas'
-                      ? 'bg-violet-600 text-white border-violet-600 shadow-2xs font-bold'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-2xs font-bold'
                       : 'border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/60'
                   }`}
                 >
@@ -1587,7 +1587,8 @@ export default function Feed() {
                 const isAuthorOrAdmin =
                   Boolean(
                     user?.id && (user.id === topic.user || user.id === topic.expand?.user?.id),
-                  ) || user?.email === 'midiaviva@bestcontent.ai'
+                  ) || isAdmin
+                const isActive = topic.is_active !== false
                 const isPinned = !!topic.is_pinned
                 const isPinLoading = togglingPinId === topic.id
                 const trend = getTrendBadge(
@@ -1599,18 +1600,18 @@ export default function Feed() {
                 return (
                   <Card
                     key={topic.id}
-                    className={`rounded-2xl transition-all shadow-xs overflow-hidden ${
+                    className={`rounded-2xl transition-all shadow-xs overflow-hidden ${!isActive ? 'opacity-60' : ''} ${
                       isPinned
-                        ? 'border-2 border-indigo-500/40 bg-gradient-to-b from-indigo-500/5 via-card to-card ring-1 ring-indigo-500/20'
+                        ? 'border-2 border-primary/40 bg-gradient-to-b from-primary/5 via-card to-card ring-1 ring-primary/20'
                         : isWeeklyTop
                           ? 'border-2 border-amber-500/40 bg-gradient-to-b from-amber-500/5 via-card to-card ring-1 ring-amber-500/20'
                           : 'border border-border/80 bg-card hover:border-primary/40'
                     }`}
                   >
                     {isPinned && (
-                      <div className="bg-indigo-500/10 border-b border-indigo-500/20 px-4 py-1.5 flex items-center justify-between text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                      <div className="bg-primary/10 border-b border-primary/20 px-4 py-1.5 flex items-center justify-between text-[11px] font-bold text-primary">
                         <span className="inline-flex items-center gap-1.5">
-                          <Pin className="w-3.5 h-3.5 fill-indigo-500/30 text-indigo-600 dark:text-indigo-400" />
+                          <Pin className="w-3.5 h-3.5 fill-primary/30 text-primary" />
                           Post Fixado no Topo da Comunidade
                         </span>
                         {isAuthorOrAdmin && (
@@ -1618,7 +1619,7 @@ export default function Feed() {
                             type="button"
                             onClick={() => handleTogglePin(topic)}
                             disabled={isPinLoading}
-                            className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
+                            className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
                           >
                             {isPinLoading ? 'Atualizando...' : 'Desfixar'}
                           </button>
@@ -1666,9 +1667,17 @@ export default function Feed() {
                               {isPinned && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 text-[10px] font-bold px-1.5 py-0 rounded gap-1"
+                                  className="bg-primary/15 text-primary border-primary/30 text-[10px] font-bold px-1.5 py-0 rounded gap-1"
                                 >
                                   <Pin className="w-2.5 h-2.5" /> Fixado
+                                </Badge>
+                              )}
+                              {!isActive && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30 text-[10px] font-bold px-1.5 py-0 rounded gap-1"
+                                >
+                                  <EyeOff className="w-2.5 h-2.5" /> Inativo
                                 </Badge>
                               )}
                               {isWeeklyTop && (
@@ -1719,7 +1728,7 @@ export default function Feed() {
                                 disabled={isPinLoading}
                                 className="gap-2 cursor-pointer"
                               >
-                                <Pin className="w-3.5 h-3.5 text-indigo-600" />
+                                <Pin className="w-3.5 h-3.5 text-primary" />
                                 <span>{isPinned ? 'Desfixar do topo' : 'Fixar no topo'}</span>
                               </DropdownMenuItem>
 
@@ -1740,6 +1749,25 @@ export default function Feed() {
                                   <span>Abrir página dedicada</span>
                                 </Link>
                               </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleToggleActive(topic)}
+                                    className="gap-2 cursor-pointer"
+                                  >
+                                    <Power className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <span>{isActive ? 'Desativar' : 'Ativar'}</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => setDeleteTarget(topic)}
+                                    className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Excluir</span>
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -1753,7 +1781,7 @@ export default function Feed() {
                         >
                           {topic.title}
                         </Link>
-                        <p className="text-xs sm:text-sm text-muted-foreground/90 leading-relaxed whitespace-pre-wrap">
+                        <p className="text-xs sm:text-sm text-muted-foreground/90 leading-relaxed whitespace-pre-wrap line-clamp-6">
                           {topic.content}
                         </p>
                       </div>
@@ -1830,7 +1858,7 @@ export default function Feed() {
                               disabled={isPinLoading}
                               className={`text-[11px] font-semibold px-2 py-0.5 rounded-md transition-colors inline-flex items-center gap-1 ${
                                 isPinned
-                                  ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10'
+                                  ? 'text-primary hover:bg-primary/10'
                                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                               }`}
                               title={isPinned ? 'Desfixar post' : 'Fixar no topo'}
@@ -2065,9 +2093,9 @@ export default function Feed() {
                   size="sm"
                   variant="outline"
                   onClick={() => setWhatToPostModalOpen(true)}
-                  className="text-xs font-bold h-7 rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 gap-1.5"
+                  className="text-xs font-bold h-7 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 gap-1.5"
                 >
-                  <Sparkles className="w-3 h-3 text-purple-500" />
+                  <Sparkles className="w-3 h-3 text-primary" />
                   O que postar hoje?
                 </Button>
                 <button
@@ -2085,7 +2113,7 @@ export default function Feed() {
                   <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-semibold text-xs gap-1">
                     🔥 trends
                   </Badge>
-                  <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-semibold text-xs gap-1">
+                  <Badge className="bg-primary/15 text-primary border border-primary/30 font-semibold text-xs gap-1">
                     <Zap className="w-3 h-3" /> +60 XP ALTA
                   </Badge>
                   <Badge variant="outline" className="text-xs font-medium text-muted-foreground">
@@ -2117,7 +2145,7 @@ export default function Feed() {
                   </p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-purple-500/10 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
                     <span className="text-xs font-bold text-primary">
@@ -2192,7 +2220,7 @@ export default function Feed() {
                   <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30 text-[11px] font-semibold">
                     Local
                   </Badge>
-                  <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30 text-[11px] font-semibold">
+                  <Badge className="bg-primary/15 text-primary border border-primary/30 text-[11px] font-semibold">
                     Exclusivo
                   </Badge>
                   <span className="text-xs text-muted-foreground ml-auto">18 min</span>
@@ -2597,6 +2625,165 @@ export default function Feed() {
         onOpenChange={setWhatToPostModalOpen}
         brand={activeBrand}
       />
+
+      {/* =====================================================================
+         AlertDialog: confirmação de exclusão de post (admin)
+         ===================================================================== */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      >
+        <AlertDialogContent className="rounded-2xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              Excluir post definitivamente?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-relaxed">
+              {deleteTarget
+                ? `"${deleteTarget.title || 'Sem título'}" será removido do feed para todos os membros. Esta ação não pode ser desfeita.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl text-xs font-semibold">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault()
+                handleConfirmDelete()
+              }}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-bold"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* =====================================================================
+         Dialog: Importar Post (.md/.txt ou texto colado)
+         ===================================================================== */}
+      <Dialog
+        open={importDialogOpen}
+        onOpenChange={(open) => {
+          setImportDialogOpen(open)
+          if (!open) {
+            setImportText('')
+            setImportFileName(null)
+          }
+        }}
+      >
+        <DialogContent className="rounded-2xl max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Upload className="w-5 h-5 text-primary" />
+              Importar post para o feed
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Cole o texto ou carregue um arquivo <strong className="text-foreground">
+                .md
+              </strong>{' '}
+              ou <strong className="text-foreground">.txt</strong>. O título é derivado da primeira
+              linha do conteúdo.
+            </p>
+
+            <input
+              ref={fileImportRef}
+              type="file"
+              accept=".md,.markdown,.txt,text/markdown,text/plain"
+              className="hidden"
+              onChange={(e) => {
+                handleImportFile(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileImportRef.current?.click()}
+              className="w-full h-9 rounded-xl text-xs font-semibold gap-2 border-border"
+            >
+              <Paperclip className="w-3.5 h-3.5 text-primary" />
+              {importFileName
+                ? `Arquivo carregado: ${importFileName}`
+                : 'Carregar arquivo .md/.txt'}
+            </Button>
+
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                Conteúdo do post
+              </label>
+              <Textarea
+                placeholder="Cole aqui o texto do post (markdown suportado)..."
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                rows={8}
+                className="text-xs rounded-xl resize-none bg-background border-border"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                Categoria
+              </label>
+              <select
+                value={importCategory || categories[0]?.id || ''}
+                onChange={(e) => setImportCategory(e.target.value)}
+                className="w-full h-9 rounded-xl text-xs bg-background border border-border px-3 font-medium text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setImportDialogOpen(false)}
+                className="text-xs h-8 text-muted-foreground hover:text-foreground"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleImportPublish}
+                disabled={isImporting || !importText.trim()}
+                className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold gap-1.5 h-9 px-4"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Publicando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" /> Publicar
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
