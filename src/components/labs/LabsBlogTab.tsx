@@ -132,10 +132,10 @@ export function LabsBlogTab() {
   }
 
   const togglePublish = async (post: LabsBlogPost) => {
-    const next: LabsBlogStatus = post.status === 'publicado' ? 'rascunho' : 'publicado'
+    const next: LabsBlogStatus = post.status === 'published' ? 'draft' : 'published'
     try {
       await setLabsBlogPostStatus(post.id, next)
-      toast({ title: next === 'publicado' ? 'Artigo publicado' : 'Artigo voltou para rascunho' })
+      toast({ title: next === 'published' ? 'Artigo publicado' : 'Artigo voltou para rascunho' })
       await load()
     } catch {
       toast({ title: 'Erro ao atualizar status', variant: 'destructive' })
@@ -354,7 +354,7 @@ export function LabsBlogTab() {
                       : 'border-amber-500/40 text-amber-600 bg-amber-500/10'
                   }`}
                 >
-                  {post.status}
+                  {post.status === 'published' ? 'Publicado' : 'Rascunho'}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground font-mono">
                   {post.updated ? new Date(post.updated).toLocaleDateString('pt-BR') : ''}
