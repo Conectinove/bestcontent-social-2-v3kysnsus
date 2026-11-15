@@ -101,7 +101,13 @@ export function parseJsonArray(value: any): string[] {
   return []
 }
 
-export function buildBrandPayload(data: BrandWizardData, userId: string, logoFile: File | null) {
+export function buildBrandPayload(
+  data: BrandWizardData,
+  userId: string,
+  logoFile: File | null,
+  /** Mídias editadas pela Edição Avançada (data URL) — campo logo (File) e/ou cover (data URL). */
+  editedMedia?: { logoFile?: File | null; coverDataUrl?: string | null },
+) {
   const formData = new FormData()
   formData.append('user', userId)
   formData.append('name', data.name.trim())
@@ -118,6 +124,9 @@ export function buildBrandPayload(data: BrandWizardData, userId: string, logoFil
   formData.append('color_accent', data.color_accent || '')
   formData.append('style_preferences', JSON.stringify(data.style_preferences || []))
   formData.append('status', 'active')
-  if (logoFile) formData.append('logo', logoFile)
+  // A mídia editada pela Edição Avançada tem precedência sobre o upload simples.
+  // A coleção brands só tem o campo file `logo` — capa e avatar derivam dele no mapper.
+  const media = editedMedia?.logoFile || logoFile
+  if (media) formData.append('logo', media)
   return formData
 }

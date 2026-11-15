@@ -13,12 +13,13 @@ import {
 import { QuickOnboardingModal } from '@/components/QuickOnboardingModal'
 import { OrganizationBrandManager } from '@/components/brandkit/OrganizationBrandManager'
 import { useSocial } from '@/context/SocialContext'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export default function Brands() {
-  const { brands, loading } = useSocial()
+  const { brands, loading, error } = useSocial() as any
   const navigate = useNavigate()
   const [quickOnboardOpen, setQuickOnboardOpen] = useState(false)
 
@@ -61,6 +62,19 @@ export default function Brands() {
         <h2 className="text-base font-bold text-foreground mb-3">Cards Visuais de Marcas</h2>
       </div>
 
+      {/* Erro */}
+      {!loading && error && (
+        <Card className="p-8 text-center space-y-3 border-destructive/30 bg-destructive/5">
+          <h3 className="text-base font-bold text-destructive">
+            Não foi possível carregar as marcas
+          </h3>
+          <p className="text-sm text-muted-foreground break-words">{getErrorMessage(error)}</p>
+          <Button variant="outline" onClick={() => window.location.reload()} className="text-xs">
+            Tentar novamente
+          </Button>
+        </Card>
+      )}
+
       {/* Carregando */}
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -79,7 +93,7 @@ export default function Brands() {
       )}
 
       {/* Vazio */}
-      {!loading && brands.length === 0 && (
+      {!loading && !error && brands.length === 0 && (
         <Card className="p-10 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
             <ImageOff className="w-6 h-6 text-primary" />
@@ -108,7 +122,7 @@ export default function Brands() {
       )}
 
       {/* Grid de cards */}
-      {!loading && brands.length > 0 && (
+      {!loading && !error && brands.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {brands.map((brand: any) => (
             <Card

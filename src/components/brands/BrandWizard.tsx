@@ -23,6 +23,9 @@ import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import { useSocial } from '@/context/SocialContext'
 import { createBrand, updateBrand, getBrand } from '@/services/brands'
+import { BrandAdvancedMediaDialog, dataUrlToFile } from '@/lib/advanced-media'
+import { getFileUrl } from '@/lib/mappers'
+import { Wand2 } from 'lucide-react'
 import {
   BRAND_NETWORKS,
   VOICE_TONES,
@@ -58,6 +61,14 @@ export default function BrandWizard() {
   const [saving, setSaving] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
+  // Record bruto da marca em edição — expõe a URL do logo existente ao editor avançado.
+  const [brandRecord, setBrandRecord] = useState<any>(null)
+  // Edição Avançada da mídia da marca (motor do Studio) — logo 1:1 ou capa 16:9
+  const [advancedField, setAdvancedField] = useState<'logo' | 'cover' | null>(null)
+  // Fonte da mídia aberta no editor: preview local (object URL) ou URL do PB (edição)
+  const [advancedSrc, setAdvancedSrc] = useState<string | null>(null)
+  /** URL (data URL ou object URL) da mídia editada que substituirá o logo/capa no save. */
+  const [editedMedia, setEditedMedia] = useState<{ logo?: string; cover?: string }>({})
 
   useEffect(() => {
     if (!isEdit) return
@@ -67,6 +78,7 @@ export default function BrandWizard() {
       .then((record: any) => {
         if (!alive) return
         setData(fromRecordToWizardData(record))
+        setBrandRecord(record)
         setLoading(false)
       })
       .catch(() => {
@@ -127,7 +139,11 @@ export default function BrandWizard() {
     }
     setSaving(true)
     try {
-      const payload = buildBrandPayload(data, user.id, logoFile)
+      // Mídia editada pela Edição Avançada (data URL) vira File para o upload do PocketBase.
+      // A coleção brands tem um único campo de mídia (logo) — capa e avatar derivam dele.
+      const editedUrl = editedMedia.logo || editedMedia.cover
+      const editedLogoFile = editedUrl ? dataUrlToFile(editedUrl, 'logo.png') : null
+      const payload = buildBrandPayload(data, user.id, logoFile, { logoFile: editedLogoFile })
       if (isEdit) {
         await updateBrand(id as string, payload as any)
         return id as string
@@ -171,7 +187,7 @@ export default function BrandWizard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -187,7 +203,7 @@ export default function BrandWizard() {
             </div>
             <span className="font-bold text-lg tracking-tight">
               bestcontent{' '}
-              <span className="text-[10px] font-extrabold text-purple-600 uppercase">AI</span>
+              <span className="text-[10px] font-extrabold text-primary uppercase">AI</span>
             </span>
           </div>
 
@@ -205,9 +221,9 @@ export default function BrandWizard() {
                     className={cn(
                       'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors',
                       current
-                        ? 'text-purple-700 dark:text-purple-300'
+                        ? 'text-primary'
                         : done
-                          ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-500/10'
+                          ? 'text-primary/80 hover:bg-primary/10'
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted',
                     )}
                   >
@@ -215,9 +231,9 @@ export default function BrandWizard() {
                       className={cn(
                         'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
                         current
-                          ? 'bg-purple-600 text-white shadow-sm'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
                           : done
-                            ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+                            ? 'bg-primary/15 text-primary'
                             : 'bg-muted text-muted-foreground',
                       )}
                     >
@@ -246,7 +262,7 @@ export default function BrandWizard() {
               variant="outline"
               onClick={handleSaveAndClose}
               disabled={saving}
-              className="rounded-full h-9 px-4 text-xs font-bold border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 gap-1.5"
+              className="rounded-full h-9 px-4 text-xs font-bold border-primary/40 text-primary hover:bg-primary/10 gap-1.5"
             >
               {saving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -268,9 +284,9 @@ export default function BrandWizard() {
               className={cn(
                 'shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors',
                 s.id === step
-                  ? 'bg-purple-600 text-white border-purple-600'
+                  ? 'bg-primary text-primary-foreground border-primary'
                   : stepComplete(s.id, data)
-                    ? 'border-purple-500/40 text-purple-600 dark:text-purple-400'
+                    ? 'border-primary/40 text-primary'
                     : 'border-border text-muted-foreground',
               )}
             >
@@ -286,7 +302,18 @@ export default function BrandWizard() {
         {step === 2 && <StepNetworks data={data} update={update} />}
         {step === 3 && <StepIdentity data={data} update={update} />}
         {step === 4 && (
-          <StepBrandKit data={data} update={update} logoFile={logoFile} setLogoFile={setLogoFile} />
+          <StepBrandKit
+            data={data}
+            update={update}
+            logoFile={logoFile}
+            setLogoFile={setLogoFile}
+            editedMedia={editedMedia}
+            existingLogoUrl={getFileUrl(brandRecord, 'logo')}
+            onOpenAdvanced={(field, src) => {
+              setAdvancedField(field)
+              setAdvancedSrc(src)
+            }}
+          />
         )}
         {step === 5 && <StepStyles data={data} update={update} />}
 
@@ -313,7 +340,7 @@ export default function BrandWizard() {
               <Button
                 onClick={() => goTo(step + 1)}
                 disabled={!canAdvance}
-                className="rounded-full text-sm font-semibold bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
+                className="rounded-full text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
               >
                 Avançar <ArrowRight className="w-4 h-4" />
               </Button>
@@ -324,6 +351,30 @@ export default function BrandWizard() {
           {planCount} de 20 marcas no seu plano
         </p>
       </main>
+
+      {/* Motor de Edição Avançada (Studio) para logo/capa da marca */}
+      {advancedField && (
+        <BrandAdvancedMediaDialog
+          open={Boolean(advancedField)}
+          onOpenChange={(o) => {
+            if (!o) setAdvancedField(null)
+          }}
+          field={advancedField}
+          brandName={data.name}
+          mediaUrl={advancedSrc || ''}
+          onSave={(resultUrl) => {
+            setEditedMedia((prev) => ({ ...prev, [advancedField]: resultUrl }))
+            setAdvancedField(null)
+            toast({
+              title: 'Edição aplicada!',
+              description:
+                advancedField === 'cover'
+                  ? 'A capa editada será gravada ao salvar a marca.'
+                  : 'O logo editado será gravado ao salvar a marca.',
+            })
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -365,7 +416,7 @@ function StepYourBrand({ data, update }: StepProps) {
 
       <div className="space-y-3">
         {/* Nome da marca — obrigatório */}
-        <div className="rounded-2xl border border-purple-500/40 bg-purple-500/5 p-5">
+        <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
           <label className="text-sm font-bold flex items-center gap-2">
             Nome da marca <span className="text-red-500">*</span>
           </label>
@@ -379,7 +430,7 @@ function StepYourBrand({ data, update }: StepProps) {
         </div>
 
         <ExpandableCard
-          icon={<Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+          icon={<Target className="w-5 h-5 text-primary" />}
           title="Essência"
           filled={data.essence.trim() !== ''}
           summary={
@@ -441,8 +492,8 @@ function StepYourBrand({ data, update }: StepProps) {
                     className={cn(
                       'px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors',
                       selected
-                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                        : 'border-border text-muted-foreground hover:border-purple-500/50 hover:text-purple-600',
+                        ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                        : 'border-border text-muted-foreground hover:border-primary/50 hover:text-primary',
                     )}
                   >
                     {tone}
@@ -460,7 +511,7 @@ function StepYourBrand({ data, update }: StepProps) {
         </ExpandableCard>
 
         <ExpandableCard
-          icon={<Share2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+          icon={<Share2 className="w-5 h-5 text-primary" />}
           title="Presença online"
           filled={data.online_presence.trim() !== ''}
           summary={data.online_presence || 'Ex.: midiaviva.goskip.app · @ronaldo.barreto1'}
@@ -470,7 +521,7 @@ function StepYourBrand({ data, update }: StepProps) {
             onChange={(e) => update('online_presence', e.target.value)}
             rows={3}
             placeholder="Ex.: midiaviva.goskip.app · @ronaldo.barreto1"
-            className="w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[90px] resize-y focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            className="w-full rounded-xl border border-border bg-background p-3 text-sm min-h-[90px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
             <AtSign className="w-3.5 h-3.5" /> Site, @ nas redes e onde a marca pode ser encontrada.
@@ -647,9 +698,14 @@ function StepBrandKit({
   update,
   logoFile,
   setLogoFile,
+  editedMedia,
+  onOpenAdvanced,
 }: StepProps & {
   logoFile: File | null
   setLogoFile: (f: File | null) => void
+  editedMedia: { logo?: string; cover?: string }
+  existingLogoUrl: string
+  onOpenAdvanced: (field: 'logo' | 'cover', src: string) => void
 }) {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
@@ -662,6 +718,12 @@ function StepBrandKit({
     setLogoPreview(url)
     return () => URL.revokeObjectURL(url)
   }, [logoFile])
+
+  // Fonte que o editor avançado abre: mídia já editada > upload local > logo existente (edição).
+  const logoSrc = editedMedia.logo || logoPreview || existingLogoUrl || ''
+  const hasLogoMedia = Boolean(logoSrc)
+  // Preview do passo reflete a mídia editada/upload (a gravação acontece no persist()).
+  const displayedLogo = editedMedia.logo || editedMedia.cover || logoPreview
 
   return (
     <div>
@@ -689,20 +751,33 @@ function StepBrandKit({
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <label className="text-sm font-bold flex items-center gap-2">
-            <ImageIcon className="w-4 h-4 text-purple-600" /> Logo da marca
-          </label>
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-sm font-bold flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-primary" /> Logo da marca
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!hasLogoMedia}
+              onClick={() => onOpenAdvanced('logo', logoSrc)}
+              className="h-8 rounded-full text-xs font-bold gap-1.5"
+              title="Abrir a Edição Avançada (filtros, textos e IA de exportação)"
+            >
+              <Wand2 className="w-3.5 h-3.5" /> Edição avançada
+            </Button>
+          </div>
           <div className="mt-3 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden border border-border bg-muted flex items-center justify-center">
-              {logoPreview ? (
-                <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+            <div className="w-16 h-16 rounded-2xl overflow-hidden border border-border bg-muted flex items-center justify-center shrink-0">
+              {displayedLogo ? (
+                <img src={displayedLogo} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xl font-black text-muted-foreground">
                   {(data.name || 'M')[0].toUpperCase()}
                 </span>
               )}
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 min-w-0">
               <label className="cursor-pointer">
                 <input
                   type="file"

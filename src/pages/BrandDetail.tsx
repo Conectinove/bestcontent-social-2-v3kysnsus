@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -37,6 +37,9 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { toast } from '@/hooks/use-toast'
 import { sharePost } from '@/lib/share'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { BrandAdvancedMediaDialog, dataUrlToFile } from '@/lib/advanced-media'
+import { Wand2 } from 'lucide-react'
+import { getFileUrl } from '@/lib/mappers'
 import { TemplateSelector } from '@/components/TemplateSelector'
 import type { PostTemplate } from '@/services/post-templates'
 
@@ -68,6 +71,16 @@ export default function BrandDetail() {
   const [logo, setLogo] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
+  // Edição Avançada (motor do Studio) — logo/capa da marca
+  const [advancedField, setAdvancedField] = useState<'logo' | 'cover' | null>(null)
+  /** Data URL da mídia editada que substitui o logo (e a capa derivada) no save. */
+  const [editedDataUrl, setEditedDataUrl] = useState<string | null>(null)
+  // Fonte estável da mídia no editor: editada > upload local (object URL) > logo do PB.
+  const advancedSrc = useMemo(() => {
+    if (editedDataUrl) return editedDataUrl
+    if (logo) return URL.createObjectURL(logo)
+    return getFileUrl((brand as any)?._raw, 'logo')
+  }, [editedDataUrl, logo, brand?._raw?.logo])
 
   if (!brand) {
     return (
@@ -99,7 +112,10 @@ export default function BrandDetail() {
     try {
       const fd = new FormData()
       Object.entries(edit).forEach(([k, v]) => fd.append(k, v))
-      if (logo) fd.append('logo', logo)
+      // Mídia editada pela Edição Avançada tem precedência sobre o upload simples.
+      const editedLogoFile = editedDataUrl ? dataUrlToFile(editedDataUrl, 'logo.png') : null
+      if (editedLogoFile) fd.append('logo', editedLogoFile)
+      else if (logo) fd.append('logo', logo)
       await updateBrand(id, fd as any)
       refreshAll()
       toast({ title: 'Salvo!', description: 'Dados da marca atualizados.' })
@@ -358,8 +374,8 @@ export default function BrandDetail() {
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold block mb-1">Logo</label>
-              <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold block mb-1">Logo / Capa</label>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -375,6 +391,16 @@ export default function BrandDetail() {
                   className="hidden"
                   onChange={(e) => setLogo(e.target.files?.[0] || null)}
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAdvancedField(advancedField === null ? 'logo' : advancedField)}
+                  className="gap-1.5 font-semibold"
+                  title="Abrir a Edição Avançada (filtros, textos e IA de exportação)"
+                >
+                  <Wand2 className="w-3.5 h-3.5" /> Edição avançada
+                </Button>
               </div>
             </div>
             <div className="flex items-center justify-between pt-4 border-t border-border">
@@ -423,6 +449,27 @@ export default function BrandDetail() {
           navigate('/app/content/new', { state: { brandId: brand.id } })
         }}
       />
+
+      {/* Motor de Edição Avançada (Studio) — logo/capa da marca */}
+      {advancedField && (
+        <BrandAdvancedMediaDialog
+          open
+          field={advancedField}
+          brandName={brand.name}
+          mediaUrl={advancedSrc || ''}
+          onSave={(resultUrl) => {
+            setEditedDataUrl(resultUrl)
+            setAdvancedField(null)
+            toast({
+              title: 'Edição aplicada!',
+              description: 'A mídia editada será gravada ao salvar a marca.',
+            })
+          }}
+          onOpenChange={(o) => {
+            if (!o) setAdvancedField(null)
+          }}
+        />
+      )}
     </div>
   )
 }

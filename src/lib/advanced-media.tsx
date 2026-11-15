@@ -59,3 +59,19 @@ export function BrandAdvancedMediaDialog({
 }
 
 export default BrandAdvancedMediaDialog
+
+/** Converte um data URL (resultado da rasterização do canvas) em File para upload no PocketBase. */
+export function dataUrlToFile(dataUrl: string, fileName: string): File | null {
+  try {
+    const [meta, b64] = dataUrl.split(',')
+    if (!b64) return null
+    const mimeMatch = meta.match(/data:([^;]+)/)
+    const mime = mimeMatch?.[1] || 'image/png'
+    const bin = atob(b64)
+    const bytes = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+    return new File([bytes], fileName, { type: mime })
+  } catch {
+    return null
+  }
+}
