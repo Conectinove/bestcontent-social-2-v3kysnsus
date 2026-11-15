@@ -3,8 +3,8 @@ import PocketBase from 'pocketbase'
 const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
 pb.autoCancellation(false)
 
-export default pb
-
-// GUARDA (regressão 22×): manter SEMPRE o export nomeado junto do default.
-// Várias rodadas anteriores perderam um dos dois e quebraram imports de pb.
+// GUARDA de regressão (v0.0.286): manter SEMPRE o duplo export — default e
+// nomeado. Rodadas anteriores já perderam `export { pb }` várias vezes e o
+// build quebrou em todos os arquivos que importam `{ pb }`.
 export { pb }
+export default pb

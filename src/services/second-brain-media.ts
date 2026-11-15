@@ -9,7 +9,7 @@ import { saveEditVersion, listEditVersions } from '@/services/studio-edit-versio
 import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
 
 export type SecondBrainMediaType = 'imagem' | 'video' | 'anexo' | 'link'
-export type SecondBrainDateFilter = 'all' | '7d' | '30d' | '90d'
+export type SecondBrainDateFilter = 'all' | 'today' | '7d' | '30d' | 'custom'
 export type SecondBrainSourceTab =
   | 'document'
   | 'bank'
@@ -61,12 +61,19 @@ export function matchesMediaFilters(
   f: SecondBrainMediaFilters,
 ): boolean {
   if (f.type !== 'all' && item.type !== f.type) return false
-  if (f.period !== 'all') {
+  // 'custom' é filtrado pela grade com a janela de datas escolhida (de/até).
+  if (f.period !== 'all' && f.period !== 'custom') {
     if (!item.createdAt) return false
-    const days = f.period === '7d' ? 7 : f.period === '30d' ? 30 : 90
     const ts = new Date(item.createdAt).getTime()
     if (!Number.isFinite(ts)) return false
-    if (Date.now() - ts > days * 24 * 60 * 60 * 1000) return false
+    if (f.period === 'today') {
+      const midnight = new Date()
+      midnight.setHours(0, 0, 0, 0)
+      if (ts < midnight.getTime()) return false
+    } else {
+      const days = f.period === '7d' ? 7 : 30
+      if (Date.now() - ts > days * 24 * 60 * 60 * 1000) return false
+    }
   }
   const q = f.query.trim().toLowerCase()
   if (!q) return true
@@ -471,7 +478,8 @@ export async function fetchAccountMediaSource(opts?: {
 export function fetchCuratedMediaSource(query = ''): SecondBrainMediaItem[] {
   const q = query.trim().toLowerCase()
   // Curadoria local: mesma imagem placeholder do projeto para contexto visual.
-  return [
+  // (const anotada: sem ela o literal 'library' alarga para string e quebra o tipo)
+  const CURATED: SecondBrainMediaItem[] = [
     {
       id: 'curated-1',
       source: 'library',
@@ -490,5 +498,8 @@ export function fetchCuratedMediaSource(query = ''): SecondBrainMediaItem[] {
       thumbUrl: 'https://img.usecurling.com/p/400/225?q=workspace',
       tags: ['curadoria', 'trabalho'],
     },
-  ].filter((i) => !q || [i.name, ...(i.tags || [])].join(' ').toLowerCase().includes(q))
+  ]
+  return CURATED.filter(
+    (i) => !q || [i.name, ...(i.tags || [])].join(' ').toLowerCase().includes(q),
+  )
 }

@@ -38,6 +38,7 @@ import { ConnectorButton } from '@/components/skip/ConnectorButton'
 import {
   DEFAULT_MEDIA_FILTERS,
   applyMediaFilters,
+  applySecondBrainMediaTemplate,
   createSecondBrainMediaTemplate,
   deleteSecondBrainMediaTemplate,
   fetchAccountMediaSource,
@@ -51,6 +52,8 @@ import {
   fetchStockStatus,
   type SecondBrainDateFilter,
   type SecondBrainMediaFilters,
+  type SecondBrainMediaItem,
+  type SecondBrainMediaType,
   type SecondBrainMediaTemplate,
   type SecondBrainMediaVersion,
   type StockSearchResult,
@@ -67,13 +70,15 @@ interface MediaItem {
   id: string
   name: string
   url: string
-  kind: 'image' | 'document' | 'video'
+  kind: 'image' | 'document' | 'video' | 'link'
   source: string
   origin: SecondBrainTab
   createdAt?: string
   tags?: string[]
   driveFileId?: string
   authorUrl?: string
+  /** Source original no registro de favorito (preenchido só na aba Favoritos). */
+  favSource?: string
 }
 
 type SecondBrainTab =
@@ -120,29 +125,36 @@ const TABS: Array<{ key: SecondBrainTab; label: string }> = [
   { key: 'pexels', label: 'Pexels' },
 ]
 
-const TYPE_CHIPS: Array<{ key: 'all' | MediaItem['kind']; label: string }> = [
+const TYPE_CHIPS: Array<{ key: 'all' | SecondBrainMediaType; label: string }> = [
   { key: 'all', label: 'Todos' },
-  { key: 'image', label: 'Imagens' },
+  { key: 'imagem', label: 'Imagens' },
   { key: 'video', label: 'Vídeos' },
-  { key: 'document', label: 'Anexos' },
+  { key: 'anexo', label: 'Anexos' },
+  { key: 'link', label: 'Links' },
 ]
 
 const PERIODS: Array<{ key: SecondBrainDateFilter; label: string }> = [
+  { key: 'today', label: 'Hoje' },
   { key: '7d', label: 'Últimos 7 dias' },
   { key: '30d', label: 'Últimos 30 dias' },
-  { key: '90d', label: 'Últimos 90 dias' },
   { key: 'all', label: 'Todo o período' },
+  { key: 'custom', label: 'Período custom…' },
 ]
 
-const toServiceItem = (i: MediaItem) => ({
+/** Converte um item da grade para o formato que a camada de serviço espera. */
+const toServiceItem = (i: MediaItem): SecondBrainMediaItem => ({
   id: i.id,
+  source: i.origin === 'favorites' ? 'document' : i.origin,
   name: i.name,
   url: i.url,
-  type: (i.kind === 'video'
-    ? 'video'
-    : i.kind === 'document'
-      ? 'anexo'
-      : 'imagem') as import('@/services/second-brain-media').SecondBrainMediaType,
+  type:
+    i.kind === 'video'
+      ? 'video'
+      : i.kind === 'document'
+        ? 'anexo'
+        : i.kind === 'link'
+          ? 'link'
+          : 'imagem',
   createdAt: i.createdAt,
   tags: i.tags,
 })
@@ -208,6 +220,15 @@ function parseTags(raw: any): string[] {
  * de versões (studio_edit_versions, namespace secondbrain:) e modelos de
  * composição (studio_edit_presets, namespace "secondbrain:" com is_shared).
  */
+
+/** Período custom: intervalo [from, to] em ISO de dia (00:00 → 23:59). */
+const customRangeToWindow = (r: { from: string; to: string }) => {
+  if (!r.from) return null
+  const fromTs = new Date(`${r.from}T00:00:00`).getTime()
+  const toTs = r.to ? new Date(`${r.to}T23:59:59.999`).getTime() : fromTs + 24 * 60 * 60 * 1000 - 1
+  if (!Number.isFinite(fromTs)) return null
+  return { fromTs, toTs: Number.isFinite(toTs) ? toTs : fromTs + 86_399_999 }
+}
 export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
   open,
   onOpenChange,
@@ -256,6 +277,7 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
   const [templateName, setTemplateName] = useState('')
   const [templateShared, setTemplateShared] = useState(false)
   const [pendingTemplate, setPendingTemplate] = useState<AdvancedCustomizationState | null>(null)
+  const [customRange, setCustomRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
 
   /* ------------------------- Fontes do documento ------------------------ */
   const mediaItems: MediaItem[] = useMemo(() => {
@@ -530,12 +552,26 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
         createdAt: f.created,
         tags: ['favorito', f.source],
         driveFileId: (f.meta as any)?.driveFileId,
+        // source original do registro — necessário para desfavoritar corretamente
+        favSource: f.source,
       })),
     [favorites],
   )
 
-  const curatedItems = useMemo(
-    () => (tab === 'library' ? fetchCuratedMediaSource(filters.query) : []),
+  const curatedItems = useMemo<MediaItem[]>(
+    () =>
+      tab === 'library'
+        ? fetchCuratedMediaSource(filters.query).map((i) => ({
+            id: i.id,
+            name: i.name,
+            url: i.url,
+            kind: 'image' as const,
+            source: 'Biblioteca',
+            origin: 'library' as const,
+            createdAt: i.createdAt,
+            tags: i.tags,
+          }))
+        : [],
     [tab, filters.query],
   )
 
@@ -569,14 +605,29 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
               ? stockLoading.pexels
               : false
 
-  const visibleItems = useMemo(
-    () =>
-      applyMediaFilters(sourceItems.map(toServiceItem), filters).map((i) => {
+  const visibleItems = useMemo(() => {
+    const range = filters.period === 'custom' ? customRangeToWindow(customRange) : null
+    const base = sourceItems.map(toServiceItem)
+    const filtered = applyMediaFilters(base, filters)
+    if (filters.period !== 'custom') {
+      return filtered.map((i) => {
         const original = sourceItems.find((s) => s.id === i.id)
         return { ...(original as MediaItem), ...i }
-      }),
-    [sourceItems, filters],
-  )
+      })
+    }
+    // Período custom: janela [de, até] aplicada sobre o que passou nos filtros
+    return filtered
+      .filter((i) => {
+        if (!i.createdAt) return false
+        const ts = new Date(i.createdAt).getTime()
+        if (!Number.isFinite(ts)) return false
+        return range ? ts >= range.fromTs && ts <= range.toTs : true
+      })
+      .map((i) => {
+        const original = sourceItems.find((s) => s.id === i.id)
+        return { ...(original as MediaItem), ...i }
+      })
+  }, [sourceItems, filters, customRange])
 
   const hasAnyContent =
     mediaItems.length > 0 ||
@@ -694,7 +745,12 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
   const toggleFavorite = async (item: MediaItem) => {
     setFavBusyId(item.id)
     try {
-      const favSource = item.origin === 'favorites' ? undefined : item.origin
+      // Na aba Favoritos o item já é um registro de second_brain_favorites:
+      // guardamos o source original no meta para alternar corretamente.
+      const favSource =
+        item.origin === 'favorites'
+          ? ((item as any).favSource as SecondBrainTab) || 'document'
+          : item.origin
       const res = await toggleSecondBrainFavorite({
         source: favSource as any,
         mediaId: item.driveFileId || item.id,
@@ -717,7 +773,7 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
   const isFav = (item: MediaItem) =>
     isSecondBrainFavorite(
       favorites,
-      (item.origin === 'favorites' ? 'document' : item.origin) as any,
+      ((item.origin === 'favorites' ? item.favSource : item.origin) || 'document') as any,
       item.driveFileId || item.id,
     )
 
@@ -775,7 +831,6 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
   }
 
   /* ------------------------------- Render ------------------------------- */
-  const sourceLabel = TABS.find((t) => t.key === tab)?.label || 'Mídias'
 
   return (
     <>
@@ -847,6 +902,35 @@ export const SecondBrainMediaGrid: React.FC<SecondBrainMediaGridProps> = ({
                 ))}
               </select>
             </div>
+
+            {/* Período custom: de/até (aparece só quando custom selecionado) */}
+            {filters.period === 'custom' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  De
+                </span>
+                <input
+                  type="date"
+                  value={customRange.from}
+                  onChange={(e) => setCustomRange((r) => ({ ...r, from: e.target.value }))}
+                  className="h-6 rounded-md border border-slate-800 bg-slate-900/60 px-2 text-[10px] text-slate-200 [color-scheme:dark]"
+                  aria-label="Data inicial"
+                />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Até
+                </span>
+                <input
+                  type="date"
+                  value={customRange.to}
+                  onChange={(e) => setCustomRange((r) => ({ ...r, to: e.target.value }))}
+                  className="h-6 rounded-md border border-slate-800 bg-slate-900/60 px-2 text-[10px] text-slate-200 [color-scheme:dark]"
+                  aria-label="Data final"
+                />
+                {!customRange.from && (
+                  <span className="text-[10px] text-slate-500">escolha uma data inicial</span>
+                )}
+              </div>
+            )}
 
             {/* Abas de fonte */}
             <div className="flex flex-wrap items-center gap-1.5">
