@@ -29,6 +29,14 @@ import {
   type OrgRole,
 } from '@/services/org-members'
 import { cancelOrgInvite, resendOrgInvite, type OrgInvite } from '@/services/org-invites'
+import {
+  ORG_PERMISSIONS,
+  permissionsOf,
+  recordRoleChange,
+  roleFromMember,
+  setMemberPermissions,
+  type OrgPermissions,
+} from '@/services/org-members'
 import { MemberDetailsDialog } from '@/components/settings/MemberDetailsDialog'
 import { formatDateTimeBR, exportMembersCsv } from '@/lib/members-csv'
 
@@ -65,10 +73,33 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState<OrgRole | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [permsOpen, setPermsOpen] = useState(false)
   const qc = useQueryClient()
 
+  const current: OrgRole = roleFromMember(member)
+  const perms = permissionsOf(member)
+
+  const permMutation = useMutation({
+    mutationFn: (p: OrgPermissions) => setMemberPermissions(member.id, p),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['org-members'] })
+      toast({ title: 'Permissões salvas', description: `${member.name} atualizado.` })
+      setPermsOpen(false)
+    },
+    onError: (err: unknown) =>
+      toast({
+        title: 'Erro ao salvar permissões',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      }),
+  })
+
   const mutation = useMutation({
-    mutationFn: (role: OrgRole) => setMemberOrgRole(member.id, role),
+    mutationFn: async (role: OrgRole) => {
+      const res = await setMemberOrgRole(member.id, role)
+      await recordRoleChange(member.id, current, role)
+      return res
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['org-members'] })
       toast({
@@ -88,8 +119,6 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
       })
     },
   })
-
-  const current: OrgRole = (member.org_role || member.role || 'viewer') as OrgRole
   const meta = ROLE_META[current] || ROLE_META.viewer
   const CurrentIcon = meta.icon
 
@@ -230,7 +259,7 @@ function PendingInvitesSection({
   const handleResend = async (invite: OrgInvite) => {
     setBusyId(invite.id)
     try {
-      await resendOrgInvite(invite.id)
+      await resendOrgInvite(invite)
       toast({ title: 'Convite reenviado' })
       onChanged()
     } catch {

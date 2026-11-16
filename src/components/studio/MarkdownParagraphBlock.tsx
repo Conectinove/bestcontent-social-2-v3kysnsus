@@ -4,13 +4,21 @@
  * MagicAuthorEditor (arquivo grande — patches incrementais já corromperam 3×).
  * Toggle editar/visualizar por bloco: edição continua texto puro, a visualização
  * renderiza Markdown LEVE PRÓPRIO com escape de HTML (src/lib/markdown-lite.ts).
- * v0.0.293+: toolbar de formatação clicável que insere/wrapa a sintaxe na
- * posição do cursor (negrito, itálico, código, link, listas e títulos).
+ * v0.0.294+: toolbar de formatação clicável + INSERIR IMAGEM (URL, upload do
+ * dispositivo ou mídia já favoritada) — a prévia renderiza a imagem.
  */
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Bold,
   Italic,
@@ -23,15 +31,22 @@ import {
   Heading3,
   Eye,
   Pencil,
+  Image as ImageIcon,
+  Upload,
 } from 'lucide-react'
 import { renderMarkdownLite } from '@/lib/markdown-lite'
 import { cn } from '@/lib/utils'
+import { listBankAssets, uploadNoteImage } from '@/services/second-brain-media'
+import { listSecondBrainFavorites } from '@/services/second-brain-favorites'
 
 interface MarkdownParagraphBlockProps {
   content: string
   onChange: (content: string) => void
   placeholder?: string
 }
+
+/** Origem da imagem a inserir na nota. */
+type ImageSource = 'url' | 'upload' | 'media'
 
 /** Ações da toolbar: wrapa a seleção ou insere a sintaxe no cursor. */
 interface ToolbarAction {
@@ -72,6 +87,13 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
   { label: 'Título 3', icon: Heading3, title: 'Título pequeno (###)', linePrefix: '### ' },
 ]
 
+/** Item de mídia exibido no seletor de imagens do diálogo. */
+interface PickerItem {
+  id: string
+  url: string
+  name: string
+}
+
 export function MarkdownParagraphBlock({
   content,
   onChange,
@@ -79,6 +101,90 @@ export function MarkdownParagraphBlock({
 }: MarkdownParagraphBlockProps) {
   const [previewing, setPreviewing] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  // Inserir imagem: diálogo com 3 origens (URL, upload do dispositivo, mídias).
+  const [imageDialog, setImageDialog] = useState(false)
+  const [imageUrl, setImageUrl] = useState('')
+  const [mediaTab, setMediaTab] = useState<ImageSource>('url')
+  const [pickerItems, setPickerItems] = useState<PickerItem[]>([])
+  const [loadingMedia, setLoadingMedia] = useState(false)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  /** Insere a sintaxe de imagem no cursor (ou no fim). */
+  const insertImageSnippet = useCallback(
+    (url: string, alt = 'imagem') => {
+      const snippet = `![${alt}](${url})`
+      const el = textareaRef.current
+      const value = content || ''
+      if (!el) {
+        onChange(`${value}${value && !value.endsWith('\n') ? '\n' : ''}${snippet}`)
+        return
+      }
+      const start = el.selectionStart ?? value.length
+      const end = el.selectionEnd ?? value.length
+      const needsNlBefore = start > 0 && value[start - 1] !== '\n'
+      const next = value.slice(0, start) + (needsNlBefore ? '\n' : '') + snippet + value.slice(end)
+      onChange(next)
+      const caret = start + (needsNlBefore ? 1 : 0) + snippet.length
+      requestAnimationFrame(() => {
+        el.focus()
+        el.setSelectionRange(caret, caret)
+      })
+    },
+    [content, onChange],
+  )
+
+  /** Envia o arquivo escolhido ao PocketBase e insere a URL na nota. */
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingFile(true)
+    try {
+      const url = await uploadNoteImage(file)
+      insertImageSnippet(url, file.name.replace(/\.[^.]+$/, ''))
+      setImageDialog(false)
+    } catch (err) {
+      console.error('Falha ao enviar imagem:', err)
+    } finally {
+      setUploadingFile(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  /** Carrega as mídias da conta (acervo ou favoritos) para o seletor. */
+  const loadMediaForPicker = async (tab: ImageSource) => {
+    setMediaTab(tab)
+    if (tab === 'url') return
+    setLoadingMedia(true)
+    try {
+      if (tab === 'upload') {
+        const assets = await listBankAssets()
+        setPickerItems(
+          assets
+            .filter((a) => a.url)
+            .slice(0, 24)
+            .map((a) => ({ id: a.id, url: a.url as string, name: a.name || 'Acervo' })),
+        )
+      } else {
+        const favs = await listSecondBrainFavorites()
+        setPickerItems(
+          favs
+            .filter((f) => f.url || f.meta?.url || f.meta?.thumb_url)
+            .slice(0, 24)
+            .map((f) => ({
+              id: `${f.source}:${f.media_id}`,
+              url: String(f.meta?.url || f.url || ''),
+              name: String(f.meta?.title || f.name || 'Favorito'),
+            })),
+        )
+      }
+    } catch {
+      setPickerItems([])
+    } finally {
+      setLoadingMedia(false)
+    }
+  }
 
   /** Aplica uma ação da toolbar preservando a posição do cursor. */
   const applyAction = (action: ToolbarAction) => {
@@ -143,7 +249,8 @@ export function MarkdownParagraphBlock({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] text-slate-500 font-semibold">
-          Markdown aceito: **negrito**, *itálico*, `código`, [link](url), listas e #/##/### títulos
+          Markdown aceito: **negrito**, *itálico*, `código`, [link](url), ![imagem](url), listas e
+          #/##/### títulos
         </p>
         <div className="flex items-center gap-1 shrink-0">
           {previewing && (
@@ -193,6 +300,20 @@ export function MarkdownParagraphBlock({
                 </span>
               )
             })}
+            <span className="w-px h-4 bg-slate-700 mx-1" aria-hidden />
+            <button
+              type="button"
+              title="Inserir imagem (URL, upload ou mídia da conta)"
+              aria-label="Inserir imagem"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (previewing) setPreviewing(false)
+                setImageDialog(true)
+              }}
+              className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/70 transition-colors"
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+            </button>
           </div>
           <Textarea
             ref={textareaRef}
@@ -205,8 +326,159 @@ export function MarkdownParagraphBlock({
               'font-mono leading-relaxed rounded-t-none mt-0',
             )}
           />
+          {/* input de arquivo escondido para o upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileSelected}
+          />
         </div>
       )}
+
+      {/* Diálogo de inserir imagem (3 origens) */}
+      <Dialog open={imageDialog} onOpenChange={setImageDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Inserir imagem na nota</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-1 pb-1">
+            {(
+              [
+                ['url', 'URL'],
+                ['upload', 'Upload'],
+                ['media', 'Mídias da conta'],
+              ] as Array<[ImageSource, string]>
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => loadMediaForPicker(key)}
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors',
+                  mediaTab === key
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {mediaTab === 'url' && (
+            <div className="space-y-2">
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://exemplo.com/imagem.jpg"
+                className="h-9 text-xs"
+              />
+              {imageUrl.trim() && (
+                <img
+                  src={imageUrl.trim()}
+                  alt="Prévia"
+                  className="max-h-40 rounded-lg border border-border object-contain"
+                  onError={(e) => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          {mediaTab === 'upload' && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1.5"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFile}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {uploadingFile ? 'Enviando...' : 'Escolher arquivo do dispositivo'}
+              </Button>
+              {pickerItems.length > 0 && (
+                <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                  {pickerItems.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        insertImageSnippet(m.url, m.name)
+                        setImageDialog(false)
+                      }}
+                      className="rounded-lg overflow-hidden border border-border hover:border-primary/60 transition-colors"
+                    >
+                      <img src={m.url} alt={m.name} className="w-full h-16 object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {mediaTab === 'media' && (
+            <div className="space-y-2">
+              {loadingMedia ? (
+                <p className="text-xs text-muted-foreground">Carregando mídias...</p>
+              ) : pickerItems.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma mídia favoritada ainda — favorite itens na grade de mídias para vê-los
+                  aqui.
+                </p>
+              ) : (
+                <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                  {pickerItems.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        insertImageSnippet(m.url, m.name)
+                        setImageDialog(false)
+                      }}
+                      className="rounded-lg overflow-hidden border border-border hover:border-primary/60 transition-colors"
+                      title={m.name}
+                    >
+                      <img src={m.url} alt={m.name} className="w-full h-16 object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => setImageDialog(false)}
+            >
+              Cancelar
+            </Button>
+            {mediaTab === 'url' && (
+              <Button
+                type="button"
+                size="sm"
+                className="text-xs"
+                disabled={!imageUrl.trim()}
+                onClick={() => {
+                  insertImageSnippet(imageUrl.trim(), 'imagem')
+                  setImageUrl('')
+                  setImageDialog(false)
+                }}
+              >
+                Inserir
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
