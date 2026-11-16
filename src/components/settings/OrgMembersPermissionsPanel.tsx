@@ -56,6 +56,8 @@ import {
   type OrgPermissions,
 } from '@/services/org-members'
 import { MemberDetailsDialog } from '@/components/settings/MemberDetailsDialog'
+import { RoleHistoryDialog } from '@/components/settings/RoleHistoryDialog'
+import { History } from 'lucide-react'
 import { formatDateTimeBR, exportMembersCsv } from '@/lib/members-csv'
 
 const ROLE_META: Record<string, { label: string; icon: typeof Crown; cls: string }> = {
@@ -191,6 +193,7 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
   const [pending, setPending] = useState<OrgRole | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [permsOpen, setPermsOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const qc = useQueryClient()
 
   const current: OrgRole = roleFromMember(member)
@@ -278,6 +281,16 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
           <Info className="w-3.5 h-3.5" />
           Detalhes
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs gap-1 shrink-0 text-muted-foreground"
+          onClick={() => setHistoryOpen(true)}
+          title="Histórico de mudanças de papel deste membro"
+        >
+          <History className="w-3.5 h-3.5" />
+          Histórico
+        </Button>
         {canManage && (
           <>
             <Button
@@ -310,6 +323,7 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
           onOpenChange={setDetailsOpen}
         />
         <MemberPermissionsDialog member={member} open={permsOpen} onOpenChange={setPermsOpen} />
+        <RoleHistoryDialog member={member} open={historyOpen} onOpenChange={setHistoryOpen} />
       </div>
 
       {open && canManage && (

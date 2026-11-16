@@ -33,11 +33,14 @@ import {
   Pencil,
   Image as ImageIcon,
   Upload,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { renderMarkdownLite } from '@/lib/markdown-lite'
 import { cn } from '@/lib/utils'
 import { listBankAssets, uploadNoteImage } from '@/services/second-brain-media'
 import { listSecondBrainFavorites } from '@/services/second-brain-favorites'
+import { SecondBrainAdvancedImageEditor } from '@/components/studio/SecondBrainAdvancedImageEditor'
+import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
 
 interface MarkdownParagraphBlockProps {
   content: string
@@ -110,6 +113,39 @@ export function MarkdownParagraphBlock({
   const [loadingMedia, setLoadingMedia] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Edição avançada ANTES de inserir: ajusta a imagem escolhida com o mesmo
+  // motor da grade (filtros, presets, texto) e só depois joga no doc.
+  const [editorUrl, setEditorUrl] = useState<string | null>(null)
+  const [editorAlt, setEditorAlt] = useState('')
+  const [editorCustomization, setEditorCustomization] = useState<AdvancedCustomizationState | null>(
+    null,
+  )
+
+  /** Abre a Edição Avançada da mídia escolhida (não insere ainda). */
+  const openAdvancedEdit = useCallback((url: string, alt = 'imagem') => {
+    if (!url) return
+    setEditorUrl(url)
+    setEditorAlt(alt)
+  }, [])
+
+  /** Callback do editor avançado: insere o resultado (rasterizado ou filtro). */
+  const handleEditorSave = useCallback(
+    (result: {
+      editedUrl: string | null
+      filter: string
+      customization: AdvancedCustomizationState
+    }) => {
+      // Legenda do alt guarda o filtro aplicado — o preview usa o mesmo motor
+      // de CSS via buildBrainImageFilter na renderização da nota.
+      const alt = editorAlt || 'imagem'
+      const url = result.editedUrl || editorUrl || ''
+      setEditorCustomization(result.customization)
+      insertImageSnippet(url, alt)
+      setEditorUrl(null)
+    },
+    [editorAlt, editorUrl, insertImageSnippet],
+  )
 
   /** Insere a sintaxe de imagem no cursor (ou no fim). */
   const insertImageSnippet = useCallback(
@@ -408,16 +444,20 @@ export function MarkdownParagraphBlock({
                       key={m.id}
                       type="button"
                       onClick={() => {
-                        insertImageSnippet(m.url, m.name)
+                        openAdvancedEdit(m.url, m.name)
                         setImageDialog(false)
                       }}
                       className="rounded-lg overflow-hidden border border-border hover:border-primary/60 transition-colors"
+                      title={`${m.name} — clique para editar antes de inserir`}
                     >
                       <img src={m.url} alt={m.name} className="w-full h-16 object-cover" />
                     </button>
                   ))}
                 </div>
               )}
+              <p className="text-[10px] text-muted-foreground">
+                Clique numa imagem para editar (filtros, ajustes, texto) antes de inserir.
+              </p>
             </div>
           )}
 
@@ -437,11 +477,11 @@ export function MarkdownParagraphBlock({
                       key={m.id}
                       type="button"
                       onClick={() => {
-                        insertImageSnippet(m.url, m.name)
+                        openAdvancedEdit(m.url, m.name)
                         setImageDialog(false)
                       }}
                       className="rounded-lg overflow-hidden border border-border hover:border-primary/60 transition-colors"
-                      title={m.name}
+                      title={`${m.name} — clique para editar antes de inserir`}
                     >
                       <img src={m.url} alt={m.name} className="w-full h-16 object-cover" />
                     </button>
@@ -462,23 +502,53 @@ export function MarkdownParagraphBlock({
               Cancelar
             </Button>
             {mediaTab === 'url' && (
-              <Button
-                type="button"
-                size="sm"
-                className="text-xs"
-                disabled={!imageUrl.trim()}
-                onClick={() => {
-                  insertImageSnippet(imageUrl.trim(), 'imagem')
-                  setImageUrl('')
-                  setImageDialog(false)
-                }}
-              >
-                Inserir
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1"
+                  disabled={!imageUrl.trim()}
+                  onClick={() => {
+                    openAdvancedEdit(imageUrl.trim(), 'imagem')
+                    setImageUrl('')
+                    setImageDialog(false)
+                  }}
+                  title="Abrir a Edição Avançada (filtros, ajustes, texto sobreposto)"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  Editar antes de inserir
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="text-xs"
+                  disabled={!imageUrl.trim()}
+                  onClick={() => {
+                    insertImageSnippet(imageUrl.trim(), 'imagem')
+                    setImageUrl('')
+                    setImageDialog(false)
+                  }}
+                >
+                  Inserir direto
+                </Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edição Avançada (motor da grade) antes de inserir no doc */}
+      <SecondBrainAdvancedImageEditor
+        open={!!editorUrl}
+        onOpenChange={(o) => {
+          if (!o) setEditorUrl(null)
+        }}
+        title={editorAlt}
+        imageUrl={editorUrl}
+        initialCustomization={editorCustomization}
+        onSave={handleEditorSave}
+      />
     </div>
   )
 }

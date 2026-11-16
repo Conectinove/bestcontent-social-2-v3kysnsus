@@ -1,7 +1,8 @@
 /**
  * Parser de Markdown LEVE (próprio, sem dependências) para notas do Segundo
  * Cérebro. ESCAPA TODO HTML antes do parse — a prévia nunca executa markup
- * bruto. Suporta: negrito, itálico, código inline, links e títulos e listas.
+ * bruto. Suporta: negrito, itálico, código inline, links, títulos, listas,
+ * imagens, VÍDEO (mp4/webm/embed YouTube/Vimeo) e ÁUDIO (mp3/wav/ogg).
  */
 
 const escapeHtml = (s: string): string =>
@@ -22,17 +23,82 @@ const safeHref = (url: string): string | null => {
   }
 }
 
-/** Sanitiza src de imagem: aceita apenas http(s) — nunca javascript:/data:. */
-const safeImgSrc = (url: string): string | null => {
+/** Sanitiza src de mídia: aceita apenas http(s) — nunca javascript:/data:. */
+const safeImgSrc = (url: string): string | null => safeHref(url)
+
+/** Extensões de mídia reconhecidas dentro de ![alt](url). */
+const VIDEO_EXT = /\.(mp4|webm|ogv|mov)(\?|#|$)/i
+const AUDIO_EXT = /\.(mp3|wav|ogg|m4a|aac|oga|flac)(\?|#|$)/i
+
+/** Extrai o id de vídeo de um embed do YouTube (watch, youtu.be, shorts, embed). */
+export const youtubeIdFromUrl = (url: string): string | null => {
   try {
     const u = new URL(url)
-    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null
+    const host = u.hostname.replace(/^www\./, '')
+    if (host === 'youtu.be') return u.pathname.slice(1).split('/')[0] || null
+    if (host.endsWith('youtube.com')) {
+      if (u.pathname.startsWith('/watch')) return u.searchParams.get('v')
+      const m = u.pathname.match(/^\/(embed|shorts|live)\/([^/?#]+)/)
+      if (m) return m[2]
+    }
+    return null
   } catch {
     return null
   }
 }
 
-/** Inline: código, imagens, negrito, itálico e links (o texto já veio escapado). */
+/** Extrai o id de vídeo de um player do Vimeo. */
+export const vimeoIdFromUrl = (url: string): string | null => {
+  const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+  return m ? m[1] : null
+}
+
+/** true quando a URL aponta para um arquivo de áudio. */
+export const isAudioUrl = (url: string): boolean => AUDIO_EXT.test(url || '')
+/** true quando a URL aponta para um arquivo de vídeo. */
+export const isVideoUrl = (url: string): boolean => VIDEO_EXT.test(url || '')
+
+const iframeClass =
+  'w-full aspect-video max-w-full rounded-lg border border-slate-700/60 my-2 block'
+
+/** Renderiza ![alt](url) como vídeo/áudio quando o tipo é reconhecido. */
+const renderMedia = (alt: string, url: string, fallback: string): string => {
+  const src = safeImgSrc(url)
+  if (!src) return fallback
+  if (isAudioUrl(src)) {
+    return (
+      `<figure class="my-2 max-w-full">` +
+      `<audio controls preload="metadata" src="${src}" class="w-full max-w-md">` +
+      `</audio>` +
+      (alt ? `<figcaption class="text-[11px] text-slate-400 mt-1">${alt}</figcaption>` : '') +
+      `</figure>`
+    )
+  }
+  if (isVideoUrl(src)) {
+    return (
+      `<video controls preload="metadata" src="${src}" ` +
+      `class="w-full max-w-full rounded-lg border border-slate-700/60 my-2"></video>` +
+      (alt ? `<span class="block text-[11px] text-slate-400 -mt-1 mb-2">${alt}</span>` : '')
+    )
+  }
+  const yt = youtubeIdFromUrl(src)
+  if (yt) {
+    return (
+      `<iframe src="https://www.youtube.com/embed/${yt}" title="${alt || 'Vídeo'}" ` +
+      `allowfullscreen loading="lazy" class="${iframeClass}"></iframe>`
+    )
+  }
+  const vm = vimeoIdFromUrl(src)
+  if (vm) {
+    return (
+      `<iframe src="https://player.vimeo.com/video/${vm}" title="${alt || 'Vídeo'}" ` +
+      `allowfullscreen loading="lazy" class="${iframeClass}"></iframe>`
+    )
+  }
+  return fallback
+}
+
+/** Inline: código, mídia, negrito, itálico e links (o texto já veio escapado). */
 const renderInline = (escaped: string): string => {
   // Código inline guardado primeiro: mantém o conteúdo fora dos demais parses.
   const codes: string[] = []
@@ -43,12 +109,15 @@ const renderInline = (escaped: string): string => {
   })
 
   out = out
-    // Imagens ![alt](url) — antes dos links, para não virar <a> aninhado
+    // Mídia ![alt](url) — imagem, vídeo ou áudio; antes dos links
     .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt: string, url: string) => {
       const src = safeImgSrc(url)
-      return src
-        ? `<img src="${src}" alt="${alt}" class="max-w-full rounded-lg border border-slate-700/60 my-2" loading="lazy" />`
-        : m
+      const fallback =
+        `<img src="${src || ''}" alt="${alt}" ` +
+        `class="w-auto max-w-full h-auto rounded-lg border border-slate-700/60 my-2" ` +
+        `loading="lazy" />`
+      if (!src) return m
+      return renderMedia(alt, url, fallback)
     })
     // Links [texto](url)
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, text: string, url: string) => {
@@ -94,7 +163,8 @@ const LI_CLASS = 'text-sm leading-relaxed text-slate-200'
 
 /**
  * Converte Markdown leve em HTML seguro (o input é escapado ANTES do parse).
- * Blocos: títulos (# ## ###), listas (-, *, 1.), parágrafos. Suporta inline.
+ * Blocos: títulos (# ## ###), listas (-, *, 1.), parágrafos. Suporta inline e
+ * mídia (imagem/vídeo/áudio) via ![alt](url).
  */
 export function renderMarkdownLite(src: string): string {
   const lines = escapeHtml(src || '').split(/\r?\n/)
