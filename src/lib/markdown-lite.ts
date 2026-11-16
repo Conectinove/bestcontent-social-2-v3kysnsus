@@ -22,7 +22,17 @@ const safeHref = (url: string): string | null => {
   }
 }
 
-/** Inline: código, negrito, itálico e links (o texto já veio escapado). */
+/** Sanitiza src de imagem: aceita apenas http(s) — nunca javascript:/data:. */
+const safeImgSrc = (url: string): string | null => {
+  try {
+    const u = new URL(url)
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null
+  } catch {
+    return null
+  }
+}
+
+/** Inline: código, imagens, negrito, itálico e links (o texto já veio escapado). */
 const renderInline = (escaped: string): string => {
   // Código inline guardado primeiro: mantém o conteúdo fora dos demais parses.
   const codes: string[] = []
@@ -33,6 +43,13 @@ const renderInline = (escaped: string): string => {
   })
 
   out = out
+    // Imagens ![alt](url) — antes dos links, para não virar <a> aninhado
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt: string, url: string) => {
+      const src = safeImgSrc(url)
+      return src
+        ? `<img src="${src}" alt="${alt}" class="max-w-full rounded-lg border border-slate-700/60 my-2" loading="lazy" />`
+        : m
+    })
     // Links [texto](url)
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, text: string, url: string) => {
       const href = safeHref(url)
@@ -55,6 +72,20 @@ const renderInline = (escaped: string): string => {
       : ''
   })
   return out
+}
+
+/** Valida uma URL externa colada pelo usuário: só http(s). Null quando inválida. */
+export const safeExternalUrl = (raw: string): string | null => {
+  const value = (raw || '').trim()
+  if (!/^https?:\/\//i.test(value)) return null
+  const src = safeImgSrc(value)
+  if (src) return src
+  try {
+    const u = new URL(value)
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null
+  } catch {
+    return null
+  }
 }
 
 const H_CLASS = 'font-bold text-white'

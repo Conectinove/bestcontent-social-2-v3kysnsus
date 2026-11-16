@@ -15,11 +15,24 @@ import {
   Download,
   Info,
   Mail,
+  Calendar,
+  KeyRound,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
 import {
   listOrgMembers,
@@ -28,7 +41,12 @@ import {
   type OrgMember,
   type OrgRole,
 } from '@/services/org-members'
-import { cancelOrgInvite, resendOrgInvite, type OrgInvite } from '@/services/org-invites'
+import {
+  cancelOrgInvite,
+  listOrgInvites,
+  resendOrgInvite,
+  type OrgInvite,
+} from '@/services/org-invites'
 import {
   ORG_PERMISSIONS,
   permissionsOf,
@@ -67,6 +85,105 @@ interface MemberRowProps {
   member: OrgMember
   canManage: boolean
   isPending?: boolean
+}
+
+/** Diálogo de permissões granulares (users.org_permissions, migration 0128). */
+function MemberPermissionsDialog({
+  member,
+  open,
+  onOpenChange,
+}: {
+  member: OrgMember
+  open: boolean
+  onOpenChange: (v: boolean) => void
+}) {
+  const qc = useQueryClient()
+  const [perms, setPerms] = useState<OrgPermissions>(() => permissionsOf(member))
+  const [role, setRole] = useState<OrgRole>(() => roleFromMember(member))
+
+  // Re-sincroniza o rascunho quando o diálogo abre para outro membro.
+  useEffect(() => {
+    if (open) {
+      setPerms(permissionsOf(member))
+      setRole(roleFromMember(member))
+    }
+  }, [open, member])
+
+  const permMutation = useMutation({
+    mutationFn: (p: OrgPermissions) => setMemberPermissions(member.id, p),
+    onSuccess: (_data, p) => {
+      qc.invalidateQueries({ queryKey: ['org-members'] })
+      toast({ title: 'Permissões salvas', description: `${member.name} atualizado.` })
+      onOpenChange(false)
+    },
+    onError: (err: unknown) =>
+      toast({
+        title: 'Erro ao salvar permissões',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      }),
+  })
+
+  const togglePerm = (key: keyof OrgPermissions, checked: boolean | 'indeterminate') =>
+    setPerms((prev) => ({ ...prev, [key]: checked === true }))
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-sm flex items-center gap-1.5">
+            <KeyRound className="w-4 h-4 text-primary" />
+            Permissões granulares — {member.name || member.email}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-[11px] text-muted-foreground">
+          Cargo base: <span className="font-semibold text-foreground">{role}</span> · as permissões
+          abaixo controlam recursos específicos além do cargo.
+        </p>
+        <div className="space-y-2 py-1">
+          {ORG_PERMISSIONS.map((p) => (
+            <label
+              key={p.key}
+              className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/30 p-2.5 cursor-pointer hover:border-primary/40 transition-colors"
+            >
+              <Checkbox
+                checked={!!perms[p.key]}
+                onCheckedChange={(c) => togglePerm(p.key, c)}
+                className="mt-0.5"
+                disabled={permMutation.isPending}
+              />
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-foreground">{p.label}</span>
+                <span className="block text-[10px] text-muted-foreground">{p.description}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+            disabled={permMutation.isPending}
+            onClick={() => onOpenChange(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="text-xs gap-1"
+            disabled={permMutation.isPending}
+            onClick={() => permMutation.mutate(perms)}
+          >
+            {permMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Salvar permissões
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function MemberRow({ member, canManage, isPending }: MemberRowProps) {
@@ -162,17 +279,29 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
           Detalhes
         </Button>
         {canManage && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs gap-1 shrink-0"
-            onClick={() => setOpen((v) => !v)}
-          >
-            Permissões
-            <ChevronDown
-              className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
-            />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs gap-1 shrink-0"
+              onClick={() => setOpen((v) => !v)}
+            >
+              Cargo
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+              />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs gap-1 shrink-0 text-primary"
+              onClick={() => setPermsOpen(true)}
+              title="Permissões granulares (blog, Segundo Cérebro, mídias, relatórios)"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              Granulares
+            </Button>
+          </>
         )}
         <MemberDetailsDialog
           member={member}
@@ -180,6 +309,7 @@ function MemberRow({ member, canManage, isPending }: MemberRowProps) {
           open={detailsOpen}
           onOpenChange={setDetailsOpen}
         />
+        <MemberPermissionsDialog member={member} open={permsOpen} onOpenChange={setPermsOpen} />
       </div>
 
       {open && canManage && (
@@ -358,6 +488,11 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | OrgRole>('all')
+  // Filtro por data de entrada + paginação da lista.
+  const [joinedFrom, setJoinedFrom] = useState('')
+  const [joinedTo, setJoinedTo] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 8
   const { data, isLoading, error } = useQuery({
     queryKey: ['org-members'],
     queryFn: listOrgMembers,
@@ -374,14 +509,32 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
+    // Datas no formato yyyy-MM-dd; "até" é inclusivo (vai até 23:59:59).
+    const fromTs = joinedFrom ? new Date(`${joinedFrom}T00:00:00`).getTime() : null
+    const toTs = joinedTo ? new Date(`${joinedTo}T23:59:59.999`).getTime() : null
     return (data || []).filter((m) => {
       const matchQ =
         !q || (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)
       const role = (m.org_role || m.role || 'viewer') as OrgRole
       const matchRole = roleFilter === 'all' || role === roleFilter
-      return matchQ && matchRole
+      const createdTs = m.created ? new Date(m.created).getTime() : NaN
+      const matchDate =
+        (fromTs === null || (!Number.isNaN(createdTs) && createdTs >= fromTs)) &&
+        (toTs === null || (!Number.isNaN(createdTs) && createdTs <= toTs))
+      return matchQ && matchRole && matchDate
     })
-  }, [data, search, roleFilter])
+  }, [data, search, roleFilter, joinedFrom, joinedTo])
+
+  // Paginação sobre a lista filtrada; volta à página 1 quando o filtro muda.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filtered, safePage],
+  )
+  useEffect(() => {
+    setPage(1)
+  }, [search, roleFilter, joinedFrom, joinedTo])
 
   const roleCounts = useMemo(() => {
     const counts: Record<string, number> = { all: (data || []).length }
@@ -448,7 +601,7 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div className="space-y-3">
-      {/* Busca + filtro por cargo */}
+      {/* Busca + filtro por cargo + filtro por data de entrada */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -457,6 +610,24 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nome ou email..."
             className="pl-9 h-9 text-xs"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <Input
+            type="date"
+            value={joinedFrom}
+            onChange={(e) => setJoinedFrom(e.target.value)}
+            title="Entrada a partir de"
+            className="h-9 text-[11px] w-[130px]"
+          />
+          <span className="text-[11px] text-muted-foreground">até</span>
+          <Input
+            type="date"
+            value={joinedTo}
+            onChange={(e) => setJoinedTo(e.target.value)}
+            title="Entrada até"
+            className="h-9 text-[11px] w-[130px]"
           />
         </div>
         <div className="flex flex-wrap items-center gap-1">
@@ -513,10 +684,40 @@ export function OrgMembersPermissionsPanel({ isAdmin }: { isAdmin: boolean }) {
           Nenhum membro encontrado com esse filtro.
         </p>
       ) : (
-        filtered.map((m) => {
-          const isPending = pendingEmails.has((m.email || '').toLowerCase())
-          return <MemberRow key={m.id} member={m} canManage={isAdmin} isPending={isPending} />
-        })
+        <>
+          {paged.map((m) => {
+            const isPending = pendingEmails.has((m.email || '').toLowerCase())
+            return <MemberRow key={m.id} member={m} canManage={isAdmin} isPending={isPending} />
+          })}
+          {/* Paginação (8 por página) */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[11px] gap-1"
+                disabled={safePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Anterior
+              </Button>
+              <span className="text-[11px] text-muted-foreground">
+                Página {safePage} de {totalPages} · {filtered.length} membro(s)
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[11px] gap-1"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Próxima
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

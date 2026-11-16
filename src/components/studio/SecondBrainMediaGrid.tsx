@@ -31,6 +31,7 @@ import {
 } from '@/services/second-brain-media'
 import { Input } from '@/components/ui/input'
 import { analyzeImagesInto, dominantColorOf, orientationOf } from '@/lib/image-analysis'
+import { safeExternalUrl } from '@/lib/markdown-lite'
 import type { SecondBrainDoc, SecondBrainModule, SecondBrainBlock } from '@/services/second-brain'
 import { cn } from '@/lib/utils'
 import { MediaGridAdvancedControls } from '@/components/studio/MediaGridAdvancedControls'
@@ -43,6 +44,7 @@ export type MediaTab =
   | 'acervo'
   | 'uploads'
   | 'biblioteca'
+  | 'url'
   | 'drive'
   | 'unsplash'
   | 'pexels'
@@ -53,6 +55,7 @@ const TABS: { key: MediaTab; label: string }[] = [
   { key: 'acervo', label: 'Acervo' },
   { key: 'uploads', label: 'Uploads' },
   { key: 'biblioteca', label: 'Biblioteca' },
+  { key: 'url', label: 'URL externa' },
   { key: 'drive', label: 'Drive' },
   { key: 'unsplash', label: 'Unsplash' },
   { key: 'pexels', label: 'Pexels' },
@@ -199,6 +202,35 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
   const [newTemplateName, setNewTemplateName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  /* Aba "URL externa": adiciona mídia de uma URL http(s) como item linkável/imagem. */
+  const [urlName, setUrlName] = useState('')
+  const [urlValue, setUrlValue] = useState('')
+  const [urlKind, setUrlKind] = useState<'link' | 'imagem' | 'video'>('link')
+  const [urlDocs, setUrlDocs] = useState<GridItem[]>([])
+
+  const handleAddUrl = () => {
+    const value = urlValue.trim()
+    const safe = safeExternalUrl(value)
+    if (!safe) {
+      setError('Informe uma URL válida começando com http:// ou https://.')
+      return
+    }
+    const name = urlName.trim() || safe.replace(/^https?:\/\//, '').slice(0, 60) || 'Mídia externa'
+    const item: GridItem = {
+      id: `url:${safe}`,
+      name,
+      url: safe,
+      thumbUrl: urlKind === 'imagem' ? safe : '',
+      type: urlKind,
+      source: 'url',
+      createdAt: new Date().toISOString(),
+    }
+    setUrlDocs((prev) => [item, ...prev.filter((i) => i.id !== item.id)])
+    setUrlValue('')
+    setUrlName('')
+    setError(null)
+  }
 
   /* Carrega o conteúdo da aba ativa (best-effort, nunca bloqueia a UI). */
   const loadTab = async (t: MediaTab) => {
@@ -440,6 +472,8 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
         return acervoItems
       case 'uploads':
         return uploads
+      case 'url':
+        return urlDocs
       case 'biblioteca':
         return fetchCuratedMediaSource(search).map((i) => toGridItem(i, 'biblioteca'))
       case 'drive':
@@ -772,6 +806,56 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
             </div>
           )}
         </div>
+
+        {/* Aba "URL externa": formulário de URL/Docs + lista do que já foi adicionado */}
+        {tab === 'url' && (
+          <div className="space-y-2 pb-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={urlName}
+                onChange={(e) => setUrlName(e.target.value)}
+                placeholder="Nome (opcional) — ex: Apresentação do cliente"
+                className="h-8 w-52 text-xs"
+              />
+              <Input
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                placeholder="https://... (link, imagem, vídeo ou Google Docs)"
+                className="h-8 flex-1 min-w-[220px] text-xs"
+              />
+              <div className="flex items-center gap-1">
+                {(['link', 'imagem', 'video'] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setUrlKind(k)}
+                    className={cn(
+                      'px-2 py-1 rounded-md text-[10px] font-semibold border transition-colors',
+                      urlKind === k
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'border-border text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {k === 'link' ? 'Link' : k === 'imagem' ? 'Imagem' : 'Vídeo'}
+                  </button>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                className="h-8 text-[11px] gap-1"
+                onClick={handleAddUrl}
+                disabled={!urlValue.trim()}
+              >
+                <Check className="w-3.5 h-3.5" />
+                Adicionar
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Cole a URL de um documento (Google Docs, Notion, PDF hospedado), imagem ou vídeo
+              externo. Ela entra na lista abaixo e pode ser incluída no doc como bloco.
+            </p>
+          </div>
+        )}
 
         {/* Modelos salvos (studio_edit_presets com namespace secondbrain:) */}
         {tab === 'acervo' && (

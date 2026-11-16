@@ -5,6 +5,7 @@
  */
 import pb from '@/lib/pocketbase/client'
 import { saveEditPreset, listEditPresets, deleteEditPreset } from '@/services/studio-edit-presets'
+import { getAssetUrl, uploadImageBankAsset } from '@/services/image-bank'
 import { saveEditVersion, listEditVersions } from '@/services/studio-edit-versions'
 import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
 import { nearestStockColor } from '@/lib/image-analysis'
@@ -579,6 +580,27 @@ export async function saveSecondBrainMediaVersion(input: {
   } catch {
     // best-effort: o histórico nunca bloqueia o salvamento principal
   }
+}
+
+/* ------------------------ Upload de imagem de nota --------------------- */
+
+/**
+ * Envia um arquivo de imagem escolhido numa nota do Segundo Cérebro e devolve
+ * a URL pública. Grava no backend via image_bank_assets (mesmo pipeline do
+ * banco de imagens: regras e regras de servidor já testadas), mantendo o
+ * registro vinculado ao usuário logado — o item aparece depois na aba Acervo
+ * da grade de mídias.
+ */
+export async function uploadNoteImage(file: File): Promise<string> {
+  const asset = await uploadImageBankAsset(file, {
+    name: file.name.replace(/\.[^/.]+$/, '') || 'Imagem da nota',
+    category: 'geral',
+  })
+  const url = getAssetUrl(asset)
+  if (!url) {
+    throw new Error('Upload concluído, mas a URL da imagem não foi gerada.')
+  }
+  return url
 }
 
 /* ---------------- Fontes em formato de item (grade) — acervo / curados ----------- */
