@@ -129,24 +129,6 @@ export function MarkdownParagraphBlock({
     setEditorAlt(alt)
   }, [])
 
-  /** Callback do editor avançado: insere o resultado (rasterizado ou filtro). */
-  const handleEditorSave = useCallback(
-    (result: {
-      editedUrl: string | null
-      filter: string
-      customization: AdvancedCustomizationState
-    }) => {
-      // Legenda do alt guarda o filtro aplicado — o preview usa o mesmo motor
-      // de CSS via buildBrainImageFilter na renderização da nota.
-      const alt = editorAlt || 'imagem'
-      const url = result.editedUrl || editorUrl || ''
-      setEditorCustomization(result.customization)
-      insertImageSnippet(url, alt)
-      setEditorUrl(null)
-    },
-    [editorAlt, editorUrl, insertImageSnippet],
-  )
-
   /** Insere a sintaxe de imagem no cursor (ou no fim). */
   const insertImageSnippet = useCallback(
     (url: string, alt = 'imagem') => {
@@ -169,6 +151,22 @@ export function MarkdownParagraphBlock({
       })
     },
     [content, onChange],
+  )
+
+  /** Callback do editor avançado: insere o resultado (rasterizado ou filtro). */
+  const handleEditorSave = useCallback(
+    (result: {
+      editedUrl: string | null
+      filter: string
+      customization: AdvancedCustomizationState
+    }) => {
+      const alt = editorAlt || 'imagem'
+      const url = result.editedUrl || editorUrl || ''
+      setEditorCustomization(result.customization)
+      insertImageSnippet(url, alt)
+      setEditorUrl(null)
+    },
+    [editorAlt, editorUrl, insertImageSnippet],
   )
 
   /** Envia o arquivo escolhido ao PocketBase e insere a URL na nota. */

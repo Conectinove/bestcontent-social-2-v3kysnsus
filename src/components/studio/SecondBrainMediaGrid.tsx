@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, RefreshCw, Search, Star, Filter, AlertCircle } from 'lucide-react'
+import { Check, RefreshCw, Search, Star, Filter, AlertCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,7 +31,13 @@ import {
 } from '@/services/second-brain-media'
 import { Input } from '@/components/ui/input'
 import { analyzeImagesInto, dominantColorOf, orientationOf } from '@/lib/image-analysis'
-import { safeExternalUrl } from '@/lib/markdown-lite'
+import {
+  safeExternalUrl,
+  isAudioUrl,
+  isVideoUrl,
+  youtubeIdFromUrl,
+  vimeoIdFromUrl,
+} from '@/lib/markdown-lite'
 import type { SecondBrainDoc, SecondBrainModule, SecondBrainBlock } from '@/services/second-brain'
 import { cn } from '@/lib/utils'
 import { MediaGridAdvancedControls } from '@/components/studio/MediaGridAdvancedControls'
@@ -109,6 +115,7 @@ interface GridItem {
   author?: string
   width?: number
   height?: number
+  tags?: string[]
 }
 
 const toGridItem = (m: SecondBrainMediaItem, source: MediaTab): GridItem => ({
@@ -124,6 +131,7 @@ const toGridItem = (m: SecondBrainMediaItem, source: MediaTab): GridItem => ({
   author: m.meta?.author as string | undefined,
   width: m.meta?.width as number | undefined,
   height: m.meta?.height as number | undefined,
+  tags: Array.isArray(m.tags) ? m.tags : [],
 })
 
 const stockToItem = (r: StockSearchResult, source: 'unsplash' | 'pexels'): GridItem => ({
@@ -137,6 +145,7 @@ const stockToItem = (r: StockSearchResult, source: 'unsplash' | 'pexels'): GridI
   author: r.author,
   width: r.width,
   height: r.height,
+  tags: [],
 })
 
 /* ========================= FILTROS DE PERÍODO ========================= */
@@ -164,6 +173,23 @@ const isWithinDate = (createdAt: string, f: DateFilter, from?: string, to?: stri
   return now.getTime() - d.getTime() <= days * 86400000
 }
 
+/* ===================== URL EXTERNA: vídeo e áudio ===================== */
+
+type UrlKind = 'auto' | 'video' | 'audio' | 'link'
+
+const detectUrlKind = (url: string): UrlKind => {
+  if (isAudioUrl(url)) return 'audio'
+  if (isVideoUrl(url) || youtubeIdFromUrl(url) || vimeoIdFromUrl(url)) return 'video'
+  return 'link'
+}
+
+const URL_KIND_OPTIONS: { key: UrlKind; label: string }[] = [
+  { key: 'auto', label: 'Detectar' },
+  { key: 'video', label: 'Vídeo' },
+  { key: 'audio', label: 'Áudio' },
+  { key: 'link', label: 'Link' },
+]
+
 /* ============================== COMPONENTE ============================= */
 
 export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: Props) {
@@ -173,6 +199,11 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [search, setSearch] = useState('')
+  // Chips de tags (v0.0.296): combináveis com busca, tipo e data — por aba local.
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const resetFilters = () => {
+    setSelectedTags([])
+  }
 
   // Busca avançada: orientação, cor e ordenação (stock + abas locais)
   const [orientation, setOrientation] = useState<SecondBrainOrientationFilter>('any')
@@ -203,10 +234,10 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  /* Aba "URL externa": adiciona mídia de uma URL http(s) como item linkável/imagem. */
+  /* Aba "URL externa": URL de vídeo (mp4/webm/YouTube/Vimeo) ou áudio (mp3/wav/ogg). */
   const [urlName, setUrlName] = useState('')
   const [urlValue, setUrlValue] = useState('')
-  const [urlKind, setUrlKind] = useState<'link' | 'imagem' | 'video'>('link')
+  const [urlKind, setUrlKind] = useState<UrlKind>('auto')
   const [urlDocs, setUrlDocs] = useState<GridItem[]>([])
 
   const handleAddUrl = () => {
@@ -216,15 +247,29 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
       setError('Informe uma URL válida começando com http:// ou https://.')
       return
     }
+    const detected = detectUrlKind(safe) as 'audio' | 'video' | 'link'
+    const kind: GridItem['type'] =
+      urlKind === 'auto'
+        ? detected === 'audio'
+          ? 'anexo'
+          : (detected as GridItem['type'])
+        : urlKind === 'audio'
+          ? 'anexo'
+          : urlKind
+    if (urlKind === 'audio' && detected !== 'audio') {
+      setError('Essa URL não parece ser um arquivo de áudio (mp3, wav, ogg).')
+      return
+    }
     const name = urlName.trim() || safe.replace(/^https?:\/\//, '').slice(0, 60) || 'Mídia externa'
     const item: GridItem = {
       id: `url:${safe}`,
       name,
       url: safe,
-      thumbUrl: urlKind === 'imagem' ? safe : '',
-      type: urlKind,
+      thumbUrl: kind === 'imagem' ? safe : '',
+      type: kind,
       source: 'url',
       createdAt: new Date().toISOString(),
+      tags: ['externa', detected === 'audio' ? 'áudio' : detected === 'video' ? 'vídeo' : 'link'],
     }
     setUrlDocs((prev) => [item, ...prev.filter((i) => i.id !== item.id)])
     setUrlValue('')
@@ -255,6 +300,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
                   type: String(f.meta?.type || 'imagem') as GridItem['type'],
                   source: (f.source as MediaTab) || 'acervo',
                   createdAt: f.created || '',
+                  tags: [],
                 },
               ]
             })
@@ -422,15 +468,25 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
 
   /* "Incluir no doc": anexa um bloco ao módulo final e persiste via onDocUpdated. */
   const handleInsert = async (item: GridItem) => {
+    let content: string
+    if (item.type === 'video') {
+      // Vídeo direto (mp4/webm) usa ![alt](url) — o markdown-lite renderiza
+      // <video>; YouTube/Vimeo viram iframe embed pelo mesmo caminho.
+      content = `![${item.name}](${item.url})`
+    } else if (item.type === 'anexo' && isAudioUrl(item.url)) {
+      // Áudio (mp3/wav/ogg) usa o mesmo snippet — markdown-lite renderiza <audio>.
+      content = `![${item.name}](${item.url})`
+    } else if (item.type === 'imagem') {
+      content = `![${item.name}](${item.url})`
+    } else if (item.type === 'link') {
+      content = `[${item.name}](${item.url})`
+    } else {
+      content = item.name
+    }
     const block: SecondBrainBlock = {
       id: `blk-${Date.now()}`,
       type: 'paragraph',
-      content:
-        item.type === 'imagem' || item.type === 'video'
-          ? `![${item.name}](${item.url})`
-          : item.type === 'link'
-            ? `[${item.name}](${item.url})`
-            : item.name,
+      content,
       caption:
         item.source === 'unsplash' || item.source === 'pexels'
           ? `Fonte: ${item.source}`
@@ -465,6 +521,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           type: String(f.meta?.type || 'imagem') as GridItem['type'],
           source: (f.source as MediaTab) || 'acervo',
           createdAt: f.created || '',
+          tags: [],
         }))
       case 'documento':
         return documentItems
@@ -484,7 +541,18 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
       default:
         return []
     }
-  }, [tab, favorites, documentItems, acervoItems, uploads, search, stock])
+  }, [
+    tab,
+    favorites,
+    documentItems,
+    acervoItems,
+    uploads,
+    urlDocs,
+    search,
+    stock,
+    orientation,
+    color,
+  ])
 
   /* Análise local de imagem (orientação via dimensões + cor dominante via canvas)
    * só nas abas locais, só para itens de imagem ainda não analisados. */
@@ -515,12 +583,41 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
     }
   }, [needsAnalysis, rawItems, analyzed])
 
+  /** Tags disponíveis na aba atual (derivadas dos itens; ordenadas por uso). */
+  const availableTags: string[] = useMemo(() => {
+    if (!LOCAL_ADVANCED_TABS.has(tab) && tab !== 'url') return []
+    const counts = new Map<string, number>()
+    for (const i of rawItems) for (const t of i.tags || []) counts.set(t, (counts.get(t) || 0) + 1)
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([t]) => t)
+  }, [tab, rawItems])
+
+  /* Chips deixam de ser selecionáveis quando a aba muda e a tag sumiu. */
+  useEffect(() => {
+    setSelectedTags((prev) => prev.filter((t) => availableTags.includes(t)))
+  }, [availableTags])
+
+  const toggleTag = (t: string) =>
+    setSelectedTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
+
   const items: GridItem[] = useMemo(() => {
     let out = rawItems.filter((i) => typeFilter === 'all' || i.type === typeFilter)
     out = out.filter((i) => isWithinDate(i.createdAt, dateFilter, customFrom, customTo))
     if (search.trim() && tab !== 'unsplash' && tab !== 'pexels') {
       const q = search.trim().toLowerCase()
-      out = out.filter((i) => i.name.toLowerCase().includes(q))
+      out = out.filter(
+        (i) =>
+          i.name.toLowerCase().includes(q) ||
+          (i.tags || []).some((t) => t.toLowerCase().includes(q)),
+      )
+    }
+    // Chips de tags: um item passa se tiver TODAS as tags selecionadas (combináveis).
+    if (selectedTags.length > 0) {
+      out = out.filter((i) => {
+        const own = (i.tags || []).map((t) => t.toLowerCase())
+        return selectedTags.every((t) => own.includes(t.toLowerCase()))
+      })
     }
     if (orientation !== 'any' || color !== 'any') {
       if (tab === 'unsplash' || tab === 'pexels' || LOCAL_ADVANCED_TABS.has(tab)) {
@@ -554,6 +651,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
     customFrom,
     customTo,
     search,
+    selectedTags,
     tab,
     sortBy,
     orientation,
@@ -574,7 +672,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           <DialogTitle>Biblioteca de Mídias — Segundo Cérebro</DialogTitle>
         </DialogHeader>
 
-        {/* 8 abas */}
+        {/* 9 abas */}
         <div className="flex flex-wrap items-center gap-1 border-b border-border pb-2 shrink-0">
           {TABS.map((t) => (
             <button
@@ -670,7 +768,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
               placeholder={
                 tab === 'unsplash' || tab === 'pexels'
                   ? `Buscar no ${tab === 'unsplash' ? 'Unsplash' : 'Pexels'}...`
-                  : 'Buscar mídias...'
+                  : 'Buscar mídias ou tags...'
               }
               className="pl-9 h-9 text-xs"
             />
@@ -685,6 +783,40 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
             Atualizar
           </Button>
         </div>
+
+        {/* Chips de tags (abas locais + URL externa) — combináveis com busca/tipo/data */}
+        {availableTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 pb-2 shrink-0">
+            <span className="text-[10px] font-semibold text-muted-foreground mr-1">Tags:</span>
+            {availableTags.map((t) => {
+              const active = selectedTags.includes(t)
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTag(t)}
+                  className={cn(
+                    'px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-colors',
+                    active
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40',
+                  )}
+                >
+                  #{t}
+                </button>
+              )
+            })}
+            {selectedTags.length > 0 && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="ml-1 text-[10px] font-semibold text-muted-foreground hover:text-destructive underline underline-offset-2"
+              >
+                limpar
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Busca avançada — abas de stock (API) e abas locais (análise no cliente) */}
         {(tab === 'unsplash' || tab === 'pexels' || LOCAL_ADVANCED_TABS.has(tab)) && (
@@ -722,6 +854,14 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive shrink-0">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="ml-auto text-destructive/80 hover:text-destructive shrink-0"
+              title="Fechar aviso"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
@@ -799,6 +939,18 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
                           Incluir no doc
                         </Button>
                       </div>
+                      {(item.tags?.length || 0) > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags!.slice(0, 3).map((t) => (
+                            <span
+                              key={t}
+                              className="text-[9px] rounded-full bg-muted px-1.5 py-0 text-muted-foreground"
+                            >
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -807,36 +959,36 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           )}
         </div>
 
-        {/* Aba "URL externa": formulário de URL/Docs + lista do que já foi adicionado */}
+        {/* Aba "URL externa": vídeo (mp4/webm/YouTube/Vimeo) e áudio (mp3/wav/ogg) */}
         {tab === 'url' && (
-          <div className="space-y-2 pb-2 shrink-0">
+          <div className="space-y-2 pb-2 shrink-0 border-t border-border pt-2">
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 value={urlName}
                 onChange={(e) => setUrlName(e.target.value)}
-                placeholder="Nome (opcional) — ex: Apresentação do cliente"
+                placeholder="Nome (opcional) — ex: Vídeo do lançamento"
                 className="h-8 w-52 text-xs"
               />
               <Input
                 value={urlValue}
                 onChange={(e) => setUrlValue(e.target.value)}
-                placeholder="https://... (link, imagem, vídeo ou Google Docs)"
+                placeholder="https://... (mp4/webm/YouTube/Vimeo, mp3/wav/ogg, imagem ou Docs)"
                 className="h-8 flex-1 min-w-[220px] text-xs"
               />
               <div className="flex items-center gap-1">
-                {(['link', 'imagem', 'video'] as const).map((k) => (
+                {URL_KIND_OPTIONS.map((k) => (
                   <button
-                    key={k}
+                    key={k.key}
                     type="button"
-                    onClick={() => setUrlKind(k)}
+                    onClick={() => setUrlKind(k.key)}
                     className={cn(
                       'px-2 py-1 rounded-md text-[10px] font-semibold border transition-colors',
-                      urlKind === k
+                      urlKind === k.key
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'border-border text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    {k === 'link' ? 'Link' : k === 'imagem' ? 'Imagem' : 'Vídeo'}
+                    {k.label}
                   </button>
                 ))}
               </div>
@@ -851,8 +1003,10 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Cole a URL de um documento (Google Docs, Notion, PDF hospedado), imagem ou vídeo
-              externo. Ela entra na lista abaixo e pode ser incluída no doc como bloco.
+              Cole a URL de um vídeo (arquivo mp4/webm, YouTube ou Vimeo) ou de um áudio
+              (mp3/wav/ogg) e clique em Adicionar — ela entra na lista e, ao "Incluir no doc", é
+              inserida como bloco com player (vídeo incorporado ou áudio) na nota. "Detectar"
+              reconhece o tipo pela própria URL.
             </p>
           </div>
         )}
