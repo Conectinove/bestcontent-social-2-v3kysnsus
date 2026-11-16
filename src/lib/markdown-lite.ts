@@ -2,7 +2,8 @@
  * Parser de Markdown LEVE (próprio, sem dependências) para notas do Segundo
  * Cérebro. ESCAPA TODO HTML antes do parse — a prévia nunca executa markup
  * bruto. Suporta: negrito, itálico, código inline, links, títulos, listas,
- * imagens, VÍDEO (mp4/webm/embed YouTube/Vimeo) e ÁUDIO (mp3/wav/ogg).
+ * imagens, VÍDEO (mp4/webm/embed YouTube/Vimeo/TikTok), ÁUDIO (mp3/wav/ogg),
+ * SPOTIFY (embed) e PDF (prévia via <object>).
  */
 
 const escapeHtml = (s: string): string =>
@@ -29,6 +30,7 @@ const safeImgSrc = (url: string): string | null => safeHref(url)
 /** Extensões de mídia reconhecidas dentro de ![alt](url). */
 const VIDEO_EXT = /\.(mp4|webm|ogv|mov)(\?|#|$)/i
 const AUDIO_EXT = /\.(mp3|wav|ogg|m4a|aac|oga|flac)(\?|#|$)/i
+const PDF_EXT = /\.(pdf)(\?|#|$)/i
 
 /** Extrai o id de vídeo de um embed do YouTube (watch, youtu.be, shorts, embed). */
 export const youtubeIdFromUrl = (url: string): string | null => {
@@ -53,6 +55,29 @@ export const vimeoIdFromUrl = (url: string): string | null => {
   return m ? m[1] : null
 }
 
+/**
+ * Extrai o id numérico de um vídeo do TikTok (tiktok.com/@user/video/123,
+ * vm.tiktok.com redireciona — só o padrão com id numérico é aceito).
+ */
+export const tiktokIdFromUrl = (url: string): string | null => {
+  const m = (url || '').match(/tiktok\.com\/(?:@[^/]+\/video\/|embed\/v2\/|v\/)?(\d{6,})/)
+  return m ? m[1] : null
+}
+
+/**
+ * Converte uma URL do Spotify (open.spotify.com/track|album|playlist|episode|
+ * show|artist/ID, com ou sem prefixo intl-xx) no caminho de embed
+ * "tipo/ID". Null quando não é Spotify.
+ */
+export const spotifyEmbedPathFromUrl = (url: string): string | null => {
+  const m = (url || '').match(
+    /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/,
+  )
+  return m ? `${m[1]}/${m[2]}` : null
+}
+
+/** true quando a URL aponta para um arquivo PDF. */
+export const isPdfUrl = (url: string): boolean => PDF_EXT.test(url || '')
 /** true quando a URL aponta para um arquivo de áudio. */
 export const isAudioUrl = (url: string): boolean => AUDIO_EXT.test(url || '')
 /** true quando a URL aponta para um arquivo de vídeo. */
@@ -95,6 +120,42 @@ const renderMedia = (alt: string, url: string, fallback: string): string => {
       `allowfullscreen loading="lazy" class="${iframeClass}"></iframe>`
     )
   }
+  const tt = tiktokIdFromUrl(src)
+  if (tt) {
+    return (
+      `<figure class="my-2 max-w-full">` +
+      `<iframe src="https://www.tiktok.com/embed/v2/${tt}" title="${alt || 'Vídeo do TikTok'}" ` +
+      `allow="encrypted-media;" allowfullscreen loading="lazy" ` +
+      `class="w-full max-w-[340px] aspect-[9/16] h-[600px] rounded-lg border border-slate-700/60 block"></iframe>` +
+      (alt ? `<figcaption class="text-[11px] text-slate-400 mt-1">${alt}</figcaption>` : '') +
+      `</figure>`
+    )
+  }
+  const sp = spotifyEmbedPathFromUrl(src)
+  if (sp) {
+    const tall = /^(album|playlist|show|episode)\//.test(sp)
+    return (
+      `<figure class="my-2 max-w-full">` +
+      `<iframe src="https://open.spotify.com/embed/${sp}" title="${alt || 'Spotify'}" ` +
+      `allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" ` +
+      `loading="lazy" class="w-full max-w-md rounded-lg border border-slate-700/60 block" ` +
+      `style="height:${tall ? 352 : 152}px"></iframe>` +
+      (alt ? `<figcaption class="text-[11px] text-slate-400 mt-1">${alt}</figcaption>` : '') +
+      `</figure>`
+    )
+  }
+  if (isPdfUrl(src)) {
+    return (
+      `<figure class="my-2 max-w-full">` +
+      `<object data="${src}" type="application/pdf" ` +
+      `class="w-full h-[420px] max-w-full rounded-lg border border-slate-700/60 my-2">` +
+      `<span class="text-sm text-slate-300">Prévia de PDF indisponível neste navegador — ` +
+      `<a href="${src}" target="_blank" rel="noreferrer" class="text-purple-300 underline underline-offset-2">abrir o arquivo</a></span>` +
+      `</object>` +
+      (alt ? `<figcaption class="text-[11px] text-slate-400 mt-1">${alt}</figcaption>` : '') +
+      `</figure>`
+    )
+  }
   return fallback
 }
 
@@ -109,7 +170,7 @@ const renderInline = (escaped: string): string => {
   })
 
   out = out
-    // Mídia ![alt](url) — imagem, vídeo ou áudio; antes dos links
+    // Mídia ![alt](url) — imagem, vídeo, áudio, TikTok, Spotify ou PDF; antes dos links
     .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt: string, url: string) => {
       const src = safeImgSrc(url)
       const fallback =
@@ -164,7 +225,7 @@ const LI_CLASS = 'text-sm leading-relaxed text-slate-200'
 /**
  * Converte Markdown leve em HTML seguro (o input é escapado ANTES do parse).
  * Blocos: títulos (# ## ###), listas (-, *, 1.), parágrafos. Suporta inline e
- * mídia (imagem/vídeo/áudio) via ![alt](url).
+ * mídia (imagem/vídeo/áudio/TikTok/Spotify/PDF) via ![alt](url).
  */
 export function renderMarkdownLite(src: string): string {
   const lines = escapeHtml(src || '').split(/\r?\n/)

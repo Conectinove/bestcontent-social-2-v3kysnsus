@@ -1,4 +1,5 @@
-import type { OrgMember } from '@/services/org-members'
+import type { OrgMember, OrgRoleHistoryEntry } from '@/services/org-members'
+import { ORG_ROLES } from '@/services/org-members'
 import type { OrgInvite } from '@/services/org-invites'
 
 /** Formata uma data ISO em pt-BR (dd/mm/aaaa hh:mm). */
