@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
-import { Loader2, MessageSquare, Send, X } from 'lucide-react'
+import { AtSign, Loader2, MessageSquare, Send, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,6 +14,14 @@ import {
   subscribeEditComments,
   type StudioEditComment,
 } from '@/services/studio-edit-comments'
+import { listOrgMembers } from '@/services/org-members'
+import {
+  applyMentionToDraft,
+  extractActiveMention,
+  filterMentionCandidates,
+  splitMentionSegments,
+  type MentionCandidate,
+} from '@/lib/comment-mentions'
 
 interface StudioEditCommentsPanelProps {
   targetKey: string | null
@@ -46,7 +54,8 @@ function formatTime(iso: string): string {
 /**
  * Feed de comentários da colaboração em tempo real: enquanto duas pessoas
  * editam a mesma mídia/post/doc, ambas podem trocar mensagens — chegam ao
- * vivo por realtime (migration 0108), com badge de não lidas e respostas.
+ * vivo por realtime (migration 0108), com badge de não lidas, respostas e
+ * autocomplete de menções @ (membros da organização).
  */
 export function StudioEditCommentsPanel({
   targetKey,
@@ -65,6 +74,65 @@ export function StudioEditCommentsPanel({
   const [unread, setUnread] = useState(0)
   const seenIds = useRef<Set<string>>(new Set())
   const myUserId = pb.authStore.record?.id as string | undefined
+
+  // ---- Menções @ ----------------------------------------------------------
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const [mentionRange, setMentionRange] = useState<{ start: number; end: number } | null>(null)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [mentionIndex, setMentionIndex] = useState(0)
+  const [members, setMembers] = useState<MentionCandidate[]>([])
+
+  useEffect(() => {
+    if (!open || members.length > 0) return
+    let active = true
+    listOrgMembers()
+      .then((list) => {
+        if (!active) return
+        setMembers(
+          (list || []).map((m) => ({
+            id: m.id,
+            name: m.name || m.email?.split('@')[0] || 'Membro',
+            email: m.email || '',
+          })),
+        )
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [open, members.length])
+
+  const mentionCandidates = useMemo(
+    () => filterMentionCandidates(members, mentionQuery),
+    [members, mentionQuery],
+  )
+
+  const closeMention = useCallback(() => {
+    setMentionRange(null)
+    setMentionQuery('')
+    setMentionIndex(0)
+  }, [])
+
+  const handleDraftChange = (value: string, caret: number | null) => {
+    setDraft(value)
+    const cursor = caret ?? value.length
+    const m = extractActiveMention(value, cursor)
+    if (m) {
+      setMentionRange({ start: m.start, end: m.end })
+      setMentionQuery(m.token)
+      setMentionIndex(0)
+    } else {
+      closeMention()
+    }
+  }
+
+  const pickMention = (candidate: MentionCandidate) => {
+    if (!mentionRange) return
+    const next = applyMentionToDraft(draft, mentionRange, candidate.name)
+    setDraft(next)
+    closeMention()
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
 
   const refresh = useCallback(async () => {
     if (!targetKey) return
@@ -133,6 +201,7 @@ export function StudioEditCommentsPanel({
     }
     setDraft('')
     setReplyTo(null)
+    closeMention()
     refresh()
   }
 
@@ -245,14 +314,71 @@ export function StudioEditCommentsPanel({
                 </Button>
               </div>
             )}
+            {mentionRange && mentionCandidates.length > 0 && (
+              <div className="overflow-hidden rounded-md border bg-popover shadow-md">
+                <div className="flex items-center gap-1.5 border-b px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <AtSign className="h-3 w-3" /> Mencionar membro
+                </div>
+                {mentionCandidates.map((c, i) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={cn(
+                      'flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-accent',
+                      i === mentionIndex && 'bg-accent',
+                    )}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      pickMention(c)
+                    }}
+                    onMouseEnter={() => setMentionIndex(i)}
+                  >
+                    <Avatar className="h-5 w-5">
+                      <AvatarFallback className="text-[9px]">{initials(c.name)}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate font-medium">{c.name}</span>
+                    {c.email && (
+                      <span className="ml-auto truncate text-[10px] text-muted-foreground">
+                        {c.email}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex items-end gap-2">
               <Textarea
+                ref={textareaRef}
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="Escreva um comentário para quem edita com você..."
+                onChange={(e) => handleDraftChange(e.target.value, e.target.selectionStart)}
+                placeholder="Escreva um comentário... use @ para mencionar alguém"
                 className="min-h-9 flex-1 resize-none text-sm"
                 rows={1}
                 onKeyDown={(e) => {
+                  if (mentionRange && mentionCandidates.length > 0) {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      setMentionIndex((i) => (i + 1) % mentionCandidates.length)
+                      return
+                    }
+                    if (e.key === 'ArrowUp') {
+                      e.preventDefault()
+                      setMentionIndex(
+                        (i) => (i - 1 + mentionCandidates.length) % mentionCandidates.length,
+                      )
+                      return
+                    }
+                    if (e.key === 'Enter' || e.key === 'Tab') {
+                      e.preventDefault()
+                      pickMention(mentionCandidates[mentionIndex] || mentionCandidates[0])
+                      return
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault()
+                      closeMention()
+                      return
+                    }
+                  }
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     handleSend()
@@ -291,6 +417,7 @@ function CommentBubble({
   onReply: () => void
   onDelete: (c: StudioEditComment) => void
 }) {
+  const segments = useMemo(() => splitMentionSegments(comment.body || ''), [comment.body])
   return (
     <div className="rounded-lg border bg-card p-2">
       <div className="flex items-start gap-2">
@@ -304,7 +431,20 @@ function CommentBubble({
             <span className="truncate text-xs font-medium">{comment.authorName || 'Você'}</span>
             <span className="text-[10px] text-muted-foreground">{formatTime(comment.created)}</span>
           </div>
-          <p className="mt-0.5 text-sm whitespace-pre-wrap">{comment.body}</p>
+          <p className="mt-0.5 text-sm whitespace-pre-wrap">
+            {segments.map((seg, i) =>
+              seg.mention ? (
+                <span
+                  key={i}
+                  className="mx-0.5 inline-flex items-center rounded bg-primary/10 px-1 py-px text-xs font-semibold text-primary"
+                >
+                  {seg.text}
+                </span>
+              ) : (
+                <span key={i}>{seg.text}</span>
+              ),
+            )}
+          </p>
           <div className="mt-1 flex gap-2">
             <button
               className="text-[11px] text-muted-foreground hover:text-foreground"
