@@ -10,6 +10,9 @@ import {
   X,
   CalendarClock,
   History,
+  AlertTriangle,
+  RotateCcw,
+  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,16 +75,24 @@ const fromBackendSchedule = (raw: string): string => {
 export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps) {
   const [pages, setPages] = useState<PortalPage[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [draft, setDraft] = useState<DraftState | null>(null)
   const [saving, setSaving] = useState(false)
   const [versionsPage, setVersionsPage] = useState<PortalPage | null>(null)
 
   const load = async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       setPages(await listPortalPages(brandId))
     } catch (err) {
       console.error('Erro ao carregar páginas do portal:', err)
+      setLoadError(err instanceof Error ? err.message : 'Não foi possível carregar as páginas.')
+      toast({
+        title: 'Erro ao carregar páginas',
+        description: 'Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }
@@ -200,95 +211,123 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
         <div className="flex items-center justify-center py-6">
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
         </div>
-      ) : (
-        pages.length > 0 && (
-          <div className="space-y-2">
-            {pages.map((p, idx) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-2 p-2.5 rounded-lg border border-border/70 bg-muted/30"
-              >
-                <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold truncate">{p.title}</p>
-                  <p className="text-[10px] text-muted-foreground font-mono">/{p.slug}</p>
-                  {isPageScheduled(p) && (
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                      <CalendarClock className="w-3 h-3" />
-                      Agendada para {p.publish_at.slice(0, 16).replace('T', ' ')}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleMove(p, -1)}
-                  disabled={idx === 0}
-                >
-                  ↑
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleMove(p, 1)}
-                  disabled={idx === pages.length - 1}
-                >
-                  ↓
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleToggleVisible(p)}
-                >
-                  {p.is_visible ? (
-                    <Eye className="w-3.5 h-3.5" />
-                  ) : (
-                    <EyeOff className="w-3.5 h-3.5" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  title="Histórico de versões"
-                  onClick={() => setVersionsPage(p)}
-                >
-                  <History className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  title="Editar página"
-                  onClick={() =>
-                    setDraft({
-                      id: p.id,
-                      title: p.title,
-                      slug: p.slug,
-                      blocks: Array.isArray(p.content?.blocks) ? p.content.blocks : [],
-                      is_visible: p.is_visible,
-                      sort_order: p.sort_order,
-                      publish_at: fromBackendSchedule(p.publish_at),
-                    })
-                  }
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-destructive"
-                  onClick={() => handleDelete(p.id)}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ))}
+      ) : loadError ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-8 rounded-xl border border-destructive/30 bg-destructive/5 text-center">
+          <AlertTriangle className="w-5 h-5 text-destructive" />
+          <p className="text-sm font-semibold">Falha ao carregar as páginas</p>
+          <p className="text-xs text-muted-foreground max-w-xs">{loadError}</p>
+          <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => void load()}>
+            <RotateCcw className="w-3.5 h-3.5" /> Tentar novamente
+          </Button>
+        </div>
+      ) : pages.length === 0 ? (
+        !draft && (
+          <div className="flex flex-col items-center justify-center gap-2 py-8 rounded-xl border border-dashed border-border text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <FileText className="w-5 h-5 text-primary" />
+            </span>
+            <p className="text-sm font-semibold">Nenhuma página interna ainda</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Crie a primeira página (ex: Sobre, Contato, Serviços) para dar navegação ao seu portal
+              público.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1"
+              onClick={() => setDraft(emptyDraft(0))}
+            >
+              <Plus className="w-3.5 h-3.5" /> Criar primeira página
+            </Button>
           </div>
         )
+      ) : (
+        <div className="space-y-2">
+          {pages.map((p, idx) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-2 p-2.5 rounded-lg border border-border/70 bg-muted/30"
+            >
+              <GripVertical className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate">{p.title}</p>
+                <p className="text-[10px] text-muted-foreground font-mono">/{p.slug}</p>
+                {isPageScheduled(p) && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <CalendarClock className="w-3 h-3" />
+                    Agendada para {p.publish_at.slice(0, 16).replace('T', ' ')}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => handleMove(p, -1)}
+                disabled={idx === 0}
+              >
+                ↑
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => handleMove(p, 1)}
+                disabled={idx === pages.length - 1}
+              >
+                ↓
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => handleToggleVisible(p)}
+              >
+                {p.is_visible ? (
+                  <Eye className="w-3.5 h-3.5" />
+                ) : (
+                  <EyeOff className="w-3.5 h-3.5" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Histórico de versões"
+                onClick={() => setVersionsPage(p)}
+              >
+                <History className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Editar página"
+                onClick={() =>
+                  setDraft({
+                    id: p.id,
+                    title: p.title,
+                    slug: p.slug,
+                    blocks: Array.isArray(p.content?.blocks) ? p.content.blocks : [],
+                    is_visible: p.is_visible,
+                    sort_order: p.sort_order,
+                    publish_at: fromBackendSchedule(p.publish_at),
+                  })
+                }
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-destructive"
+                onClick={() => handleDelete(p.id)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
       )}
 
       {draft && (

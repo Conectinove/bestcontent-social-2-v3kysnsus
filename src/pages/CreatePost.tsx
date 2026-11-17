@@ -54,6 +54,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { AIAssistantModal } from '@/components/AIAssistantModal'
+import { StudioAgentPanel } from '@/components/StudioAgentPanel'
 import { TemplateSelector } from '@/components/TemplateSelector'
 import { WhatToPostTodayModal } from '@/components/analytics/WhatToPostTodayModal'
 import { SavedDraftsDrawer, type SavedDraftItem } from '@/components/SavedDraftsDrawer'
@@ -180,6 +181,7 @@ export default function CreatePost() {
   const [aiLoading, setAiLoading] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [aiModalOpen, setAiModalOpen] = useState(false)
+  const [studioOpen, setStudioOpen] = useState(false)
   const [publishedPostId, setPublishedPostId] = useState<string | null>(null)
   const [templateOpen, setTemplateOpen] = useState(false)
   const [whatToPostOpen, setWhatToPostOpen] = useState(false)
@@ -1000,6 +1002,21 @@ export default function CreatePost() {
           </Button>
 
           <Button
+            type="button"
+            onClick={() => setStudioOpen((v) => !v)}
+            className={cn(
+              'rounded-xl border font-bold text-xs h-9 sm:h-10 px-3 gap-1.5 transition-all shadow-2xs hidden md:flex',
+              studioOpen
+                ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                : 'bg-purple-600/10 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600/20',
+            )}
+            title="Abrir o painel do Studio Agent para montar o post conversando"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Studio</span>
+          </Button>
+
+          <Button
             onClick={() => setTemplateOpen(true)}
             className="w-full sm:w-auto rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-9 sm:h-10 px-3.5 sm:px-4 gap-1.5 sm:gap-2 shadow-sm transition-all hover:shadow-purple-500/20"
           >
@@ -1114,7 +1131,7 @@ export default function CreatePost() {
           ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Formulário do Post */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className={cn('space-y-4', studioOpen ? 'lg:col-span-5' : 'lg:col-span-7')}>
           <Card className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card shadow-xs space-y-5">
             {/* Linha 1: Marca & Rede Social */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1760,7 +1777,7 @@ export default function CreatePost() {
         </div>
 
         {/* Pré-visualização / Canvas adaptativo com Proporção Real */}
-        <div className="lg:col-span-5 space-y-3 sticky top-6">
+        <div className={cn('space-y-3', studioOpen ? 'lg:col-span-4' : 'lg:col-span-5')}>
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5 text-purple-600" />
@@ -1908,6 +1925,17 @@ export default function CreatePost() {
             todos os metadados.
           </p>
         </div>
+
+        {/* Painel lateral do Studio Agent (chat nativo) — ao lado do preview, sem substituir os modais */}
+        {studioOpen && (
+          <div className="lg:col-span-3 min-h-[560px] lg:max-h-[calc(100vh-3rem)] lg:sticky lg:top-6">
+            <StudioAgentPanel
+              className="h-full"
+              contextHint={`Copiloto de criação · ${platform}`}
+              onClose={() => setStudioOpen(false)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Modal de Assistente de IA */}
@@ -1997,6 +2025,10 @@ export default function CreatePost() {
         currentPlatform={platform}
         onSaved={(tpl) => {
           setSelectedTemplate(tpl)
+          toast({
+            title: 'Modelo salvo!',
+            description: `O post foi transformado no modelo "${tpl.name}" e está disponível no catálogo.`,
+          })
         }}
       />
 
@@ -2011,6 +2043,10 @@ export default function CreatePost() {
         onReviewerAssigned={(revId, revName) => {
           setAssignedReviewerId(revId)
           setAssignedReviewerName(revName)
+          toast({
+            title: 'Revisor vinculado!',
+            description: `${revName} agora pode revisar e aprovar este post.`,
+          })
         }}
       />
 

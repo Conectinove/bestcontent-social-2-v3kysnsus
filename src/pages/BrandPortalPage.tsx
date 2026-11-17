@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { Loader2, AlertTriangle, ArrowLeft, BookOpen, ChevronRight } from 'lucide-react'
 import { useParams, Link } from 'react-router-dom'
 import { getPortalByToken } from '@/services/brand-portals'
 import {
@@ -340,11 +340,14 @@ export default function BrandPortalPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3">
-          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <Link to="/" className="text-xs text-primary underline">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 mx-auto">
+            <AlertTriangle className="w-6 h-6 text-amber-500" />
+          </span>
+          <h1 className="text-base font-bold text-foreground">Portal indisponível</h1>
+          <p className="text-sm text-muted-foreground max-w-xs">{error}</p>
+          <Link to="/" className="inline-block text-xs font-semibold text-primary underline">
             Voltar ao início
           </Link>
         </div>
@@ -354,7 +357,7 @@ export default function BrandPortalPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     )
@@ -375,7 +378,7 @@ export default function BrandPortalPage() {
   const logoUrl = data.logoUrl
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950" style={{ backgroundColor: pageBg }}>
+    <div className="min-h-screen bg-background" style={{ backgroundColor: pageBg }}>
       {/* variáveis CSS: tudo dentro do portal usa a paleta da marca */}
       <style>{`
         :root {
@@ -415,6 +418,30 @@ export default function BrandPortalPage() {
               <h1 className="text-2xl font-black truncate">{data.brandName}</h1>
             </div>
           </div>
+          {/* Navegação mobile: seletor compacto — o nav em chips só existe a partir de sm */}
+          {data.pages.length > 0 && (
+            <nav className="sm:hidden w-full">
+              <label className="sr-only" htmlFor="portal-page-nav">
+                Ir para página
+              </label>
+              <select
+                id="portal-page-nav"
+                value={activeSlug || ''}
+                onChange={(e) => setActiveSlug(e.target.value || null)}
+                className="w-full rounded-xl bg-white/15 px-3 py-2 text-xs font-bold text-white outline-hidden"
+                style={{ color: '#fff' }}
+              >
+                <option value="" style={{ color: '#111' }}>
+                  Início
+                </option>
+                {data.pages.map((p) => (
+                  <option key={p.id} value={p.slug} style={{ color: '#111' }}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+            </nav>
+          )}
           {data.pages.length > 0 && (
             <nav className="hidden sm:flex items-center gap-1 flex-wrap justify-end">
               <button
@@ -452,35 +479,52 @@ export default function BrandPortalPage() {
               className="text-sm text-muted-foreground"
               style={textColor ? { color: textColor, opacity: 0.75 } : undefined}
             >
-              Bem-vindo ao portal de {data.brandName}. Confira abaixo as páginas disponíveis.
+              Bem-vindo ao portal de {data.brandName}. Escolha uma página abaixo para começar.
             </p>
             <div className="grid gap-3">
               {data.pages.length === 0 ? (
                 <div
-                  className="p-6 rounded-2xl border border-border bg-white dark:bg-slate-900 text-center text-sm text-muted-foreground"
+                  className="p-8 rounded-2xl border border-dashed border-border bg-card text-center space-y-2"
                   style={
                     hasCustomBg ? { backgroundColor: contentSurface, color: textColor } : undefined
                   }
                 >
-                  Este portal ainda não tem páginas internas.
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-xl mx-auto"
+                    style={{ backgroundColor: `${accent}18`, color: accent }}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                  </span>
+                  <p className="text-sm font-bold" style={{ color: textColor || undefined }}>
+                    Este portal ainda não tem páginas internas
+                  </p>
+                  <p
+                    className="text-xs text-muted-foreground"
+                    style={textColor ? { color: textColor, opacity: 0.7 } : undefined}
+                  >
+                    As páginas publicadas pelo gerenciador aparecerão aqui automaticamente.
+                  </p>
                 </div>
               ) : (
                 data.pages.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => setActiveSlug(p.slug)}
-                    className="text-left p-5 rounded-2xl border border-border bg-white dark:bg-slate-900 hover:shadow-md transition-shadow"
+                    className="group text-left p-5 rounded-2xl border border-border bg-card hover:shadow-md transition-all hover:border-[var(--portal-accent)]/40 flex items-center justify-between gap-3"
                     style={hasCustomBg ? { backgroundColor: contentSurface } : undefined}
                   >
-                    <span className="text-sm font-bold" style={{ color: accent }}>
-                      {p.title}
+                    <span className="min-w-0">
+                      <span className="text-sm font-bold block" style={{ color: accent }}>
+                        {p.title}
+                      </span>
+                      <span
+                        className="block text-xs text-muted-foreground mt-1"
+                        style={textColor ? { color: textColor, opacity: 0.7 } : undefined}
+                      >
+                        Clique para abrir /{p.slug}
+                      </span>
                     </span>
-                    <span
-                      className="block text-xs text-muted-foreground mt-1"
-                      style={textColor ? { color: textColor, opacity: 0.7 } : undefined}
-                    >
-                      Clique para abrir /{p.slug}
-                    </span>
+                    <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-[var(--portal-accent)] transition-colors" />
                   </button>
                 ))
               )}
@@ -496,7 +540,7 @@ export default function BrandPortalPage() {
               <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao início
             </button>
             <article
-              className="p-6 rounded-2xl border border-border bg-white dark:bg-slate-900 space-y-3"
+              className="p-6 rounded-2xl border border-border bg-card space-y-3"
               style={hasCustomBg ? { backgroundColor: contentSurface } : undefined}
             >
               <h2 className="text-xl font-black" style={{ color: accent }}>

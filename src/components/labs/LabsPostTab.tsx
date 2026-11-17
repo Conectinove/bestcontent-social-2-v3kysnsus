@@ -7,6 +7,7 @@ import {
   Clock,
   BarChart3,
   LayoutList,
+  Sparkles as SparklesIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { useAuth } from '@/context/AuthContext'
 import { LabsScheduledDashboard } from '@/components/labs/LabsScheduledDashboard'
 import { LabsPostMetrics } from '@/components/labs/LabsPostMetrics'
+import { StudioAgentPanel } from '@/components/StudioAgentPanel'
 
 // =========================================================================
 // ABA POST — Criação e AGENDAMENTO de posts sociais
@@ -106,6 +108,7 @@ export function LabsPostTab() {
   const [loadingRecent, setLoadingRecent] = useState(true)
   const [section, setSection] = useState<'agendados' | 'metricas' | 'recentes'>('agendados')
   const [reloadKey, setReloadKey] = useState(0)
+  const [studioOpen, setStudioOpen] = useState(false)
 
   const loadRecent = useCallback(async () => {
     if (!user) return
@@ -221,7 +224,22 @@ export function LabsPostTab() {
           <Badge variant="outline" className="text-[9px] font-bold uppercase">
             Labs
           </Badge>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setStudioOpen((v) => !v)}
+            className="ml-auto h-7 text-[11px] font-bold gap-1 text-primary"
+            aria-pressed={studioOpen}
+          >
+            <SparklesIcon className="w-3.5 h-3.5" />
+            {studioOpen ? 'Ocultar Studio' : 'Abrir Studio'}
+          </Button>
         </div>
+
+        {studioOpen && (
+          <StudioAgentPanel className="h-[320px]" contextHint="Criando post na aba Labs" />
+        )}
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold">Texto do post</Label>
