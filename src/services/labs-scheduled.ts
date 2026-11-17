@@ -11,10 +11,14 @@ export interface LabsScheduledPost {
   created: string
 }
 
-/** Lista os posts agendados do usuário, ordenados pela data de publicação. */
+/**
+ * Lista os posts do dashboard de agendamento do Labs.
+ * Sem filtro rígido de status: o dashboard busca draft/scheduled/published
+ * (com data marcada) e o seletor de status na UI filtra o que exibir.
+ */
 export async function listScheduledPosts(userId: string, limit = 50): Promise<LabsScheduledPost[]> {
   const recs = await pb.collection('posts').getList(1, limit, {
-    filter: `user = "${userId}" && status = "scheduled" && scheduled_date != ""`,
+    filter: `user = "${userId}" && scheduled_date != ""`,
     sort: 'scheduled_date',
   })
   return recs.items.map(mapScheduled)

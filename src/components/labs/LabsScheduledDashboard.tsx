@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarClock, CalendarX2, Loader2, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { pb } from '@/lib/pocketbase/client'
@@ -28,10 +35,30 @@ import {
 
 // =========================================================================
 // Dashboard de agendamento (aba Post do Labs)
-// Lista posts com status 'scheduled' ordenados por data, com remarcar,
-// editar conteúdo e cancelar (volta para rascunho) ou excluir.
+// Lista posts ordenados por data com filtro por status (todos/draft/
+// scheduled/published), remarcar, editar conteúdo, cancelar (volta para
+// rascunho) ou excluir.
 // Reusa o cron existente cron_process_scheduled_posts.js — nada de cron novo.
 // =========================================================================
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'Todos os status' },
+  { value: 'draft', label: 'Rascunho' },
+  { value: 'scheduled', label: 'Agendado' },
+  { value: 'published', label: 'Publicado' },
+] as const
+
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'Rascunho',
+  scheduled: 'Agendado',
+  published: 'Publicado',
+}
+
+const statusBadgeClass = (status: string): string => {
+  if (status === 'published') return 'border-emerald-500/40 text-emerald-600'
+  if (status === 'scheduled') return 'border-amber-500/40 text-amber-600'
+  return 'border-border text-muted-foreground'
+}
 
 const formatDateTime = (value?: string): string => {
   if (!value) return '—'
@@ -60,6 +87,7 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
   const [scheduled, setScheduled] = useState<LabsScheduledPost[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   // Dialog de edição: conteúdo + nova data
   const [editOpen, setEditOpen] = useState(false)
@@ -72,6 +100,7 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
     if (!user) return
     setLoading(true)
     try {
+      // Busca sem travar em status: draft/scheduled/published em uma ida
       setScheduled(await listScheduledPosts(user.id))
     } catch (err) {
       console.warn('Falha ao carregar agendados:', getErrorMessage(err))
@@ -84,6 +113,11 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
   useEffect(() => {
     load()
   }, [load, reloadKey])
+
+  const filtered = useMemo(
+    () => (statusFilter === 'all' ? scheduled : scheduled.filter((p) => p.status === statusFilter)),
+    [scheduled, statusFilter],
+  )
 
   const openEdit = (p: LabsScheduledPost) => {
     setEditing(p)
@@ -164,41 +198,58 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Dashboard de agendamento
-          {scheduled.length > 0 && (
+          {filtered.length > 0 && (
             <Badge
               variant="outline"
               className="ml-2 text-[9px] font-bold border-amber-500/40 text-amber-600"
             >
-              {scheduled.length} agendado{scheduled.length > 1 ? 's' : ''}
+              {filtered.length} registro{filtered.length > 1 ? 's' : ''}
             </Badge>
           )}
         </h4>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={load}
-          className="h-7 text-[11px] gap-1"
-        >
-          <RefreshCw className="w-3 h-3" /> Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-7 w-[160px] text-[11px] rounded-xl">
+              <SelectValue placeholder="Filtrar por status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_FILTER_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={load}
+            className="h-7 text-[11px] gap-1"
+          >
+            <RefreshCw className="w-3 h-3" /> Atualizar
+          </Button>
+        </div>
       </div>
 
-      {scheduled.length === 0 ? (
+      {filtered.length === 0 ? (
         <Card className="p-6 text-center space-y-1">
           <CalendarClock className="w-5 h-5 mx-auto text-muted-foreground/50" />
-          <p className="text-xs font-semibold text-foreground">Nenhum post agendado</p>
+          <p className="text-xs font-semibold text-foreground">
+            {statusFilter === 'all' ? 'Nenhum post agendado' : 'Nenhum post com esse status'}
+          </p>
           <p className="text-[11px] text-muted-foreground">
-            Agende um post no formulário acima com data futura — ele aparece aqui organizado por
-            data.
+            {statusFilter === 'all'
+              ? 'Agende um post no formulário acima com data futura — ele aparece aqui organizado por data.'
+              : 'Troque o filtro de status ou agende um post com ele.'}
           </p>
         </Card>
       ) : (
         <div className="space-y-2">
-          {scheduled.map((p) => {
+          {filtered.map((p) => {
             const isBusy = busyId === p.id
             const isPast = new Date(p.scheduled_date).getTime() < Date.now()
             return (
@@ -210,15 +261,24 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
                     </Badge>
                     <Badge
                       variant="outline"
-                      className={`text-[9px] font-bold gap-1 ${
-                        isPast
-                          ? 'border-emerald-500/40 text-emerald-600'
-                          : 'border-amber-500/40 text-amber-600'
-                      }`}
+                      className={`text-[9px] font-bold gap-1 ${statusBadgeClass(p.status)}`}
                     >
                       <CalendarClock className="w-3 h-3" />
-                      {formatDateTime(p.scheduled_date)}
+                      {STATUS_LABEL[p.status] || p.status}
                     </Badge>
+                    {p.scheduled_date && (
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] font-bold gap-1 ${
+                          isPast
+                            ? 'border-emerald-500/40 text-emerald-600'
+                            : 'border-amber-500/40 text-amber-600'
+                        }`}
+                      >
+                        <CalendarClock className="w-3 h-3" />
+                        {formatDateTime(p.scheduled_date)}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
@@ -230,21 +290,23 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
                     >
                       <Pencil className="w-3 h-3" /> Editar
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-[11px] gap-1 text-muted-foreground"
-                      disabled={isBusy}
-                      onClick={() => handleCancel(p)}
-                    >
-                      {isBusy ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <CalendarX2 className="w-3 h-3" />
-                      )}
-                      Cancelar
-                    </Button>
+                    {p.status === 'scheduled' && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-[11px] gap-1 text-muted-foreground"
+                        disabled={isBusy}
+                        onClick={() => handleCancel(p)}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <CalendarX2 className="w-3 h-3" />
+                        )}
+                        Cancelar
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       size="sm"
