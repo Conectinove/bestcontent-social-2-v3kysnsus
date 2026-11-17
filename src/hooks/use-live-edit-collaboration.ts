@@ -32,9 +32,17 @@ export interface LiveEditCollaborationConfig<T = unknown> {
 /** Forma mínima de record usada no subscribe (PocketBaseRecord). */
 type UnsubscribeRecord = {
   id: string
-  get: (field: string) => unknown
   expand?: Record<string, { name?: string; first_name?: string; email?: string }>
+  [field: string]: unknown
 }
+
+/**
+ * Lê um campo do record do evento de realtime. O payload do subscribe do
+ * PocketBase entrega o record como OBJETO PLANO (não RecordModel com .get),
+ * então o acesso é direto — nunca rec.get('campo'), que quebra com
+ * "rec.get is not a function".
+ */
+const readField = (rec: UnsubscribeRecord, field: string): unknown => rec[field]
 
 /**
  * Colaboração em tempo real generalizada (padrão studio_themes /
@@ -91,7 +99,7 @@ export function useLiveEditCollaboration<T = AdvancedCustomizationState>(
     loadLatest()
 
     const buildEvent = (rec: UnsubscribeRecord): LiveEditEvent<T> | null => {
-      const rawPayload = rec.get(payloadField)
+      const rawPayload = readField(rec, payloadField)
       const payload = config?.mapRecord
         ? config.mapRecord(rec, rawPayload)
         : ((rawPayload ?? null) as T | null)
@@ -99,9 +107,9 @@ export function useLiveEditCollaboration<T = AdvancedCustomizationState>(
       const fallbackName = author?.name || author?.first_name || author?.email || 'Outra pessoa'
       return {
         id: rec.id,
-        userName: String(rec.get(userNameField) || fallbackName),
-        title: String(rec.get(titleField) || 'Material'),
-        created: String(rec.get('created') || ''),
+        userName: String(readField(rec, userNameField) || fallbackName),
+        title: String(readField(rec, titleField) || 'Material'),
+        created: String(readField(rec, 'created') || ''),
         payload,
       }
     }
@@ -110,7 +118,7 @@ export function useLiveEditCollaboration<T = AdvancedCustomizationState>(
       if (cancelled) return
       if (e.action === 'delete') return
       const rec = e.record as unknown as UnsubscribeRecord
-      if (rec.get(keyField) !== targetKey) return
+      if (readField(rec, keyField) !== targetKey) return
       if (config?.accepts && !config.accepts(rec)) return
       if (rec.id === lastLocalId.current) return // salvamento próprio: ignora
       if (rec.id === dismissedId) return

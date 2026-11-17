@@ -106,8 +106,10 @@ export function subscribeEditComments(
 
   pb.collection(COLLECTION)
     .subscribe('*', (e) => {
-      const rec = e.record as unknown as { get: (f: string) => unknown }
-      if (rec?.get?.('target_key') === targetKey) onCommentsChanged()
+      // O record do evento de realtime chega como objeto plano (não RecordModel
+      // com .get) — acesso direto ao campo.
+      const rec = e.record as unknown as { target_key?: string } | null
+      if (rec?.target_key === targetKey) onCommentsChanged()
     })
     .then((fn) => {
       if (cancelled) {
