@@ -116,6 +116,12 @@ export function notificationTypeLabel(type?: string): string {
       return 'Revisor atribuído'
     case 'change_requested':
       return 'Mudança solicitada'
+    case 'page_published':
+      return 'Página publicada'
+    case 'approval_flow':
+      return 'Fluxo de aprovação'
+    case 'studio_comment':
+      return 'Novo comentário'
     default:
       return 'Aviso'
   }

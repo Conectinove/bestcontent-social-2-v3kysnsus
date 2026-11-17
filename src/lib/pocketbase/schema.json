@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:16:18.914Z",
+  "generatedAt": "2026-11-17T01:48:30.017Z",
   "collections": [
     {
       "name": "users",
@@ -4328,7 +4328,13 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["review_assigned", "change_requested", "approval_flow", "page_published"]
+          "selectValues": [
+            "review_assigned",
+            "change_requested",
+            "approval_flow",
+            "page_published",
+            "studio_comment"
+          ]
         },
         {
           "name": "post",
