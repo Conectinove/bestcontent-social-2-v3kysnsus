@@ -35,8 +35,11 @@ import {
   safeExternalUrl,
   isAudioUrl,
   isVideoUrl,
+  isPdfUrl,
   youtubeIdFromUrl,
   vimeoIdFromUrl,
+  tiktokIdFromUrl,
+  spotifyEmbedPathFromUrl,
 } from '@/lib/markdown-lite'
 import type { SecondBrainDoc, SecondBrainModule, SecondBrainBlock } from '@/services/second-brain'
 import { cn } from '@/lib/utils'
@@ -173,13 +176,22 @@ const isWithinDate = (createdAt: string, f: DateFilter, from?: string, to?: stri
   return now.getTime() - d.getTime() <= days * 86400000
 }
 
-/* ===================== URL EXTERNA: vídeo e áudio ===================== */
+/* ============ URL EXTERNA: vídeo, áudio, TikTok, Spotify e PDF ============ */
 
 type UrlKind = 'auto' | 'video' | 'audio' | 'link'
 
 const detectUrlKind = (url: string): UrlKind => {
   if (isAudioUrl(url)) return 'audio'
-  if (isVideoUrl(url) || youtubeIdFromUrl(url) || vimeoIdFromUrl(url)) return 'video'
+  if (
+    isVideoUrl(url) ||
+    youtubeIdFromUrl(url) ||
+    vimeoIdFromUrl(url) ||
+    tiktokIdFromUrl(url) ||
+    spotifyEmbedPathFromUrl(url)
+  ) {
+    return 'video'
+  }
+  if (isPdfUrl(url)) return 'pdf' as UrlKind
   return 'link'
 }
 
@@ -199,8 +211,9 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [search, setSearch] = useState('')
-  // Chips de tags (v0.0.296): combináveis com busca, tipo e data — por aba local.
+  // Chips de tags: seleção MÚLTIPLA com modo E (todas) / OU (qualquer) — v0.0.300.
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [tagMode, setTagMode] = useState<'and' | 'or'>('and')
   const resetFilters = () => {
     setSelectedTags([])
   }
@@ -234,7 +247,8 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  /* Aba "URL externa": URL de vídeo (mp4/webm/YouTube/Vimeo) ou áudio (mp3/wav/ogg). */
+  /* Aba "URL externa": vídeo (mp4/webm/YouTube/Vimeo/TikTok), áudio (mp3/wav/ogg),
+   * Spotify (embed) e PDF (prévia via <object> no markdown-lite). */
   const [urlName, setUrlName] = useState('')
   const [urlValue, setUrlValue] = useState('')
   const [urlKind, setUrlKind] = useState<UrlKind>('auto')
@@ -247,29 +261,40 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
       setError('Informe uma URL válida começando com http:// ou https://.')
       return
     }
-    const detected = detectUrlKind(safe) as 'audio' | 'video' | 'link'
-    const kind: GridItem['type'] =
-      urlKind === 'auto'
-        ? detected === 'audio'
-          ? 'anexo'
-          : (detected as GridItem['type'])
-        : urlKind === 'audio'
-          ? 'anexo'
-          : urlKind
-    if (urlKind === 'audio' && detected !== 'audio') {
-      setError('Essa URL não parece ser um arquivo de áudio (mp3, wav, ogg).')
-      return
+    const detected = detectUrlKind(safe)
+    const isTikTok = Boolean(tiktokIdFromUrl(safe))
+    const isSpotify = Boolean(spotifyEmbedPathFromUrl(safe))
+    const isPdf = isPdfUrl(safe)
+    // Tipo do item na grade: TikTok/Spotify entram como vídeo (têm player embed);
+    // PDF entra como anexo (prévia de documento); resto mantém o comportamento atual.
+    let kind: GridItem['type']
+    if (urlKind === 'auto') {
+      if (detected === 'audio') kind = 'anexo'
+      else if (isPdf) kind = 'anexo'
+      else if (detected === 'video') kind = 'video'
+      else kind = 'link'
+    } else if (urlKind === 'audio') {
+      if (detected !== 'audio') {
+        setError('Essa URL não parece ser um arquivo de áudio (mp3, wav, ogg).')
+        return
+      }
+      kind = 'anexo'
+    } else {
+      kind = urlKind
     }
     const name = urlName.trim() || safe.replace(/^https?:\/\//, '').slice(0, 60) || 'Mídia externa'
+    // Tags derivadas do formato detectado (tiktok/spotify/pdf) além do tipo geral.
+    const formatTag = isTikTok ? 'tiktok' : isSpotify ? 'spotify' : isPdf ? 'pdf' : ''
+    const kindTag = detected === 'audio' ? 'áudio' : detected === 'video' ? 'vídeo' : 'link'
     const item: GridItem = {
       id: `url:${safe}`,
       name,
       url: safe,
-      thumbUrl: kind === 'imagem' ? safe : '',
+      thumbUrl: '',
       type: kind,
       source: 'url',
       createdAt: new Date().toISOString(),
-      tags: ['externa', detected === 'audio' ? 'áudio' : detected === 'video' ? 'vídeo' : 'link'],
+      tags: formatTag ? ['externa', kindTag, formatTag] : ['externa', kindTag],
     }
     setUrlDocs((prev) => [item, ...prev.filter((i) => i.id !== item.id)])
     setUrlValue('')
@@ -466,15 +491,14 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
     }
   }
 
-  /* "Incluir no doc": anexa um bloco ao módulo final e persiste via onDocUpdated. */
+  /* "Incluir no doc": anexa um bloco ao módulo final e persiste via onDocUpdated.
+   * TikTok, Spotify e PDF usam o snippet ![alt](url) — o markdown-lite renderiza
+   * o player de embed ou a prévia de PDF a partir da própria URL. */
   const handleInsert = async (item: GridItem) => {
     let content: string
     if (item.type === 'video') {
-      // Vídeo direto (mp4/webm) usa ![alt](url) — o markdown-lite renderiza
-      // <video>; YouTube/Vimeo viram iframe embed pelo mesmo caminho.
       content = `![${item.name}](${item.url})`
-    } else if (item.type === 'anexo' && isAudioUrl(item.url)) {
-      // Áudio (mp3/wav/ogg) usa o mesmo snippet — markdown-lite renderiza <audio>.
+    } else if (item.type === 'anexo' && (isAudioUrl(item.url) || isPdfUrl(item.url))) {
       content = `![${item.name}](${item.url})`
     } else if (item.type === 'imagem') {
       content = `![${item.name}](${item.url})`
@@ -612,11 +636,14 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           (i.tags || []).some((t) => t.toLowerCase().includes(q)),
       )
     }
-    // Chips de tags: um item passa se tiver TODAS as tags selecionadas (combináveis).
+    // Chips de tags: modo E (item precisa ter TODAS as tags) ou OU (qualquer uma).
     if (selectedTags.length > 0) {
+      const wanted = selectedTags.map((t) => t.toLowerCase())
       out = out.filter((i) => {
         const own = (i.tags || []).map((t) => t.toLowerCase())
-        return selectedTags.every((t) => own.includes(t.toLowerCase()))
+        return tagMode === 'and'
+          ? wanted.every((t) => own.includes(t))
+          : wanted.some((t) => own.includes(t))
       })
     }
     if (orientation !== 'any' || color !== 'any') {
@@ -652,6 +679,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
     customTo,
     search,
     selectedTags,
+    tagMode,
     tab,
     sortBy,
     orientation,
@@ -784,7 +812,8 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           </Button>
         </div>
 
-        {/* Chips de tags (abas locais + URL externa) — combináveis com busca/tipo/data */}
+        {/* Chips de tags (abas locais + URL externa): seleção múltipla com modo E/OU,
+         * combinável com busca, tipo e data */}
         {availableTags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 pb-2 shrink-0">
             <span className="text-[10px] font-semibold text-muted-foreground mr-1">Tags:</span>
@@ -806,6 +835,37 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
                 </button>
               )
             })}
+            {selectedTags.length > 1 && (
+              <div className="flex items-center gap-1 ml-1">
+                <span className="text-[10px] text-muted-foreground">modo</span>
+                <button
+                  type="button"
+                  onClick={() => setTagMode('and')}
+                  className={cn(
+                    'px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors',
+                    tagMode === 'and'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground',
+                  )}
+                  title="O item precisa ter TODAS as tags selecionadas"
+                >
+                  E
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTagMode('or')}
+                  className={cn(
+                    'px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors',
+                    tagMode === 'or'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground',
+                  )}
+                  title="O item basta ter QUALQUER uma das tags selecionadas"
+                >
+                  OU
+                </button>
+              </div>
+            )}
             {selectedTags.length > 0 && (
               <button
                 type="button"
@@ -959,7 +1019,8 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
           )}
         </div>
 
-        {/* Aba "URL externa": vídeo (mp4/webm/YouTube/Vimeo) e áudio (mp3/wav/ogg) */}
+        {/* Aba "URL externa": vídeo (mp4/webm/YouTube/Vimeo/TikTok), áudio (mp3/wav/ogg),
+         * Spotify (player embed) e PDF (prévia de documento) */}
         {tab === 'url' && (
           <div className="space-y-2 pb-2 shrink-0 border-t border-border pt-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -972,7 +1033,7 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
               <Input
                 value={urlValue}
                 onChange={(e) => setUrlValue(e.target.value)}
-                placeholder="https://... (mp4/webm/YouTube/Vimeo, mp3/wav/ogg, imagem ou Docs)"
+                placeholder="https://... (vídeo, YouTube/Vimeo/TikTok, Spotify, mp3 ou PDF)"
                 className="h-8 flex-1 min-w-[220px] text-xs"
               />
               <div className="flex items-center gap-1">
@@ -1003,9 +1064,10 @@ export function SecondBrainMediaGrid({ open, onOpenChange, doc, onDocUpdated }: 
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Cole a URL de um vídeo (arquivo mp4/webm, YouTube ou Vimeo) ou de um áudio
-              (mp3/wav/ogg) e clique em Adicionar — ela entra na lista e, ao "Incluir no doc", é
-              inserida como bloco com player (vídeo incorporado ou áudio) na nota. "Detectar"
+              Cole a URL de um vídeo (arquivo mp4/webm, YouTube, Vimeo ou TikTok), de um áudio
+              (mp3/wav/ogg), de um conteúdo do Spotify (música, álbum, playlist ou podcast) ou de um
+              PDF e clique em Adicionar — ela entra na grade e, ao "Incluir no doc", é inserida como
+              bloco com player (vídeo, áudio ou Spotify) ou prévia de PDF na nota. "Detectar"
               reconhece o tipo pela própria URL.
             </p>
           </div>

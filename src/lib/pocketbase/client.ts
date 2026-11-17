@@ -5,7 +5,6 @@ pb.autoCancellation(false)
 
 export default pb
 
-// GUARDA: manter SEMPRE o export nomeado junto do default.
-// Já é a 25ª vez que este export é perdido em reescritas do arquivo —
-// ~35 arquivos importam { pb } e o build quebra (TS2614/MISSING_EXPORT).
+// GUARDA: o export nomeado `pb` já regrediu 25× (v0.0.179, 181, 188, 190, 221,
+// 245, 246, 263, 298...). NÃO REMOVER — vários módulos importam `{ pb }`.
 export { pb }
