@@ -14,6 +14,7 @@ import {
   RotateCcw,
   FileText,
   Wand2,
+  Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,10 @@ import { PortalBlocksEditor } from '@/components/settings/PortalBlocksEditor'
 import { PortalPageVersionsDialog } from '@/components/settings/PortalPageVersionsDialog'
 import { generateLabsWebSections } from '@/services/labs-ai'
 import { LabsAiGeneratorDialog } from '@/components/labs/LabsAiGeneratorDialog'
+import {
+  PortalImportDialog,
+  type PortalImportResult,
+} from '@/components/settings/PortalImportDialog'
 
 interface PortalPagesManagerProps {
   brandId: string
@@ -83,6 +88,7 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
   const [saving, setSaving] = useState(false)
   const [versionsPage, setVersionsPage] = useState<PortalPage | null>(null)
   const [aiOpen, setAiOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -189,6 +195,38 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
     })
   }
 
+  /** Converte seções estruturadas (IA/importação) em blocos título+texto do rascunho. */
+  const sectionsToBlocks = (sections: { heading: string; text: string }[]): PortalBlock[] =>
+    sections.flatMap((s) => [
+      {
+        id: `blk-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: 'title' as const,
+        text: s.heading,
+      },
+      {
+        id: `blk-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: 'text' as const,
+        text: s.text,
+      },
+    ])
+
+  /** Importação (URL ou texto colado): blocos entram no rascunho para revisão/edição. */
+  const handleImported = (result: PortalImportResult) => {
+    setDraft({
+      id: null,
+      title: result.title || 'Página importada',
+      slug: '',
+      blocks: sectionsToBlocks(result.sections),
+      is_visible: true,
+      sort_order: pages.length,
+      publish_at: '',
+    })
+    toast({
+      title: 'Conteúdo importado!',
+      description: 'Revise os blocos de título e texto antes de salvar a página.',
+    })
+  }
+
   const handleDelete = async (id: string) => {
     try {
       await deletePortalPage(id)
@@ -232,6 +270,14 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
         </p>
         {!draft && (
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1"
+              onClick={() => setImportOpen(true)}
+            >
+              <Upload className="w-3.5 h-3.5" /> Importar
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -488,6 +534,13 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
         placeholder="Ex.: página Sobre de uma escola de idiomas focada em conversação desde o primeiro dia"
         generatingLabel="Gerando página…"
         onGenerate={handleAiGenerate}
+      />
+
+      {/* Importação de conteúdo (URL ou texto colado) */}
+      <PortalImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={handleImported}
       />
     </div>
   )

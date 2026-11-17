@@ -22,6 +22,7 @@ import {
   SlidersHorizontal,
   ChevronRight,
   TrendingUp,
+  LayoutTemplate,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -36,7 +37,9 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
 import { useSocial } from '@/context/SocialContext'
+import { useAuth } from '@/context/AuthContext'
 import { QuickOnboardingModal } from '@/components/QuickOnboardingModal'
+import { PortalPagesManager } from '@/components/settings/PortalPagesManager'
 
 // As 8 dicas MAX solicitadas no briefing na ordem exata
 const DICAS_MAX = [
@@ -50,7 +53,7 @@ const DICAS_MAX = [
   'Capa do calendário com nome do cliente aumenta a sensação de cuidado',
 ]
 
-type ActiveTab = 'foco' | 'grid' | 'lista' | 'rascunhos' | 'arquivados'
+type ActiveTab = 'paginas' | 'foco' | 'grid' | 'lista' | 'rascunhos' | 'arquivados'
 
 interface ClientCalendarLink {
   id: string
@@ -111,7 +114,8 @@ const INITIAL_LINKS: ClientCalendarLink[] = [
 
 export default function ClientPortal() {
   const { brands } = useSocial()
-  const [activeTab, setActiveTab] = useState<ActiveTab>('foco')
+  const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState<ActiveTab>('paginas')
   const [currentTipIndex, setCurrentTipIndex] = useState(5) // Inicia na dica 5 ("Preview no celular...")
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -147,6 +151,10 @@ export default function ClientPortal() {
   useEffect(() => {
     localStorage.setItem('client_portal_links', JSON.stringify(createdLinks))
   }, [createdLinks])
+
+  // Marca/organização do usuário logado alimenta o gerenciador de páginas do portal
+  const brandId = brands[0]?.id || ''
+  const userId = user?.id || ''
 
   // Rotação automática das dicas MAX a cada 6 segundos
   useEffect(() => {
@@ -340,6 +348,20 @@ export default function ClientPortal() {
           BARRA DE ABAS
           ========================================================================= */}
       <div className="border-b border-border/80 flex items-center gap-6 overflow-x-auto scrollbar-none text-sm font-medium pt-1">
+        {/* Aba Páginas do portal (gerenciador real, dados da marca/organização do usuário logado) */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('paginas')}
+          className={`flex items-center gap-1.5 pb-2.5 transition-colors relative whitespace-nowrap ${
+            activeTab === 'paginas'
+              ? 'text-foreground font-bold border-b-2 border-primary -mb-[1px]'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <LayoutTemplate className="w-3.5 h-3.5" />
+          <span>Páginas do portal</span>
+        </button>
+
         {/* Aba Foco */}
         <button
           type="button"
@@ -423,7 +445,32 @@ export default function ClientPortal() {
       {/* =========================================================================
           CONTEÚDO PRINCIPAL (LAYOUT DUAS COLUNAS: ESQUERDA 2/3, DIREITA 1/3)
           ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      {/* Gerenciador de páginas do portal (aba padrão) */}
+      {activeTab === 'paginas' && (
+        <div>
+          {brandId && userId ? (
+            <PortalPagesManager brandId={brandId} userId={userId} />
+          ) : (
+            <Card className="rounded-3xl border border-dashed border-border/80 bg-card">
+              <CardContent className="py-16 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
+                  <LayoutTemplate className="w-6 h-6 opacity-40" />
+                </div>
+                <p className="text-sm text-foreground font-bold">Nenhuma marca encontrada</p>
+                <p className="text-xs text-muted-foreground">
+                  Crie uma marca para gerenciar as páginas do portal.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      <div
+        className={
+          activeTab === 'paginas' ? 'hidden' : 'grid grid-cols-1 lg:grid-cols-3 gap-6 items-start'
+        }
+      >
         {/* COLUNA ESQUERDA (Cards principais e Recentes) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Card list vs Grid view vs Empty state */}

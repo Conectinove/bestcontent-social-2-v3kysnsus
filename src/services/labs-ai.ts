@@ -2,6 +2,9 @@
 // Reusa a MESMA rota do chat (hook studio_agent.js) com instruções embutidas
 // na mensagem — sem endpoint hand-rolled novo e sem $ai.chat.
 import { ClientResponseError } from 'pocketbase'
+import pb, { pb as pbNamed } from '@/lib/pocketbase/client'
+// GUARDA: manter o duplo export (default + nomeado pb) — regressão recorrente.
+void pbNamed
 import { sendStudioAgentChat } from './studio-agent'
 
 export interface LabsAiBlogDraft {
