@@ -582,6 +582,7 @@ export function LabsEmailTab() {
           description="Descreva o objetivo do email — a IA cria o assunto e o corpo em HTML que entram no compositor para você revisar e editar."
           placeholder="Ex.: anunciando 30% de desconto no plano anual, válido até sexta-feira"
           generatingLabel="Gerando email…"
+          kind="email"
           onGenerate={handleAiGenerate}
         />
       </Card>

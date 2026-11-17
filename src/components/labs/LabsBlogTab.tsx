@@ -38,6 +38,7 @@ import { createPost } from '@/services/labs-posts'
 import { generateLabsBlogDraft } from '@/services/labs-ai'
 import { StudioAdvancedEditorDialog } from '@/components/studio/StudioAdvancedEditorDialog'
 import { LabsAiGeneratorDialog } from '@/components/labs/LabsAiGeneratorDialog'
+import { LabsCoverAiDialog } from '@/components/labs/LabsCoverAiDialog'
 import type { StudioCreationRecord } from '@/services/ai-studio'
 
 interface Draft {
@@ -96,6 +97,7 @@ export function LabsBlogTab() {
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [brandId, setBrandId] = useState('')
   const [coverDialogOpen, setCoverDialogOpen] = useState(false)
+  const [coverAiOpen, setCoverAiOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [aiOpen, setAiOpen] = useState(false)
 
@@ -399,6 +401,15 @@ export function LabsBlogTab() {
               >
                 <ImagePlus className="w-3.5 h-3.5" />{' '}
                 {draft.cover_url ? 'Editar capa' : 'Adicionar capa'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCoverAiOpen(true)}
+                className="rounded-xl text-xs font-bold gap-1.5 text-primary border-primary/40 hover:bg-primary/10"
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Gerar capa com IA
               </Button>
               {draft.cover_url && (
                 <Button
@@ -733,6 +744,14 @@ export function LabsBlogTab() {
         )}
       </Card>
 
+      {/* Gerar capa com IA (conector OpenAI do usuário) */}
+      <LabsCoverAiDialog
+        open={coverAiOpen}
+        onOpenChange={setCoverAiOpen}
+        seedPrompt={draft.title}
+        onGenerated={handleCoverSaved}
+      />
+
       {/* Edição Avançada da capa */}
       {coverDialogOpen && coverCreation.preview_url && (
         <StudioAdvancedEditorDialog
@@ -752,6 +771,7 @@ export function LabsBlogTab() {
         description="Descreva o tema do artigo — a IA cria título e corpo que entram no editor para você revisar e editar."
         placeholder="Ex.: 5 tendências de marketing digital para pequenas empresas em 2026"
         generatingLabel="Gerando artigo…"
+        kind="blog"
         onGenerate={handleAiGenerate}
       />
     </div>

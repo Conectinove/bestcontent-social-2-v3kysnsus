@@ -275,6 +275,7 @@ export function LabsPostTab() {
           description="Descreva o que o post deve comunicar — a IA escreve a legenda que entra no campo de texto para você revisar e editar."
           placeholder="Ex.: lançamento da coleção de verão com 20% off na primeira semana"
           generatingLabel="Gerando post…"
+          kind="post"
           onGenerate={handleAiGenerate}
         />
 

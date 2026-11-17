@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T02:03:43.924Z",
+  "generatedAt": "2026-11-17T02:27:14.725Z",
   "collections": [
     {
       "name": "users",
@@ -6650,6 +6650,62 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_orh_user ON org_role_history (user, created)"]
+    },
+    {
+      "name": "labs_ai_briefing_templates",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != \"\" && user = @request.auth.id",
+        "view": "@request.auth.id != \"\" && user = @request.auth.id",
+        "create": "@request.auth.id != \"\" && @request.body.user = @request.auth.id",
+        "update": "@request.auth.id != \"\" && user = @request.auth.id",
+        "delete": "@request.auth.id != \"\" && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "briefing",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_labs_ai_briefing_user ON labs_ai_briefing_templates (user, updated DESC)",
+        "CREATE UNIQUE INDEX idx_labs_ai_briefing_user_name ON labs_ai_briefing_templates (user, name)"
+      ]
     }
   ]
 }

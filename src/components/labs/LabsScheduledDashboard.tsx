@@ -356,6 +356,17 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
                 <p className="text-xs text-foreground leading-relaxed line-clamp-2">
                   {p.caption || p.content}
                 </p>
+                <div className="flex items-center gap-2">
+                  {p.status === 'scheduled' && p.scheduled_date && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] font-bold border-amber-500/40 text-amber-600 gap-1"
+                    >
+                      <CalendarClock className="w-3 h-3" />
+                      Agendado para {formatDateTime(p.scheduled_date)}
+                    </Badge>
+                  )}
+                </div>
               </Card>
             )
           })}
