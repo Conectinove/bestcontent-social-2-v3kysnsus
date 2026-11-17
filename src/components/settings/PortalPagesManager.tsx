@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   RotateCcw,
   FileText,
+  Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +32,8 @@ import {
 } from '@/services/portal-pages'
 import { PortalBlocksEditor } from '@/components/settings/PortalBlocksEditor'
 import { PortalPageVersionsDialog } from '@/components/settings/PortalPageVersionsDialog'
+import { generateLabsWebSections } from '@/services/labs-ai'
+import { LabsAiGeneratorDialog } from '@/components/labs/LabsAiGeneratorDialog'
 
 interface PortalPagesManagerProps {
   brandId: string
@@ -79,6 +82,7 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
   const [draft, setDraft] = useState<DraftState | null>(null)
   const [saving, setSaving] = useState(false)
   const [versionsPage, setVersionsPage] = useState<PortalPage | null>(null)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -155,6 +159,36 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
     }
   }
 
+  /** Gera textos de seção via studio-agent e monta blocos título+texto no rascunho (usuário edita antes de salvar). */
+  const handleAiGenerate = async (briefing: string) => {
+    const sections = await generateLabsWebSections(briefing)
+    const blocks = sections.flatMap((s) => [
+      {
+        id: `blk-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: 'title' as const,
+        text: s.heading,
+      },
+      {
+        id: `blk-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: 'text' as const,
+        text: s.text,
+      },
+    ])
+    setDraft({
+      id: null,
+      title: sections[0]?.heading || 'Página gerada por IA',
+      slug: '',
+      blocks,
+      is_visible: true,
+      sort_order: pages.length,
+      publish_at: '',
+    })
+    toast({
+      title: 'Página gerada!',
+      description: 'Revise os blocos de título e texto antes de salvar.',
+    })
+  }
+
   const handleDelete = async (id: string) => {
     try {
       await deletePortalPage(id)
@@ -197,13 +231,23 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
           Páginas internas aparecem como navegação no portal público (ex: Sobre, Contato, Serviços).
         </p>
         {!draft && (
-          <Button
-            size="sm"
-            className="text-xs gap-1"
-            onClick={() => setDraft(emptyDraft(pages.length))}
-          >
-            <Plus className="w-3.5 h-3.5" /> Nova página
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1"
+              onClick={() => setAiOpen(true)}
+            >
+              <Wand2 className="w-3.5 h-3.5" /> Gerar com IA
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs gap-1"
+              onClick={() => setDraft(emptyDraft(pages.length))}
+            >
+              <Plus className="w-3.5 h-3.5" /> Nova página
+            </Button>
+          </div>
         )}
       </div>
 
@@ -434,6 +478,17 @@ export function PortalPagesManager({ brandId, userId }: PortalPagesManagerProps)
           onClose={() => setVersionsPage(null)}
         />
       )}
+
+      {/* Geração por IA (studio-agent) */}
+      <LabsAiGeneratorDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        title="Gerar página com IA"
+        description="Descreva o objetivo da página e a marca — a IA cria os textos de seção (títulos + parágrafos) que entram nos blocos para você revisar e editar."
+        placeholder="Ex.: página Sobre de uma escola de idiomas focada em conversação desde o primeiro dia"
+        generatingLabel="Gerando página…"
+        onGenerate={handleAiGenerate}
+      />
     </div>
   )
 }

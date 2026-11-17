@@ -11,6 +11,7 @@ import {
   Share2,
   ShieldCheck,
   Info,
+  Wand2,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,9 @@ import {
   type LabsBlogStatus,
 } from '@/services/labs-blog'
 import { createPost } from '@/services/labs-posts'
+import { generateLabsBlogDraft } from '@/services/labs-ai'
 import { StudioAdvancedEditorDialog } from '@/components/studio/StudioAdvancedEditorDialog'
+import { LabsAiGeneratorDialog } from '@/components/labs/LabsAiGeneratorDialog'
 import type { StudioCreationRecord } from '@/services/ai-studio'
 
 interface Draft {
@@ -91,6 +94,7 @@ export function LabsBlogTab() {
   const [brandId, setBrandId] = useState('')
   const [coverDialogOpen, setCoverDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [aiOpen, setAiOpen] = useState(false)
 
   // Compartilhar nas redes
   const [sharePost, setSharePost] = useState<LabsBlogPost | null>(null)
@@ -143,6 +147,21 @@ export function LabsBlogTab() {
   const startNew = () => {
     setEditingId('new')
     setDraft(emptyDraft())
+  }
+
+  /** Gera rascunho de artigo via studio-agent e preenche o editor (usuário edita antes de salvar). */
+  const handleAiGenerate = async (briefing: string) => {
+    setEditingId('new')
+    setDraft(emptyDraft())
+    const generated = await generateLabsBlogDraft(briefing)
+    setDraft({
+      id: null,
+      title: generated.title,
+      cover_url: '',
+      content: generated.body,
+      status: 'draft',
+    })
+    toast({ title: 'Rascunho gerado!', description: 'Revise e edite o texto antes de salvar.' })
   }
 
   const startEdit = (post: LabsBlogPost) => {
@@ -307,9 +326,23 @@ export function LabsBlogTab() {
           </p>
         </div>
         {editingId === null && (
-          <Button type="button" onClick={startNew} className="rounded-xl text-xs font-bold gap-1.5">
-            <Plus className="w-4 h-4" /> Novo artigo
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAiOpen(true)}
+              className="rounded-xl text-xs font-bold gap-1.5"
+            >
+              <Wand2 className="w-4 h-4" /> Gerar com IA
+            </Button>
+            <Button
+              type="button"
+              onClick={startNew}
+              className="rounded-xl text-xs font-bold gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> Novo artigo
+            </Button>
+          </div>
         )}
       </div>
 
@@ -688,6 +721,17 @@ export function LabsBlogTab() {
           onSave={handleCoverSaved}
         />
       )}
+
+      {/* Geração por IA (studio-agent) */}
+      <LabsAiGeneratorDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        title="Gerar artigo com IA"
+        description="Descreva o tema do artigo — a IA cria título e corpo que entram no editor para você revisar e editar."
+        placeholder="Ex.: 5 tendências de marketing digital para pequenas empresas em 2026"
+        generatingLabel="Gerando artigo…"
+        onGenerate={handleAiGenerate}
+      />
     </div>
   )
 }

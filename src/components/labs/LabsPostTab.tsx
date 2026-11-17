@@ -7,6 +7,7 @@ import {
   Clock,
   BarChart3,
   LayoutList,
+  Wand2,
   Sparkles as SparklesIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,8 @@ import { useAuth } from '@/context/AuthContext'
 import { LabsScheduledDashboard } from '@/components/labs/LabsScheduledDashboard'
 import { LabsPostMetrics } from '@/components/labs/LabsPostMetrics'
 import { StudioAgentPanel } from '@/components/StudioAgentPanel'
+import { generateLabsPostCaption } from '@/services/labs-ai'
+import { LabsAiGeneratorDialog } from '@/components/labs/LabsAiGeneratorDialog'
 
 // =========================================================================
 // ABA POST — Criação e AGENDAMENTO de posts sociais
@@ -109,6 +112,7 @@ export function LabsPostTab() {
   const [section, setSection] = useState<'agendados' | 'metricas' | 'recentes'>('agendados')
   const [reloadKey, setReloadKey] = useState(0)
   const [studioOpen, setStudioOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const loadRecent = useCallback(async () => {
     if (!user) return
@@ -215,6 +219,13 @@ export function LabsPostTab() {
     }
   }
 
+  /** Gera legenda via studio-agent e preenche o compositor (usuário edita antes de salvar). */
+  const handleAiGenerate = async (briefing: string) => {
+    const generated = await generateLabsPostCaption(briefing, network)
+    setCaption(generated.caption)
+    toast({ title: 'Legenda gerada!', description: 'Revise e edite o texto antes de salvar.' })
+  }
+
   return (
     <div className="space-y-6">
       <Card className="p-5 space-y-4">
@@ -224,22 +235,43 @@ export function LabsPostTab() {
           <Badge variant="outline" className="text-[9px] font-bold uppercase">
             Labs
           </Badge>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setStudioOpen((v) => !v)}
-            className="ml-auto h-7 text-[11px] font-bold gap-1 text-primary"
-            aria-pressed={studioOpen}
-          >
-            <SparklesIcon className="w-3.5 h-3.5" />
-            {studioOpen ? 'Ocultar Studio' : 'Abrir Studio'}
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAiOpen(true)}
+              className="h-7 text-[11px] font-bold gap-1"
+            >
+              <Wand2 className="w-3.5 h-3.5" /> Gerar com IA
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setStudioOpen((v) => !v)}
+              className="h-7 text-[11px] font-bold gap-1 text-primary"
+              aria-pressed={studioOpen}
+            >
+              <SparklesIcon className="w-3.5 h-3.5" />
+              {studioOpen ? 'Ocultar Studio' : 'Abrir Studio'}
+            </Button>
+          </div>
         </div>
 
         {studioOpen && (
           <StudioAgentPanel className="h-[320px]" contextHint="Criando post na aba Labs" />
         )}
+
+        <LabsAiGeneratorDialog
+          open={aiOpen}
+          onOpenChange={setAiOpen}
+          title={`Gerar post com IA (${network})`}
+          description="Descreva o que o post deve comunicar — a IA escreve a legenda que entra no campo de texto para você revisar e editar."
+          placeholder="Ex.: lançamento da coleção de verão com 20% off na primeira semana"
+          generatingLabel="Gerando post…"
+          onGenerate={handleAiGenerate}
+        />
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold">Texto do post</Label>

@@ -13,6 +13,7 @@ import {
   Share2,
   Trash2,
   Globe,
+  Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +41,8 @@ import {
   saveLabsEmailTemplate,
   type LabsEmailTemplate,
 } from '@/services/labs-email-templates'
+import { generateLabsEmailDraft } from '@/services/labs-ai'
+import { LabsAiGeneratorDialog } from '@/components/labs/LabsAiGeneratorDialog'
 
 // =========================================================================
 // ABA EMAIL — Compositor + envio real pelo Gmail conectado do usuário
@@ -134,6 +137,9 @@ export function LabsEmailTab() {
   const [tplName, setTplName] = useState('')
   const [tplDescription, setTplDescription] = useState('')
   const [savingTpl, setSavingTpl] = useState(false)
+
+  // Geração com IA (studio-agent)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const checkConnection = useCallback(async () => {
     try {
@@ -328,6 +334,15 @@ export function LabsEmailTab() {
     } finally {
       setSending(false)
     }
+  }
+
+  /** Gera assunto + corpo via studio-agent e preenche o compositor (usuário edita antes de enviar). */
+  const handleAiGenerate = async (briefing: string) => {
+    const generated = await generateLabsEmailDraft(briefing)
+    setSubject(generated.subject)
+    setHtml(generated.body_html)
+    setActiveTemplate('')
+    toast({ title: 'Email gerado!', description: 'Revise o assunto e o corpo antes de enviar.' })
   }
 
   const handleCopy = () => {
@@ -538,12 +553,32 @@ export function LabsEmailTab() {
             type="button"
             size="sm"
             variant="outline"
+            onClick={() => setAiOpen(true)}
+            className="rounded-xl text-xs font-bold gap-1.5"
+          >
+            <Wand2 className="w-3.5 h-3.5" /> Gerar com IA
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
             onClick={handleDownload}
             className="rounded-xl text-xs font-bold gap-1.5"
           >
             <Download className="w-3.5 h-3.5" /> Baixar HTML
           </Button>
         </div>
+
+        {/* Geração por IA (studio-agent) */}
+        <LabsAiGeneratorDialog
+          open={aiOpen}
+          onOpenChange={setAiOpen}
+          title="Gerar email com IA"
+          description="Descreva o objetivo do email — a IA cria o assunto e o corpo em HTML que entram no compositor para você revisar e editar."
+          placeholder="Ex.: anunciando 30% de desconto no plano anual, válido até sexta-feira"
+          generatingLabel="Gerando email…"
+          onGenerate={handleAiGenerate}
+        />
       </Card>
 
       {/* Meus templates (persistidos) */}
