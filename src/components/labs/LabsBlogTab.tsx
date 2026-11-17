@@ -14,6 +14,7 @@ import {
   Wand2,
   AlertCircle,
   RotateCcw,
+  Users,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,10 @@ import {
 import { createPost } from '@/services/labs-posts'
 import { generateLabsBlogDraft } from '@/services/labs-ai'
 import { StudioAdvancedEditorDialog } from '@/components/studio/StudioAdvancedEditorDialog'
+import { StudioEditCommentsPanel } from '@/components/studio/StudioEditCommentsPanel'
+import { useLiveEditCollaboration } from '@/hooks/use-live-edit-collaboration'
+import { saveEditVersion } from '@/services/studio-edit-versions'
+import type { AdvancedCustomizationState } from '@/components/workspace/AdvancedCustomizationPanel'
 import { LabsAiGeneratorDialog } from '@/components/labs/LabsAiGeneratorDialog'
 import { LabsCoverAiDialog } from '@/components/labs/LabsCoverAiDialog'
 import type { StudioCreationRecord } from '@/services/ai-studio'
@@ -84,6 +89,20 @@ const deriveCaption = (post: { title: string; content: string }): string => {
 const isAdminUser = (u: any): boolean =>
   Boolean(u && (u.role === 'admin' || u.isAdmin === true || u.profile?.role === 'admin'))
 
+/** Snapshot do artigo gravado em studio_edit_versions a cada salvamento —
+ *  é ele que alimenta o aviso de edição remota nas outras sessões. */
+interface BlogEditSnapshot {
+  title: string
+  cover_url: string
+  content: string
+  status: LabsBlogStatus
+}
+
+/** Payload do record = campo settings (snapshot do artigo). Definido fora do
+ *  componente para manter identidade estável (deps do subscribe do hook). */
+const mapBlogEditRecord = (_rec: Record<string, unknown>, payload: unknown) =>
+  (payload && typeof payload === 'object' ? payload : null) as Partial<BlogEditSnapshot> | null
+
 /** Editor + lista de artigos do Blog do Labs (persistidos em labs_blog_posts). */
 export function LabsBlogTab() {
   const { user } = useAuth()
@@ -100,6 +119,19 @@ export function LabsBlogTab() {
   const [coverAiOpen, setCoverAiOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [aiOpen, setAiOpen] = useState(false)
+
+  // Colaboração ao vivo (mesmo motor do Studio, v0.0.311): enquanto o editor
+  // está aberto num artigo EXISTENTE, assina studio_edit_versions por target_key
+  // e mostra presença + aviso quando outra pessoa salva o mesmo material.
+  const collabKey = draft.id ? `blog:${draft.id}` : null
+  const {
+    users: collabUsers,
+    remoteEdit,
+    dismissRemoteEdit,
+    registerOwnSave,
+  } = useLiveEditCollaboration<Partial<BlogEditSnapshot>>(collabKey, collabKey !== null, {
+    mapRecord: mapBlogEditRecord,
+  })
 
   // Compartilhar nas redes
   const [sharePost, setSharePost] = useState<LabsBlogPost | null>(null)
@@ -198,7 +230,7 @@ export function LabsBlogTab() {
     }
     setSaving(true)
     try {
-      await saveLabsBlogPost({
+      const saved = await saveLabsBlogPost({
         id: draft.id || undefined,
         user: user.id,
         brand: brandId || brands[0]?.id || user.id,
@@ -207,6 +239,25 @@ export function LabsBlogTab() {
         content: draft.content,
         status,
       })
+      // Colaboração: grava o snapshot em studio_edit_versions (mesma coleção do
+      // Studio) — as outras sessões com este artigo aberto recebem o aviso ao
+      // vivo. Best-effort: nunca bloqueia nem falha o salvamento do artigo.
+      void saveEditVersion({
+        targetKey: `blog:${saved.id}`,
+        title: saved.title,
+        settings: {
+          title: saved.title,
+          cover_url: saved.cover_url,
+          content: saved.content,
+          status: saved.status,
+        } as unknown as AdvancedCustomizationState,
+        aspectRatio: '16:9',
+        previewUrl: saved.cover_url,
+      })
+        .then((v) => {
+          if (v) registerOwnSave(v.id)
+        })
+        .catch(() => {})
       toast({
         title: status === 'published' ? 'Artigo publicado!' : 'Rascunho salvo!',
         description:
@@ -356,6 +407,54 @@ export function LabsBlogTab() {
       {/* Editor */}
       {editingId !== null && (
         <Card className="p-5 rounded-3xl border border-border/80 bg-card space-y-4">
+          {/* Colaboração ao vivo: presença + comentários + aviso de edição remota */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {collabUsers.map((u) => (
+                <Badge
+                  key={u.userId}
+                  variant="outline"
+                  className="gap-1.5 text-[10px] font-bold border-emerald-500/40 text-emerald-600 bg-emerald-500/10"
+                >
+                  <Users className="w-3 h-3" />
+                  {u.userId === user?.id ? 'Você' : `${u.name} está editando`}
+                </Badge>
+              ))}
+            </div>
+            <StudioEditCommentsPanel
+              targetKey={collabKey}
+              materialLabel={draft.title || 'Artigo'}
+            />
+          </div>
+          {remoteEdit && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+              <Users className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span className="text-foreground/90">
+                <b>{remoteEdit.userName}</b> editou este artigo agora.
+              </span>
+              <div className="flex-1" />
+              <Button
+                size="sm"
+                onClick={() => {
+                  const payload = remoteEdit.payload
+                  if (payload) setDraft((p) => ({ ...p, ...payload }))
+                  dismissRemoteEdit()
+                }}
+                className="h-7 px-2 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Atualizar agora
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={dismissRemoteEdit}
+                className="h-7 px-2 text-[11px] font-bold"
+                title="Manter meu trabalho em andamento"
+              >
+                Manter o meu
+              </Button>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Título</Label>
