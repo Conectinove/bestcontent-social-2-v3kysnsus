@@ -103,6 +103,51 @@ export async function generateLabsWebSections(briefing: string): Promise<LabsAiW
   return clean
 }
 
+/** Estrutura conteúdo colado/importado em seções de página de portal (título + texto). */
+export async function structureImportedSections(
+  content: string,
+): Promise<{ title: string; sections: LabsAiWebSection[] }> {
+  const clipped = content.slice(0, 12000)
+  const data = await chatJson<{ title: string; sections: LabsAiWebSection[] }>(
+    `[Importador de Conteúdo do Portal] Organize o conteúdo abaixo em uma página de portal, em português do Brasil. Remova menus, navegação, anúncios, rodapés e lixo de copiar/colar. Devolva {"title": "título curto da página", "sections": [{"heading": "título da seção", "text": "parágrafo da seção com 1 a 4 frases"}]} com 2 a 8 seções cobrindo o conteúdo principal.${JSON_RULE}\n\nConteúdo:\n${clipped}`,
+  )
+  const sections = Array.isArray(data.sections) ? data.sections : []
+  const clean = sections.filter((s) => s?.heading?.trim() && s?.text?.trim())
+  if (!data.title?.trim() || clean.length === 0) {
+    throw new Error(
+      'A IA não conseguiu organizar esse conteúdo em seções. Cole um texto maior ou reestruture e tente de novo.',
+    )
+  }
+  return { title: data.title.trim(), sections: clean }
+}
+
+/** Importa uma URL por texto extraído no servidor (hook portal_import.js: /backend/v1/portals/import-url). */
+export async function fetchUrlText(url: string): Promise<string> {
+  const clean = (url || '').trim()
+  if (!/^https?:\/\/[^\s]+$/i.test(clean)) {
+    throw new Error('Informe uma URL válida começando com http:// ou https://.')
+  }
+  try {
+    const res = await pb.send('/backend/v1/portals/import-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: clean }),
+    })
+    const text = (res?.text || '').trim()
+    if (!text) {
+      throw new Error(
+        'Não conseguimos extrair texto dessa página (pode ser muito pesada ou bloquear robôs). Cole o conteúdo manualmente.',
+      )
+    }
+    return text
+  } catch (err) {
+    if (err instanceof Error && !err.message.includes('Failed to fetch')) throw err
+    throw new Error(
+      'Não foi possível acessar a URL pelo servidor. Verifique o endereço ou cole o conteúdo manualmente.',
+    )
+  }
+}
+
 /** Legenda de post social para a rede escolhida. */
 export async function generateLabsPostCaption(
   briefing: string,
