@@ -8,6 +8,7 @@ import {
   Mail,
   Pencil,
   Plus,
+  RotateCcw,
   Save,
   Send,
   Share2,
@@ -128,6 +129,7 @@ export function LabsEmailTab() {
   // Templates personalizados (persistidos no banco)
   const [templates, setTemplates] = useState<LabsEmailTemplate[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [templatesError, setTemplatesError] = useState(false)
   const [showVars, setShowVars] = useState(false)
   const [vars, setVars] = useState<Record<string, string>>({})
 
@@ -158,9 +160,12 @@ export function LabsEmailTab() {
     }
     try {
       setTemplates(await listLabsEmailTemplates(user.id))
-    } catch {
-      // Falha silenciosa: a aba continua usável sem templates salvos
+      setTemplatesError(false)
+    } catch (err) {
+      // Erro visível: o usuário vê o que aconteceu e pode tentar de novo
+      console.error('Erro ao carregar templates de email:', err)
       setTemplates([])
+      setTemplatesError(true)
     } finally {
       setLoadingTemplates(false)
     }
@@ -600,6 +605,23 @@ export function LabsEmailTab() {
         {loadingTemplates ? (
           <Card className="p-6 flex items-center justify-center">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          </Card>
+        ) : templatesError ? (
+          <Card className="p-6 flex flex-col items-center justify-center gap-2 text-center border-destructive/30 bg-destructive/5">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            <p className="text-xs font-semibold text-foreground">Falha ao carregar templates</p>
+            <p className="text-[11px] text-muted-foreground">
+              Não foi possível buscar seus templates salvos.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void loadTemplates()}
+              className="rounded-xl text-xs font-bold gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Tentar novamente
+            </Button>
           </Card>
         ) : templates.length === 0 ? (
           <Card className="p-6 text-center space-y-1">

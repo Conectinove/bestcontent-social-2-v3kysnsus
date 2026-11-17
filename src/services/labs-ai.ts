@@ -1,6 +1,7 @@
 // Geração de conteúdo Labs via agente nativo "studio-agent" (migration 0129).
 // Reusa a MESMA rota do chat (hook studio_agent.js) com instruções embutidas
 // na mensagem — sem endpoint hand-rolled novo e sem $ai.chat.
+import { ClientResponseError } from 'pocketbase'
 import { sendStudioAgentChat } from './studio-agent'
 
 export interface LabsAiBlogDraft {
@@ -33,14 +34,34 @@ function extractJson<T>(raw: string): T {
   const start = cleaned.indexOf('{')
   const end = cleaned.lastIndexOf('}')
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error('A resposta da IA não veio no formato esperado.')
+    throw new Error('A resposta da IA não veio no formato esperado. Tente gerar de novo.')
   }
-  return JSON.parse(cleaned.slice(start, end + 1)) as T
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1)) as T
+  } catch {
+    // JSON.parse lança SyntaxError em inglês — traduzimos para algo acionável
+    throw new Error('A resposta da IA veio corrompida (JSON inválido). Tente gerar de novo.')
+  }
 }
 
 async function chatJson<T>(message: string): Promise<T> {
-  const result = await sendStudioAgentChat(message)
-  return extractJson<T>(result.content)
+  let raw: string
+  try {
+    const result = await sendStudioAgentChat(message)
+    raw = result.content
+  } catch (err) {
+    if (err instanceof ClientResponseError) {
+      // Rota do studio-agent falhou: mensagem em pt-BR e acionável, não genérica
+      if (!err.status || err.status === 0) {
+        throw new Error('Não foi possível falar com a IA. Verifique sua conexão e tente novamente.')
+      }
+      throw new Error(
+        `O serviço de IA respondeu com erro (${err.status}). Tente novamente em instantes.`,
+      )
+    }
+    throw err
+  }
+  return extractJson<T>(raw)
 }
 
 /** Rascunho de artigo do Blog: título + corpo em texto corrido. */

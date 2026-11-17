@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarClock, CalendarX2, Loader2, Pencil, RefreshCw, Trash2 } from 'lucide-react'
+import {
+  AlertCircle,
+  CalendarClock,
+  CalendarX2,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -86,6 +95,7 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
   const { user } = useAuth()
   const [scheduled, setScheduled] = useState<LabsScheduledPost[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
@@ -102,9 +112,12 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
     try {
       // Busca sem travar em status: draft/scheduled/published em uma ida
       setScheduled(await listScheduledPosts(user.id))
+      setLoadError(false)
     } catch (err) {
-      console.warn('Falha ao carregar agendados:', getErrorMessage(err))
+      // Erro visível: card com "Tentar novamente" — não some com a lista
+      console.error('Falha ao carregar agendados:', getErrorMessage(err))
       setScheduled([])
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -192,6 +205,27 @@ export function LabsScheduledDashboard({ reloadKey }: { reloadKey?: number }) {
     return (
       <Card className="p-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" /> Carregando agendamentos…
+      </Card>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <Card className="p-6 flex flex-col items-center justify-center gap-2 text-center border-destructive/30 bg-destructive/5">
+        <AlertCircle className="w-5 h-5 text-destructive" />
+        <p className="text-xs font-semibold text-foreground">Falha ao carregar agendamentos</p>
+        <p className="text-[11px] text-muted-foreground">
+          Não foi possível buscar os posts agendados.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => void load()}
+          className="rounded-xl text-xs font-bold gap-1.5"
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> Tentar novamente
+        </Button>
       </Card>
     )
   }

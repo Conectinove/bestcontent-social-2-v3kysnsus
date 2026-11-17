@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Sparkles, Wand2 } from 'lucide-react'
+import { AlertCircle, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,7 @@ export function LabsAiGeneratorDialog({
   const { toast } = useToast()
   const [briefing, setBriefing] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [inlineError, setInlineError] = useState<string | null>(null)
 
   const handleGenerate = async () => {
     if (!briefing.trim()) {
@@ -54,17 +55,21 @@ export function LabsAiGeneratorDialog({
       return
     }
     setGenerating(true)
+    setInlineError(null)
     try {
       await onGenerate(briefing.trim())
       setBriefing('')
       onOpenChange(false)
     } catch (err) {
+      // Erro acionável dentro do diálogo — o toast some rápido, o texto fica
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível gerar o conteúdo agora. Tente novamente.'
+      setInlineError(message)
       toast({
         title: 'Falha na geração com IA',
-        description:
-          err instanceof Error
-            ? err.message
-            : 'Não foi possível gerar o conteúdo agora. Tente novamente.',
+        description: message,
         variant: 'destructive',
       })
     } finally {
@@ -86,6 +91,12 @@ export function LabsAiGeneratorDialog({
           </DialogTitle>
           <DialogDescription className="text-xs">{description}</DialogDescription>
         </DialogHeader>
+        {inlineError && (
+          <div className="flex items-start gap-2 p-3 rounded-xl border border-destructive/30 bg-destructive/5">
+            <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+            <p className="text-xs text-foreground leading-relaxed">{inlineError}</p>
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="labs-ai-briefing" className="text-xs font-semibold">
             Briefing

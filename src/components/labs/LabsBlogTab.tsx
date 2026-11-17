@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Info,
   Wand2,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -89,6 +91,7 @@ export function LabsBlogTab() {
 
   const [posts, setPosts] = useState<LabsBlogPost[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [brandId, setBrandId] = useState('')
@@ -110,9 +113,11 @@ export function LabsBlogTab() {
     setLoading(true)
     try {
       setPosts(await listLabsBlogPosts(user.id))
+      setLoadError(false)
     } catch (err) {
+      // Estado de erro com retry — não deixa a lista "vazia" enganar o usuário
       console.error('Erro ao carregar artigos do blog:', err)
-      toast({ title: 'Erro ao carregar artigos', variant: 'destructive' })
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -503,6 +508,23 @@ export function LabsBlogTab() {
       {loading ? (
         <div className="flex items-center justify-center py-10 text-muted-foreground text-sm gap-2">
           <Loader2 className="w-4 h-4 animate-spin" /> Carregando artigos...
+        </div>
+      ) : loadError ? (
+        <div className="text-center py-10 rounded-3xl border border-destructive/30 bg-destructive/5 space-y-2">
+          <AlertCircle className="w-8 h-8 text-destructive mx-auto" />
+          <p className="text-sm font-bold text-foreground">Falha ao carregar artigos</p>
+          <p className="text-xs text-muted-foreground">
+            Não foi possível buscar seus artigos do blog.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void load()}
+            className="text-xs rounded-xl gap-1.5 font-bold"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Tentar novamente
+          </Button>
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-10 rounded-3xl border border-dashed border-border/80 space-y-2">

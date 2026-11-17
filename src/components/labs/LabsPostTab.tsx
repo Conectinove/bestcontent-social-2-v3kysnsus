@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  AlertCircle,
   CalendarClock,
   Loader2,
+  RotateCcw,
   Sparkles,
   FileText,
   Clock,
@@ -109,6 +111,7 @@ export function LabsPostTab() {
   const [creating, setCreating] = useState(false)
   const [recent, setRecent] = useState<RecentPost[]>([])
   const [loadingRecent, setLoadingRecent] = useState(true)
+  const [recentError, setRecentError] = useState(false)
   const [section, setSection] = useState<'agendados' | 'metricas' | 'recentes'>('agendados')
   const [reloadKey, setReloadKey] = useState(0)
   const [studioOpen, setStudioOpen] = useState(false)
@@ -134,8 +137,10 @@ export function LabsPostTab() {
         })),
       )
     } catch (err) {
-      // Falha silenciosa: lista de recentes é acessório, o form continua usável
-      console.warn('Falha ao carregar posts recentes:', getErrorMessage(err))
+      // Erro visível: card com "Tentar novamente" — o form continua usável
+      console.error('Falha ao carregar posts recentes:', getErrorMessage(err))
+      setRecent([])
+      setRecentError(true)
     } finally {
       setLoadingRecent(false)
     }
@@ -373,6 +378,23 @@ export function LabsPostTab() {
           (loadingRecent ? (
             <Card className="p-6 flex items-center justify-center">
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            </Card>
+          ) : recentError ? (
+            <Card className="p-6 flex flex-col items-center justify-center gap-2 text-center border-destructive/30 bg-destructive/5">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              <p className="text-xs font-semibold text-foreground">Falha ao carregar posts</p>
+              <p className="text-[11px] text-muted-foreground">
+                Não foi possível buscar seus posts recentes.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void loadRecent()}
+                className="rounded-xl text-xs font-bold gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Tentar novamente
+              </Button>
             </Card>
           ) : recent.length === 0 ? (
             <Card className="p-6 text-center space-y-1">
