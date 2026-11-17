@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -60,118 +61,128 @@ import OrgInviteAcceptPage from './pages/OrgInviteAcceptPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 import AdminRoute from './components/navigation/AdminRoute'
 
+// QueryClient único na raiz: painéis que usam react-query (ex. painel de
+// membros/permissões da organização) são montados em rotas distintas
+// (/app/calendar, /app/settings) e exigem o provider na árvore inteira.
+const queryClient = new QueryClient()
+
 const App = () => (
-  <BrowserRouter>
-    <AuthProvider>
-      <CustomizationProvider>
-        <SocialProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              {/* Public routes — no auth required */}
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/waitlist" element={<LandingPage />} />
-              <Route path="/review/:slug" element={<ClientApprovalPage />} />
-              {/* Link externo de preset (pedido 2): página pública de importação */}
-              <Route path="/importar-preset" element={<ImportPresetPage />} />
-              {/* Portal público de marca: servido FORA do layout autenticado */}
-              <Route path="/portal/:token" element={<BrandPortalPage />} />
-              {/* Aceite público de convite de organização (fora do layout autenticado) */}
-              <Route path="/convite/:token" element={<OrgInviteAcceptPage />} />
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
+      <AuthProvider>
+        <CustomizationProvider>
+          <SocialProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                {/* Public routes — no auth required */}
+                <Route path="/landing" element={<LandingPage />} />
+                <Route path="/waitlist" element={<LandingPage />} />
+                <Route path="/review/:slug" element={<ClientApprovalPage />} />
+                {/* Link externo de preset (pedido 2): página pública de importação */}
+                <Route path="/importar-preset" element={<ImportPresetPage />} />
+                {/* Portal público de marca: servido FORA do layout autenticado */}
+                <Route path="/portal/:token" element={<BrandPortalPage />} />
+                {/* Aceite público de convite de organização (fora do layout autenticado) */}
+                <Route path="/convite/:token" element={<OrgInviteAcceptPage />} />
 
-              {/* Onboarding / Assistente de Marca independente e imersivo */}
-              <Route path="/app/onboarding" element={<Onboarding />} />
-              <Route path="/app/brand-wizard" element={<Onboarding />} />
-              <Route path="/app/wizard-marca" element={<Onboarding />} />
-              {/* Wizard de marca (v2): /new = criação com formulário vazio, /:id = edição */}
-              <Route path="/app/brand-wizard/new" element={<BrandWizard />} />
-              <Route path="/app/brand-wizard/:id" element={<BrandWizard />} />
+                {/* Onboarding / Assistente de Marca independente e imersivo */}
+                <Route path="/app/onboarding" element={<Onboarding />} />
+                <Route path="/app/brand-wizard" element={<Onboarding />} />
+                <Route path="/app/wizard-marca" element={<Onboarding />} />
+                {/* Wizard de marca (v2): /new = criação com formulário vazio, /:id = edição */}
+                <Route path="/app/brand-wizard/new" element={<BrandWizard />} />
+                <Route path="/app/brand-wizard/:id" element={<BrandWizard />} />
 
-              {/* Authenticated routes inside Layout */}
-              <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/app" element={<Navigate to="/app/explorar" replace />} />
-                <Route path="/app/feed" element={<Feed />} />
-                <Route path="/app/feed-comunidade" element={<Navigate to="/app/feed" replace />} />
-                <Route path="/app/visao-geral" element={<VisaoGeral />} />
-                <Route path="/app/portal-cliente" element={<ClientPortal />} />
-                <Route path="/app/criar" element={<CreateHub />} />
-                <Route path="/app/criar/imagens" element={<ImageCreator />} />
-                <Route path="/app/criar/flyers" element={<FlyerCreator />} />
-                <Route path="/app/criar/videos" element={<GuidedCreator />} />
-                <Route
-                  path="/app/image-creator"
-                  element={<Navigate to="/app/criar/imagens" replace />}
-                />
-                <Route path="/app/guided" element={<Navigate to="/app/criar/videos" replace />} />
-                <Route path="/app/brands" element={<Brands />} />
-                <Route path="/app/brands/:id" element={<BrandDetail />} />
-                <Route path="/app/library" element={<Library />} />
-                <Route path="/app/studio" element={<AiMediaStudioPage />} />
-                <Route path="/app/ai-studio" element={<Navigate to="/app/studio" replace />} />
-                <Route path="/app/media-studio" element={<Navigate to="/app/studio" replace />} />
-                <Route path="/app/content/new" element={<CreatePost />} />
-                <Route path="/app/editor/:postId" element={<PostEditor />} />
-                <Route path="/app/calendar" element={<CalendarPage />} />
-                <Route path="/app/community" element={<CommunityDashboard />} />
-                <Route path="/app/community/topic/:id" element={<TopicDetail />} />
-                <Route path="/app/dashboard" element={<Dashboard />} />
-                <Route path="/app/social-hub" element={<SocialHubPage />} />
-                <Route path="/app/hub-social" element={<SocialHubPage />} />
-                <Route path="/app/campaigns" element={<CampaignPerformancePage />} />
-                <Route path="/app/campaigns-dashboard" element={<CampaignsDashboard />} />
-                <Route path="/app/dash-campanhas" element={<CampaignsDashboard />} />
-                <Route path="/app/performance" element={<PerformanceDashboard />} />
-                <Route path="/app/dashboard-performance" element={<PerformanceDashboard />} />
-                <Route path="/app/funnel" element={<SalesFunnelPage />} />
-                <Route path="/app/funil" element={<SalesFunnelPage />} />
-                <Route path="/app/crm" element={<CrmPage />} />
-                <Route path="/crm" element={<Navigate to="/app/crm" replace />} />
-                <Route path="/app/metricas" element={<Analytics />} />
-                <Route path="/metricas" element={<Navigate to="/app/analytics" replace />} />
-                <Route path="/app/data" element={<DatabasePage />} />
-                <Route path="/app/banco-de-dados" element={<DatabasePage />} />
-                <Route path="/app/students" element={<StudentsPage />} />
-                <Route path="/app/alunos" element={<StudentsPage />} />
-                <Route path="/app/analytics" element={<Analytics />} />
-                <Route path="/app/templates" element={<TemplatesPage />} />
-                <Route path="/app/brand-kit" element={<BrandKitPage />} />
-                <Route path="/app/labs" element={<LabsPage />} />
-                <Route path="/app/seo" element={<SeoTools />} />
-                <Route path="/app/ads" element={<AdsPage />} />
-                <Route path="/app/anuncios" element={<AdsPage />} />
-                <Route path="/app/pages" element={<PagesFunis />} />
-                <Route path="/app/discover" element={<Discover />} />
-                <Route path="/app/explorar" element={<Discover />} />
-                <Route path="/app/inspiracao" element={<Discover />} />
-                <Route path="/app/settings" element={<Settings />} />
-                <Route path="/app/indicar" element={<ReferralPage />} />
-                <Route path="/app/subscription" element={<Subscription />} />
-                <Route path="/app/assinatura" element={<Subscription />} />
-                <Route
-                  path="/app/admin/users"
-                  element={
-                    <AdminRoute>
-                      <AdminUsersPage />
-                    </AdminRoute>
-                  }
-                />
-              </Route>
+                {/* Authenticated routes inside Layout */}
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/app" element={<Navigate to="/app/explorar" replace />} />
+                  <Route path="/app/feed" element={<Feed />} />
+                  <Route
+                    path="/app/feed-comunidade"
+                    element={<Navigate to="/app/feed" replace />}
+                  />
+                  <Route path="/app/visao-geral" element={<VisaoGeral />} />
+                  <Route path="/app/portal-cliente" element={<ClientPortal />} />
+                  <Route path="/app/criar" element={<CreateHub />} />
+                  <Route path="/app/criar/imagens" element={<ImageCreator />} />
+                  <Route path="/app/criar/flyers" element={<FlyerCreator />} />
+                  <Route path="/app/criar/videos" element={<GuidedCreator />} />
+                  <Route
+                    path="/app/image-creator"
+                    element={<Navigate to="/app/criar/imagens" replace />}
+                  />
+                  <Route path="/app/guided" element={<Navigate to="/app/criar/videos" replace />} />
+                  <Route path="/app/brands" element={<Brands />} />
+                  <Route path="/app/brands/:id" element={<BrandDetail />} />
+                  <Route path="/app/library" element={<Library />} />
+                  <Route path="/app/studio" element={<AiMediaStudioPage />} />
+                  <Route path="/app/ai-studio" element={<Navigate to="/app/studio" replace />} />
+                  <Route path="/app/media-studio" element={<Navigate to="/app/studio" replace />} />
+                  <Route path="/app/content/new" element={<CreatePost />} />
+                  <Route path="/app/editor/:postId" element={<PostEditor />} />
+                  <Route path="/app/calendar" element={<CalendarPage />} />
+                  <Route path="/app/community" element={<CommunityDashboard />} />
+                  <Route path="/app/community/topic/:id" element={<TopicDetail />} />
+                  <Route path="/app/dashboard" element={<Dashboard />} />
+                  <Route path="/app/social-hub" element={<SocialHubPage />} />
+                  <Route path="/app/hub-social" element={<SocialHubPage />} />
+                  <Route path="/app/campaigns" element={<CampaignPerformancePage />} />
+                  <Route path="/app/campaigns-dashboard" element={<CampaignsDashboard />} />
+                  <Route path="/app/dash-campanhas" element={<CampaignsDashboard />} />
+                  <Route path="/app/performance" element={<PerformanceDashboard />} />
+                  <Route path="/app/dashboard-performance" element={<PerformanceDashboard />} />
+                  <Route path="/app/funnel" element={<SalesFunnelPage />} />
+                  <Route path="/app/funil" element={<SalesFunnelPage />} />
+                  <Route path="/app/crm" element={<CrmPage />} />
+                  <Route path="/crm" element={<Navigate to="/app/crm" replace />} />
+                  <Route path="/app/metricas" element={<Analytics />} />
+                  <Route path="/metricas" element={<Navigate to="/app/analytics" replace />} />
+                  <Route path="/app/data" element={<DatabasePage />} />
+                  <Route path="/app/banco-de-dados" element={<DatabasePage />} />
+                  <Route path="/app/students" element={<StudentsPage />} />
+                  <Route path="/app/alunos" element={<StudentsPage />} />
+                  <Route path="/app/analytics" element={<Analytics />} />
+                  <Route path="/app/templates" element={<TemplatesPage />} />
+                  <Route path="/app/brand-kit" element={<BrandKitPage />} />
+                  <Route path="/app/labs" element={<LabsPage />} />
+                  <Route path="/app/seo" element={<SeoTools />} />
+                  <Route path="/app/ads" element={<AdsPage />} />
+                  <Route path="/app/anuncios" element={<AdsPage />} />
+                  <Route path="/app/pages" element={<PagesFunis />} />
+                  <Route path="/app/discover" element={<Discover />} />
+                  <Route path="/app/explorar" element={<Discover />} />
+                  <Route path="/app/inspiracao" element={<Discover />} />
+                  <Route path="/app/settings" element={<Settings />} />
+                  <Route path="/app/indicar" element={<ReferralPage />} />
+                  <Route path="/app/subscription" element={<Subscription />} />
+                  <Route path="/app/assinatura" element={<Subscription />} />
+                  <Route
+                    path="/app/admin/users"
+                    element={
+                      <AdminRoute>
+                        <AdminUsersPage />
+                      </AdminRoute>
+                    }
+                  />
+                </Route>
 
-              {/* Public Auth routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
+                {/* Public Auth routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              {/* Fallback */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </SocialProvider>
-      </CustomizationProvider>
-    </AuthProvider>
-  </BrowserRouter>
+                {/* Fallback */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </SocialProvider>
+        </CustomizationProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </QueryClientProvider>
 )
 
 export default App
